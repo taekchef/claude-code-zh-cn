@@ -19,20 +19,20 @@
 ```
 ⠋ 光合作用中...
 
-  Tip: 按 Shift+Tab 在默认模式、自动接受编辑模式和 Plan 模式之间切换
+  💡 按 Shift+Tab 在默认模式、自动接受编辑模式和 Plan 模式之间切换
 ```
 
 ```
 ⠋ 蹦迪中...
 
-  Tip: 你知道可以直接把图片文件拖拽到终端里吗？
+  💡 你知道可以直接把图片文件拖拽到终端里吗？
 ```
 
 ```
-⠋ 那个啥来着中...
+  琢磨了 1m 23s
 ```
 
-188 个趣味 spinner 动词，41 条中文提示，AI 默认中文回复。不修改源码，装完即用。
+188 个趣味 spinner 动词，41 条中文提示，回复耗时中文化，AI 默认中文回复。装完即用。
 
 ## 特色：188 个趣味动词翻译
 
@@ -79,9 +79,10 @@ cd claude-code-zh-cn
 ```
 
 安装脚本会自动：
-- 备份现有 `~/.claude/settings.json`
+- 备份现有 `~/.claude/settings.json` 和 `cli.js`
 - 合并中文设置到 settings.json
 - 安装插件到 `~/.claude/plugins/claude-code-zh-cn/`
+- Patch cli.js 硬编码文字（回复耗时、/btw、/clear 等）
 
 ### 前置要求
 
@@ -131,21 +132,25 @@ claude-code-zh-cn/
 <details>
 <summary>展开看原理</summary>
 
-Claude Code CLI 是一个 13MB 的单文件压缩包（`cli.js`），所有 UI 文字硬编码其中，没有 i18n 基础设施。本项目不修改源码，而是利用 Claude Code 自带的三层扩展点：
+Claude Code CLI 是一个 13MB 的单文件压缩包（`cli.js`），所有 UI 文字硬编码其中，没有 i18n 基础设施。本项目通过四层机制实现中文化：
 
-**Layer 1 — 内置设置**
+**Layer 1 — 内置设置**（稳定，更新后不丢失）
 - `language`: 控制 AI 回复语言
 - `spinnerTipsOverride`: 替换等待提示文字
 - `spinnerVerbs`: 替换 spinner 动词
 
-**Layer 2 — Hook 系统**
+**Layer 2 — Hook 系统**（稳定，更新后不丢失）
 - `SessionStart`: 会话启动时注入中文上下文指令
 - `Notification`: 拦截系统通知并翻译
 
-**Layer 3 — 插件系统**
+**Layer 3 — 插件系统**（稳定，更新后不丢失）
 - 标准 Claude Code 插件格式
 - 提供 Chinese Output Style
-- 可通过 `install.sh` / `uninstall.sh` 管理生命周期
+
+**Layer 4 — CLI Patch**（更新后需重跑 install.sh）
+- `sed` 替换 `cli.js` 中的硬编码文字
+- 回复耗时动词、/btw、/clear 提示、Tip 前缀等
+- 有备份机制，`uninstall.sh` 可还原
 
 </details>
 
