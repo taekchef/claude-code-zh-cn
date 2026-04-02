@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# session-start hook for claude-code-zh-cn
+# Injects Chinese context into Claude Code sessions
+
+read -r INPUT
+
+cat <<'HOOK_OUTPUT'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "## 中文本地化提示\n\n你正在使用中文本地化版本。请遵循以下规则：\n- 默认使用中文（简体）回复用户\n- 技术术语保留英文（如 API、PR、git、npm、React、TypeScript 等）\n- 使用中文标点符号（，。！？：；「」）\n- 错误信息尽量提供中文解释，附带英文原文\n- 保持简洁直接的风格\n- 代码注释使用中文\n- 日期格式使用 YYYY年MM月DD日\n\n## 常见错误信息翻译参考\n- Permission denied → 权限被拒绝\n- File not found → 文件未找到\n- Command not found → 命令未找到\n- Connection refused → 连接被拒绝\n- Timeout → 超时\n- Rate limited → 请求频率受限\n- Internal server error → 服务器内部错误\n- Unauthorized → 未授权\n- Forbidden → 禁止访问\n- Not found → 未找到"
+  }
+}
+HOOK_OUTPUT

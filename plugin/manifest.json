@@ -1,0 +1,14 @@
+{
+  "name": "claude-code-zh-cn",
+  "version": "1.0.0",
+  "description": "Claude Code 中文本地化插件 — 简体中文支持",
+  "author": "changfenhuang",
+  "license": "MIT",
+  "hooks": "hooks.json",
+  "outputStyles": [
+    {
+      "name": "chinese",
+      "path": "output-styles/chinese.json"
+    }
+  ]
+}

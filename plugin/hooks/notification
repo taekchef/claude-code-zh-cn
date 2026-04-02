@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# notification hook for claude-code-zh-cn
+# Translates common notifications to Chinese
+
+read -r INPUT
+
+# Extract notification message if present
+MESSAGE=$(echo "$INPUT" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('message', ''))
+except:
+    print('')
+" 2>/dev/null)
+
+# Common notification translations
+declare -A TRANSLATIONS
+TRANSLATIONS["Rate limited"]="请求频率受限，请稍后再试"
+TRANSLATIONS["Token limit reached"]="Token 用量已达上限"
+TRANSLATIONS["Session expired"]="会话已过期"
+TRANSLATIONS["Context window"]="上下文窗口即将用尽，建议使用 /compact 压缩"
+TRANSLATIONS["Usage limit"]="使用额度已达上限"
+TRANSLATIONS["Auto-compact"]="正在自动压缩对话历史..."
+
+# Check for matching translations
+TRANSLATED=""
+for key in "${!TRANSLATIONS[@]}"; do
+    if [[ "$MESSAGE" == *"$key"* ]]; then
+        TRANSLATED="${TRANSLATIONS[$key]}"
+        break
+    fi
+done
+
+# Output translated notification if found
+if [ -n "$TRANSLATED" ]; then
+    cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "Notification",
+    "additionalContext": "通知翻译：$TRANSLATED"
+  }
+}
+EOF
+else
+    echo '{}'
+fi
