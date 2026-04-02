@@ -88,15 +88,76 @@ mkdir -p "$PLUGIN_DST"
 cp -r "$PLUGIN_SRC"/* "$PLUGIN_DST/"
 echo -e "${GREEN}已安装插件 → ${PLUGIN_DST}${NC}"
 
+# Patch cli.js 硬编码文字
+CLI_FILE="$(dirname "$(which claude)")/../lib/node_modules/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
+if [ -z "$CLI_FILE" ]; then
+    # 尝试 npm global 路径
+    CLI_FILE="$(npm root -g)/@anthropic-ai/claude-code/cli.js"
+fi
+
+if [ -f "$CLI_FILE" ]; then
+    echo ""
+    echo -e "${BLUE}正在 patch cli.js 硬编码文字...${NC}"
+
+    # 备份 cli.js
+    cp "$CLI_FILE" "${CLI_FILE}.zh-cn-backup"
+    echo -e "${GREEN}已备份 cli.js${NC}"
+
+    # macOS uses sed -i '', Linux uses sed -i
+    SED_INPLACE='sed -i'
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        SED_INPLACE='sed -i ""'
+    fi
+
+    PATCH_COUNT=0
+
+    # 1. 过去式动词 (Cogitated for 2m 25s → 思考了 2m 25s)
+    if $SED_INPLACE 's/UE6=\["Baked","Brewed","Churned","Cogitated","Cooked","Crunched","Sautéed","Worked"\]/UE6=["烘焙了","沏好了","翻搅了","琢磨了","烹饪了","嚼完了","翻炒了","搞定了"]/g' "$CLI_FILE" 2>/dev/null; then
+        PATCH_COUNT=$((PATCH_COUNT + 1))
+    fi
+
+    # 2. /btw 提示
+    if $SED_INPLACE 's/Use \/btw to ask a quick side question without interrupting Claude'\''s current work/使用 \/btw 提一个快速问题，不会打断当前工作/g' "$CLI_FILE" 2>/dev/null; then
+        PATCH_COUNT=$((PATCH_COUNT + 1))
+    fi
+
+    # 3. /clear 提示
+    if $SED_INPLACE 's/Use \/clear to start fresh when switching topics and free up context/使用 \/clear 清空对话，切换话题并释放上下文/g' "$CLI_FILE" 2>/dev/null; then
+        PATCH_COUNT=$((PATCH_COUNT + 1))
+    fi
+
+    # 4. Tip: 前缀 → 💡
+    if $SED_INPLACE 's/`Tip: \${A6}`/`💡 \${A6}`/g' "$CLI_FILE" 2>/dev/null; then
+        PATCH_COUNT=$((PATCH_COUNT + 1))
+    fi
+
+    # 5. recap: 前缀 → 回顾:
+    if $SED_INPLACE 's/"recap:"," "/"回顾:"," "/g' "$CLI_FILE" 2>/dev/null; then
+        PATCH_COUNT=$((PATCH_COUNT + 1))
+    fi
+
+    # 6. nudge/nudges → 次提醒
+    if $SED_INPLACE 's/===1?"nudge":"nudges"/===1?"次提醒":"次提醒"/g' "$CLI_FILE" 2>/dev/null; then
+        PATCH_COUNT=$((PATCH_COUNT + 1))
+    fi
+
+    echo -e "${GREEN}已 patch cli.js（${PATCH_COUNT} 处硬编码文字）${NC}"
+else
+    echo -e "${YELLOW}未找到 cli.js，跳过 patch 步骤${NC}"
+    echo -e "  提示：如果 Claude Code 安装在非标准路径，可能需要手动 patch"
+fi
+
 echo ""
 echo -e "${GREEN}=== 安装完成！===${NC}"
 echo ""
 echo -e "已启用的功能："
 echo -e "  ${GREEN}✓${NC} AI 回复语言 → 中文"
 echo -e "  ${GREEN}✓${NC} Spinner 提示 → 中文（41 条）"
-echo -e "  ${GREEN}✓${NC} Spinner 动词 → 中文（150+ 个）"
+echo -e "  ${GREEN}✓${NC} Spinner 动词 → 中文（188 个）"
 echo -e "  ${GREEN}✓${NC} 会话启动 Hook → 中文上下文注入"
 echo -e "  ${GREEN}✓${NC} 通知 Hook → 中文翻译"
 echo -e "  ${GREEN}✓${NC} 输出风格 → Chinese"
+echo -e "  ${GREEN}✓${NC} CLI Patch → 回复耗时动词 + /btw + /clear 提示中文化"
 echo ""
 echo -e "重启 Claude Code 即可生效。如需卸载，运行：${YELLOW}./uninstall.sh${NC}"
+echo -e "${YELLOW}注意：${NC}Claude Code 更新后需重跑 ${YELLOW}./install.sh${NC} 以重新 patch cli.js"

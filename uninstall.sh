@@ -53,6 +53,22 @@ if [ -d "$PLUGIN_DST" ]; then
     echo -e "${GREEN}已移除插件目录${NC}"
 fi
 
+# 还原 cli.js patch
+CLI_FILE="$(dirname "$(which claude)")/../lib/node_modules/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
+if [ -z "$CLI_FILE" ]; then
+    CLI_FILE="$(npm root -g)/@anthropic-ai/claude-code/cli.js"
+fi
+
+if [ -f "${CLI_FILE}.zh-cn-backup" ]; then
+    cp "${CLI_FILE}.zh-cn-backup" "$CLI_FILE"
+    rm "${CLI_FILE}.zh-cn-backup"
+    echo -e "${GREEN}已还原 cli.js${NC}"
+elif [ -f "$CLI_FILE" ]; then
+    # 没有备份，通过重装还原
+    echo -e "${YELLOW}cli.js 没有备份文件，建议运行以下命令还原：${NC}"
+    echo "  npm install -g @anthropic-ai/claude-code"
+fi
+
 echo ""
 echo -e "${GREEN}=== 卸载完成！==={NC}"
 echo "重启 Claude Code 即可恢复英文界面"
