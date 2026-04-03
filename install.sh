@@ -57,6 +57,11 @@ OVERLAY_CONTENT=$(cat "$OVERLAY_FILE")
 if $USE_JQ; then
     # 使用 jq 深度合并
     MERGED=$(jq -s '.[0] * .[1]' "$SETTINGS_FILE" <(echo "$OVERLAY_CONTENT"))
+    if [ -z "$MERGED" ] || ! echo "$MERGED" | jq 'type == "object"' >/dev/null 2>&1; then
+        echo -e "${RED}错误：settings.json 合并失败，已恢复备份${NC}"
+        cp "$BACKUP_FILE" "$SETTINGS_FILE"
+        exit 1
+    fi
     echo "$MERGED" > "$SETTINGS_FILE"
 else
     # 使用 python3 合并（通过环境变量传参，避免注入风险）

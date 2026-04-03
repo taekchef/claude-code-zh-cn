@@ -119,6 +119,8 @@ if (markerIdx !== -1) {
     }
 }
 
-fs.writeFileSync(f, s);
+const tmp = f + ".zh-cn-tmp";
+fs.writeFileSync(tmp, s);
+fs.renameSync(tmp, f);
 console.log(count);
 ' "$CLI_FILE" 2>/dev/null
