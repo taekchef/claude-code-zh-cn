@@ -32,9 +32,9 @@
   琢磨了 1m 23s
 ```
 
-188 个趣味 spinner 动词，41 条中文提示，回复耗时中文化，AI 默认中文回复。装完即用。
+187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化，AI 默认中文回复。装完即用。
 
-## 特色：188 个趣味动词翻译
+## 特色：187 个趣味动词翻译
 
 原版 Claude Code 的 spinner 有一堆故意搞怪的英文动词（`Flibbertigibbeting`、`Photosynthesizing`、`Moonwalking`...），我们全部按原味翻译了：
 
@@ -48,14 +48,14 @@
 | `Clauding` | 克劳丁中 | | `Boogieing` | 蹦迪中 |
 | `Canoodling` | 腻歪中 | | `Spelunking` | 探洞中 |
 
-完整 188 个翻译见 [verbs/zh-CN.json](./verbs/zh-CN.json)
+完整 187 个翻译见 [verbs/zh-CN.json](./verbs/zh-CN.json)
 
 ## 覆盖了什么
 
 | 功能 | 数量 | 怎么做的 |
 |------|------|---------|
 | AI 回复语言 | - | `language: Chinese` |
-| Spinner 动词 | 188 个 | `spinnerVerbs` |
+| Spinner 动词 | 187 个 | `spinnerVerbs` |
 | Spinner 提示 | 41 条 | `spinnerTipsOverride` |
 | 中文上下文注入 | - | SessionStart Hook |
 | 通知翻译 | 6 条 | Notification Hook |
@@ -124,7 +124,7 @@ claude-code-zh-cn/
 │   ├── en.json              ← 英文原文（对照）
 │   └── zh-CN.json           ← 中文翻译
 └── verbs/
-    └── zh-CN.json           ← 188 个中文动词
+    └── zh-CN.json           ← 187 个中文动词
 ```
 
 ## 技术原理
