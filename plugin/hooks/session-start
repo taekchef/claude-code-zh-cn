@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # session-start hook for claude-code-zh-cn
 # 1. 注入中文上下文指令
-# 2. 检测 cli.js 版本变更，自动重 patch
+# 2. 检测 cli.js 版本变更，自动重 patch（不恢复旧备份，直接 patch 当前版本）
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
 MARKER_FILE="$PLUGIN_ROOT/.patched-version"
@@ -20,12 +20,7 @@ if [ -f "$CLI_FILE" ]; then
     [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
 
     if [ "$CURRENT_VERSION" != "$PATCHED_VERSION" ]; then
-        # 版本变了（或首次），执行 patch
-        # 如果有备份先恢复
-        if [ -f "${CLI_FILE}.zh-cn-backup" ]; then
-            cp "${CLI_FILE}.zh-cn-backup" "$CLI_FILE"
-        fi
-
+        # 版本变了（或首次），直接 patch 当前文件（不恢复旧备份，避免降级）
         PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$CLI_FILE" 2>/dev/null || echo "0")
 
         if [ "$PATCH_COUNT" != "0" ]; then

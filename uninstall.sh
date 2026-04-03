@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # claude-code-zh-cn 卸载脚本
-# 恢复原始 settings.json 并移除插件
+# 精准移除插件注入的设置，保留用户其他配置
 
 set -euo pipefail
 
@@ -16,17 +16,11 @@ NC='\033[0m'
 echo -e "${BLUE}=== Claude Code 中文本地化插件 卸载 ===${NC}"
 echo ""
 
-# 查找最早的备份（即原始文件）
-OLDEST_BACKUP=$(ls -t "$HOME/.claude/settings.json.zh-cn-backup."* 2>/dev/null | tail -1)
-
-if [ -n "$OLDEST_BACKUP" ]; then
-    cp "$OLDEST_BACKUP" "$SETTINGS_FILE"
-    echo -e "${GREEN}已恢复 settings.json ← ${OLDEST_BACKUP}${NC}"
-else
-    # 没有备份，手动移除中文设置
+# 精准移除插件注入的 key（保留用户其他配置）
+if [ -f "$SETTINGS_FILE" ]; then
     if command -v jq &>/dev/null; then
         jq 'del(.language) | del(.spinnerTipsOverride) | del(.spinnerVerbs)' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
-        echo -e "${GREEN}已从 settings.json 移除中文设置${NC}"
+        echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
     elif command -v python3 &>/dev/null; then
         python3 -c "
 import json
@@ -38,7 +32,7 @@ with open('$SETTINGS_FILE', 'w') as f:
     json.dump(s, f, indent=2, ensure_ascii=False)
     f.write('\n')
 "
-        echo -e "${GREEN}已从 settings.json 移除中文设置${NC}"
+        echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
     else
         echo -e "${YELLOW}请手动编辑 $SETTINGS_FILE 移除以下字段：${NC}"
         echo "  - language"
@@ -64,11 +58,13 @@ if [ -f "${CLI_FILE}.zh-cn-backup" ]; then
     rm "${CLI_FILE}.zh-cn-backup"
     echo -e "${GREEN}已还原 cli.js${NC}"
 elif [ -f "$CLI_FILE" ]; then
-    # 没有备份，通过重装还原
     echo -e "${YELLOW}cli.js 没有备份文件，建议运行以下命令还原：${NC}"
     echo "  npm install -g @anthropic-ai/claude-code"
 fi
 
+# 清理备份文件
+rm -f "$HOME/.claude/settings.json.zh-cn-backup."* 2>/dev/null && echo -e "${GREEN}已清理 settings.json 备份${NC}"
+
 echo ""
-echo -e "${GREEN}=== 卸载完成！==={NC}"
+echo -e "${GREEN}=== 卸载完成！===${NC}"
 echo "重启 Claude Code 即可恢复英文界面"

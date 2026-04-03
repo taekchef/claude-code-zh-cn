@@ -110,14 +110,21 @@ if [ -f "$CLI_FILE" ]; then
     echo ""
     echo -e "${BLUE}正在 patch cli.js 硬编码文字...${NC}"
 
-    # 如果已有备份，先恢复原始文件再重新 patch（确保幂等）
+    # 检测 cli.js 版本，避免用旧备份覆盖新版
+    CURRENT_VERSION=$(sed -n 's/^\/\/ Version: //p' "$CLI_FILE" | head -1) || CURRENT_VERSION=""
+    BACKUP_VERSION=""
     if [ -f "${CLI_FILE}.zh-cn-backup" ]; then
+        BACKUP_VERSION=$(sed -n 's/^\/\/ Version: //p' "${CLI_FILE}.zh-cn-backup" | head -1) || BACKUP_VERSION=""
+    fi
+
+    if [ "${CURRENT_VERSION:-}" = "${BACKUP_VERSION:-}" ] && [ -n "${BACKUP_VERSION:-}" ] && [ -f "${CLI_FILE}.zh-cn-backup" ]; then
+        # 版本一致，安全恢复原始再 patch（确保幂等）
         cp "${CLI_FILE}.zh-cn-backup" "$CLI_FILE"
-        echo -e "${GREEN}已从备份恢复原始 cli.js${NC}"
+        echo -e "${GREEN}已从备份恢复原始 cli.js（版本一致: ${CURRENT_VERSION:-unknown}）${NC}"
     else
-        # 首次安装，备份原始文件
+        # 版本不同或首次安装，备份当前版本
         cp "$CLI_FILE" "${CLI_FILE}.zh-cn-backup"
-        echo -e "${GREEN}已备份 cli.js${NC}"
+        echo -e "${GREEN}已备份 cli.js（版本: ${CURRENT_VERSION:-unknown}）${NC}"
     fi
 
     PATCH_COUNT=$("$SCRIPT_DIR/patch-cli.sh" "$CLI_FILE" 2>/dev/null || echo "0")
