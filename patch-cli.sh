@@ -121,6 +121,8 @@ if (markerIdx !== -1) {
 
 const tmp = f + ".zh-cn-tmp";
 fs.writeFileSync(tmp, s);
+const origMode = fs.statSync(f).mode;
+fs.chmodSync(tmp, origMode);
 fs.renameSync(tmp, f);
 console.log(count);
 ' "$CLI_FILE" 2>/dev/null
