@@ -55,10 +55,9 @@ if (tipMatch) {
     count++;
 }
 
-// 5. 去掉耗时 " Worked for " / " for " 连接符
-if (!tryReplace(" Worked for ", " ")) {
-    tryReplace(" for ", " ");
-}
+// 5. 去掉耗时连接符（两处模板：${QE} Worked for ${I5(...)} 和 ${$} for ${M}）
+tryReplace(" Worked for ", " ");
+tryReplace(" for ${M}", " ${M}");
 
 // 6. 时间单位中文化（通过特征定位 duration formatter 函数）
 const marker = "if(q<60000)";
