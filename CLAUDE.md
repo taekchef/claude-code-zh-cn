@@ -6,11 +6,22 @@ Claude Code CLI 中文本地化插件。
 
 - `patch-cli.sh` — CLI 硬编码文字 patch（被 install.sh 和 session-start hook 调用）
 - `install.sh` / `uninstall.sh` — 安装/卸载脚本
-- `settings-overlay.json` — 合并到 settings.json 的中文设置
+- `settings-overlay.json` — 合并到 settings.json 的中文设置（只含 language、spinnerTipsEnabled 等独有配置，**不含** verbs 和 tips 数据）
 - `plugin/` — 插件（manifest、hooks、output-styles）
-- `verbs/zh-CN.json` — 187 个 spinner 动词翻译
-- `tips/zh-CN.json` — 41 条 spinner 提示翻译
+- `verbs/zh-CN.json` — 187 个 spinner 动词翻译（**唯一数据源**）
+- `tips/zh-CN.json` — 41 条 spinner 提示翻译（**唯一数据源**）
 - `CHANGELOG.md` — 版本变更记录
+
+## 数据流
+
+翻译数据**单一来源**，不允许重复维护：
+
+- `verbs/zh-CN.json` 是动词的**唯一数据源**
+- `tips/zh-CN.json` 是提示的**唯一数据源**
+- `settings-overlay.json` **不重复存放** verbs 和 tips 数据
+- `install.sh` 安装时从上述两个 JSON 文件动态读取，现场组装合并到 `~/.claude/settings.json`
+
+**禁止**把 verbs 或 tips 的内容复制到 settings-overlay.json 里。如果要修改翻译，只改 verbs/ 或 tips/ 里的文件。
 
 ## 技术要点
 
