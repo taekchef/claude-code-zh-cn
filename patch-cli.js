@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // patch-cli.js - cli.js 硬编码文字中文 patch（安全版）
-// 只替换 JavaScript 字符串字面量内的文字，避免破坏代码标识符
+// 只替换 JavaScript 双引号字符串字面量内的文字，避免破坏代码标识符
 // 被 patch-cli.sh 调用
 
 const fs = require("fs");
@@ -13,7 +13,8 @@ if (!cliFile || !fs.existsSync(cliFile)) {
     process.exit(0);
 }
 
-let s = fs.readFileSync(cliFile, "utf8");
+const original = fs.readFileSync(cliFile, "utf8");
+let s = original;
 let count = 0;
 
 // === Helper：直接全量替换（仅用于特殊 patch，匹配特定代码模式）===
@@ -28,26 +29,15 @@ function tryReplace(from, to) {
 }
 
 // === 特殊 patch（基于精确代码模式匹配，安全）===
+// 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
-// 1. 过去式动词
+// 1. 过去式动词数组
 tryReplace(
     '["Baked","Brewed","Churned","Cogitated","Cooked","Crunched","Saut\u00e9ed","Worked"]',
     '["烘焙了","沏了","翻搅了","琢磨了","烹饪了","嚼了","翻炒了","忙活了"]'
 );
 
-// 2. /btw 提示
-tryReplace(
-    "Use /btw to ask a quick side question without interrupting Claude\u0027s current work",
-    "使用 /btw 提一个问题，不会打断当前工作"
-);
-
-// 3. /clear 提示
-tryReplace(
-    "Use /clear to start fresh when switching topics and free up context",
-    "使用 /clear 清空对话，切换话题并释放上下文"
-);
-
-// 4. Tip: → 💡
+// 2. Tip: → 💡
 const tipMatch = s.match(/`Tip: \$\{[^}]+\}`/);
 if (tipMatch) {
     const replaced = tipMatch[0].replace("Tip: ", "\u{1F4A1} ");
@@ -55,29 +45,7 @@ if (tipMatch) {
     count++;
 }
 
-// 5. Compacting
-tryReplace("Compacting conversation\u2026", "压缩对话中…");
-tryReplace("Compacting conversation", "压缩对话中");
-
-// 6. Hook messages
-tryReplace("Running PreCompact hooks\u2026", "运行预压缩 Hook…");
-tryReplace("Running PostCompact hooks\u2026", "运行压缩后 Hook…");
-tryReplace("Running SessionStart hooks\u2026", "运行会话启动 Hook…");
-tryReplace("running stop hooks\u2026", "运行停止 Hook…");
-tryReplace("running ${yq} hook", "运行 ${yq} Hook");
-
-// 7. Hook counts
-tryReplace('" hook…"', '" 个 Hook…"');
-tryReplace('" hooks…"', '" 个 Hook…"');
-
-// 8. Background agents
-tryReplace('"All background agents stopped"', '"所有后台代理已停止"');
-
-// 9. Time connectors
-tryReplace(" Worked for ", " ");
-tryReplace(" for ${M}", " ${M}");
-
-// 10. Duration formatter
+// 3. Duration formatter（时间单位中文化）
 const marker = "if(q<60000)";
 const markerIdx = s.indexOf(marker);
 if (markerIdx !== -1) {
@@ -119,28 +87,19 @@ if (markerIdx !== -1) {
     }
 }
 
-// === 安全批量翻译：只在字符串字面量内替换 ===
+// === 安全批量翻译：只在双引号字符串字面量内替换 ===
 //
-// 将源码解析为交替的 [isString, text] 段：
-//   isString=1 → 字符串字面量（"..."、'...'、`...`）— 安全替换
-//   isString=0 → 代码 — 不替换
-//
-// 这样 "Error" 在代码标识符（TypeError）中不会被替换，
-// 但 "Error" 在字符串字面量（"Error"）中会被替换为 "错误"。
+// 为什么只处理双引号（"）：
+// - 混淆后的 cli.js 几乎只用 " 作为字符串引号
+// - ' 会出现在注释和缩写中（如 "We're"），导致解析器失步
+// - ` 模板字符串中的 ${...} 需要额外处理，增加复杂度和出错风险
+// - 只处理 " 覆盖了绝大多数 UI 文字，且安全可靠
 
 const segs = [];
 {
     let i = 0;
     while (i < s.length) {
-        // 查找下一个引号字符：" ' `
-        let qPos = -1;
-        for (let j = i; j < s.length; j++) {
-            const c = s.charCodeAt(j);
-            if (c === 34 || c === 39 || c === 96) { // " ' `
-                qPos = j;
-                break;
-            }
-        }
+        const qPos = s.indexOf('"', i);
         if (qPos < 0) {
             if (i < s.length) segs.push([0, s.substring(i)]);
             break;
@@ -148,63 +107,22 @@ const segs = [];
         // 引号前的代码段
         if (qPos > i) segs.push([0, s.substring(i, qPos)]);
 
-        const qChar = s[qPos];
-
-        if (qChar === '"' || qChar === "'") {
-            // 简单字符串：找匹配的结束引号
-            let esc = false, end = -1;
-            for (let j = qPos + 1; j < s.length; j++) {
-                if (esc) { esc = false; continue; }
-                if (s[j] === '\\') { esc = true; continue; }
-                if (s[j] === qChar) { end = j; break; }
-            }
-            if (end < 0) {
-                segs.push([0, s.substring(qPos)]);
-                break;
-            }
-            segs.push([1, s.substring(qPos, end + 1)]);
-            i = end + 1;
-        } else {
-            // 模板字符串 `...`：需要把 ${...} 内的代码当作代码段处理
-            // 逐字符扫描，遇到 ${ 就切换到代码模式
-            let j = qPos + 1;
-            let strStart = qPos;
-            let esc = false;
-
-            while (j < s.length) {
-                if (esc) { esc = false; j++; continue; }
-                if (s[j] === '\\') { esc = true; j++; continue; }
-                // 遇到 ${ ：当前字符串部分结束，开始代码块
-                if (s[j] === '$' && j + 1 < s.length && s[j + 1] === '{') {
-                    // 发出字符串段（从 strStart 到当前位置 +1，即包含 ${
-                    // 不对：字符串段应该只包含 ${ 之前的模板文字部分
-                    segs.push([1, s.substring(strStart, j)]);
-                    // 找匹配的 }
-                    let depth = 1;
-                    const codeStart = j; // 从 $ 开始
-                    j += 2;
-                    while (j < s.length && depth > 0) {
-                        if (s[j] === '{') depth++;
-                        else if (s[j] === '}') depth--;
-                        if (depth > 0) j++;
-                    }
-                    // 代码段 ${...}
-                    segs.push([0, s.substring(codeStart, j + 1)]);
-                    j++;
-                    strStart = j; // 下一部分从这里开始
-                    continue;
-                }
-                // 遇到关闭 `
-                if (s[j] === '`') {
-                    // 发出最后的字符串段（包含关闭 `）
-                    segs.push([1, s.substring(strStart, j + 1)]);
-                    j++;
-                    break;
-                }
-                j++;
-            }
-            i = j;
+        // 找匹配的结束双引号（处理转义 \"）
+        let esc = false, end = -1;
+        for (let j = qPos + 1; j < s.length; j++) {
+            if (esc) { esc = false; continue; }
+            if (s[j] === '\\') { esc = true; continue; }
+            if (s[j] === '"') { end = j; break; }
         }
+        if (end < 0) {
+            // 未终止的字符串 → 当作代码处理
+            segs.push([0, s.substring(qPos)]);
+            break;
+        }
+
+        // 字符串段（含前后引号）
+        segs.push([1, s.substring(qPos, end + 1)]);
+        i = end + 1;
     }
 }
 
@@ -212,9 +130,11 @@ const segs = [];
 if (translationsFile && fs.existsSync(translationsFile)) {
     const translations = JSON.parse(fs.readFileSync(translationsFile, "utf8"));
     translations.sort((a, b) => b.en.length - a.en.length);
-    let jsonCount = 0;
 
     for (const { en, zh } of translations) {
+        // 跳过 no-op 条目
+        if (en === zh) continue;
+
         let hit = false;
         for (const seg of segs) {
             if (seg[0] === 1 && seg[1].includes(en)) {
@@ -222,19 +142,20 @@ if (translationsFile && fs.existsSync(translationsFile)) {
                 hit = true;
             }
         }
-        if (hit) jsonCount++;
-    }
-
-    count += jsonCount;
-    if (jsonCount > 0) {
-        console.error("  JSON translations applied: " + jsonCount + "/" + translations.length);
+        if (hit) count++;
     }
 }
 
 // 从段重建源码
 s = segs.map(seg => seg[1]).join("");
 
-// === 原子写入（保留文件权限，兼容 Windows）===
+// === 只有实际改变文件内容才写入 ===
+if (s === original) {
+    // 文件无变化，不写入
+    console.log("0");
+    process.exit(0);
+}
+
 const tmp = cliFile + ".zh-cn-tmp";
 fs.writeFileSync(tmp, s);
 const origMode = fs.statSync(cliFile).mode;
