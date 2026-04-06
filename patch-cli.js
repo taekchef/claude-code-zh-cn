@@ -94,11 +94,8 @@ if (markerIdx !== -1) {
 // 匹配双引号字符串字面量中包含英文文本的位置，
 // 然后在回调中替换 en→zh。
 //
-// 这样做的好处：
-// 1. 不需要全局段解析器（避免正则/除法歧义、模板字符串干扰）
-// 2. 每条翻译独立处理，互不影响
-// 3. 正则 `[^"]*` 确保只在完整双引号字符串内匹配
-// 4. 反引号模板和正则字面量中的文本不会被匹配（因为它们不以 " 包裹）
+// 正则字面量中的 " 也会被匹配（如 /"Error"/），在回调中通过
+// 检查 offset 前一个字符是否为 / 来排除。
 //
 // 限制：
 // - 不翻译反引号模板中的文本（22 条在模板中，暂不覆盖）
@@ -112,7 +109,6 @@ if (translationsFile && fs.existsSync(translationsFile)) {
     for (const { en, zh } of translations) {
         if (en === zh) continue;
 
-        // 跳过包含正则特殊字符过多的条目（可能导致正则构建失败）
         // 对 en 文本进行正则转义
         const enEscaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -121,7 +117,13 @@ if (translationsFile && fs.existsSync(translationsFile)) {
         const regex = new RegExp('("[^"\\\\]*' + enEscaped + '[^"\\\\]*")', 'g');
 
         let hit = false;
-        s = s.replace(regex, (match) => {
+        s = s.replace(regex, (match, p1, offset, str) => {
+            // 跳过正则字面量内的 "..."（如 /"Error"/ 中的 "Error"）
+            // 正则字面量特征：offset 前一个字符是 /
+            // （除法运算符的 / 后面不会紧跟 "，所以这个启发式在 minified JS 中安全）
+            if (offset > 0 && str[offset - 1] === '/') {
+                return match;
+            }
             const replaced = match.substring(0, match.length - 1)
                 .split(en).join(zh) + '"';
             if (replaced !== match) hit = true;
