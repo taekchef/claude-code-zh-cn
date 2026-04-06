@@ -264,84 +264,8 @@
     "zh": "运行验证..."
   },
   {
-    "en": "Aborted",
-    "zh": "已中止"
-  },
-  {
-    "en": "Cancelled",
-    "zh": "已取消"
-  },
-  {
-    "en": "Interrupted",
-    "zh": "已中断"
-  },
-  {
-    "en": "Paused",
-    "zh": "已暂停"
-  },
-  {
-    "en": "Stopped",
-    "zh": "已停止"
-  },
-  {
-    "en": "Idle",
-    "zh": "空闲"
-  },
-  {
-    "en": "Loaded",
-    "zh": "已加载"
-  },
-  {
-    "en": "Installed",
-    "zh": "已安装"
-  },
-  {
-    "en": "Removed",
-    "zh": "已移除"
-  },
-  {
-    "en": "Added",
-    "zh": "已添加"
-  },
-  {
-    "en": "Scheduled",
-    "zh": "已计划"
-  },
-  {
-    "en": "Running",
-    "zh": "运行中"
-  },
-  {
-    "en": "Advising",
-    "zh": "建议中"
-  },
-  {
-    "en": "Thinking",
-    "zh": "思考中"
-  },
-  {
     "en": "Thinking…",
     "zh": "思考中…"
-  },
-  {
-    "en": "Done",
-    "zh": "完成"
-  },
-  {
-    "en": "Success",
-    "zh": "成功"
-  },
-  {
-    "en": "Available",
-    "zh": "可用"
-  },
-  {
-    "en": "Enabled",
-    "zh": "已启用"
-  },
-  {
-    "en": "Disabled",
-    "zh": "已禁用"
   },
   {
     "en": "Unchanged since last read",
@@ -354,26 +278,6 @@
   {
     "en": "Sorry, Claude encountered an error",
     "zh": "抱歉，Claude 遇到了错误"
-  },
-  {
-    "en": "Error",
-    "zh": "错误"
-  },
-  {
-    "en": "Error: ",
-    "zh": "错误："
-  },
-  {
-    "en": "Warning: ",
-    "zh": "警告："
-  },
-  {
-    "en": "Warnings:",
-    "zh": "警告："
-  },
-  {
-    "en": "Errors:",
-    "zh": "错误："
   },
   {
     "en": "Unknown Error",
@@ -528,44 +432,12 @@
     "zh": "暂无近期活动"
   },
   {
-    "en": "Accept",
-    "zh": "接受"
-  },
-  {
-    "en": "Deny",
-    "zh": "拒绝"
-  },
-  {
-    "en": "Allow",
-    "zh": "允许"
-  },
-  {
-    "en": "Dismiss",
-    "zh": "忽略"
-  },
-  {
-    "en": "Back",
-    "zh": "返回"
-  },
-  {
     "en": "Go back",
     "zh": "返回"
   },
   {
-    "en": "Cancel",
-    "zh": "取消"
-  },
-  {
-    "en": "Continue",
-    "zh": "继续"
-  },
-  {
     "en": "Continue this conversation",
     "zh": "继续此对话"
-  },
-  {
-    "en": "Save",
-    "zh": "保存"
   },
   {
     "en": "Delete agent",
@@ -584,36 +456,12 @@
     "zh": "创建新 Agent"
   },
   {
-    "en": "Enable",
-    "zh": "启用"
-  },
-  {
-    "en": "Disable",
-    "zh": "禁用"
-  },
-  {
-    "en": "Remove",
-    "zh": "移除"
-  },
-  {
-    "en": "Reconnect",
-    "zh": "重新连接"
-  },
-  {
     "en": "Reconnect extension",
     "zh": "重新连接扩展"
   },
   {
     "en": "Re-authenticate",
     "zh": "重新认证"
-  },
-  {
-    "en": "Authenticate",
-    "zh": "认证"
-  },
-  {
-    "en": "Login",
-    "zh": "登录"
   },
   {
     "en": "Log in to Claude",
@@ -636,16 +484,8 @@
     "zh": "断开此会话"
   },
   {
-    "en": "Exit",
-    "zh": "退出"
-  },
-  {
     "en": "Exit without making changes",
     "zh": "退出且不更改"
-  },
-  {
-    "en": "Regenerate",
-    "zh": "重新生成"
   },
   {
     "en": "Rename session:",
@@ -654,14 +494,6 @@
   {
     "en": "Try again",
     "zh": "重试"
-  },
-  {
-    "en": "Fetch",
-    "zh": "获取"
-  },
-  {
-    "en": "Discover",
-    "zh": "发现"
   },
   {
     "en": "Learn more",
@@ -754,18 +586,6 @@
   {
     "en": "Approve, edit, or comment on the plan",
     "zh": "批准、编辑或评论计划"
-  },
-  {
-    "en": "Yes",
-    "zh": "是"
-  },
-  {
-    "en": "No",
-    "zh": "否"
-  },
-  {
-    "en": "None",
-    "zh": "无"
   },
   {
     "en": "Never mind",
@@ -918,18 +738,6 @@
   {
     "en": "Automatic color",
     "zh": "自动颜色"
-  },
-  {
-    "en": "Sonnet",
-    "zh": "Sonnet"
-  },
-  {
-    "en": "Haiku",
-    "zh": "Haiku"
-  },
-  {
-    "en": "Opus",
-    "zh": "Opus"
   },
   {
     "en": "Sonnet (1M context)",
@@ -1344,76 +1152,12 @@
     "zh": "按任意键退出"
   },
   {
-    "en": "Config",
-    "zh": "配置"
-  },
-  {
-    "en": "Configure",
-    "zh": "配置"
-  },
-  {
     "en": "Configure options",
     "zh": "配置选项"
   },
   {
-    "en": "Settings",
-    "zh": "设置"
-  },
-  {
-    "en": "Status",
-    "zh": "状态"
-  },
-  {
-    "en": "Overview",
-    "zh": "概览"
-  },
-  {
-    "en": "Progress",
-    "zh": "进度"
-  },
-  {
-    "en": "Memory",
-    "zh": "记忆"
-  },
-  {
     "en": "Memory files",
     "zh": "记忆文件"
-  },
-  {
-    "en": "Tools",
-    "zh": "工具"
-  },
-  {
-    "en": "Skills",
-    "zh": "技能"
-  },
-  {
-    "en": "Plugins",
-    "zh": "插件"
-  },
-  {
-    "en": "Marketplaces",
-    "zh": "市场"
-  },
-  {
-    "en": "Hooks",
-    "zh": "Hook"
-  },
-  {
-    "en": "Shortcuts",
-    "zh": "快捷键"
-  },
-  {
-    "en": "Theme",
-    "zh": "主题"
-  },
-  {
-    "en": "Language",
-    "zh": "语言"
-  },
-  {
-    "en": "Color",
-    "zh": "颜色"
   },
   {
     "en": "Output style",
@@ -1422,10 +1166,6 @@
   {
     "en": "Preferred output style",
     "zh": "首选输出风格"
-  },
-  {
-    "en": "Permissions:",
-    "zh": "权限："
   },
   {
     "en": "Permission mode",
@@ -1452,32 +1192,12 @@
     "zh": "管理 Agent 配置"
   },
   {
-    "en": "Default",
-    "zh": "默认"
-  },
-  {
     "en": "Default (recommended)",
     "zh": "默认（推荐）"
   },
   {
     "en": "Medium (recommended)",
     "zh": "中等（推荐）"
-  },
-  {
-    "en": "Low",
-    "zh": "低"
-  },
-  {
-    "en": "High",
-    "zh": "高"
-  },
-  {
-    "en": "Unlimited",
-    "zh": "无限"
-  },
-  {
-    "en": "Other",
-    "zh": "其他"
   },
   {
     "en": "Reduce motion",
@@ -1572,24 +1292,8 @@
     "zh": "Option 作为 Meta"
   },
   {
-    "en": "Sandbox",
-    "zh": "沙箱"
-  },
-  {
     "en": "Sandbox is not enabled",
     "zh": "沙箱未启用"
-  },
-  {
-    "en": "Proxy",
-    "zh": "代理"
-  },
-  {
-    "en": "Email",
-    "zh": "邮箱"
-  },
-  {
-    "en": "Agents",
-    "zh": "Agent"
   },
   {
     "en": "Custom agents",
@@ -1712,10 +1416,6 @@
     "zh": "发现插件"
   },
   {
-    "en": "Diagnostics",
-    "zh": "诊断"
-  },
-  {
     "en": "System Diagnostics",
     "zh": "系统诊断"
   },
@@ -1738,10 +1438,6 @@
   {
     "en": "Security guide",
     "zh": "安全指南"
-  },
-  {
-    "en": "Notifications",
-    "zh": "通知"
   },
   {
     "en": "Install Chrome extension",
@@ -1784,10 +1480,6 @@
     "zh": "查看 Claude Code 更新日志"
   },
   {
-    "en": "Remote Control",
-    "zh": "远程控制"
-  },
-  {
     "en": "Remote Control active",
     "zh": "远程控制已激活"
   },
@@ -1820,20 +1512,12 @@
     "zh": "浏览器没有打开？使用下面的链接登录"
   },
   {
-    "en": "Usage",
-    "zh": "用量"
-  },
-  {
     "en": "Context Usage",
     "zh": "上下文用量"
   },
   {
     "en": "Context Usage Warnings",
     "zh": "上下文用量警告"
-  },
-  {
-    "en": "Stats",
-    "zh": "统计"
   },
   {
     "en": "Active days:",
@@ -1870,10 +1554,6 @@
   {
     "en": "Longest session:",
     "zh": "最长会话："
-  },
-  {
-    "en": "Sessions:",
-    "zh": "会话数："
   },
   {
     "en": "Clear conversation history and free up context",
@@ -2038,10 +1718,6 @@
   {
     "en": "Anthropic base URL",
     "zh": "Anthropic 基础 URL"
-  },
-  {
-    "en": "Auth token",
-    "zh": "认证令牌"
   },
   {
     "en": "OAuth token",
