@@ -28,6 +28,18 @@ function tryReplace(from, to) {
     return false;
 }
 
+function tryRegexReplace(pattern, replacer) {
+    let hit = false;
+    s = s.replace(pattern, (...args) => {
+        const match = args[0];
+        const replaced = replacer(...args);
+        if (replaced !== match) hit = true;
+        return replaced;
+    });
+    if (hit) count++;
+    return hit;
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -109,6 +121,21 @@ tryReplace('"Idle for "', '"空闲 "');
 // 修: `${bL} ${w3(Date.now()-V.startTime)}` → "烘焙了 27分26秒"
 tryReplace(' Worked for ${w3(Date.now()-V.startTime)}', ' ${w3(Date.now()-V.startTime)}');
 tryReplace('${bL} Idle', '${bL} 空闲');
+
+// 5c. 同类 duration 模板的泛化匹配
+// 某些版本会改变量名或表达式，但模板结构仍是 `${verb} Worked for ${duration}`。
+// 这里按模板形态处理，不再依赖固定变量名。
+tryRegexReplace(/\$\{[^}]+\}\s+Worked for\s+\$\{[^}]+\}/g, (match) =>
+    match.replace(" Worked for ", " ")
+);
+tryRegexReplace(/\$\{[^}]+\}\s+Idle(?=[`"])/g, (match) =>
+    match.replace(" Idle", " 空闲")
+);
+
+// 5c. 消息完成后的状态行（显示 "翻搅了 for 51秒" 的地方）
+// 原: let G=H&&`${O} for ${M}`  （O=动词, M=时长）
+// 修: let G=H&&`${O} ${M}`     → "翻搅了 51秒"
+tryReplace('`${O} for ${M}`', '`${O} ${M}`');
 
 // === 逐条翻译：用正则匹配双引号字符串内的目标文本 ===
 //
