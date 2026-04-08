@@ -1238,5 +1238,9 @@
   {
     "en": "Play animation",
     "zh": "播放动画"
+  },
+  {
+    "en": "This command requires approval",
+    "zh": "此命令需要批准"
   }
 ]
