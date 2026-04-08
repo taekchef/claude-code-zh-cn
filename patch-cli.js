@@ -98,6 +98,12 @@ tryReplace(
     '"Claude Code 将能在此目录中读取、编辑和执行文件。"'
 );
 
+// 5. 去掉 duration display 的 "for" 连接词
+// 原始: createElement(T, ..., verb, " for ", duration) → "沏了 for 27分26秒"
+// 修复: " for " → " "（仅匹配 createElement 文本节点模式）
+tryReplace('," for ",', '," ",');
+tryReplace('"Idle for "', '"空闲 "');
+
 // === 逐条翻译：用正则匹配双引号字符串内的目标文本 ===
 //
 // 原理：对每条翻译 { en, zh }，构建正则：
