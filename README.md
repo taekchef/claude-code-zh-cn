@@ -9,7 +9,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.x-green)](https://github.com/anthropics/claude-code)
-[![Version](https://img.shields.io/badge/Version-1.3.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.3.1-blue)](./CHANGELOG.md)
 
 **3 条命令安装 · 更新后自动修复 · 卸载不丢配置**
 
@@ -128,7 +128,7 @@ cd claude-code-zh-cn
 | 中文上下文注入 | - | SessionStart Hook |
 | 通知翻译 | 6 条 | Notification Hook |
 | 输出风格 | - | Chinese Output Style |
-| UI 文字全量中文化 | 313 处（310 条翻译 + 3 条特殊 patch） | CLI Patch（逐条正则匹配双引号字符串） |
+| UI 文字全量中文化 | 322 条翻译 + 3 条特殊 patch | CLI Patch（逐条正则匹配双引号字符串） |
 | 自动重 patch | - | 版本检测，更新后首次会话自动修复 |
 
 ## 技术原理

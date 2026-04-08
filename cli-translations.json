@@ -1282,5 +1282,9 @@
   {
     "en": "No, and don't show plugin installation hints again",
     "zh": "否，不再显示插件安装提示"
+  },
+  {
+    "en": "Answering...",
+    "zh": "回答中..."
   }
 ]
