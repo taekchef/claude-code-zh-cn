@@ -3037,7 +3037,7 @@
   },
   {
     "en": "Use /clear to start fresh when switching topics and free up context",
-    "zh": "使用 /clear 切换话题时重新开始，释放上下文空间"
+    "zh": "切换话题时用 /clear 重新开始，释放上下文空间"
   },
   {
     "en": "new task? /clear to save ",
