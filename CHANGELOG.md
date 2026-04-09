@@ -23,11 +23,12 @@
 - 新增覆盖：/btw 和 /clear 完整提示翻译
 - 新增覆盖：8 条完整 Press 句子翻译（替代短翻译 "Press "）
 
-### 改进
+### 修复
 
-- 自动重 patch 机制改进：使用 PATCH_REVISION（SHA256）检测插件规则变更，而非仅检测版本号
-- 添加基础测试（patch-cli.test.js、plugin-payload.test.js、session-start-hook.test.js）
-- patch-cli.js 同步到 plugin/ 目录
+- 修复 SyntaxError 导致 Claude Code 无法启动：batch3 新增的 46 条短翻译（`Type`、`Error:`、`Run` 等）在双引号内匹配到代码标识符，导致 `TypeError` → `类型Error`、`SuppressedError` → `Suppressed错误`（本会话修复：删除危险翻译；Codex 协作：重写 patch-cli.js 字符串解析器增加防护层）
+- 自动重 patch 机制改进：使用 PATCH_REVISION（SHA256）检测插件规则变更，而非仅检测版本号（Codex 协作）
+- patch-cli.js 重写：新增 `scanDoubleQuotedLiterals()` 安全解析器，防止翻译匹配到代码标识符（Codex 协作）
+- 添加基础测试（patch-cli.test.js、plugin-payload.test.js、session-start-hook.test.js）（Codex 协作）
 
 ## [2.0.1] - 2026-04-08
 
