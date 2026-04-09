@@ -6,6 +6,20 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.0.3] - 2026-04-09
+
+### 修复
+
+- **修复 SyntaxError 导致 Claude Code 无法启动**：batch3 新增的 46 条短翻译（`Type`、`Error:`、`Run` 等）在双引号内匹配到代码标识符，导致 `TypeError` → `类型Error`、`SuppressedError` → `Suppressed错误`。删除危险翻译后恢复正常。
+- patch-cli.js 重写：新增 `scanDoubleQuotedLiterals()` 安全解析器，防止翻译匹配到代码标识符（Codex 协作）
+- 自动重 patch 机制改进：使用 PATCH_REVISION（SHA256）检测插件规则变更（Codex 协作）
+- 添加基础测试（Codex 协作）
+
+### 变化
+
+- 翻译条目：1509 → 1463（删除 46 条危险的短翻译）
+- patch 覆盖：1485 → 1443 处
+
 ## [2.0.2] - 2026-04-09
 
 ### 新增

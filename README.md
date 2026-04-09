@@ -9,7 +9,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.x-green)](https://github.com/anthropics/claude-code)
-[![Version](https://img.shields.io/badge/Version-2.0.2-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2.0.3-blue)](./CHANGELOG.md)
 
 **3 条命令安装 · 更新后自动修复 · 卸载不丢配置**
 
