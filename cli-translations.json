@@ -332,6 +332,10 @@
     "zh": "AWS 配置（SSO 或命名配置）"
   },
   {
+    "en": "Accept edits",
+    "zh": "接受编辑"
+  },
+  {
     "en": "Accept terms · Help improve Claude: OFF",
     "zh": "接受条款 · 帮助改进 Claude：关"
   },
@@ -344,12 +348,28 @@
     "zh": "接受条款 · 帮助改进 Claude：开"
   },
   {
+    "en": "Access denied to specific paths outside allowed directories",
+    "zh": "拒绝访问允许目录外的特定路径"
+  },
+  {
+    "en": "Access denied.",
+    "zh": "访问被拒绝。"
+  },
+  {
     "en": "Access key + secret",
     "zh": "访问密钥 + 密钥"
   },
   {
+    "en": "Accessibility and Screen Recording permissions are required. Call request_access to show the permission panel.",
+    "zh": "需要辅助功能和屏幕录制权限。调用 request_access 显示权限面板。"
+  },
+  {
     "en": "Action: ",
     "zh": "操作："
+  },
+  {
+    "en": "Activate pending plugin changes in the current session",
+    "zh": "在当前会话中激活待处理的插件更改"
   },
   {
     "en": "Add Marketplace",
@@ -376,6 +396,10 @@
     "zh": "Agent 解析错误"
   },
   {
+    "en": "Agent idle",
+    "zh": "Agent 空闲"
+  },
+  {
     "en": "All available plugins are already installed.",
     "zh": "所有可用插件都已安装。"
   },
@@ -384,8 +408,16 @@
     "zh": "所有后台 Agent 已停止"
   },
   {
+    "en": "All plugins from our internal marketplace are vetted and approved.",
+    "zh": "我们内部市场的所有插件都经过审查和批准。"
+  },
+  {
     "en": "All plugins from this marketplace are already installed.",
     "zh": "此市场的所有插件都已安装。"
+  },
+  {
+    "en": "Allow external CLAUDE.md file imports?",
+    "zh": "允许外部 CLAUDE.md 文件导入？"
   },
   {
     "en": "Allow possible downgrade to stable version",
@@ -406,6 +438,10 @@
   {
     "en": "Also requested:",
     "zh": "同时请求："
+  },
+  {
+    "en": "Also try: ",
+    "zh": "还可以试试："
   },
   {
     "en": "Always copy full response",
@@ -432,8 +468,44 @@
     "zh": "任意 Bash 命令"
   },
   {
+    "en": "Append a system prompt to the default system prompt",
+    "zh": "将系统提示追加到默认系统提示"
+  },
+  {
+    "en": "Are you sure you want to delete the agent",
+    "zh": "确定要删除此 Agent 吗"
+  },
+  {
+    "en": "Are you sure you want to delete this permission rule?",
+    "zh": "确定要删除此权限规则吗？"
+  },
+  {
     "en": "Args: ",
     "zh": "参数："
+  },
+  {
+    "en": "Ask a quick side question without interrupting the main conversation",
+    "zh": "问个旁路问题，不打断主对话"
+  },
+  {
+    "en": "Ask a repository admin to run this command if setup fails",
+    "zh": "如果设置失败，请仓库管理员运行此命令"
+  },
+  {
+    "en": "Async agent",
+    "zh": "异步 Agent"
+  },
+  {
+    "en": "Async hook ",
+    "zh": "异步 Hook "
+  },
+  {
+    "en": "Auth method",
+    "zh": "认证方式"
+  },
+  {
+    "en": "Auth token",
+    "zh": "认证令牌"
   },
   {
     "en": "Auth: ",
@@ -508,6 +580,22 @@
     "zh": "返回插件列表"
   },
   {
+    "en": "Background process cannot read terminal input",
+    "zh": "后台进程无法读取终端输入"
+  },
+  {
+    "en": "Background process cannot write to terminal output",
+    "zh": "后台进程无法写入终端输出"
+  },
+  {
+    "en": "Bad request:",
+    "zh": "请求错误："
+  },
+  {
+    "en": "Balanced performance - best for most agents",
+    "zh": "平衡性能 - 适合大多数 Agent"
+  },
+  {
     "en": "Be comprehensive for best results",
     "zh": "尽量全面以获得最佳效果"
   },
@@ -536,12 +624,32 @@
     "zh": "二进制文件 - 无法显示 diff"
   },
   {
+    "en": "Brief explanation of the classification decision",
+    "zh": "分类决定的简要说明"
+  },
+  {
+    "en": "Broken pipe - server closed connection unexpectedly",
+    "zh": "管道断开 - 服务器意外关闭连接"
+  },
+  {
+    "en": "Browser didn't open automatically. URL is shown in UI.",
+    "zh": "浏览器未自动打开。URL 已显示在界面中。"
+  },
+  {
     "en": "Browser didn't open? Use the url below to sign in",
     "zh": "浏览器没有打开？使用下面的链接登录"
   },
   {
+    "en": "Browser switching is only available with bridge connections.",
+    "zh": "浏览器切换仅在桥接连接中可用。"
+  },
+  {
     "en": "Bug Report",
     "zh": "报告问题"
+  },
+  {
+    "en": "Built-in Hooks",
+    "zh": "内置 Hook"
   },
   {
     "en": "Built-in MCPs",
@@ -566,6 +674,18 @@
   {
     "en": "Can Anthropic look at your session transcript to help us improve Claude Code?",
     "zh": "是否允许 Anthropic 查看你的会话记录以帮助改进 Claude Code？"
+  },
+  {
+    "en": "Can Claude...",
+    "zh": "Claude 能不能..."
+  },
+  {
+    "en": "Cancelled ",
+    "zh": "已取消 "
+  },
+  {
+    "en": "Cancelled: ",
+    "zh": "已取消："
   },
   {
     "en": "Cannot block unix domain sockets (see Dependencies tab)",
@@ -644,6 +764,22 @@
     "zh": "Claude Code"
   },
   {
+    "en": "Claude Code Browser Extension Native Host",
+    "zh": "Claude Code 浏览器扩展本地宿主"
+  },
+  {
+    "en": "Claude Code Review - Automated code review on new PRs",
+    "zh": "Claude Code Review - 新 PR 的自动代码审查"
+  },
+  {
+    "en": "Claude Code installation completed successfully",
+    "zh": "Claude Code 安装成功完成"
+  },
+  {
+    "en": "Claude Code is an agentic coding CLI based on the Anthropic API.",
+    "zh": "Claude Code 是基于 Anthropic API 的智能编程 CLI。"
+  },
+  {
     "en": "Claude Code reads this from AWS_REGION, not ~/.aws/config — set it explicitly even if your profile has a region.",
     "zh": "Claude Code 从 AWS_REGION 读取此设置，而非 ~/.aws/config — 即使你的 profile 有 region 也需要显式设置。"
   },
@@ -660,6 +796,10 @@
     "zh": "Claude Code 将能读取此目录中的文件，并在自动接受编辑开启时进行编辑。"
   },
   {
+    "en": "Claude Code will no longer have access to files in this directory.",
+    "zh": "Claude Code 将不再能访问此目录中的文件。"
+  },
+  {
     "en": "Claude Code will restart to apply.",
     "zh": "Claude Code 将重启以生效。"
   },
@@ -668,8 +808,20 @@
     "zh": "Claude 可能会犯错"
   },
   {
+    "en": "Claude checkpoints your files before every edit. Press",
+    "zh": "Claude 在每次编辑前会检查点你的文件。按"
+  },
+  {
+    "en": "Claude explains its implementation choices and codebase patterns",
+    "zh": "Claude 解释其实现选择和代码库模式"
+  },
+  {
     "en": "Claude found these results:",
     "zh": "Claude 找到了以下结果："
+  },
+  {
+    "en": "Claude in Chrome enabled by default",
+    "zh": "默认启用 Chrome 中的 Claude"
   },
   {
     "en": "Claude in Chrome is not supported in WSL at this time.",
@@ -692,12 +844,28 @@
     "zh": "Claude 在等待你的输入"
   },
   {
+    "en": "Claude pauses and asks you to write small pieces of code for hands-on practice",
+    "zh": "Claude 暂停并让你编写小段代码进行实践练习"
+  },
+  {
+    "en": "Claude will respond without extended thinking",
+    "zh": "Claude 将不使用扩展思考回复"
+  },
+  {
+    "en": "Claude will think before responding",
+    "zh": "Claude 会在回复前思考"
+  },
+  {
     "en": "Cleaning up old npm installations...",
     "zh": "正在清理旧的 npm 安装..."
   },
   {
     "en": "Clear authentication",
     "zh": "清除认证"
+  },
+  {
+    "en": "Clear conversation and start with only the plan",
+    "zh": "清除对话，仅保留方案"
   },
   {
     "en": "Clear conversation history and free up context",
@@ -710,6 +878,14 @@
   {
     "en": "Command: ",
     "zh": "命令："
+  },
+  {
+    "en": "Commands cannot run outside the sandbox under any circumstances.",
+    "zh": "任何情况下都不能在沙盒外运行命令。"
+  },
+  {
+    "en": "Commands recently denied by the auto mode classifier.",
+    "zh": "自动模式分类器最近拒绝的命令。"
   },
   {
     "en": "Compact buffer",
@@ -740,6 +916,22 @@
     "zh": "压缩中断 · 可能是网络问题，请重试。"
   },
   {
+    "en": "Complete a security review of the pending changes on the current branch",
+    "zh": "对当前分支的待处理更改进行安全审查"
+  },
+  {
+    "en": "Computer Use",
+    "zh": "计算机使用"
+  },
+  {
+    "en": "Computer Use needs macOS permissions",
+    "zh": "Computer Use 需要 macOS 权限"
+  },
+  {
+    "en": "Computer Use wants to control these apps",
+    "zh": "Computer Use 想要控制这些应用"
+  },
+  {
     "en": "Config change rejected",
     "zh": "配置更改被拒绝"
   },
@@ -756,6 +948,10 @@
     "zh": "配置覆盖："
   },
   {
+    "en": "Configure extra usage to keep working when limits are hit",
+    "zh": "配置额外用量，在额度耗尽后继续工作"
+  },
+  {
     "en": "Configure options",
     "zh": "配置选项"
   },
@@ -764,8 +960,40 @@
     "zh": "配置自动压缩窗口大小"
   },
   {
+    "en": "Configure the default remote environment for teleport sessions",
+    "zh": "配置 teleport 会话的默认远程环境"
+  },
+  {
+    "en": "Connect Claude on the web to GitHub?",
+    "zh": "将 Claude on the web 连接到 GitHub？"
+  },
+  {
+    "en": "Connect this terminal for remote-control sessions",
+    "zh": "连接此终端用于远程控制会话"
+  },
+  {
+    "en": "Connect to an IDE for integrated development features.",
+    "zh": "连接 IDE 以获取集成开发功能。"
+  },
+  {
+    "en": "Connection error.",
+    "zh": "连接错误。"
+  },
+  {
+    "en": "Connection refused - server may be down",
+    "zh": "连接被拒绝 - 服务器可能已关闭"
+  },
+  {
+    "en": "Connection was closed before it was established.",
+    "zh": "连接在建立前被关闭。"
+  },
+  {
     "en": "Contact your administrator.",
     "zh": "请联系管理员。"
+  },
+  {
+    "en": "Contact your system administrator for more information.",
+    "zh": "联系系统管理员获取更多信息。"
   },
   {
     "en": "Context Usage",
@@ -780,8 +1008,20 @@
     "zh": "上下文已满 · /compact 或 /clear 继续"
   },
   {
+    "en": "Continue the current session in Claude Desktop",
+    "zh": "在 Claude Desktop 中继续当前会话"
+  },
+  {
+    "en": "Continue the most recent conversation in the current directory",
+    "zh": "继续当前目录中最近的对话"
+  },
+  {
     "en": "Continue this conversation",
     "zh": "继续此对话"
+  },
+  {
+    "en": "Continue to run and watch for changes",
+    "zh": "继续运行并监视更改"
   },
   {
     "en": "Continue without these settings",
@@ -804,6 +1044,10 @@
     "zh": "选中即复制"
   },
   {
+    "en": "Copy the conversation to your system clipboard",
+    "zh": "复制对话到系统剪贴板"
+  },
+  {
     "en": "Copy to clipboard",
     "zh": "复制到剪贴板"
   },
@@ -816,8 +1060,24 @@
     "zh": "创建 GitHub Actions 工作流"
   },
   {
+    "en": "Create a branch of the current conversation at this point",
+    "zh": "在当前点创建对话的分支"
+  },
+  {
     "en": "Create a git commit",
     "zh": "创建 git commit"
+  },
+  {
+    "en": "Create a long-lived token with your Claude subscription",
+    "zh": "用 Claude 订阅创建长期令牌"
+  },
+  {
+    "en": "Create a new animation from scratch",
+    "zh": "从零开始创建新动画"
+  },
+  {
+    "en": "Create a remote session with the given description",
+    "zh": "使用给定描述创建远程会话"
   },
   {
     "en": "Create new agent",
@@ -830,6 +1090,10 @@
   {
     "en": "Create skills in .claude/skills/ or ~/.claude/skills/",
     "zh": "在 .claude/skills/ 或 ~/.claude/skills/ 中创建技能"
+  },
+  {
+    "en": "Create verifier skill(s) for automated verification of code changes",
+    "zh": "创建用于自动验证代码变更的 verifier skill"
   },
   {
     "en": "Creating a long-lived token for GitHub Actions",
@@ -860,6 +1124,10 @@
     "zh": "自定义模型"
   },
   {
+    "en": "Custom tip",
+    "zh": "自定义提示"
+  },
+  {
     "en": "Dark mode",
     "zh": "深色模式"
   },
@@ -870,6 +1138,10 @@
   {
     "en": "Dark mode (colorblind-friendly)",
     "zh": "深色模式（色觉友好）"
+  },
+  {
+    "en": "Data Privacy",
+    "zh": "数据隐私"
   },
   {
     "en": "Debug mode",
@@ -896,16 +1168,44 @@
     "zh": "默认协作模型"
   },
   {
+    "en": "Default view",
+    "zh": "默认视图"
+  },
+  {
     "en": "Delete agent",
     "zh": "删除 Agent"
+  },
+  {
+    "en": "Delete it along with the plugin?",
+    "zh": "连同插件一起删除？"
   },
   {
     "en": "Describe the issue below:",
     "zh": "在下方描述问题："
   },
   {
+    "en": "Description (tell Claude when to use this agent)",
+    "zh": "描述（告诉 Claude 何时使用此 Agent）"
+  },
+  {
+    "en": "Diagnose and verify your Claude Code installation and settings",
+    "zh": "诊断并验证 Claude Code 安装和设置"
+  },
+  {
     "en": "Diff tool",
     "zh": "Diff 工具"
+  },
+  {
+    "en": "Disable Claude in Chrome integration",
+    "zh": "禁用 Chrome 中的 Claude 集成"
+  },
+  {
+    "en": "Disable plugin",
+    "zh": "禁用插件"
+  },
+  {
+    "en": "Discover Claude Code features through quick interactive lessons",
+    "zh": "通过快速互动课程发现 Claude Code 功能"
   },
   {
     "en": "Discover plugins",
@@ -924,6 +1224,18 @@
     "zh": "要使用此 API key 吗？"
   },
   {
+    "en": "Do you wish to disable auto-connect to IDE?",
+    "zh": "要禁用自动连接 IDE 吗？"
+  },
+  {
+    "en": "Do you wish to enable auto-connect to IDE?",
+    "zh": "要启用自动连接 IDE 吗？"
+  },
+  {
+    "en": "Does Claude...",
+    "zh": "Claude 是否..."
+  },
+  {
     "en": "Don't ask again",
     "zh": "不再询问"
   },
@@ -932,12 +1244,20 @@
     "zh": "不要再问我"
   },
   {
+    "en": "Due to prompt injection risks, only use it with code you trust",
+    "zh": "由于提示注入风险，仅在你信任的代码上使用"
+  },
+  {
     "en": "Each candidate is tested with a one-token request:",
     "zh": "每个候选模型用一个 token 的请求测试："
   },
   {
     "en": "Each subagent has its own context window, custom system prompt, and specific tools.",
     "zh": "每个子 Agent 有独立的上下文窗口、自定义系统提示和专属工具。"
+  },
+  {
+    "en": "Edit Failed",
+    "zh": "编辑失败"
   },
   {
     "en": "Edit agent",
@@ -964,6 +1284,14 @@
     "zh": "编辑工具"
   },
   {
+    "en": "Editor mode",
+    "zh": "编辑器模式"
+  },
+  {
+    "en": "Enable Claude in Chrome integration",
+    "zh": "启用 Chrome 中的 Claude 集成"
+  },
+  {
     "en": "Enable Remote Control for all sessions",
     "zh": "为所有会话启用远程控制"
   },
@@ -972,12 +1300,28 @@
     "zh": "为本次会话启用远程控制"
   },
   {
+    "en": "Enable auth status messages in SDK mode",
+    "zh": "在 SDK 模式下启用认证状态消息"
+  },
+  {
+    "en": "Enable debug logging for this session and help diagnose issues",
+    "zh": "为本次会话启用调试日志，帮助诊断问题"
+  },
+  {
+    "en": "Enable extended thinking (false to disable)",
+    "zh": "启用扩展思考（设为 false 禁用）"
+  },
+  {
     "en": "Enable file checkpointing for code rewind",
     "zh": "启用文件检查点用于代码回退"
   },
   {
     "en": "Enable or disable thinking for this session.",
     "zh": "为本次会话启用或禁用思考模式。"
+  },
+  {
+    "en": "Enable plugin",
+    "zh": "启用插件"
   },
   {
     "en": "Enable todo/task tracking",
@@ -1000,12 +1344,32 @@
     "zh": "Enter "
   },
   {
+    "en": "Enter a unique identifier for your agent:",
+    "zh": "输入 Agent 的唯一标识符："
+  },
+  {
+    "en": "Enter new secret name (alphanumeric with underscores):",
+    "zh": "输入新的密钥名称（字母数字和下划线）："
+  },
+  {
     "en": "Enter plan mode?",
     "zh": "进入计划模式？"
   },
   {
+    "en": "Enter the path to the directory:",
+    "zh": "输入目录路径："
+  },
+  {
+    "en": "Enter the system prompt for your agent:",
+    "zh": "输入 Agent 的系统提示："
+  },
+  {
     "en": "Enter to apply",
     "zh": "Enter 应用"
+  },
+  {
+    "en": "Enter to auth",
+    "zh": "回车认证"
   },
   {
     "en": "Enter to confirm · Esc to cancel",
@@ -1022,6 +1386,14 @@
   {
     "en": "Enter to view",
     "zh": "Enter 查看"
+  },
+  {
+    "en": "Enter view",
+    "zh": "进入视图"
+  },
+  {
+    "en": "Enter your preferred response and voice language:",
+    "zh": "输入你偏好的回复和语音语言："
   },
   {
     "en": "Enter: Save configuration",
@@ -1064,6 +1436,14 @@
     "zh": "Esc 取消"
   },
   {
+    "en": "Esc to close",
+    "zh": "Esc 关闭"
+  },
+  {
+    "en": "Esc to exit",
+    "zh": "Esc 退出"
+  },
+  {
     "en": "Esc to go back",
     "zh": "Esc 返回"
   },
@@ -1074,6 +1454,10 @@
   {
     "en": "Evening (18-24)",
     "zh": "晚上（18-24）"
+  },
+  {
+    "en": "Evidence of sandbox-caused failures includes:",
+    "zh": "沙盒导致的失败包括："
   },
   {
     "en": "Excluded Commands:",
@@ -1112,6 +1496,10 @@
     "zh": "外部导入："
   },
   {
+    "en": "Extra usage",
+    "zh": "额外用量"
+  },
+  {
     "en": "Extra usage not enabled · /extra-usage to enable",
     "zh": "额外用量未启用 · /extra-usage 启用"
   },
@@ -1136,12 +1524,28 @@
     "zh": "保存市场重试信息失败 · 检查 ~/.claude.json 权限"
   },
   {
+    "en": "Failed to spawn process - check command and permissions",
+    "zh": "进程启动失败 - 检查命令和权限"
+  },
+  {
     "en": "Failed: ",
     "zh": "失败："
   },
   {
+    "en": "Fast and efficient for simple tasks",
+    "zh": "快速高效处理简单任务"
+  },
+  {
     "en": "Fast mode",
     "zh": "快速模式"
+  },
+  {
+    "en": "Fast mode OFF",
+    "zh": "快速模式 关"
+  },
+  {
+    "en": "Feedback: ",
+    "zh": "反馈："
   },
   {
     "en": "Fetching session logs",
@@ -1150,6 +1554,10 @@
   {
     "en": "Fetching…",
     "zh": "获取中…"
+  },
+  {
+    "en": "File Changed",
+    "zh": "文件已更改"
   },
   {
     "en": "File must be read first",
@@ -1176,6 +1584,22 @@
     "zh": "修复错误"
   },
   {
+    "en": "Follow the prompts to authenticate with GitHub",
+    "zh": "按提示进行 GitHub 认证"
+  },
+  {
+    "en": "For manual setup instructions, see:",
+    "zh": "手动安装说明见："
+  },
+  {
+    "en": "For more information on Claude Code on the web:",
+    "zh": "关于 Claude Code 网页版的更多信息："
+  },
+  {
+    "en": "For the optimal coding experience, enable the recommended settings",
+    "zh": "为获得最佳编码体验，请启用推荐设置"
+  },
+  {
     "en": "Full name: ",
     "zh": "完整名称："
   },
@@ -1188,12 +1612,24 @@
     "zh": "GCP 项目"
   },
   {
+    "en": "Generate a report analyzing your Claude Code sessions",
+    "zh": "生成 Claude Code 会话分析报告"
+  },
+  {
     "en": "Generate with Claude (recommended)",
     "zh": "用 Claude 生成（推荐）"
   },
   {
+    "en": "Generate your personalized animation",
+    "zh": "生成你的个性化动画"
+  },
+  {
     "en": "Generating QR code…",
     "zh": "正在生成二维码…"
+  },
+  {
+    "en": "Get the current weather for a location",
+    "zh": "获取某地的当前天气"
   },
   {
     "en": "Getting branch info",
@@ -1216,16 +1652,56 @@
     "zh": "知道了，谢谢！"
   },
   {
+    "en": "Guest passes are not currently available.",
+    "zh": "体验卡当前不可用。"
+  },
+  {
     "en": "Have an administrator set channelsEnabled: true in managed settings to enable",
     "zh": "请管理员在托管设置中设置 channelsEnabled: true 以启用"
+  },
+  {
+    "en": "Having trouble? See manual setup instructions at:",
+    "zh": "遇到问题？查看手动安装说明："
   },
   {
     "en": "Help improve Claude",
     "zh": "帮助改进 Claude"
   },
   {
+    "en": "Help teammates ramp on Claude Code with a guide from your usage",
+    "zh": "用你的使用经验帮助队友上手 Claude Code"
+  },
+  {
     "en": "Here is Claude's plan:",
     "zh": "以下是 Claude 的计划："
+  },
+  {
+    "en": "Hook Structure",
+    "zh": "Hook 结构"
+  },
+  {
+    "en": "Hook details",
+    "zh": "Hook 详情"
+  },
+  {
+    "en": "Hooks only",
+    "zh": "仅 Hook"
+  },
+  {
+    "en": "Host unreachable - network connectivity issue",
+    "zh": "主机不可达 - 网络连接问题"
+  },
+  {
+    "en": "How do I...",
+    "zh": "如何..."
+  },
+  {
+    "en": "How should the plan be implemented?",
+    "zh": "方案应如何实施？"
+  },
+  {
+    "en": "How thinking content appears in the response",
+    "zh": "思考内容在回复中的显示方式"
   },
   {
     "en": "How this affects data retention",
@@ -1260,6 +1736,10 @@
     "zh": "在此实现"
   },
   {
+    "en": "Import MCP Servers from Claude Desktop",
+    "zh": "从 Claude Desktop 导入 MCP 服务器"
+  },
+  {
     "en": "Important: Make sure to grant access to this specific repository",
     "zh": "重要：请确保授予对此特定仓库的访问权限"
   },
@@ -1282,6 +1762,14 @@
   {
     "en": "Inherit from parent",
     "zh": "继承父级"
+  },
+  {
+    "en": "Inject bridge failure states for manual recovery testing",
+    "zh": "注入桥接故障状态用于手动恢复测试"
+  },
+  {
+    "en": "Inject plan into the current conversation",
+    "zh": "将方案注入当前对话"
   },
   {
     "en": "Install Chrome extension",
@@ -1332,6 +1820,10 @@
     "zh": "已中断 "
   },
   {
+    "en": "Invalid Key.",
+    "zh": "密钥无效。"
+  },
+  {
     "en": "Invalid Settings",
     "zh": "无效设置"
   },
@@ -1354,6 +1846,10 @@
   {
     "en": "Key binding mode",
     "zh": "按键绑定模式"
+  },
+  {
+    "en": "Key pressed.",
+    "zh": "按键已按下。"
   },
   {
     "en": "Keybinding Configuration Issues",
@@ -1388,6 +1884,10 @@
     "zh": "留空使用默认值（英文）"
   },
   {
+    "en": "Let me try...",
+    "zh": "让我试试..."
+  },
+  {
     "en": "Let's go!",
     "zh": "开始吧！"
   },
@@ -1402,6 +1902,14 @@
   {
     "en": "Light mode (colorblind-friendly)",
     "zh": "浅色模式（色觉友好）"
+  },
+  {
+    "en": "List all files currently in context",
+    "zh": "列出当前上下文中的所有文件"
+  },
+  {
+    "en": "Load failed",
+    "zh": "加载失败"
   },
   {
     "en": "Loading Claude Code sessions…",
@@ -1448,6 +1956,10 @@
     "zh": "已登录为"
   },
   {
+    "en": "Logging to: ",
+    "zh": "日志写入："
+  },
+  {
     "en": "Login method",
     "zh": "登录方式"
   },
@@ -1462,6 +1974,14 @@
   {
     "en": "Long context that holds up",
     "zh": "长效上下文"
+  },
+  {
+    "en": "Looking at...",
+    "zh": "查看中..."
+  },
+  {
+    "en": "Looks good",
+    "zh": "看起来不错"
   },
   {
     "en": "MCP Config Diagnostics",
@@ -1482,6 +2002,14 @@
   {
     "en": "MCP tools",
     "zh": "MCP 工具"
+  },
+  {
+    "en": "Manage IDE integrations and show status",
+    "zh": "管理 IDE 集成并显示状态"
+  },
+  {
+    "en": "Manage allow & deny tool permission rules",
+    "zh": "管理允许和拒绝工具权限规则"
   },
   {
     "en": "Manage marketplaces",
@@ -1532,8 +2060,20 @@
     "zh": "模型决定了 Agent 的推理能力和速度。"
   },
   {
+    "en": "More workflow examples (issue triage, CI fixes, etc.) at:",
+    "zh": "更多工作流示例（问题分流、CI 修复等）见："
+  },
+  {
     "en": "Morning (6-12)",
     "zh": "上午（6-12）"
+  },
+  {
+    "en": "Most capable for complex reasoning tasks",
+    "zh": "最擅长复杂推理任务"
+  },
+  {
+    "en": "NetworkError when attempting to fetch resource",
+    "zh": "尝试获取资源时发生网络错误"
   },
   {
     "en": "Never mind",
@@ -1544,12 +2084,20 @@
     "zh": "新文件尚未暂存。"
   },
   {
+    "en": "Next steps:",
+    "zh": "下一步："
+  },
+  {
     "en": "Next: Run ",
     "zh": "下一步：运行 "
   },
   {
     "en": "Night (0-6)",
     "zh": "深夜（0-6）"
+  },
+  {
+    "en": "No Sandbox",
+    "zh": "无沙盒"
   },
   {
     "en": "No advisor",
@@ -1588,6 +2136,10 @@
     "zh": "此事件没有配置 Hook。"
   },
   {
+    "en": "No info yet",
+    "zh": "暂无信息"
+  },
+  {
     "en": "No matching sessions found.",
     "zh": "未找到匹配的会话。"
   },
@@ -1604,8 +2156,16 @@
     "zh": "没有新插件可供安装。"
   },
   {
+    "en": "No other browsers available to switch to. Open Chrome with the Claude extension in another browser to switch.",
+    "zh": "没有其他浏览器可切换。在其他浏览器中打开带 Claude 扩展的 Chrome 来切换。"
+  },
+  {
     "en": "No output available",
     "zh": "没有可用的输出"
+  },
+  {
+    "en": "No plan found",
+    "zh": "未找到方案"
   },
   {
     "en": "No plugin errors",
@@ -1618,6 +2178,14 @@
   {
     "en": "No recent denials. Commands denied by the auto mode classifier will appear here.",
     "zh": "最近没有被拒绝的命令。被自动模式分类器拒绝的命令将显示在此。"
+  },
+  {
+    "en": "No response",
+    "zh": "无响应"
+  },
+  {
+    "en": "No response.",
+    "zh": "无响应。"
   },
   {
     "en": "No scheduled jobs",
@@ -1668,8 +2236,16 @@
     "zh": "否，暂时不"
   },
   {
+    "en": "No, refine with Ultraplan on Claude Code on the web",
+    "zh": "否，在 Claude Code 网页版上用 Ultraplan 优化"
+  },
+  {
     "en": "No, start implementing now",
     "zh": "否，立即开始实施"
+  },
+  {
+    "en": "Not connected",
+    "zh": "未连接"
   },
   {
     "en": "Not detected",
@@ -1686,6 +2262,10 @@
   {
     "en": "Not now",
     "zh": "以后再说"
+  },
+  {
+    "en": "Not working",
+    "zh": "不工作"
   },
   {
     "en": "Note: Only one Claude Code instance can be connected to VS Code at a time.",
@@ -1710,6 +2290,10 @@
   {
     "en": "October 8, 2025",
     "zh": "2025年10月8日"
+  },
+  {
+    "en": "On a team?",
+    "zh": "在团队中？"
   },
   {
     "en": "Only hooks from managed settings can run. User-defined hooks from ~/.claude/settings.json, .claude/settings.json, and .claude/settings.local.json are blocked.",
@@ -1760,6 +2344,10 @@
     "zh": "Opus 计划模式"
   },
   {
+    "en": "Output Style",
+    "zh": "输出风格"
+  },
+  {
     "en": "Output style",
     "zh": "输出风格"
   },
@@ -1780,6 +2368,10 @@
     "zh": "权限模式"
   },
   {
+    "en": "Permission request sent to team ",
+    "zh": "权限请求已发送给团队 "
+  },
+  {
     "en": "Personal (~/.claude/agents/)",
     "zh": "个人（~/.claude/agents/）"
   },
@@ -1792,6 +2384,10 @@
     "zh": "计划模式"
   },
   {
+    "en": "Plan file: ",
+    "zh": "方案文件："
+  },
+  {
     "en": "Plan saved!",
     "zh": "计划已保存！"
   },
@@ -1800,8 +2396,20 @@
     "zh": "待实施计划"
   },
   {
+    "en": "Plan updated",
+    "zh": "方案已更新"
+  },
+  {
+    "en": "Planning: ",
+    "zh": "规划中："
+  },
+  {
     "en": "Play animation",
     "zh": "播放动画"
+  },
+  {
+    "en": "Please check your internet connection and network settings.",
+    "zh": "请检查你的网络连接和网络设置。"
   },
   {
     "en": "Please enter a repository name to continue",
@@ -1812,12 +2420,20 @@
     "zh": "请安装 git 并重启 Claude Code。"
   },
   {
+    "en": "Please restart your IDE and try again.",
+    "zh": "请重启 IDE 后重试。"
+  },
+  {
     "en": "Please revise your plan based on the feedback and call ExitPlanMode again.",
     "zh": "请根据反馈修改你的计划，然后再次调用 ExitPlanMode。"
   },
   {
     "en": "Please select how you'd like to continue",
     "zh": "请选择你希望如何继续"
+  },
+  {
+    "en": "Please select the servers you want to import:",
+    "zh": "请选择要导入的服务器："
   },
   {
     "en": "Plugin Command Usage:",
@@ -1832,12 +2448,32 @@
     "zh": "插件错误"
   },
   {
+    "en": "Plugin Hooks",
+    "zh": "插件 Hook"
+  },
+  {
     "en": "Plugin agents",
     "zh": "插件 Agent"
   },
   {
     "en": "Plugin details",
     "zh": "插件详情"
+  },
+  {
+    "en": "Plugin options",
+    "zh": "插件选项"
+  },
+  {
+    "en": "Plugin skill",
+    "zh": "插件 Skill"
+  },
+  {
+    "en": "Pre-fill the prompt input with text without submitting it",
+    "zh": "预填提示输入但不提交"
+  },
+  {
+    "en": "Pre-populate email address on the login page",
+    "zh": "在登录页面预填邮箱地址"
   },
   {
     "en": "Press Ctrl+C to exit and start a new conversation.",
@@ -1940,8 +2576,16 @@
     "zh": "提示建议"
   },
   {
+    "en": "Provide an explanation of a shell command",
+    "zh": "解释 Shell 命令"
+  },
+  {
     "en": "Re-authenticate",
     "zh": "重新认证"
+  },
+  {
+    "en": "Read aborted",
+    "zh": "读取已中止"
   },
   {
     "en": "Ready to code?",
@@ -1968,6 +2612,14 @@
     "zh": "重新生成"
   },
   {
+    "en": "Release notes",
+    "zh": "更新说明"
+  },
+  {
+    "en": "Relive your year of coding with Claude.",
+    "zh": "重温你与 Claude 一起编程的一年。"
+  },
+  {
     "en": "Remote Control active",
     "zh": "远程控制已连接"
   },
@@ -1984,8 +2636,16 @@
     "zh": "远程控制重连中"
   },
   {
+    "en": "Remote agents",
+    "zh": "远程 Agent"
+  },
+  {
     "en": "Remote session",
     "zh": "远程会话"
+  },
+  {
+    "en": "Remote task",
+    "zh": "远程任务"
   },
   {
     "en": "Remove marketplace",
@@ -2008,8 +2668,24 @@
     "zh": "重命名会话："
   },
   {
+    "en": "Request timed out.",
+    "zh": "请求超时。"
+  },
+  {
+    "en": "Request was aborted.",
+    "zh": "请求已中止。"
+  },
+  {
     "en": "Requested permissions:",
     "zh": "请求的权限："
+  },
+  {
+    "en": "Require plan mode before implementation",
+    "zh": "要求在实施前先进入规划模式"
+  },
+  {
+    "en": "Requires the Chrome extension. Get started at",
+    "zh": "需要 Chrome 扩展。开始使用"
   },
   {
     "en": "Reset with default configuration",
@@ -2032,6 +2708,14 @@
     "zh": "恢复对话"
   },
   {
+    "en": "Resume a Claude Code session from claude.ai",
+    "zh": "从 claude.ai 恢复 Claude Code 会话"
+  },
+  {
+    "en": "Resume a teleport session, optionally specify session ID",
+    "zh": "恢复 teleport 会话，可选指定会话 ID"
+  },
+  {
     "en": "Resume from summary (recommended)",
     "zh": "从摘要恢复（推荐）"
   },
@@ -2048,12 +2732,24 @@
     "zh": "正在恢复会话…"
   },
   {
+    "en": "Retrying in ",
+    "zh": "重试中 "
+  },
+  {
     "en": "Retrying…",
     "zh": "重试中…"
   },
   {
+    "en": "Return here after authenticating in your browser.",
+    "zh": "在浏览器中认证后返回此处。"
+  },
+  {
     "en": "Return here after authenticating in your browser. Press Esc to go back.",
     "zh": "在浏览器中完成认证后返回此处。按 Esc 返回。"
+  },
+  {
+    "en": "Review and manage your privacy settings at",
+    "zh": "审查和管理隐私设置："
   },
   {
     "en": "Rewind code (checkpoints)",
@@ -2066,6 +2762,22 @@
   {
     "en": "Run /reload-plugins to apply changes",
     "zh": "运行 /reload-plugins 应用更改"
+  },
+  {
+    "en": "Run Setup and SessionStart:startup hooks, then exit",
+    "zh": "运行 Setup 和 SessionStart:startup Hook，然后退出"
+  },
+  {
+    "en": "Run Setup hooks with init trigger, then continue",
+    "zh": "以 init 触发器运行 Setup Hook，然后继续"
+  },
+  {
+    "en": "Run Setup hooks with maintenance trigger, then continue",
+    "zh": "以 maintenance 触发器运行 Setup Hook，然后继续"
+  },
+  {
+    "en": "Run a command on SLURM cluster nodes",
+    "zh": "在 SLURM 集群节点上运行命令"
   },
   {
     "en": "Run ultraplan",
@@ -2092,6 +2804,14 @@
     "zh": "运行中…"
   },
   {
+    "en": "Runs in Claude Code on the web. When the plan is ready,",
+    "zh": "在 Claude Code 网页版中运行。方案就绪后，"
+  },
+  {
+    "en": "Sandbox",
+    "zh": "沙盒"
+  },
+  {
     "en": "Sandbox is not enabled",
     "zh": "Sandbox 未启用"
   },
@@ -2112,12 +2832,32 @@
     "zh": "保存文件以继续…"
   },
   {
+    "en": "Save the conversation to a file in the current directory",
+    "zh": "保存对话到当前目录的文件"
+  },
+  {
     "en": "Save to file",
     "zh": "保存到文件"
   },
   {
+    "en": "Saving a memory is a two-step process:",
+    "zh": "保存记忆分两步："
+  },
+  {
     "en": "Scope: ",
     "zh": "范围："
+  },
+  {
+    "en": "Searched for",
+    "zh": "已搜索"
+  },
+  {
+    "en": "Searching for",
+    "zh": "搜索中"
+  },
+  {
+    "en": "Searching: ",
+    "zh": "搜索中："
   },
   {
     "en": "Security guide",
@@ -2136,8 +2876,20 @@
     "zh": "选择 GitHub 仓库"
   },
   {
+    "en": "Select GitHub workflows to install",
+    "zh": "选择要安装的 GitHub 工作流"
+  },
+  {
+    "en": "Select IDE",
+    "zh": "选择 IDE"
+  },
+  {
     "en": "Select a version to view its notes.",
     "zh": "选择一个版本查看其说明。"
+  },
+  {
+    "en": "Select an IDE to open the project",
+    "zh": "选择一个 IDE 打开项目"
   },
   {
     "en": "Select auto-compact window: ",
@@ -2168,6 +2920,22 @@
     "zh": "作为新对话发送"
   },
   {
+    "en": "Server created",
+    "zh": "服务器已创建"
+  },
+  {
+    "en": "Server disabled during reconnection, stopping retry",
+    "zh": "重连期间服务器被禁用，停止重试"
+  },
+  {
+    "en": "Server is disabled, skipping automatic reconnection",
+    "zh": "服务器已禁用，跳过自动重连"
+  },
+  {
+    "en": "Session Hooks",
+    "zh": "会话 Hook"
+  },
+  {
     "en": "Session ID",
     "zh": "会话 ID"
   },
@@ -2180,8 +2948,20 @@
     "zh": "会话名称"
   },
   {
+    "en": "Set Stop hook (this session only)",
+    "zh": "设置 Stop Hook（仅本次会话）"
+  },
+  {
     "en": "Set the prompt bar color for this session",
     "zh": "设置本次会话的提示栏颜色"
+  },
+  {
+    "en": "Set up Claude Code's status line UI",
+    "zh": "设置 Claude Code 状态栏 UI"
+  },
+  {
+    "en": "Set up Claude GitHub Actions for a repository",
+    "zh": "为仓库设置 Claude GitHub Actions"
   },
   {
     "en": "Setting sources",
@@ -2200,8 +2980,20 @@
     "zh": "需要审批的设置："
   },
   {
+    "en": "Setup Claude Code on the web (requires connecting your GitHub account)",
+    "zh": "在网页上设置 Claude Code（需连接 GitHub 账号）"
+  },
+  {
+    "en": "Shell command failed",
+    "zh": "Shell 命令失败"
+  },
+  {
     "en": "Show PR status footer",
     "zh": "显示 PR 状态栏"
+  },
+  {
+    "en": "Show QR code to download the Claude mobile app",
+    "zh": "显示二维码下载 Claude 移动应用"
   },
   {
     "en": "Show all",
@@ -2212,8 +3004,24 @@
     "zh": "显示详细调试输出"
   },
   {
+    "en": "Show help and available commands",
+    "zh": "显示帮助和可用命令"
+  },
+  {
+    "en": "Show options when rate limit is reached",
+    "zh": "在达到速率限制时显示选项"
+  },
+  {
+    "en": "Show remote session URL and QR code",
+    "zh": "显示远程会话 URL 和二维码"
+  },
+  {
     "en": "Show status in terminal tab",
     "zh": "在终端标签显示状态"
+  },
+  {
+    "en": "Show the total cost and duration of the current session",
+    "zh": "显示当前会话的总费用和时长"
   },
   {
     "en": "Show tips",
@@ -2222,6 +3030,30 @@
   {
     "en": "Show turn duration",
     "zh": "显示回合耗时"
+  },
+  {
+    "en": "Show your Claude Code usage statistics and activity",
+    "zh": "显示 Claude Code 使用统计和活动"
+  },
+  {
+    "en": "Showing last ",
+    "zh": "显示最近 "
+  },
+  {
+    "en": "Shutting down",
+    "zh": "关闭中"
+  },
+  {
+    "en": "Sign out from your Anthropic account",
+    "zh": "退出 Anthropic 账号"
+  },
+  {
+    "en": "Signal that this session was launched from a deep link",
+    "zh": "标记此会话是从深度链接启动的"
+  },
+  {
+    "en": "Skills only",
+    "zh": "仅 Skill"
   },
   {
     "en": "Skip interview and plan immediately",
@@ -2244,8 +3076,16 @@
     "zh": "抱歉，Claude 遇到了错误"
   },
   {
+    "en": "Spawn a remote Claude Code session that monitors and autofixes the current PR",
+    "zh": "启动一个远程 Claude Code 会话来监视和自动修复当前 PR"
+  },
+  {
     "en": "Start new session",
     "zh": "开始新会话"
+  },
+  {
+    "en": "Started a session on the web and want to move it here? Run",
+    "zh": "在网上开始了会话，想移到这里？运行"
   },
   {
     "en": "Stash changes and continue",
@@ -2292,6 +3132,10 @@
     "zh": "提交回答"
   },
   {
+    "en": "Submit feedback about Claude Code",
+    "zh": "提交关于 Claude Code 的反馈"
+  },
+  {
     "en": "Successfully logged out from your Anthropic account.",
     "zh": "已成功登出你的 Anthropic 账号。"
   },
@@ -2326,6 +3170,10 @@
   {
     "en": "System prompt",
     "zh": "系统提示词"
+  },
+  {
+    "en": "Tab created",
+    "zh": "标签页已创建"
   },
   {
     "en": "Tab: Next field · Enter: Save and continue",
@@ -2384,6 +3232,14 @@
     "zh": "代码将保持不变。"
   },
   {
+    "en": "The following patterns will be ignored:",
+    "zh": "以下模式将被忽略："
+  },
+  {
+    "en": "The sandbox has the following restrictions:",
+    "zh": "沙盒有以下限制："
+  },
+  {
     "en": "Thinking mode",
     "zh": "思考模式"
   },
@@ -2424,8 +3280,20 @@
     "zh": "这可能需要一点时间。"
   },
   {
+    "en": "This prompt will launch an ultraplan session in Claude Code on the web",
+    "zh": "此提示将在 Claude Code 网页版中启动 ultraplan 会话"
+  },
+  {
+    "en": "This rule is configured by managed settings and cannot be modified.",
+    "zh": "此规则由托管设置配置，无法修改。"
+  },
+  {
     "en": "This server connects only when running the agent.",
     "zh": "此服务器仅在运行 Agent 时连接。"
+  },
+  {
+    "en": "This tool is consuming a significant portion of context.",
+    "zh": "此工具正在消耗大量上下文。"
   },
   {
     "en": "This will disable Remote Control for this session.",
@@ -2454,6 +3322,14 @@
   {
     "en": "Tokens per Day",
     "zh": "每日 Token 用量"
+  },
+  {
+    "en": "Tool Failed",
+    "zh": "工具失败"
+  },
+  {
+    "en": "Tool loaded.",
+    "zh": "工具已加载。"
   },
   {
     "en": "Tool name: ",
@@ -2520,6 +3396,10 @@
     "zh": "自上次读取以来无变化"
   },
   {
+    "en": "Unknown Error",
+    "zh": "未知错误"
+  },
+  {
     "en": "Unknown error",
     "zh": "未知错误"
   },
@@ -2544,6 +3424,18 @@
     "zh": "立即更新"
   },
   {
+    "en": "Update workflow file with latest version",
+    "zh": "用最新版本更新工作流文件"
+  },
+  {
+    "en": "Updated plan",
+    "zh": "方案已更新"
+  },
+  {
+    "en": "Updates to Consumer Terms and Policies",
+    "zh": "消费者条款和政策更新"
+  },
+  {
     "en": "Updates to data retention ",
     "zh": "数据保留更新 "
   },
@@ -2554,6 +3446,10 @@
   {
     "en": "Updating…",
     "zh": "更新中…"
+  },
+  {
+    "en": "Upgrade to Max for higher rate limits and more Opus",
+    "zh": "升级到 Max 获取更高速率限制和更多 Opus"
   },
   {
     "en": "Upgrade to Team plan",
@@ -2584,12 +3480,20 @@
     "zh": "使用 Claude Code 的终端配置？"
   },
   {
+    "en": "Use Claude subscription (default)",
+    "zh": "使用 Claude 订阅（默认）"
+  },
+  {
     "en": "Use auto mode during plan",
     "zh": "计划模式中使用自动模式"
   },
   {
     "en": "Use credentials already in my environment",
     "zh": "使用环境已有的凭证"
+  },
+  {
+    "en": "Use the same model as the main conversation",
+    "zh": "使用与主对话相同的模型"
   },
   {
     "en": "Use this MCP server",
@@ -2612,8 +3516,24 @@
     "zh": "用户 MCP"
   },
   {
+    "en": "User aborted",
+    "zh": "用户已中止"
+  },
+  {
     "en": "User agents",
     "zh": "用户 Agent"
+  },
+  {
+    "en": "User answered Claude's questions:",
+    "zh": "用户回答了 Claude 的问题："
+  },
+  {
+    "en": "User canceled.",
+    "zh": "用户已取消。"
+  },
+  {
+    "en": "User declined to answer questions",
+    "zh": "用户拒绝回答问题"
   },
   {
     "en": "User rejected Claude's plan:",
@@ -2664,6 +3584,14 @@
     "zh": "查看 Agent"
   },
   {
+    "en": "View and update your privacy settings",
+    "zh": "查看和更新隐私设置"
+  },
+  {
+    "en": "View hook configurations for tool events",
+    "zh": "查看工具事件的 Hook 配置"
+  },
+  {
     "en": "View on GitHub",
     "zh": "在 GitHub 查看"
   },
@@ -2672,8 +3600,20 @@
     "zh": "查看仓库"
   },
   {
+    "en": "View the latest workflow template at:",
+    "zh": "查看最新工作流模板："
+  },
+  {
     "en": "View tools",
     "zh": "查看工具"
+  },
+  {
+    "en": "View uncommitted changes and per-turn diffs",
+    "zh": "查看未提交的更改和每轮差异"
+  },
+  {
+    "en": "Visualize current context usage as a colored grid",
+    "zh": "以彩色网格可视化当前上下文用量"
   },
   {
     "en": "Voice: processing…",
@@ -2708,6 +3648,18 @@
     "zh": "我们将创建一个个性化 ASCII 动画来庆祝你的旅程。"
   },
   {
+    "en": "We'll create a workflow file in your repository for each one you select.",
+    "zh": "我们会为你选择的每个工作流在仓库中创建工作流文件。"
+  },
+  {
+    "en": "Web Search",
+    "zh": "网页搜索"
+  },
+  {
+    "en": "Web search",
+    "zh": "网页搜索"
+  },
+  {
     "en": "Welcome to Claude Code",
     "zh": "欢迎使用 Claude Code"
   },
@@ -2724,8 +3676,20 @@
     "zh": "默认显示内容"
   },
   {
+    "en": "What's new",
+    "zh": "更新内容"
+  },
+  {
     "en": "When hooks are disabled:",
     "zh": "当 hook 被禁用时："
+  },
+  {
+    "en": "When should Claude use this agent?",
+    "zh": "Claude 应在何时使用此 Agent？"
+  },
+  {
+    "en": "When you see evidence of sandbox-caused failure:",
+    "zh": "当你看到沙盒导致的失败时："
   },
   {
     "en": "Will install:",
@@ -2740,8 +3704,16 @@
     "zh": "工作区 ID"
   },
   {
+    "en": "Would you like to install this LSP plugin?",
+    "zh": "要安装此 LSP 插件吗？"
+  },
+  {
     "en": "Would you like to proceed?",
     "zh": "要继续吗？"
+  },
+  {
+    "en": "Would you like to stash these changes and continue with teleport?",
+    "zh": "要暂存这些更改并继续 teleport 吗？"
   },
   {
     "en": "Yes, I accept",
@@ -2816,6 +3788,10 @@
     "zh": "是，仅本次会话"
   },
   {
+    "en": "Yes, install ",
+    "zh": "是，安装 "
+  },
+  {
     "en": "Yes, manually approve edits",
     "zh": "是，手动审批编辑"
   },
@@ -2832,8 +3808,20 @@
     "zh": "你可以帮助改进 Claude "
   },
   {
+    "en": "You can try installing manually:",
+    "zh": "你可以尝试手动安装："
+  },
+  {
+    "en": "You have been invoked in the following environment: ",
+    "zh": "你已在以下环境中被调用："
+  },
+  {
     "en": "You must select at least one workflow to continue",
     "zh": "必须选择至少一个工作流才能继续"
+  },
+  {
+    "en": "You should always review Claude's responses, especially when",
+    "zh": "你应该始终审查 Claude 的回复，特别是当"
   },
   {
     "en": "Your Claude Pro/Max subscription will be used by Claude Code.",
@@ -2842,6 +3830,10 @@
   {
     "en": "Your bash commands will be sandboxed. Disable with /sandbox.",
     "zh": "你的 bash 命令将在沙箱中运行。使用 /sandbox 禁用。"
+  },
+  {
+    "en": "Your choice takes effect immediately upon confirmation.",
+    "zh": "你的选择在确认后立即生效。"
   },
   {
     "en": "Your local credentials are used to authenticate with GitHub",
@@ -2854,6 +3846,10 @@
   {
     "en": "Your organization restricts which marketplaces can be added.",
     "zh": "你的组织限制了可以添加的市场。"
+  },
+  {
+    "en": "Your responses should be short and concise.",
+    "zh": "你的回复应该简短精炼。"
   },
   {
     "en": "[Image data detected and sent to Claude]",
