@@ -4134,5 +4134,1905 @@
   {
     "en": "⧉ selected lines",
     "zh": "⧉ 已选行"
+  },
+  {
+    "en": "Same Claude Code with visual diffs, live app preview, parallel sessions, and more.",
+    "zh": "同样的 Claude Code，带可视化差异、实时预览、并行会话等。"
+  },
+  {
+    "en": "Claude wants to enter plan mode to explore and design an implementation approach.",
+    "zh": "Claude 想进入规划模式来探索和设计实现方案。"
+  },
+  {
+    "en": "Restore files to state at the specified user message and exit (requires --resume)",
+    "zh": "将文件恢复到指定用户消息时的状态并退出（需要 --resume）"
+  },
+  {
+    "en": "Automatically connect to IDE on startup if exactly one valid IDE is available",
+    "zh": "启动时自动连接 IDE（仅当恰好有一个可用 IDE 时）"
+  },
+  {
+    "en": "Start an interactive session with Remote Control enabled (optionally named)",
+    "zh": "启动启用远程控制的交互式会话（可指定名称）"
+  },
+  {
+    "en": "Print the version this session is running (not what autoupdate downloaded)",
+    "zh": "打印当前会话运行的版本（非自动更新下载的版本）"
+  },
+  {
+    "en": "Write debug logs to a specific file path (implicitly enables debug mode)",
+    "zh": "将调试日志写入指定文件路径（隐式启用调试模式）"
+  },
+  {
+    "en": "Server name can only contain letters, numbers, hyphens, and underscores",
+    "zh": "服务器名称只能包含字母、数字、连字符和下划线"
+  },
+  {
+    "en": "What is the name of the service I should give sensitive permissions to?",
+    "zh": "我应该给哪个服务授予敏感权限？"
+  },
+  {
+    "en": "Comma-separated list of setting sources to load (user, project, local).",
+    "zh": "要加载的设置来源列表（逗号分隔：user、project、local）。"
+  },
+  {
+    "en": "Transport type (stdio, sse, http). Defaults to stdio if not specified.",
+    "zh": "传输类型（stdio、sse、http）。未指定时默认 stdio。"
+  },
+  {
+    "en": "Read system prompt from a file and append to the default system prompt",
+    "zh": "从文件读取系统提示并追加到默认系统提示"
+  },
+  {
+    "en": "Create a new git worktree for this session (optionally specify a name)",
+    "zh": "为此会话创建新的 git worktree（可指定名称）"
+  },
+  {
+    "en": "Maximum dollar amount to spend on API calls (only works with --print)",
+    "zh": "API 调用最大花费（仅 --print 模式有效）"
+  },
+  {
+    "en": "Use a specific session ID for the conversation (must be a valid UUID)",
+    "zh": "使用指定的会话 ID（必须是有效 UUID）"
+  },
+  {
+    "en": "Teleport will switch git branches. The following changes were found:",
+    "zh": "Teleport 将切换 git 分支。发现以下更改："
+  },
+  {
+    "en": "Report the security classification result for the agent action",
+    "zh": "报告 Agent 操作的安全分类结果"
+  },
+  {
+    "en": "Effort level for the current session (low, medium, high, max)",
+    "zh": "当前会话的努力级别（low、medium、high、max）"
+  },
+  {
+    "en": "Agent for the current session. Overrides the 'agent' setting.",
+    "zh": "当前会话的 Agent。覆盖 'agent' 设置。"
+  },
+  {
+    "en": "Include available plugins from marketplaces (requires --json)",
+    "zh": "包含市场中可用的插件（需要 --json）"
+  },
+  {
+    "en": "Tab ID to identify which tab group this operation applies to",
+    "zh": "标识此操作应用于哪个标签组的标签 ID"
+  },
+  {
+    "en": "Verify a code change does what it should by running the app.",
+    "zh": "通过运行应用验证代码变更是否达到预期。"
+  },
+  {
+    "en": "Server command must have at least one element (the command)",
+    "zh": "服务器命令必须至少有一个元素（命令本身）"
+  },
+  {
+    "en": "Long builds and test suites do not have to block you. Add",
+    "zh": "长时间的构建和测试不会阻塞你。添加"
+  },
+  {
+    "en": "Please use --channels to run a list of approved channels.",
+    "zh": "请使用 --channels 运行已批准的频道列表。"
+  },
+  {
+    "en": "You can also try the manual setup steps if needed:",
+    "zh": "如有需要，你也可以尝试手动安装步骤："
+  },
+  {
+    "en": "Additional directories to allow tool access to",
+    "zh": "允许工具访问的额外目录"
+  },
+  {
+    "en": "The Internet connection appears to be offline",
+    "zh": "网络连接似乎已断开"
+  },
+  {
+    "en": "Opening browser to IdP authorization endpoint",
+    "zh": "正在浏览器中打开 IdP 授权端点"
+  },
+  {
+    "en": "Force installation even if already installed",
+    "zh": "强制安装，即使已安装"
+  },
+  {
+    "en": "Directory that contains virtual environments",
+    "zh": "包含虚拟环境的目录"
+  },
+  {
+    "en": "This session is available via Remote Control",
+    "zh": "此会话可通过远程控制访问"
+  },
+  {
+    "en": "Parent session ID for analytics correlation",
+    "zh": "用于分析关联的父会话 ID"
+  },
+  {
+    "en": "Use the configuration file at this location",
+    "zh": "使用此位置的配置文件"
+  },
+  {
+    "en": "For times without dates, use today's date.",
+    "zh": "对于没有日期的时间，使用今天的日期。"
+  },
+  {
+    "en": "Show Claude logo watermark (default: true)",
+    "zh": "显示 Claude 标志水印（默认：true）"
+  },
+  {
+    "en": "Opens teammates in a separate tmux session",
+    "zh": "在单独的 tmux 会话中打开队友"
+  },
+  {
+    "en": "Override verbose mode setting from config",
+    "zh": "覆盖配置中的详细模式设置"
+  },
+  {
+    "en": "Ensure you have access to this repository",
+    "zh": "确保你有此仓库的访问权限"
+  },
+  {
+    "en": "Run claude --teleport from a checkout of ",
+    "zh": "从检出目录运行 claude --teleport "
+  },
+  {
+    "en": "Opens a secure connection to claude.ai.",
+    "zh": "建立到 claude.ai 的安全连接。"
+  },
+  {
+    "en": "Where your Bedrock models are enabled.",
+    "zh": "你的 Bedrock 模型启用的位置。"
+  },
+  {
+    "en": "Write unit tests for all new utilities",
+    "zh": "为所有新工具编写单元测试"
+  },
+  {
+    "en": "Error: Unable to create remote session",
+    "zh": "错误：无法创建远程会话"
+  },
+  {
+    "en": "You are a helpful code reviewer who...",
+    "zh": "你是一个有用的代码审查者..."
+  },
+  {
+    "en": "Invalid npm package name format",
+    "zh": "无效的 npm 包名格式"
+  },
+  {
+    "en": "Remove directory from workspace?",
+    "zh": "从工作区移除目录？"
+  },
+  {
+    "en": "Claude in Chrome (Beta) settings",
+    "zh": "Chrome 中的 Claude（Beta）设置"
+  },
+  {
+    "en": "Set effort level for model usage",
+    "zh": "设置模型使用的努力级别"
+  },
+  {
+    "en": "Default - trusted network access",
+    "zh": "默认 - 信任网络访问"
+  },
+  {
+    "en": "Effort set to high for this turn",
+    "zh": "此轮努力级别设为高"
+  },
+  {
+    "en": "Install Claude Code native build",
+    "zh": "安装 Claude Code 原生构建"
+  },
+  {
+    "en": "Installing Claude Code native build ",
+    "zh": "正在安装 Claude Code 原生构建 "
+  },
+  {
+    "en": "Team name for swarm coordination",
+    "zh": "用于群组协调的团队名称"
+  },
+  {
+    "en": "Amazon Bedrock (Mantle) base URL",
+    "zh": "Amazon Bedrock (Mantle) 基础 URL"
+  },
+  {
+    "en": "Reason, if the condition was not met",
+    "zh": "条件未满足时的原因"
+  },
+  {
+    "en": "Delay for a specified amount of time",
+    "zh": "延迟指定时间"
+  },
+  {
+    "en": "Custom agent type for this teammate",
+    "zh": "此队友的自定义 Agent 类型"
+  },
+  {
+    "en": "Claude Code installation failed",
+    "zh": "Claude Code 安装失败"
+  },
+  {
+    "en": "Number of pull requests created",
+    "zh": "创建的 Pull Request 数"
+  },
+  {
+    "en": "Cost of the Claude Code session",
+    "zh": "Claude Code 会话费用"
+  },
+  {
+    "en": "Number of tokens used",
+    "zh": "使用的 token 数"
+  },
+  {
+    "en": "Request for process information",
+    "zh": "请求进程信息"
+  },
+  {
+    "en": "Anthropic's agentic coding tool",
+    "zh": "Anthropic 的智能编程工具"
+  },
+  {
+    "en": "Count of CLI sessions started",
+    "zh": "CLI 会话启动次数"
+  },
+  {
+    "en": "Number of git commits created",
+    "zh": "创建的 git commit 数"
+  },
+  {
+    "en": "Total active time in seconds",
+    "zh": "总活跃时间（秒）"
+  },
+  {
+    "en": "Fixed port for OAuth callback (for servers requiring pre-registered redirect URIs)",
+    "zh": "OAuth 回调的固定端口（用于需要预注册重定向 URI 的服务器）"
+  },
+  {
+    "en": "The stable channel may have an older version than what you're currently running (",
+    "zh": "稳定频道可能比当前运行的版本更旧（"
+  },
+  {
+    "en": "Prefix for auto-generated Remote Control session names (default: hostname)",
+    "zh": "自动生成的远程控制会话名前缀（默认：主机名）"
+  },
+  {
+    "en": "Source contains multiple documents; please use YAML.parseAllDocuments()",
+    "zh": "源包含多个文档；请使用 YAML.parseAllDocuments()"
+  },
+  {
+    "en": "Show orange circles at click locations (default: true)",
+    "zh": "在点击位置显示橙色圆圈（默认：true）"
+  },
+  {
+    "en": "Show black labels describing actions (default: true)",
+    "zh": "显示描述操作的黑色标签（默认：true）"
+  },
+  {
+    "en": "Show orange progress bar at bottom (default: true)",
+    "zh": "在底部显示橙色进度条（默认：true）"
+  },
+  {
+    "en": "Show red arrows for drag actions (default: true)",
+    "zh": "为拖拽操作显示红色箭头（默认：true）"
+  },
+  {
+    "en": "Set a session-only Stop hook with a quick prompt",
+    "zh": "用快速提示设置仅限本次会话的 Stop Hook"
+  },
+  {
+    "en": "Network connection failures to non-whitelisted hosts",
+    "zh": "到非白名单主机的网络连接失败"
+  },
+  {
+    "en": "Package name cannot contain path traversal patterns",
+    "zh": "包名不能包含路径遍历模式"
+  },
+  {
+    "en": "Redirection handling is disabled, skipping redirect",
+    "zh": "重定向处理已禁用，跳过重定向"
+  },
+  {
+    "en": "Channel notifications re-registered after reconnect",
+    "zh": "重连后重新注册频道通知"
+  },
+  {
+    "en": "Failed to send idle notification to team leader",
+    "zh": "发送空闲通知给团队负责人失败"
+  },
+  {
+    "en": "Discarded in favor of other hedged attempt",
+    "zh": "为其他对冲尝试丢弃"
+  },
+  {
+    "en": "Token refresh already in progress, reusing existing promise",
+    "zh": "Token 刷新已在进行中，复用现有 promise"
+  },
+  {
+    "en": "Pending response rejected since connection got disposed",
+    "zh": "待处理响应被拒绝，因为连接已被释放"
+  },
+  {
+    "en": "Server does not support token revocation",
+    "zh": "服务器不支持 token 撤销"
+  },
+  {
+    "en": "Reconnection failed after authentication",
+    "zh": "认证后重连失败"
+  },
+  {
+    "en": "Graceful shutdown requested by team lead",
+    "zh": "团队负责人请求优雅关闭"
+  },
+  {
+    "en": "Same key defined twice in one context",
+    "zh": "同一上下文中定义了相同的键两次"
+  },
+  {
+    "en": "Maximum number of redirects exceeded",
+    "zh": "超出最大重定向次数"
+  },
+  {
+    "en": "Skip workflow update (configure secrets only)",
+    "zh": "跳过工作流更新（仅配置密钥）"
+  },
+  {
+    "en": "Request body larger than maxBodyLength limit",
+    "zh": "请求体超过 maxBodyLength 限制"
+  },
+  {
+    "en": "Completing auth flow with authorization code",
+    "zh": "使用授权码完成认证流程"
+  },
+  {
+    "en": "Config parsing failed with error",
+    "zh": "配置解析失败"
+  },
+  {
+    "en": "Channel notifications registered",
+    "zh": "频道通知已注册"
+  },
+  {
+    "en": "Redirecting to authorization URL",
+    "zh": "正在重定向到授权 URL"
+  },
+  {
+    "en": "Channel closed before call started",
+    "zh": "调用开始前频道已关闭"
+  },
+  {
+    "en": "Denied by auto mode classifier ",
+    "zh": "被自动模式分类器拒绝 "
+  },
+  {
+    "en": "Screenshot via chrome extension",
+    "zh": "通过 Chrome 扩展截图"
+  },
+  {
+    "en": "When issuing multiple commands:",
+    "zh": "发出多个命令时："
+  },
+  {
+    "en": "What is the termination clause?",
+    "zh": "终止条款是什么？"
+  },
+  {
+    "en": "Floating point arithmetic error",
+    "zh": "浮点运算错误"
+  },
+  {
+    "en": "Network request outside of sandbox",
+    "zh": "沙盒外的网络请求"
+  },
+  {
+    "en": "Map comment with trailing content",
+    "zh": "带尾部内容的映射注释"
+  },
+  {
+    "en": "The ID of the shortcut to execute",
+    "zh": "要执行的快捷方式 ID"
+  },
+  {
+    "en": "Failed to discover OAuth metadata",
+    "zh": "发现 OAuth 元数据失败"
+  },
+  {
+    "en": "WARNING: Loading development channels",
+    "zh": "警告：正在加载开发频道"
+  },
+  {
+    "en": "The body has already been consumed.",
+    "zh": "响应体已被消费。"
+  },
+  {
+    "en": "Please install the app for repository: ",
+    "zh": "请为此仓库安装应用："
+  },
+  {
+    "en": "Windows: winget install --id GitHub.cli",
+    "zh": "Windows：winget install --id GitHub.cli"
+  },
+  {
+    "en": "Terrible customer service, never again.",
+    "zh": "糟糕的客服，再也不会来了。"
+  },
+  {
+    "en": "Create type stub file(s) for import",
+    "zh": "创建类型存根文件用于导入"
+  },
+  {
+    "en": "A simple common HTTP client specifically for Google APIs and services.",
+    "zh": "专为 Google API 和服务设计的简单 HTTP 客户端。"
+  },
+  {
+    "en": "Received ListRoots request from server",
+    "zh": "收到服务器的 ListRoots 请求"
+  },
+  {
+    "en": "Received auth code via manual callback URL",
+    "zh": "通过手动回调 URL 收到授权码"
+  },
+  {
+    "en": "Client cancelled task execution.",
+    "zh": "客户端取消了任务执行。"
+  },
+  {
+    "en": "Cleanup timeout reached, stopping process monitoring",
+    "zh": "清理超时，停止进程监控"
+  },
+  {
+    "en": "Connection is already listening",
+    "zh": "连接已在监听"
+  },
+  {
+    "en": "Tooltip body text. Explain what the user is looking at and why it matters. ",
+    "zh": "工具提示正文。解释用户正在看什么以及为什么重要。"
+  },
+  {
+    "en": "Using persisted auth server metadata for refresh",
+    "zh": "使用持久化的认证服务器元数据进行刷新"
+  },
+  {
+    "en": "Another process refreshed tokens, using those",
+    "zh": "另一个进程刷新了 token，使用那些"
+  },
+  {
+    "en": "Work item lease expired, fetching fresh token",
+    "zh": "工作项租约过期，获取新 token"
+  },
+  {
+    "en": "Preserved step-up auth state across revocation",
+    "zh": "在撤销过程中保留了升级认证状态"
+  },
+  {
+    "en": "Command should be emulated but is not implemented",
+    "zh": "命令应该被模拟但未实现"
+  },
+  {
+    "en": "Opening handshake has timed out",
+    "zh": "握手超时"
+  },
+  {
+    "en": "Create a new secret with a different name",
+    "zh": "用不同名称创建新密钥"
+  },
+  {
+    "en": "Listening for channel messages from: ",
+    "zh": "正在监听来自以下的频道消息："
+  },
+  {
+    "en": "Invalid response body, expected a web ReadableStream",
+    "zh": "无效的响应体，期望 Web ReadableStream"
+  },
+  {
+    "en": "Starting new login following /upgrade. Exit with Ctrl-C to use existing account.",
+    "zh": "/upgrade 后重新登录。按 Ctrl-C 使用现有账号。"
+  },
+  {
+    "en": "You can disconnect remote access anytime by running /remote-control again.",
+    "zh": "随时运行 /remote-control 断开远程访问。"
+  },
+  {
+    "en": "If this is a new task, clearing context will save usage and be faster.",
+    "zh": "如果是新任务，清除上下文可以节省用量并加快速度。"
+  },
+  {
+    "en": "An update to our Consumer Terms and Privacy Policy will take effect on",
+    "zh": "消费者条款和隐私政策更新将生效于"
+  },
+  {
+    "en": "We've updated our Consumer Terms and Privacy Policy.",
+    "zh": "我们更新了消费者条款和隐私政策。"
+  },
+  {
+    "en": " report the issue at https://github.com/anthropics/claude-code/issues",
+    "zh": " 在 https://github.com/anthropics/claude-code/issues 报告问题"
+  },
+  {
+    "en": "Advisor has reviewed the conversation and will apply the feedback",
+    "zh": "顾问已审查对话并将应用反馈"
+  },
+  {
+    "en": "If your browser doesn't open automatically, copy this URL manually",
+    "zh": "如果浏览器没有自动打开，请手动复制此 URL"
+  },
+  {
+    "en": "If your browser didn't open automatically, copy this URL manually",
+    "zh": "如果浏览器没有自动打开，请手动复制此 URL"
+  },
+  {
+    "en": "To use native iTerm2 split panes for teammates, you need the",
+    "zh": "要使用原生 iTerm2 分屏显示协作者，你需要"
+  },
+  {
+    "en": "These will be written to ~/.claude/settings.json under env:",
+    "zh": "这些将写入 ~/.claude/settings.json 的 env："
+  },
+  {
+    "en": "Restore the code and/or conversation to the point before…",
+    "zh": "恢复代码和/或对话到之前的状态…"
+  },
+  {
+    "en": "Restore and fork the conversation to the point before…",
+    "zh": "恢复并分支对话到之前的状态…"
+  },
+  {
+    "en": "Restore the code and/or conversation to a previous point",
+    "zh": "恢复代码和/或对话到之前的状态"
+  },
+  {
+    "en": "Disable it just for you in .claude/settings.local.json?",
+    "zh": "在 .claude/settings.local.json 中仅为你禁用？"
+  },
+  {
+    "en": "Plan files for current session are allowed for reading",
+    "zh": "当前会话的方案文件允许读取"
+  },
+  {
+    "en": "Plan files for current session are allowed for writing",
+    "zh": "当前会话的方案文件允许写入"
+  },
+  {
+    "en": "You can always enable it later with /remote-control.",
+    "zh": "随时可以用 /remote-control 启用。"
+  },
+  {
+    "en": "Opening browser to sign in with your Claude account…",
+    "zh": "正在打开浏览器登录你的 Claude 账号…"
+  },
+  {
+    "en": "Type to filter · Enter/↓ select · ↑ tabs · Esc clear",
+    "zh": "输入过滤 · Enter/↓ 选择 · ↑ 标签 · Esc 清除"
+  },
+  {
+    "en": "Do you want to allow Claude to fetch this content?",
+    "zh": "要允许 Claude 获取此内容吗？"
+  },
+  {
+    "en": "If your browser doesn't open automatically, visit:",
+    "zh": "如果浏览器没有自动打开，请访问："
+  },
+  {
+    "en": "You've spent $5 on the Anthropic API this session.",
+    "zh": "本会话你已在 Anthropic API 上花费了 $5。"
+  },
+  {
+    "en": "Opening browser to install the Claude GitHub App…",
+    "zh": "正在打开浏览器安装 Claude GitHub App…"
+  },
+  {
+    "en": "To continue immediately, use /model to switch to",
+    "zh": "要立即继续，使用 /model 切换到"
+  },
+  {
+    "en": "Auto-updates are disabled in development builds.",
+    "zh": "开发版中自动更新已禁用。"
+  },
+  {
+    "en": " instead of Claude account subscription token. Either unset",
+    "zh": " 而非 Claude 账号订阅令牌。请取消设置"
+  },
+  {
+    "en": "instead of Anthropic Console key. Either unset",
+    "zh": "而非 Anthropic Console 密钥。请取消设置"
+  },
+  {
+    "en": "Opening Slack app installation page in browser…",
+    "zh": "正在浏览器中打开 Slack 应用安装页面…"
+  },
+  {
+    "en": "· You may need to restart iTerm2 after enabling",
+    "zh": "· 启用后可能需要重启 iTerm2"
+  },
+  {
+    "en": "A browser window will open for authentication",
+    "zh": "将打开浏览器窗口进行认证"
+  },
+  {
+    "en": "Restarting Claude Code to apply the new model…",
+    "zh": "正在重启 Claude Code 以应用新模型…"
+  },
+  {
+    "en": "A Claude workflow file already exists in this repository.",
+    "zh": "此仓库中已存在 Claude 工作流文件。"
+  },
+  {
+    "en": "User has approved exiting plan mode. You can now proceed.",
+    "zh": "用户已批准退出计划模式。可以继续执行。"
+  },
+  {
+    "en": "Plan flow interrupted. Return to your terminal and retry.",
+    "zh": "计划流程被中断。返回终端重试。"
+  },
+  {
+    "en": "Plan teleported. Return to your terminal to continue.",
+    "zh": "计划已传送。返回终端继续。"
+  },
+  {
+    "en": "User defined timeout for device code polling reached",
+    "zh": "设备代码轮询超时"
+  },
+  {
+    "en": "User answers collected by the permission component",
+    "zh": "权限组件收集的用户回答"
+  },
+  {
+    "en": "Checking GCP credentials validity for auth refresh",
+    "zh": "检查 GCP 凭证有效性以刷新认证"
+  },
+  {
+    "en": "Fetching AWS caller identity for credential export command",
+    "zh": "获取 AWS 调用者身份用于凭证导出命令"
+  },
+  {
+    "en": "Fetching AWS caller identity for AWS auth refresh command",
+    "zh": "获取 AWS 调用者身份用于 AWS 认证刷新命令"
+  },
+  {
+    "en": "Restarting caffeinate to maintain sleep prevention",
+    "zh": "重启 caffeinate 以保持防止休眠"
+  },
+  {
+    "en": "User interruption with CTRL-BREAK",
+    "zh": "用户按 CTRL-BREAK 中断"
+  },
+  {
+    "en": "User interruption with CTRL-C",
+    "zh": "用户按 CTRL-C 中断"
+  },
+  {
+    "en": "User force closed",
+    "zh": "用户强制关闭"
+  },
+  {
+    "en": "User cancelled the flow.",
+    "zh": "用户取消了流程。"
+  },
+  {
+    "en": "User denied permission",
+    "zh": "用户拒绝授权"
+  },
+  {
+    "en": "User rejected tool use",
+    "zh": "用户拒绝工具调用"
+  },
+  {
+    "en": "User declined to enter plan mode",
+    "zh": "用户拒绝进入计划模式"
+  },
+  {
+    "en": "User approved Claude's plan",
+    "zh": "用户批准了 Claude 的计划"
+  },
+  {
+    "en": "User Rejected Action",
+    "zh": "用户拒绝操作"
+  },
+  {
+    "en": "User Stopped Early",
+    "zh": "用户提前停止"
+  },
+  {
+    "en": "User Rejected",
+    "zh": "用户拒绝"
+  },
+  {
+    "en": "User Unclear",
+    "zh": "用户不明确"
+  },
+  {
+    "en": "User Settings",
+    "zh": "用户设置"
+  },
+  {
+    "en": "User memory",
+    "zh": "用户记忆"
+  },
+  {
+    "en": "User Data",
+    "zh": "用户数据"
+  },
+  {
+    "en": "Do you want to allow this connection?",
+    "zh": "要允许此连接吗？"
+  },
+  {
+    "en": "Establishing connection to MCP server",
+    "zh": "正在建立与 MCP 服务器的连接"
+  },
+  {
+    "en": "Connecting GitHub to Claude…",
+    "zh": "正在连接 GitHub 到 Claude…"
+  },
+  {
+    "en": "Connecting to",
+    "zh": "连接到"
+  },
+  {
+    "en": "Reconnecting to",
+    "zh": "重新连接到"
+  },
+  {
+    "en": "Plan submitted for team lead approval",
+    "zh": "计划已提交给团队负责人审批"
+  },
+  {
+    "en": "Waiting for team lead approval",
+    "zh": "等待团队负责人审批"
+  },
+  {
+    "en": "Plan Approval Request from",
+    "zh": "计划审批请求来自"
+  },
+  {
+    "en": "Plan needs revision",
+    "zh": "计划需要修改"
+  },
+  {
+    "en": "Ultraplan approved",
+    "zh": "Ultraplan 已批准"
+  },
+  {
+    "en": "Submitting report…",
+    "zh": "提交报告中…"
+  },
+  {
+    "en": "Think Back on 2025 with Claude Code",
+    "zh": "用 Claude Code 回顾 2025"
+  },
+  {
+    "en": "is here · it'll chime in as you code",
+    "zh": "来了 · 你编码时它会插话"
+  },
+  {
+    "en": "sync cycle modes for all · Esc close",
+    "zh": "同步所有模式 · Esc 关闭"
+  },
+  {
+    "en": "Thanks for sharing your transcript!",
+    "zh": "感谢分享你的对话记录！"
+  },
+  {
+    "en": "No, maybe later with /terminal-setup",
+    "zh": "不了，以后用 /terminal-setup"
+  },
+  {
+    "en": "Do you have feedback about the plan?",
+    "zh": "你对计划有反馈吗？"
+  },
+  {
+    "en": "You have not answered all questions",
+    "zh": "你还没有回答所有问题"
+  },
+  {
+    "en": "Fetching your Claude Code sessions…",
+    "zh": "正在获取 Claude Code 会话…"
+  },
+  {
+    "en": "Sending a test request to Bedrock…",
+    "zh": "正在向 Bedrock 发送测试请求…"
+  },
+  {
+    "en": "Checking GitHub CLI installation…",
+    "zh": "检查 GitHub CLI 安装…"
+  },
+  {
+    "en": "Checking thinkback installation…",
+    "zh": "检查 thinkback 安装…"
+  },
+  {
+    "en": "Checking candidate",
+    "zh": "检查候选"
+  },
+  {
+    "en": "Checking login status…",
+    "zh": "检查登录状态…"
+  },
+  {
+    "en": "Checking git status",
+    "zh": "检查 git 状态"
+  },
+  {
+    "en": "Checking for Claude Desktop…",
+    "zh": "检查 Claude Desktop…"
+  },
+  {
+    "en": "Claude account with subscription ·",
+    "zh": "Claude 订阅账号 ·"
+  },
+  {
+    "en": "Claude wants to exit plan mode",
+    "zh": "Claude 想要退出计划模式"
+  },
+  {
+    "en": "Claude Code will always reject requests to use denied tools.",
+    "zh": "Claude Code 将始终拒绝使用被拒绝的工具。"
+  },
+  {
+    "en": "To change this later, run /theme",
+    "zh": "之后要更改，运行 /theme"
+  },
+  {
+    "en": "Opening sticker page in browser…",
+    "zh": "正在浏览器中打开贴纸页面…"
+  },
+  {
+    "en": "Loading your Claude Code stats…",
+    "zh": "正在加载 Claude Code 统计…"
+  },
+  {
+    "en": "How do you authenticate to AWS?",
+    "zh": "你如何进行 AWS 认证？"
+  },
+  {
+    "en": "Select any you wish to enable.",
+    "zh": "选择你想启用的。"
+  },
+  {
+    "en": "Select a session to resume",
+    "zh": "选择要恢复的会话"
+  },
+  {
+    "en": "Confirm you want to restore",
+    "zh": "确认要恢复"
+  },
+  {
+    "en": "Would you like to install it?",
+    "zh": "要安装吗？"
+  },
+  {
+    "en": "Would you like to:",
+    "zh": "你想："
+  },
+  {
+    "en": "Working Directory Has Changes",
+    "zh": "工作目录有变更"
+  },
+  {
+    "en": "Hooks Restricted by Policy",
+    "zh": "Hook 受策略限制"
+  },
+  {
+    "en": "Hook Configuration - Disabled",
+    "zh": "Hook 配置 - 已禁用"
+  },
+  {
+    "en": "hook returned blocking error",
+    "zh": "Hook 返回阻断错误"
+  },
+  {
+    "en": "hook stopped continuation:",
+    "zh": "Hook 停止了继续执行："
+  },
+  {
+    "en": "hook warning",
+    "zh": "Hook 警告"
+  },
+  {
+    "en": "hook error",
+    "zh": "Hook 错误"
+  },
+  {
+    "en": "No Claude Code sessions found",
+    "zh": "未找到 Claude Code 会话"
+  },
+  {
+    "en": "No remote environments available.",
+    "zh": "没有可用的远程环境。"
+  },
+  {
+    "en": "No marketplaces configured.",
+    "zh": "没有配置市场。"
+  },
+  {
+    "en": "No custom commands found",
+    "zh": "未找到自定义命令"
+  },
+  {
+    "en": "No skills found",
+    "zh": "未找到 Skill"
+  },
+  {
+    "en": "No agents found",
+    "zh": "未找到 Agent"
+  },
+  {
+    "en": "No preview available",
+    "zh": "没有预览可用"
+  },
+  {
+    "en": "No code restore",
+    "zh": "无代码恢复"
+  },
+  {
+    "en": "Nothing to rewind to yet.",
+    "zh": "还没有可回退的内容。"
+  },
+  {
+    "en": "Removed from marketplace · reason:",
+    "zh": "已从市场移除 · 原因："
+  },
+  {
+    "en": "Removed from marketplace",
+    "zh": "已从市场移除"
+  },
+  {
+    "en": "Removed empty socket directory",
+    "zh": "已删除空的 socket 目录"
+  },
+  {
+    "en": "Removed worktree",
+    "zh": "已移除 worktree"
+  },
+  {
+    "en": "Adding marketplace to configuration…",
+    "zh": "正在将市场添加到配置…"
+  },
+  {
+    "en": "Adding marketplace...",
+    "zh": "正在添加市场..."
+  },
+  {
+    "en": "Loading marketplaces...",
+    "zh": "正在加载市场..."
+  },
+  {
+    "en": "Loading marketplaces…",
+    "zh": "正在加载市场…"
+  },
+  {
+    "en": "Loading installed plugins…",
+    "zh": "正在加载已安装的插件…"
+  },
+  {
+    "en": "Loading environments…",
+    "zh": "正在加载环境…"
+  },
+  {
+    "en": "Loading session…",
+    "zh": "正在加载会话…"
+  },
+  {
+    "en": "Loading thinkback skill…",
+    "zh": "正在加载 thinkback 技能…"
+  },
+  {
+    "en": "Loading stats…",
+    "zh": "正在加载统计…"
+  },
+  {
+    "en": "Processing authentication…",
+    "zh": "正在处理认证…"
+  },
+  {
+    "en": "Starting authentication…",
+    "zh": "开始认证…"
+  },
+  {
+    "en": "Authenticating with",
+    "zh": "认证中"
+  },
+  {
+    "en": "Verifying credentials",
+    "zh": "验证凭证中"
+  },
+  {
+    "en": "Verifying it2 can communicate with iTerm2…",
+    "zh": "验证 it2 与 iTerm2 的通信…"
+  },
+  {
+    "en": "Calling AWS STS and Bedrock…",
+    "zh": "正在调用 AWS STS 和 Bedrock…"
+  },
+  {
+    "en": "Reading ~/.aws/config…",
+    "zh": "正在读取 ~/.aws/config…"
+  },
+  {
+    "en": "Sending token request to endpoint:",
+    "zh": "正在向端点发送令牌请求："
+  },
+  {
+    "en": "Sending ping with timeout",
+    "zh": "发送 ping 超时"
+  },
+  {
+    "en": "Sending SIGINT to MCP server process",
+    "zh": "向 MCP 服务器进程发送 SIGINT"
+  },
+  {
+    "en": "Fetching web page",
+    "zh": "获取网页中"
+  },
+  {
+    "en": "Teleporting session…",
+    "zh": "传送会话中…"
+  },
+  {
+    "en": "Teleport failed:",
+    "zh": "传送失败："
+  },
+  {
+    "en": "Searching with Claude…",
+    "zh": "用 Claude 搜索中…"
+  },
+  {
+    "en": "Searching…",
+    "zh": "搜索中…"
+  },
+  {
+    "en": "Opening in Claude Desktop…",
+    "zh": "在 Claude Desktop 中打开…"
+  },
+  {
+    "en": "Opening Claude Desktop…",
+    "zh": "打开 Claude Desktop…"
+  },
+  {
+    "en": "Opening pull request page",
+    "zh": "打开 PR 页面"
+  },
+  {
+    "en": "Opening your options…",
+    "zh": "打开选项…"
+  },
+  {
+    "en": "Let's get started.",
+    "zh": "开始吧。"
+  },
+  {
+    "en": "All powered up",
+    "zh": "一切就绪"
+  },
+  {
+    "en": "Please wait…",
+    "zh": "请稍候…"
+  },
+  {
+    "en": "to share detailed feedback anytime.",
+    "zh": "随时分享详细反馈。"
+  },
+  {
+    "en": "Sharing transcript",
+    "zh": "分享对话记录"
+  },
+  {
+    "en": "Completed task",
+    "zh": "已完成任务"
+  },
+  {
+    "en": "Waiting for task",
+    "zh": "等待任务"
+  },
+  {
+    "en": "Remote agent launched",
+    "zh": "远程 Agent 已启动"
+  },
+  {
+    "en": "Backgrounded agent",
+    "zh": "后台 Agent"
+  },
+  {
+    "en": "Background tasks",
+    "zh": "后台任务"
+  },
+  {
+    "en": "view tasks",
+    "zh": "查看任务"
+  },
+  {
+    "en": "stop agents",
+    "zh": "停止 Agent"
+  },
+  {
+    "en": "stop all agents",
+    "zh": "停止所有 Agent"
+  },
+  {
+    "en": "Active days:",
+    "zh": "活跃天数："
+  },
+  {
+    "en": "Most active day:",
+    "zh": "最活跃的一天："
+  },
+  {
+    "en": "Longest session:",
+    "zh": "最长会话："
+  },
+  {
+    "en": "Longest streak:",
+    "zh": "最长连续："
+  },
+  {
+    "en": "Current streak:",
+    "zh": "当前连续："
+  },
+  {
+    "en": "Shot distribution",
+    "zh": "分布情况"
+  },
+  {
+    "en": "Total tokens:",
+    "zh": "总 Token："
+  },
+  {
+    "en": "Free space:",
+    "zh": "可用空间："
+  },
+  {
+    "en": "Favorite model:",
+    "zh": "最爱模型："
+  },
+  {
+    "en": "Currently pinned:",
+    "zh": "当前固定："
+  },
+  {
+    "en": "Currently using:",
+    "zh": "当前使用："
+  },
+  {
+    "en": "Currently using",
+    "zh": "当前使用"
+  },
+  {
+    "en": "Latest available:",
+    "zh": "最新可用："
+  },
+  {
+    "en": "files changed",
+    "zh": "文件已变更"
+  },
+  {
+    "en": "e.g., Help me write unit tests for my code...",
+    "zh": "例如：帮我写单元测试..."
+  },
+  {
+    "en": "e.g. Has Claude completed all requested tasks?",
+    "zh": "例如：Claude 是否完成了所有请求的任务？"
+  },
+  {
+    "en": "e.g., use this agent after you're done writing code...",
+    "zh": "例如：写完代码后使用此 Agent..."
+  },
+  {
+    "en": "e.g., test-runner, tech-lead, etc",
+    "zh": "例如：test-runner、tech-lead 等"
+  },
+  {
+    "en": "Returned to",
+    "zh": "返回到"
+  },
+  {
+    "en": "Recalled",
+    "zh": "已召回"
+  },
+  {
+    "en": "Received",
+    "zh": "已接收"
+  },
+  {
+    "en": "Summarized",
+    "zh": "已摘要"
+  },
+  {
+    "en": "Added",
+    "zh": "已添加"
+  },
+  {
+    "en": "Updated cell",
+    "zh": "已更新单元格"
+  },
+  {
+    "en": "Listed directory",
+    "zh": "已列出目录"
+  },
+  {
+    "en": "Referenced file",
+    "zh": "引用文件"
+  },
+  {
+    "en": "Referenced PDF",
+    "zh": "引用 PDF"
+  },
+  {
+    "en": "Opened changes in",
+    "zh": "在以下位置打开更改"
+  },
+  {
+    "en": "Enter to continue ·",
+    "zh": "Enter 继续 ·"
+  },
+  {
+    "en": "Enter to select ·",
+    "zh": "Enter 选择 ·"
+  },
+  {
+    "en": "Enter to continue",
+    "zh": "Enter 继续"
+  },
+  {
+    "en": "Tab to switch focus",
+    "zh": "Tab 切换焦点"
+  },
+  {
+    "en": "toggle selection",
+    "zh": "切换选择"
+  },
+  {
+    "en": "toggle branch",
+    "zh": "切换分支"
+  },
+  {
+    "en": "mark done",
+    "zh": "标记完成"
+  },
+  {
+    "en": "open in editor",
+    "zh": "在编辑器中打开"
+  },
+  {
+    "en": "expand history",
+    "zh": "展开历史"
+  },
+  {
+    "en": "Type to filter",
+    "zh": "输入过滤"
+  },
+  {
+    "en": "Type to search",
+    "zh": "输入搜索"
+  },
+  {
+    "en": "type to search",
+    "zh": "输入搜索"
+  },
+  {
+    "en": "Type to Search",
+    "zh": "输入搜索"
+  },
+  {
+    "en": "Type to enter text",
+    "zh": "输入文本"
+  },
+  {
+    "en": "Search settings…",
+    "zh": "搜索设置…"
+  },
+  {
+    "en": "search history",
+    "zh": "搜索历史"
+  },
+  {
+    "en": "apply changes",
+    "zh": "应用更改"
+  },
+  {
+    "en": "confirm and save",
+    "zh": "确认并保存"
+  },
+  {
+    "en": "Review your answers",
+    "zh": "审查你的回答"
+  },
+  {
+    "en": "Enter filename:",
+    "zh": "输入文件名："
+  },
+  {
+    "en": "Enter marketplace source:",
+    "zh": "输入市场来源："
+  },
+  {
+    "en": "Enter new session name",
+    "zh": "输入新会话名称"
+  },
+  {
+    "en": "Choose location",
+    "zh": "选择位置"
+  },
+  {
+    "en": "Select tools",
+    "zh": "选择工具"
+  },
+  {
+    "en": "Browse default commands:",
+    "zh": "浏览默认命令："
+  },
+  {
+    "en": "Browse custom commands:",
+    "zh": "浏览自定义命令："
+  },
+  {
+    "en": "Creation method",
+    "zh": "创建方式"
+  },
+  {
+    "en": "Preferred output style",
+    "zh": "偏好输出风格"
+  },
+  {
+    "en": "Status message:",
+    "zh": "状态消息："
+  },
+  {
+    "en": "Current setting:",
+    "zh": "当前设置："
+  },
+  {
+    "en": "Default value used when the user provides nothing",
+    "zh": "用户未提供时使用的默认值"
+  },
+  {
+    "en": "Configure agent memory",
+    "zh": "配置 Agent 记忆"
+  },
+  {
+    "en": "Add directory to workspace",
+    "zh": "添加目录到工作区"
+  },
+  {
+    "en": "Delete this hook",
+    "zh": "删除此 Hook"
+  },
+  {
+    "en": "Delete hook",
+    "zh": "删除 Hook"
+  },
+  {
+    "en": "add hook",
+    "zh": "添加 Hook"
+  },
+  {
+    "en": "update hook",
+    "zh": "更新 Hook"
+  },
+  {
+    "en": "plugin - Manage installed plugins",
+    "zh": "插件 - 管理已安装的插件"
+  },
+  {
+    "en": "Plugin Recommendation",
+    "zh": "插件推荐"
+  },
+  {
+    "en": "LSP Plugin Recommendation",
+    "zh": "LSP 插件推荐"
+  },
+  {
+    "en": "Plugin:",
+    "zh": "插件："
+  },
+  {
+    "en": "Advisor disabled",
+    "zh": "顾问已禁用"
+  },
+  {
+    "en": "Advisor Tool",
+    "zh": "顾问工具"
+  },
+  {
+    "en": "Advisor model for the server-side advisor tool.",
+    "zh": "服务器端顾问工具的模型。"
+  },
+  {
+    "en": "Agent MCP",
+    "zh": "Agent MCP"
+  },
+  {
+    "en": "active agent",
+    "zh": "活动 Agent"
+  },
+  {
+    "en": "active shell",
+    "zh": "活动 Shell"
+  },
+  {
+    "en": "Remote Control",
+    "zh": "远程控制"
+  },
+  {
+    "en": "Disconnect this session",
+    "zh": "断开此会话"
+  },
+  {
+    "en": "Reconnect extension",
+    "zh": "重新连接扩展"
+  },
+  {
+    "en": "Ultrareview billing",
+    "zh": "Ultrapreview 计费"
+  },
+  {
+    "en": "Autofix PR",
+    "zh": "自动修复 PR"
+  },
+  {
+    "en": "to switch model",
+    "zh": "切换模型"
+  },
+  {
+    "en": "to toggle fast mode",
+    "zh": "切换快速模式"
+  },
+  {
+    "en": "to toggle thinking",
+    "zh": "切换思考模式"
+  },
+  {
+    "en": "to toggle tasks",
+    "zh": "切换任务"
+  },
+  {
+    "en": "to connect.",
+    "zh": "连接。"
+  },
+  {
+    "en": "to undo",
+    "zh": "撤销"
+  },
+  {
+    "en": "to view",
+    "zh": "查看"
+  },
+  {
+    "en": "to save,",
+    "zh": "保存，"
+  },
+  {
+    "en": "to speak",
+    "zh": "说话"
+  },
+  {
+    "en": "to toggle",
+    "zh": "切换"
+  },
+  {
+    "en": "more below",
+    "zh": "更多在下方"
+  },
+  {
+    "en": "more…",
+    "zh": "更多…"
+  },
+  {
+    "en": "all projects",
+    "zh": "所有项目"
+  },
+  {
+    "en": "all worktrees",
+    "zh": "所有 worktree"
+  },
+  {
+    "en": "reject all",
+    "zh": "全部拒绝"
+  },
+  {
+    "en": "Permissions:",
+    "zh": "权限："
+  },
+  {
+    "en": "Network Restrictions",
+    "zh": "网络限制"
+  },
+  {
+    "en": "Network Access",
+    "zh": "网络访问"
+  },
+  {
+    "en": "Strict sandbox mode",
+    "zh": "严格沙盒模式"
+  },
+  {
+    "en": "Configuration Error",
+    "zh": "配置错误"
+  },
+  {
+    "en": "Setup Warnings",
+    "zh": "设置警告"
+  },
+  {
+    "en": "Contains warnings",
+    "zh": "包含警告"
+  },
+  {
+    "en": "Missing dependencies",
+    "zh": "缺少依赖"
+  },
+  {
+    "en": "Auto-compact window reset to model default",
+    "zh": "自动压缩窗口已重置为模型默认值"
+  },
+  {
+    "en": "Auto-registered claude-cli:// deep link protocol handler",
+    "zh": "已自动注册 claude-cli:// 深度链接协议处理程序"
+  },
+  {
+    "en": "WARNING: Claude Code running in 跳过权限检查 mode",
+    "zh": "警告：Claude Code 正在跳过权限检查模式中运行"
+  },
+  {
+    "en": "WARNING: Failed to turn on autofix for this PR",
+    "zh": "警告：未能为此 PR 启用自动修复"
+  },
+  {
+    "en": "WARNING:",
+    "zh": "警告："
+  },
+  {
+    "en": "You've hit your fast limit",
+    "zh": "你已达到快速模式限额"
+  },
+  {
+    "en": "You've used",
+    "zh": "你已使用"
+  },
+  {
+    "en": "You can either:",
+    "zh": "你可以："
+  },
+  {
+    "en": "Sent a message to",
+    "zh": "已发送消息到"
+  },
+  {
+    "en": "Scheduled",
+    "zh": "已计划"
+  },
+  {
+    "en": "Flagged on",
+    "zh": "标记于"
+  },
+  {
+    "en": "again to exit",
+    "zh": "再次退出"
+  },
+  {
+    "en": "New here? Run",
+    "zh": "新用户？运行"
+  },
+  {
+    "en": "For more help:",
+    "zh": "更多帮助："
+  },
+  {
+    "en": "For more info, use",
+    "zh": "更多信息，使用"
+  },
+  {
+    "en": "For more details see:",
+    "zh": "详情参见："
+  },
+  {
+    "en": "run /terminal-setup",
+    "zh": "运行 /terminal-setup"
+  },
+  {
+    "en": "From your shell:",
+    "zh": "从你的 Shell："
+  },
+  {
+    "en": "unrecognized:",
+    "zh": "无法识别："
+  },
+  {
+    "en": "Unrecognized:",
+    "zh": "无法识别："
+  },
+  {
+    "en": "Screen Recording:",
+    "zh": "屏幕录制："
+  },
+  {
+    "en": "Hover info",
+    "zh": "悬停信息"
+  },
+  {
+    "en": "OAuth error:",
+    "zh": "OAuth 错误："
+  },
+  {
+    "en": "Error:",
+    "zh": "错误："
+  },
+  {
+    "en": "Warning:",
+    "zh": "警告："
+  },
+  {
+    "en": "Reason:",
+    "zh": "原因："
+  },
+  {
+    "en": "Source:",
+    "zh": "来源："
+  },
+  {
+    "en": "Type:",
+    "zh": "类型："
+  },
+  {
+    "en": "Event:",
+    "zh": "事件："
+  },
+  {
+    "en": "Status:",
+    "zh": "状态："
+  },
+  {
+    "en": "Session:",
+    "zh": "会话："
+  },
+  {
+    "en": "Task #",
+    "zh": "任务 #"
+  },
+  {
+    "en": "Field",
+    "zh": "字段"
+  },
+  {
+    "en": "Team:",
+    "zh": "团队："
+  },
+  {
+    "en": "Enter to",
+    "zh": "Enter"
+  },
+  {
+    "en": "Using",
+    "zh": "使用中"
+  },
+  {
+    "en": "Loaded",
+    "zh": "已加载"
+  },
+  {
+    "en": "Getting",
+    "zh": "获取中"
+  },
+  {
+    "en": "Viewing",
+    "zh": "查看中"
+  },
+  {
+    "en": "Reading",
+    "zh": "读取中"
+  },
+  {
+    "en": "Idle",
+    "zh": "空闲"
+  },
+  {
+    "en": "Never for",
+    "zh": "永不过期"
+  },
+  {
+    "en": "Session: ",
+    "zh": "会话："
+  },
+  {
+    "en": "Plug:",
+    "zh": "插件："
+  },
+  {
+    "en": "Plug-in",
+    "zh": "插件"
+  },
+  {
+    "en": "Plug-in:",
+    "zh": "插件："
+  },
+  {
+    "en": "Plug-in: ",
+    "zh": "插件："
+  },
+  {
+    "en": "Hooks: ",
+    "zh": "Hook："
+  },
+  {
+    "en": "Agents: ",
+    "zh": "Agent："
+  },
+  {
+    "en": "Skills: ",
+    "zh": "Skill："
+  },
+  {
+    "en": "Commands: ",
+    "zh": "命令："
+  },
+  {
+    "en": "Updated",
+    "zh": "已更新"
+  },
+  {
+    "en": "Remove",
+    "zh": "移除"
+  },
+  {
+    "en": "Found",
+    "zh": "找到"
+  },
+  {
+    "en": "Allowed",
+    "zh": "已允许"
+  },
+  {
+    "en": "Denied",
+    "zh": "已拒绝"
+  },
+  {
+    "en": "Delete",
+    "zh": "删除"
+  },
+  {
+    "en": "Edit file",
+    "zh": "编辑文件"
+  },
+  {
+    "en": "Large",
+    "zh": "大"
+  },
+  {
+    "en": "Wrote",
+    "zh": "已写入"
+  },
+  {
+    "en": "Also:",
+    "zh": "还有："
+  },
+  {
+    "en": "Press",
+    "zh": "按"
+  },
+  {
+    "en": "Enter",
+    "zh": "Enter"
+  },
+  {
+    "en": "Type",
+    "zh": "类型"
+  },
+  {
+    "en": "Run",
+    "zh": "运行"
+  },
+  {
+    "en": "Set",
+    "zh": "设置"
+  },
+  {
+    "en": "Add",
+    "zh": "添加"
+  },
+  {
+    "en": "PR #",
+    "zh": "PR #"
+  },
+  {
+    "en": "PR:",
+    "zh": "PR："
+  },
+  {
+    "en": "URL",
+    "zh": "URL"
+  },
+  {
+    "en": "Ran",
+    "zh": "已运行"
+  },
+  {
+    "en": "Did",
+    "zh": "已做"
+  },
+  {
+    "en": "Use",
+    "zh": "使用"
+  },
+  {
+    "en": "In:",
+    "zh": "在："
+  },
+  {
+    "en": "ON ",
+    "zh": "开 "
+  },
+  {
+    "en": "• Updated",
+    "zh": "• 已更新"
+  },
+  {
+    "en": "• Remove",
+    "zh": "• 移除"
+  },
+  {
+    "en": "• Update",
+    "zh": "• 更新"
+  },
+  {
+    "en": "• Agents:",
+    "zh": "• Agent："
+  },
+  {
+    "en": "• Hooks:",
+    "zh": "• Hook："
+  },
+  {
+    "en": "• Skills:",
+    "zh": "• Skill："
+  },
+  {
+    "en": "• Commands:",
+    "zh": "• 命令："
+  },
+  {
+    "en": "• Cmd+Esc",
+    "zh": "• Cmd+Esc"
+  },
+  {
+    "en": "∴ Thinking",
+    "zh": "∴ 思考中"
+  },
+  {
+    "en": "⧉ Selected",
+    "zh": "⧉ 已选"
+  },
+  {
+    "en": "⧉ In",
+    "zh": "⧉ 在"
+  },
+  {
+    "en": "←/→ source",
+    "zh": "←/→ 来源"
+  },
+  {
+    "en": "↑/↓ select",
+    "zh": "↑/↓ 选择"
+  },
+  {
+    "en": "Plan → Edit → Execute",
+    "zh": "计划 → 编辑 → 执行"
   }
 ]
