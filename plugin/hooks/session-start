@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 # session-start hook for claude-code-zh-cn
 # 1. 注入中文上下文指令
-# 2. 检测 cli.js 版本变更，自动重 patch（不恢复旧备份，直接 patch 当前版本）
+# 2. 检测插件 Release 更新并同步安装态
+# 3. 检测 cli.js 版本变更，自动重 patch（不恢复旧备份，直接 patch 当前版本）
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
 MARKER_FILE="$PLUGIN_ROOT/.patched-version"
+SOURCE_REPO_FILE="$PLUGIN_ROOT/.source-repo"
+LAST_UPDATE_CHECK_FILE="$PLUGIN_ROOT/.last-update-check"
+UPDATE_CHECK_INTERVAL_SECONDS="${ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS:-21600}"
+STAGING_DIR=""
+
+cleanup() {
+    if [ -n "${STAGING_DIR:-}" ] && [ -d "$STAGING_DIR" ]; then
+        rm -rf "$STAGING_DIR"
+    fi
+}
+
+trap cleanup EXIT
 
 compute_patch_revision() {
     node - "$PLUGIN_ROOT" <<'NODE'
@@ -28,6 +41,193 @@ for (const file of files) {
 process.stdout.write(hash.digest("hex").slice(0, 16));
 NODE
 }
+
+read_manifest_version() {
+    local target="$1"
+    node - "$target" <<'NODE'
+const fs = require("fs");
+
+try {
+    const file = process.argv[2];
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    process.stdout.write(String(data.version || ""));
+} catch {
+    process.stdout.write("");
+}
+NODE
+}
+
+version_is_newer() {
+    local current_version="$1"
+    local latest_version="$2"
+
+    node - "$current_version" "$latest_version" <<'NODE'
+function parse(version) {
+    return String(version || "")
+        .split(".")
+        .map((part) => {
+            const n = Number.parseInt(part, 10);
+            return Number.isFinite(n) ? n : 0;
+        });
+}
+
+function compare(a, b) {
+    const max = Math.max(a.length, b.length);
+    for (let i = 0; i < max; i += 1) {
+        const left = a[i] || 0;
+        const right = b[i] || 0;
+        if (left > right) return 1;
+        if (left < right) return -1;
+    }
+    return 0;
+}
+
+const current = parse(process.argv[2]);
+const latest = parse(process.argv[3]);
+process.exit(compare(latest, current) > 0 ? 0 : 1);
+NODE
+}
+
+read_source_repo() {
+    if [ ! -f "$SOURCE_REPO_FILE" ]; then
+        return
+    fi
+
+    tr -d '\r' < "$SOURCE_REPO_FILE"
+}
+
+touch_update_check_timestamp() {
+    date +%s > "$LAST_UPDATE_CHECK_FILE" 2>/dev/null || true
+}
+
+should_check_for_update() {
+    local source_repo="$1"
+    local interval now last
+
+    [ "${ZH_CN_DISABLE_AUTO_UPDATE:-0}" = "1" ] && return 1
+    [ -n "$source_repo" ] || return 1
+    [ -d "$source_repo/.git" ] || return 1
+
+    interval="$UPDATE_CHECK_INTERVAL_SECONDS"
+    case "$interval" in
+        ''|*[!0-9]*)
+            interval="21600"
+            ;;
+    esac
+
+    if [ "$interval" = "0" ]; then
+        return 0
+    fi
+
+    now="$(date +%s 2>/dev/null || echo "0")"
+    last="$(cat "$LAST_UPDATE_CHECK_FILE" 2>/dev/null || echo "0")"
+
+    case "$now" in
+        ''|*[!0-9]*) now="0" ;;
+    esac
+    case "$last" in
+        ''|*[!0-9]*) last="0" ;;
+    esac
+
+    [ $((now - last)) -ge "$interval" ]
+}
+
+fetch_latest_release_tag() {
+    local source_repo="$1"
+
+    if command -v timeout &>/dev/null; then
+        GIT_TERMINAL_PROMPT=0 timeout 15 git -C "$source_repo" fetch --tags --quiet >/dev/null 2>&1 || true
+    else
+        # macOS fallback: background + wait with 15s limit
+        local pid
+        GIT_TERMINAL_PROMPT=0 git -C "$source_repo" fetch --tags --quiet >/dev/null 2>&1 &
+        pid=$!
+        local waited=0
+        while [ $waited -lt 15 ]; do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                wait "$pid" 2>/dev/null || true
+                break
+            fi
+            sleep 1
+            waited=$((waited + 1))
+        done
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+        fi
+    fi
+
+    git -C "$source_repo" tag -l 'v*' --sort=-version:refname | head -1
+}
+
+export_release_to_staging() {
+    local source_repo="$1"
+    local latest_tag="$2"
+    local staging_dir="$3"
+
+    mkdir -p "$staging_dir"
+    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh settings-overlay.json verbs tips plugin 2>/dev/null \
+        | tar -xf - -C "$staging_dir" 2>/dev/null
+}
+
+validate_staging_release() {
+    local staging_dir="$1"
+
+    [ -f "$staging_dir/install.sh" ] || return 1
+    [ -f "$staging_dir/settings-overlay.json" ] || return 1
+    [ -f "$staging_dir/plugin/manifest.json" ] || return 1
+    [ -f "$staging_dir/plugin/patch-cli.sh" ] || return 1
+    [ -f "$staging_dir/plugin/patch-cli.js" ] || return 1
+    [ -f "$staging_dir/plugin/cli-translations.json" ] || return 1
+    [ -f "$staging_dir/verbs/zh-CN.json" ] || return 1
+    [ -f "$staging_dir/tips/zh-CN.json" ] || return 1
+}
+
+run_update_only_install() {
+    local staging_dir="$1"
+    local source_repo="$2"
+
+    CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
+    ZH_CN_SOURCE_REPO="$source_repo" \
+    ZH_CN_SKIP_BANNER=1 \
+    bash "$staging_dir/install.sh" --update-only >/dev/null 2>&1
+}
+
+validate_semver() {
+    echo "$1" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._]+)?$'
+}
+
+write_update_status() {
+    echo "$1" > "$PLUGIN_ROOT/.last-update-status"
+}
+
+# 自动更新：只同步已发布的 Release tag，不修改源码仓库工作树
+AUTO_UPDATE_MSG=""
+SOURCE_REPO="$(read_source_repo)"
+if should_check_for_update "$SOURCE_REPO"; then
+    touch_update_check_timestamp
+
+    LOCAL_VERSION="$(read_manifest_version "$PLUGIN_ROOT/manifest.json" 2>/dev/null || true)"
+    LATEST_TAG="$(fetch_latest_release_tag "$SOURCE_REPO" 2>/dev/null || true)"
+    LATEST_VERSION="${LATEST_TAG#v}"
+
+    if [ -n "${LATEST_TAG:-}" ] && [ -n "${LOCAL_VERSION:-}" ] && [ -n "${LATEST_VERSION:-}" ] \
+        && validate_semver "$LOCAL_VERSION" && validate_semver "$LATEST_VERSION" \
+        && version_is_newer "$LOCAL_VERSION" "$LATEST_VERSION"; then
+        STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cczh-update.XXXXXX")"
+
+        if ! export_release_to_staging "$SOURCE_REPO" "$LATEST_TAG" "$STAGING_DIR"; then
+            write_update_status "fetch_failed v${LATEST_VERSION} $(date +%s)"
+        elif ! validate_staging_release "$STAGING_DIR"; then
+            write_update_status "staging_invalid v${LATEST_VERSION} $(date +%s)"
+        elif ! run_update_only_install "$STAGING_DIR" "$SOURCE_REPO"; then
+            write_update_status "install_failed v${LATEST_VERSION} $(date +%s)"
+        else
+            write_update_status "ok v${LATEST_VERSION} $(date +%s)"
+            AUTO_UPDATE_MSG="插件已从 v${LOCAL_VERSION} 更新到 v${LATEST_VERSION}"
+        fi
+    fi
+fi
 
 # 自动 patch 检测
 CLI_FILE="$(dirname "$(which claude)")/../lib/node_modules/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
@@ -66,7 +266,7 @@ cat <<HOOK_OUTPUT
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "## 中文本地化提示\n\n你正在使用中文本地化版本。请遵循以下规则：\n- 默认使用中文（简体）回复用户\n- 技术术语保留英文（如 API、PR、git、npm、React、TypeScript 等）\n- 使用中文标点符号（，。！？：；「」）\n- 错误信息尽量提供中文解释，附带英文原文\n- 保持简洁直接的风格\n- 代码注释使用中文\n- 日期格式使用 YYYY年MM月DD日\n\n## 常见错误信息翻译参考\n- Permission denied → 权限被拒绝\n- File not found → 文件未找到\n- Command not found → 命令未找到\n- Connection refused → 连接被拒绝\n- Timeout → 超时\n- Rate limited → 请求频率受限\n- Internal server error → 服务器内部错误\n- Unauthorized → 未授权\n- Forbidden → 禁止访问\n- Not found → 未找到${AUTO_PATCH_MSG:+\\n\\n## 自动更新\\n${AUTO_PATCH_MSG}}"
+    "additionalContext": "## 中文本地化提示\n\n你正在使用中文本地化版本。请遵循以下规则：\n- 默认使用中文（简体）回复用户\n- 技术术语保留英文（如 API、PR、git、npm、React、TypeScript 等）\n- 使用中文标点符号（，。！？：；「」）\n- 错误信息尽量提供中文解释，附带英文原文\n- 保持简洁直接的风格\n- 代码注释使用中文\n- 日期格式使用 YYYY年MM月DD日\n\n## 常见错误信息翻译参考\n- Permission denied → 权限被拒绝\n- File not found → 文件未找到\n- Command not found → 命令未找到\n- Connection refused → 连接被拒绝\n- Timeout → 超时\n- Rate limited → 请求频率受限\n- Internal server error → 服务器内部错误\n- Unauthorized → 未授权\n- Forbidden → 禁止访问\n- Not found → 未找到${AUTO_UPDATE_MSG:+\\n\\n## 自动更新\\n${AUTO_UPDATE_MSG}}${AUTO_PATCH_MSG:+\\n\\n## 自动修复\\n${AUTO_PATCH_MSG}}"
   }
 }
 HOOK_OUTPUT

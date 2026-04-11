@@ -6,6 +6,31 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.0.4] - 2026-04-09
+
+### 新增
+
+- **插件自动更新**：session-start hook 自动检测已发布的 Release tag，同步安装态（Codex 协作）
+  - 只跟随已发布 Release，不跟随 main 未发布 commit
+  - 使用 `git archive` 提取 release 文件到 staging 目录，不修改源码工作树
+  - 限频检查（默认 6 小时间隔，可通过 `ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS` 配置）
+  - 支持通过 `ZH_CN_DISABLE_AUTO_UPDATE=1` 禁用
+- install.sh 重构为函数式结构，新增 `--update-only` 参数支持 hook 触发的更新
+- 失败状态记录：自动更新失败时写入 `.last-update-status`（区分 fetch_failed / staging_invalid / install_failed / ok）
+- 版本号格式校验：只接受语义化版本号（X.Y.Z 或 X.Y.Z-suffix），防止注入
+- git fetch 超时保护：15 秒超时，macOS 使用后台进程 fallback
+
+### 修复
+
+- `git fetch --tags` 无超时保护导致 session 启动卡住（加 timeout 15 + macOS fallback）
+- 自动更新失败时完全静默（新增 `.last-update-status` 状态文件记录失败阶段）
+- 版本号未做格式校验直接拼入 JSON（新增 `validate_semver()` 白名单校验）
+
+### 变化
+
+- 新增测试 2 条：更新失败时返回合法 JSON、成功时写入 `.last-update-status`
+- 测试总数：4 → 9（含原有 patch-cli 和 plugin-payload 测试）
+
 ## [2.0.3] - 2026-04-09
 
 ### 修复
