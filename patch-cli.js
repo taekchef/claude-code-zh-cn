@@ -445,6 +445,27 @@ tryRegexReplace(/\$\{[^}]+\}\s+Idle(?=[`"])/g, (match) =>
 // 修: let G=H&&`${O} ${M}`     → "翻搅了 51秒"
 tryReplace('`${O} for ${M}`', '`${O} ${M}`');
 
+// 5d. 模板字符串标题（动态变量无法通过双引号扫描覆盖）
+tryRegexReplace(/`Newer\s+\$\{([^}]+)\}\s+model available`/g, (_, expr) =>
+    '`有新的 ${' + expr + '} 模型可用`'
+);
+
+// 5e. /model 动态描述（当前模型名会随版本变化）
+tryRegexReplace(/`Set the AI model for Claude Code \(currently \$\{([^}]+)\}\)`/g, (_, expr) =>
+    '`设置 Claude Code 使用的 AI 模型（当前为 ${' + expr + '}）`'
+);
+
+// 5e2. /fast 动态描述（当前 fast mode 取决于模型名）
+tryRegexReplace(/`Toggle fast mode \(\$\{([^}]+)\} only\)`/g, (_, expr) =>
+    '`切换快速模式（${' + expr + '} 专用）`'
+);
+
+// 5f. /update-config 的单引号描述（不在双引号扫描器覆盖范围内）
+tryRegexReplace(
+    /'Use this skill to configure the Claude Code harness via settings\.json\. Automated behaviors \("from now on when X", "each time X", "whenever X", "before\/after X"\) require hooks configured in settings\.json - the harness executes these, not Claude, so memory\/preferences cannot fulfill them\. Also use for: permissions \("allow X", "add permission", "move permission to"\), env vars \("set X=Y"\), hook troubleshooting, or any changes to settings\.json\/settings\.local\.json files\. Examples: "allow npm commands", "add bq permission to global settings", "move permission to user settings", "set DEBUG=true", "when claude stops show X"\. For simple settings like theme\/model, use Config tool\.'/g,
+    () => "'使用此技能通过 settings.json 配置 Claude Code harness。自动化行为（“从现在起当 X”“每次 X”“每当 X”“在 X 之前/之后”）需要在 settings.json 中配置 Hook - 这些由 harness 执行，不是 Claude，因此记忆/偏好无法满足它们。也用于：权限（“允许 X”“添加权限”“移动权限到”）、环境变量（“设置 X=Y”）、Hook 故障排查，或对 settings.json/settings.local.json 的任何修改。示例：“允许 npm 命令”“向全局设置添加 bq 权限”“将权限移到用户设置”“设置 DEBUG=true”“当 claude 停止时显示 X”。对于主题/模型这类简单设置，请使用 Config 工具。'"
+);
+
 // === 逐条翻译：只替换真实的双引号字符串字面量 ===
 //
 // 先扫描源码中的真实双引号字符串 token，再只在这些 token 内做替换。
