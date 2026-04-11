@@ -217,7 +217,7 @@ if should_check_for_update "$SOURCE_REPO"; then
         STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cczh-update.XXXXXX")"
 
         if ! export_release_to_staging "$SOURCE_REPO" "$LATEST_TAG" "$STAGING_DIR"; then
-            write_update_status "fetch_failed v${LATEST_VERSION} $(date +%s)"
+            write_update_status "export_failed v${LATEST_VERSION} $(date +%s)"
         elif ! validate_staging_release "$STAGING_DIR"; then
             write_update_status "staging_invalid v${LATEST_VERSION} $(date +%s)"
         elif ! run_update_only_install "$STAGING_DIR" "$SOURCE_REPO"; then
@@ -226,6 +226,8 @@ if should_check_for_update "$SOURCE_REPO"; then
             write_update_status "ok v${LATEST_VERSION} $(date +%s)"
             AUTO_UPDATE_MSG="插件已从 v${LOCAL_VERSION} 更新到 v${LATEST_VERSION}"
         fi
+    else
+        write_update_status "noop v${LOCAL_VERSION:-unknown} $(date +%s)"
     fi
 fi
 
