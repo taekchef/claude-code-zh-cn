@@ -9,8 +9,35 @@ const repoRoot = path.resolve(__dirname, "..");
 const patchCli = path.join(repoRoot, "patch-cli.js");
 const translations = path.join(repoRoot, "cli-translations.json");
 
+function resolveClaudeCodeCliJs() {
+  const candidates = [];
+
+  if (process.env.CLAUDE_CODE_CLI_JS) {
+    candidates.push(process.env.CLAUDE_CODE_CLI_JS);
+  }
+
+  try {
+    const claudeCodePackageJson = require.resolve("@anthropic-ai/claude-code/package.json");
+    candidates.push(path.join(path.dirname(claudeCodePackageJson), "cli.js"));
+  } catch {
+    // Package is not installed locally; fall through to compatibility fallback(s).
+  }
+
+  candidates.push("/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js");
+
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(
+    "Unable to locate Claude Code cli.js. Set CLAUDE_CODE_CLI_JS or install @anthropic-ai/claude-code as a dependency."
+  );
+}
+
 function getNonChineseSlashCommandDescriptions() {
-  const cliJs = fs.readFileSync("/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js", "utf8");
+  const cliJs = fs.readFileSync(resolveClaudeCodeCliJs(), "utf8");
   const re = /type:"(?:local-jsx|local)",name:"([^"]+)"(?:,aliases:\[(.*?)\])?,description:"([^"]*)"/g;
   const cjk = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/;
   const rows = [];
