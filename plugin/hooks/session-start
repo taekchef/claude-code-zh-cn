@@ -26,7 +26,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = process.argv[2];
-const files = ["manifest.json", "patch-cli.sh", "patch-cli.js", "cli-translations.json"];
+const files = ["manifest.json", "patch-cli.sh", "patch-cli.js", "cli-translations.json", "bun-binary-io.js"];
 const hash = crypto.createHash("sha256");
 
 for (const file of files) {
@@ -179,6 +179,7 @@ validate_staging_release() {
     [ -f "$staging_dir/plugin/patch-cli.sh" ] || return 1
     [ -f "$staging_dir/plugin/patch-cli.js" ] || return 1
     [ -f "$staging_dir/plugin/cli-translations.json" ] || return 1
+    [ -f "$staging_dir/plugin/bun-binary-io.js" ] || return 1
     [ -f "$staging_dir/verbs/zh-CN.json" ] || return 1
     [ -f "$staging_dir/tips/zh-CN.json" ] || return 1
 }
@@ -232,14 +233,80 @@ if should_check_for_update "$SOURCE_REPO"; then
 fi
 
 # 自动 patch 检测
-CLI_FILE="$(dirname "$(which claude)")/../lib/node_modules/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
-if [ -z "$CLI_FILE" ]; then
-    CLI_FILE="$(npm root -g)/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
+INSTALL_INFO=""
+HELPER_AVAILABLE=false
+if [ -f "$PLUGIN_ROOT/bun-binary-io.js" ]; then
+    INSTALL_INFO="$(node "$PLUGIN_ROOT/bun-binary-io.js" detect "$(which claude 2>/dev/null || true)" 2>/dev/null || true)"
+    HELPER_AVAILABLE=true
+fi
+
+INSTALL_KIND="${INSTALL_INFO%%:*}"
+INSTALL_TARGET="${INSTALL_INFO#*:}"
+
+CLI_FILE=""
+NATIVE_BINARY=""
+case "$INSTALL_KIND" in
+    npm)
+        CLI_FILE="$INSTALL_TARGET"
+        ;;
+    native-bun)
+        NATIVE_BINARY="$INSTALL_TARGET"
+        ;;
+esac
+
+# Fallback: 仅当 helper 文件不存在时走旧检测逻辑
+# helper 返回 unknown = 不支持的安装类型，不 patch
+if [ "$HELPER_AVAILABLE" = false ] && [ -z "$CLI_FILE" ] && [ -z "$NATIVE_BINARY" ]; then
+    CLI_FILE="$(dirname "$(which claude 2>/dev/null || true)")/../lib/node_modules/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
+    if [ -z "$CLI_FILE" ] || [ ! -f "$CLI_FILE" ]; then
+        CLI_FILE="$(npm root -g 2>/dev/null)/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
+    fi
+    if [ -z "$CLI_FILE" ] || [ ! -f "$CLI_FILE" ]; then
+        CLI_FILE=""
+    fi
 fi
 
 AUTO_PATCH_MSG=""
-if [ -f "$CLI_FILE" ]; then
-    # 读取当前 cli.js 版本
+if [ -n "$NATIVE_BINARY" ]; then
+    # 原生二进制: best-effort re-patch（静默降级）
+    CURRENT_VERSION=$(node "$PLUGIN_ROOT/bun-binary-io.js" version "$NATIVE_BINARY" 2>/dev/null || true)
+    PATCH_REVISION=$(compute_patch_revision 2>/dev/null || true)
+    CURRENT_MARKER="${CURRENT_VERSION}"
+    [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="${CURRENT_VERSION}|${PATCH_REVISION}"
+    PATCHED_VERSION=""
+    [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
+
+    if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ]; then
+        if node "$PLUGIN_ROOT/bun-binary-io.js" check-deps 2>/dev/null | grep -q "ok"; then
+            tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-repatch.$$.js"
+            backup_path="${NATIVE_BINARY}.zh-cn-backup"
+            backup_version=""
+            if [ -f "$backup_path" ]; then
+                backup_version=$(node "$PLUGIN_ROOT/bun-binary-io.js" version "$backup_path" 2>/dev/null || true)
+            fi
+
+            # 同版本时恢复 backup 保证干净基底；版本变化时刷新 backup 为当前版本
+            if [ -f "$backup_path" ] && [ -n "${CURRENT_VERSION:-}" ] && [ "${CURRENT_VERSION:-}" = "${backup_version:-}" ]; then
+                cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+            else
+                cp "$NATIVE_BINARY" "$backup_path" 2>/dev/null || true
+            fi
+
+            if node "$PLUGIN_ROOT/bun-binary-io.js" extract "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
+                PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
+                if [ "$PATCH_COUNT" != "0" ]; then
+                    if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
+                        echo "$CURRENT_MARKER" > "$MARKER_FILE"
+                        AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 原生二进制）"
+                    fi
+                fi
+            fi
+            rm -f "$tmp_js"
+        fi
+        # node-lief 不可用 → 静默跳过
+    fi
+elif [ -f "$CLI_FILE" ]; then
+    # 现有 npm 自动 re-patch 逻辑
     CURRENT_VERSION=$(head -6 "$CLI_FILE" | grep -o '// Version: [^ ]*' | head -1 | sed 's/\/\/ Version: //')
     PATCH_REVISION=$(compute_patch_revision 2>/dev/null || true)
     CURRENT_MARKER="${CURRENT_VERSION}"
@@ -250,7 +317,6 @@ if [ -f "$CLI_FILE" ]; then
     [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
 
     if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ]; then
-        # Claude Code 版本或插件 patch 规则变了（或首次），直接 patch 当前文件
         PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$CLI_FILE" 2>/dev/null || echo "0")
 
         if [ "$PATCH_COUNT" != "0" ]; then

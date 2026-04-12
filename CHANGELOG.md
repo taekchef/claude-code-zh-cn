@@ -6,6 +6,31 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.1.0] - 2026-04-12
+
+### 新增
+
+- **macOS 官方安装器实验性支持**：新增 native binary backend，支持检测、提取、写回和卸载恢复
+- 新增 `bun-binary-io.js` / `plugin/bun-binary-io.js`，统一处理官方安装器的 Bun 原生二进制
+- `install.sh` 自动检测安装类型：`npm` / `native-bun`
+- `session-start` 对原生二进制新增自动重 patch 逻辑
+- 新增测试：
+  - `tests/bun-binary-io.test.js`
+  - `tests/session-start-hook.test.js` 的 native 升级回归用例
+
+### 修复
+
+- 修复官方安装器 binary 识别失败：Bun trailer 不再要求必须位于 EOF
+- 修复 native 升级后自动重 patch 的回滚风险：旧 backup 不再覆盖新版本 binary
+- `uninstall.sh` 优先按当前实际运行目标恢复 native backup，避免混合安装场景误判
+
+### 验证
+
+- `node --test tests/*.test.js`：`11/11` 通过
+- macOS 官方安装器隔离验证：
+  - 安装、patch、卸载恢复通过
+  - 从 `2.1.92` 升级到 `2.1.101` 通过
+
 ## [2.0.5] - 2026-04-11
 
 ### 修复

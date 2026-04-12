@@ -8,6 +8,7 @@ const pairs = [
   ["patch-cli.sh", path.join(repoRoot, "patch-cli.sh"), path.join(repoRoot, "plugin", "patch-cli.sh")],
   ["patch-cli.js", path.join(repoRoot, "patch-cli.js"), path.join(repoRoot, "plugin", "patch-cli.js")],
   ["cli-translations.json", path.join(repoRoot, "cli-translations.json"), path.join(repoRoot, "plugin", "cli-translations.json")],
+  ["bun-binary-io.js", path.join(repoRoot, "bun-binary-io.js"), path.join(repoRoot, "plugin", "bun-binary-io.js")],
 ];
 
 test("plugin payload contains all patch files needed by session-start hook", () => {
