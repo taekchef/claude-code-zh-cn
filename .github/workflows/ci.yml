@@ -30,6 +30,7 @@ jobs:
           node --check bun-binary-io.js
           node --check plugin/bun-binary-io.js
           node --check plugin/patch-cli.js
+          node --check scripts/check-translation-sentinels.js
           node --check scripts/verify-upstream-compat.js
 
       - name: Run tests
@@ -37,3 +38,12 @@ jobs:
 
       - name: Verify upstream compatibility
         run: node scripts/verify-upstream-compat.js
+
+      - name: Check translation sentinels
+        run: |
+          TMP_DIR="$(mktemp -d)"
+          VERSION="$(node -e 'const config=require("./scripts/upstream-compat.config.json"); process.stdout.write(config.support.npm.stable.representatives.slice(-1)[0]);')"
+          TARBALL="$(npm pack @anthropic-ai/claude-code@${VERSION} --silent)"
+          tar -xzf "$TARBALL" -C "$TMP_DIR"
+          node patch-cli.js "$TMP_DIR/package/cli.js" cli-translations.json >/dev/null
+          node scripts/check-translation-sentinels.js "$TMP_DIR/package/cli.js"

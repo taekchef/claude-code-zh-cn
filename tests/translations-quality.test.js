@@ -1,7 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -13,6 +15,12 @@ function loadTranslations() {
 
 function translationMap() {
   return new Map(loadTranslations().map((entry) => [entry.en, entry.zh]));
+}
+
+function loadCompatConfig() {
+  return JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "scripts", "upstream-compat.config.json"), "utf8")
+  );
 }
 
 test("high-visibility translations use the curated wording", () => {
@@ -73,6 +81,20 @@ test("high-visibility translations use the curated wording", () => {
   for (const [en, zh] of expected) {
     assert.equal(map.get(en), zh, `translation drift for: ${en}`);
   }
+});
+
+test("upstream compat config keeps the required english sentinels", () => {
+  const expected = [
+    "Quick safety check",
+    "Security guide",
+    "Use /btw to ask a quick side question without interrupting Claude's current work",
+    "This command requires approval",
+    "Do you want to proceed?",
+    "Tab to amend",
+    "ctrl+e to explain",
+  ];
+  const sentinels = loadCompatConfig().checks.sentinels.map((entry) => entry.pattern);
+  assert.deepEqual(sentinels, expected);
 });
 
 test("translations avoid legacy half-translated phrasing for key UX terms", () => {
@@ -142,4 +164,38 @@ test("translations do not leave raw marketplace wording in Chinese text", () => 
     if (allowlist.has(entry.zh)) continue;
     assert.fail(`raw marketplace wording leaked into zh="${entry.zh}"`);
   }
+});
+
+test("check-translation-sentinels reports matching probes with explicit reasons", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-sentinel-hit-"));
+  const target = path.join(tmp, "cli.js");
+  fs.writeFileSync(target, 'let a="Quick safety check"; let b="ctrl+e to explain";\n');
+
+  const result = spawnSync(
+    "node",
+    [path.join(repoRoot, "scripts", "check-translation-sentinels.js"), target],
+    { cwd: repoRoot, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.match(result.stdout, /quick_safety_check/);
+  assert.match(result.stdout, /ctrl_e_to_explain/);
+});
+
+test("check-translation-sentinels passes when configured probes are absent", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-sentinel-clean-"));
+  const target = path.join(tmp, "cli.js");
+  fs.writeFileSync(
+    target,
+    'let a="安全检查：这是你自己创建或信任的项目吗？"; let b="按 ctrl+e 说明";\n'
+  );
+
+  const result = spawnSync(
+    "node",
+    [path.join(repoRoot, "scripts", "check-translation-sentinels.js"), target],
+    { cwd: repoRoot, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /No sentinel hits/);
 });
