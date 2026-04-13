@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Shell syntax check
+        run: |
+          bash -n install.sh
+          bash -n uninstall.sh
+          bash -n plugin/hooks/session-start
+          bash -n plugin/hooks/notification
+
+      - name: JavaScript syntax check
+        run: |
+          node --check bun-binary-io.js
+          node --check plugin/bun-binary-io.js
+          node --check plugin/patch-cli.js
+
+      - name: Run tests
+        run: node --test tests/*.test.js

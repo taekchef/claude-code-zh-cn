@@ -32,7 +32,7 @@ function createReleaseSourceRepo(tmpRoot) {
   const sourceRepo = path.join(tmpRoot, "source-repo");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
-  for (const relative of ["install.sh", "settings-overlay.json"]) {
+  for (const relative of ["install.sh", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
   for (const relative of ["plugin", "tips", "verbs"]) {
@@ -66,7 +66,7 @@ function createSourceRepoWithoutTags(tmpRoot) {
   const sourceRepo = path.join(tmpRoot, "source-repo-no-tags");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
-  for (const relative of ["install.sh", "settings-overlay.json"]) {
+  for (const relative of ["install.sh", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
   for (const relative of ["plugin", "tips", "verbs"]) {
@@ -142,6 +142,11 @@ printf 'invoked' > ${JSON.stringify(invokedFile)}
   fs.writeFileSync(path.join(pluginRoot, "manifest.json"), JSON.stringify({ version: "2.0.1" }));
   fs.writeFileSync(path.join(pluginRoot, "patch-cli.js"), "console.log('patch');\n");
   fs.writeFileSync(path.join(pluginRoot, "cli-translations.json"), "[]\n");
+  fs.writeFileSync(
+    path.join(pluginRoot, "compute-patch-revision.sh"),
+    "#!/usr/bin/env bash\ncompute_patch_revision(){ printf 'test-revision'; }\n"
+  );
+  fs.chmodSync(path.join(pluginRoot, "compute-patch-revision.sh"), 0o755);
   fs.writeFileSync(path.join(pluginRoot, ".patched-version"), "2.1.96");
 
   const result = spawnSync("bash", [hookPath], {

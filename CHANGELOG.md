@@ -6,6 +6,40 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.2.0] - 2026-04-13
+
+### 新增
+
+- 新增 GitHub Actions CI：自动执行 shell 语法检查、JavaScript 语法检查和全量测试
+- 新增 `compute-patch-revision.sh` / `plugin/compute-patch-revision.sh`，统一计算 patch 规则指纹
+- 新增 `tests/node-only-runtime.test.js`，验证无 Python 3 时的安装、卸载和 notification hook 行为
+- 新增 `tests/translations-schema.test.js`，校验翻译表基础结构
+- 新增 `scripts/sync-payload.sh`，显式同步根目录 payload 文件到 `plugin/`
+- 新增 `CONTRIBUTING.md`，补齐本地校验和 payload 维护说明
+
+### 改进
+
+- runtime 收敛为 Node-only：`install.sh`、`uninstall.sh`、`notification hook` 不再依赖 Python 3
+- `bun-binary-io.js` / `plugin/bun-binary-io.js` 的 `loadNodeLief()` 只保留 `require()` + `npm root -g` 两级探测
+- README 版本 badge 改为 GitHub Release 动态 badge
+- `CLAUDE.md` 更新为当前翻译条目和项目结构说明
+- `settings.json` 备份从无限累积改为自动裁剪，只保留最近 5 份时间戳备份
+
+### 修复
+
+- 修复 `codesign` 的命令注入风险：改用 `execFileSync` 传参调用
+- `codesign` 失败时输出 warning，不再静默吞掉
+- `notification` hook 的 JSON 解析改为 Node 实现，移除 Python bare `except`
+- 增补 `bun-binary-io` 检测测试：覆盖 npm 布局、unknown、ELF、symlink resolve、依赖检查
+- `tests/plugin-payload.test.js` 纳入 `compute-patch-revision.sh`，避免 payload 漂移
+
+### 验证
+
+- `bash -n install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification compute-patch-revision.sh plugin/compute-patch-revision.sh scripts/sync-payload.sh`
+- `node --check bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js tests/*.test.js`
+- `node --test tests/*.test.js`：`20/20` 通过
+- `HOME=$(mktemp -d ...) ZH_CN_SKIP_BANNER=1 bash ./install.sh` 连续执行 6 次后，`settings.json.zh-cn-backup.*` 保留数量为 `5`
+
 ## [2.1.0] - 2026-04-12
 
 ### 新增

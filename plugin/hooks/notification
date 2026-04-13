@@ -5,13 +5,11 @@
 read -r INPUT
 
 # Extract notification message
-MESSAGE=$(echo "$INPUT" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print(data.get('message', ''))
-except:
-    print('')
+MESSAGE=$(ZH_CN_NOTIFICATION_INPUT="$INPUT" node -e "
+try {
+  const data = JSON.parse(process.env.ZH_CN_NOTIFICATION_INPUT || '{}');
+  process.stdout.write(String(data.message || ''));
+} catch {}
 " 2>/dev/null)
 
 # Match and translate

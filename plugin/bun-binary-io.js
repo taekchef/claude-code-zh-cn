@@ -18,7 +18,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 
 // ============================================================================
 // 常量
@@ -42,15 +42,6 @@ function loadNodeLief() {
     const globalRoot = execSync("npm root -g", { encoding: "utf8" }).trim();
     return require(path.join(globalRoot, "node-lief"));
   } catch {}
-  // 3. 硬编码路径探测
-  const probes = [
-    "/usr/local/lib/node_modules/node-lief",
-    "/usr/lib/node_modules/node-lief",
-    path.join(process.env.HOME || "", ".npm-global/lib/node_modules/node-lief"),
-  ];
-  for (const p of probes) {
-    try { return require(p); } catch {}
-  }
   return null;
 }
 
@@ -463,8 +454,10 @@ function repackMachO(LIEF, machoBinary, binPath, newBunBuffer, outputPath, secti
 
   // macOS 重签名
   try {
-    execSync('codesign -s - -f "' + outputPath + '"', { stdio: "ignore" });
-  } catch {}
+    execFileSync("codesign", ["-s", "-", "-f", outputPath], { stdio: "ignore" });
+  } catch {
+    process.stderr.write("Warning: codesign failed, binary may not run on macOS\n");
+  }
 }
 
 // ============================================================================

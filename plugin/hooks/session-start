@@ -11,6 +11,8 @@ LAST_UPDATE_CHECK_FILE="$PLUGIN_ROOT/.last-update-check"
 UPDATE_CHECK_INTERVAL_SECONDS="${ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS:-21600}"
 STAGING_DIR=""
 
+source "$PLUGIN_ROOT/compute-patch-revision.sh"
+
 cleanup() {
     if [ -n "${STAGING_DIR:-}" ] && [ -d "$STAGING_DIR" ]; then
         rm -rf "$STAGING_DIR"
@@ -18,29 +20,6 @@ cleanup() {
 }
 
 trap cleanup EXIT
-
-compute_patch_revision() {
-    node - "$PLUGIN_ROOT" <<'NODE'
-const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
-
-const root = process.argv[2];
-const files = ["manifest.json", "patch-cli.sh", "patch-cli.js", "cli-translations.json", "bun-binary-io.js"];
-const hash = crypto.createHash("sha256");
-
-for (const file of files) {
-    const target = path.join(root, file);
-    if (!fs.existsSync(target)) continue;
-    hash.update(file);
-    hash.update("\0");
-    hash.update(fs.readFileSync(target));
-    hash.update("\0");
-}
-
-process.stdout.write(hash.digest("hex").slice(0, 16));
-NODE
-}
 
 read_manifest_version() {
     local target="$1"
@@ -166,7 +145,7 @@ export_release_to_staging() {
     local staging_dir="$3"
 
     mkdir -p "$staging_dir"
-    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh settings-overlay.json verbs tips plugin 2>/dev/null \
+    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh compute-patch-revision.sh settings-overlay.json verbs tips plugin 2>/dev/null \
         | tar -xf - -C "$staging_dir" 2>/dev/null
 }
 
@@ -180,6 +159,8 @@ validate_staging_release() {
     [ -f "$staging_dir/plugin/patch-cli.js" ] || return 1
     [ -f "$staging_dir/plugin/cli-translations.json" ] || return 1
     [ -f "$staging_dir/plugin/bun-binary-io.js" ] || return 1
+    [ -f "$staging_dir/plugin/compute-patch-revision.sh" ] || return 1
+    [ -f "$staging_dir/compute-patch-revision.sh" ] || return 1
     [ -f "$staging_dir/verbs/zh-CN.json" ] || return 1
     [ -f "$staging_dir/tips/zh-CN.json" ] || return 1
 }
@@ -270,7 +251,7 @@ AUTO_PATCH_MSG=""
 if [ -n "$NATIVE_BINARY" ]; then
     # 原生二进制: best-effort re-patch（静默降级）
     CURRENT_VERSION=$(node "$PLUGIN_ROOT/bun-binary-io.js" version "$NATIVE_BINARY" 2>/dev/null || true)
-    PATCH_REVISION=$(compute_patch_revision 2>/dev/null || true)
+    PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
     CURRENT_MARKER="${CURRENT_VERSION}"
     [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="${CURRENT_VERSION}|${PATCH_REVISION}"
     PATCHED_VERSION=""
@@ -308,7 +289,7 @@ if [ -n "$NATIVE_BINARY" ]; then
 elif [ -f "$CLI_FILE" ]; then
     # 现有 npm 自动 re-patch 逻辑
     CURRENT_VERSION=$(head -6 "$CLI_FILE" | grep -o '// Version: [^ ]*' | head -1 | sed 's/\/\/ Version: //')
-    PATCH_REVISION=$(compute_patch_revision 2>/dev/null || true)
+    PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
     CURRENT_MARKER="${CURRENT_VERSION}"
     if [ -n "${PATCH_REVISION:-}" ]; then
         CURRENT_MARKER="${CURRENT_VERSION}|${PATCH_REVISION}"

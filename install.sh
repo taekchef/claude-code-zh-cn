@@ -21,6 +21,8 @@ LAST_UPDATE_CHECK_FILE="$PLUGIN_DST/.last-update-check"
 SOURCE_REPO_OVERRIDE="${ZH_CN_SOURCE_REPO:-}"
 SKIP_BANNER="${ZH_CN_SKIP_BANNER:-0}"
 
+source "$SCRIPT_DIR/compute-patch-revision.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -90,11 +92,6 @@ check_dependencies() {
         exit 1
     fi
 
-    if ! command -v python3 &>/dev/null; then
-        echo -e "${RED}错误：需要 python3，请先安装${NC}"
-        exit 1
-    fi
-
     if ! command -v jq &>/dev/null; then
         if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${YELLOW}提示：建议安装 jq 以获得更好的 JSON 合并支持${NC}"
@@ -128,6 +125,30 @@ ensure_settings_file() {
     fi
 }
 
+prune_settings_backups() {
+    local settings_dir
+    settings_dir="$(dirname "$SETTINGS_FILE")"
+
+    ZH_CN_SETTINGS_DIR="$settings_dir" node -e "
+const fs = require('fs');
+const path = require('path');
+
+const settingsDir = process.env.ZH_CN_SETTINGS_DIR;
+const prefix = 'settings.json.zh-cn-backup.';
+
+try {
+  const backups = fs.readdirSync(settingsDir)
+    .filter((name) => name.startsWith(prefix))
+    .sort();
+
+  const stale = backups.slice(0, Math.max(0, backups.length - 5));
+  for (const name of stale) {
+    fs.unlinkSync(path.join(settingsDir, name));
+  }
+} catch {}
+" 2>/dev/null || true
+}
+
 build_overlay_content() {
     local overlay_content verbs_content tips_content
 
@@ -152,6 +173,7 @@ merge_settings() {
 
     if [ "$UPDATE_ONLY" != true ]; then
         cp "$SETTINGS_FILE" "$BACKUP_FILE"
+        prune_settings_backups
         if [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${GREEN}已备份 settings.json → ${BACKUP_FILE}${NC}"
         fi
@@ -170,31 +192,35 @@ merge_settings() {
         fi
         echo "$merged" > "$SETTINGS_FILE"
     else
-        ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY="$overlay_content" python3 -c "
-import json, os
+        ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY="$overlay_content" node -e "
+const fs = require('fs');
 
-settings_file = os.environ['ZH_CN_SETTINGS']
-overlay_content = os.environ['ZH_CN_OVERLAY']
+const settingsFile = process.env.ZH_CN_SETTINGS;
+const overlayContent = process.env.ZH_CN_OVERLAY;
+const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+const overlay = JSON.parse(overlayContent);
 
-with open(settings_file, 'r') as f:
-    settings = json.load(f)
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (
+      result[key] &&
+      typeof result[key] === 'object' &&
+      !Array.isArray(result[key]) &&
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value)
+    ) {
+      result[key] = deepMerge(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
-overlay = json.loads(overlay_content)
-
-def deep_merge(base, override):
-    result = base.copy()
-    for key, value in override.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = deep_merge(result[key], value)
-        else:
-            result[key] = value
-    return result
-
-merged = deep_merge(settings, overlay)
-
-with open(settings_file, 'w') as f:
-    json.dump(merged, f, indent=2, ensure_ascii=False)
-    f.write('\n')
+const merged = deepMerge(settings, overlay);
+fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2) + '\n');
 " 2>/dev/null
     fi
 
@@ -212,7 +238,7 @@ sync_plugin_payload() {
     mkdir -p "$PLUGIN_DST"
     find "$PLUGIN_DST" -mindepth 1 -maxdepth 1 ! -name '.*' -exec rm -rf {} +
     cp -R "$PLUGIN_SRC"/. "$PLUGIN_DST"/
-    chmod +x "$PLUGIN_DST/patch-cli.sh" 2>/dev/null || true
+    chmod +x "$PLUGIN_DST/patch-cli.sh" "$PLUGIN_DST/compute-patch-revision.sh" 2>/dev/null || true
     chmod +x "$PLUGIN_DST/hooks/session-start" "$PLUGIN_DST/hooks/notification" 2>/dev/null || true
 
     if [ "$SKIP_BANNER" != "1" ]; then
@@ -222,7 +248,6 @@ sync_plugin_payload() {
 
 resolve_real_path() {
     node -e "try{process.stdout.write(require('fs').realpathSync(process.argv[1]))}catch{}" "$1" 2>/dev/null \
-        || python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]),end='')" "$1" 2>/dev/null \
         || readlink "$1" 2>/dev/null \
         || printf "%s" "$1"
 }
@@ -264,29 +289,6 @@ detect_installation() {
     fi
 
     printf ""
-}
-
-compute_patch_revision() {
-    node - "$PLUGIN_DST" <<'NODE'
-const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
-
-const root = process.argv[2];
-const files = ["manifest.json", "patch-cli.sh", "patch-cli.js", "cli-translations.json", "bun-binary-io.js"];
-const hash = crypto.createHash("sha256");
-
-for (const file of files) {
-    const target = path.join(root, file);
-    if (!fs.existsSync(target)) continue;
-    hash.update(file);
-    hash.update("\0");
-    hash.update(fs.readFileSync(target));
-    hash.update("\0");
-}
-
-process.stdout.write(hash.digest("hex").slice(0, 16));
-NODE
 }
 
 resolve_source_repo() {
@@ -340,7 +342,7 @@ patch_npm_cli() {
     patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$cli_file" 2>/dev/null || echo "0")
     echo -e "${GREEN}已 patch cli.js（${patch_count:-0} 处硬编码文字）${NC}"
 
-    patch_revision=$(compute_patch_revision 2>/dev/null || true)
+    patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
         echo "${current_version}|${patch_revision}" > "$MARKER_FILE"
     fi
@@ -414,7 +416,7 @@ patch_native_binary() {
     # 更新 marker
     local patch_revision
     current_version=$(node "$PLUGIN_SRC/bun-binary-io.js" version "$binary_path" 2>/dev/null || true)
-    patch_revision=$(compute_patch_revision 2>/dev/null || true)
+    patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
         echo "${current_version}|${patch_revision}" > "$MARKER_FILE"
     fi

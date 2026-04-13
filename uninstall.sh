@@ -21,17 +21,15 @@ if [ -f "$SETTINGS_FILE" ]; then
     if command -v jq &>/dev/null; then
         jq 'del(.language) | del(.spinnerTipsEnabled) | del(.spinnerTipsOverride) | del(.spinnerVerbs)' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
         echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
-    elif command -v python3 &>/dev/null; then
-        ZH_CN_SETTINGS="$SETTINGS_FILE" python3 -c "
-import json, os
-sf = os.environ['ZH_CN_SETTINGS']
-with open(sf, 'r') as f:
-    s = json.load(f)
-for k in ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spinnerVerbs']:
-    s.pop(k, None)
-with open(sf, 'w') as f:
-    json.dump(s, f, indent=2, ensure_ascii=False)
-    f.write('\n')
+    elif command -v node &>/dev/null; then
+        ZH_CN_SETTINGS="$SETTINGS_FILE" node -e "
+const fs = require('fs');
+const settingsFile = process.env.ZH_CN_SETTINGS;
+const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+for (const key of ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spinnerVerbs']) {
+  delete settings[key];
+}
+fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + '\n');
 "
         echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
     else
@@ -52,7 +50,6 @@ fi
 # 还原 patch（统一检测安装类型，避免共存场景误判）
 resolve_real_path() {
     node -e "try{process.stdout.write(require('fs').realpathSync(process.argv[1]))}catch{}" "$1" 2>/dev/null \
-        || python3 -c "import os,sys;print(os.path.realpath(sys.argv[1]),end='')" "$1" 2>/dev/null \
         || readlink "$1" 2>/dev/null \
         || printf "%s" "$1"
 }

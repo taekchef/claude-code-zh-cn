@@ -9,7 +9,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.x-green)](https://github.com/anthropics/claude-code)
-[![Version](https://img.shields.io/badge/Version-2.1.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](./CHANGELOG.md)
 
 **3 条命令安装 · 更新后自动修复 · 卸载不丢配置**
 
@@ -99,7 +99,6 @@ cd claude-code-zh-cn
 
 - Claude Code CLI >= 2.1.x
 - Node.js（CLI Patch 需要）
-- Python 3
 - 可选：jq（更精准的 JSON 合并）
 - 可选：`node-lief`（官方安装器用户的 CLI Patch 需要，`npm install -g node-lief`）
 
@@ -268,7 +267,7 @@ Layer 1~3（设置、Hook、插件）完全不受影响。Layer 4（CLI Patch）
 <details>
 <summary><b>支持哪些系统？</b></summary>
 
-macOS、Linux 和 Windows（通过 WSL）。需要 Node.js、Python 3。可选依赖 jq（用于更精准的 JSON 合并）。
+macOS、Linux 和 Windows（通过 WSL）。需要 Node.js。可选依赖 jq（用于更精准的 JSON 合并）。
 
 **Windows 用户注意**：Claude Code 在 Windows 上通过 WSL 运行。请在 WSL 终端内执行安装脚本，不要在 Git Bash 或 PowerShell 中运行。
 </details>
