@@ -1,0 +1,46 @@
+{
+  "packageName": "@anthropic-ai/claude-code",
+  "baseline": {
+    "versions": ["2.1.92", "2.1.97", "2.1.104"],
+    "includeLatestFromNpm": true
+  },
+  "checks": {
+    "sentinels": [
+      { "id": "quick_safety_check", "pattern": "Quick safety check" },
+      { "id": "security_guide", "pattern": "Security guide" },
+      {
+        "id": "btw_prompt",
+        "pattern": "Use /btw to ask a quick side question without interrupting Claude's current work"
+      },
+      { "id": "approval_reason", "pattern": "This command requires approval" },
+      { "id": "proceed_prompt", "pattern": "Do you want to proceed?" },
+      { "id": "tab_to_amend", "pattern": "Tab to amend" },
+      { "id": "ctrl_e_to_explain", "pattern": "ctrl+e to explain" }
+    ],
+    "templateResidues": [
+      { "id": "duration_worked", "pattern": "Worked for" },
+      { "id": "duration_idle", "pattern": "Idle for" },
+      { "id": "duration_guarded", "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`" },
+      { "id": "duration_literal_connector", "regex": ",\\s*\" for \"\\s*," }
+    ]
+  },
+  "support": {
+    "npm": {
+      "stable": {
+        "floor": "2.1.92",
+        "ceiling": "2.1.104",
+        "representatives": ["2.1.92", "2.1.97", "2.1.104"]
+      }
+    },
+    "macosOfficialInstaller": {
+      "experimental": {
+        "floor": "2.1.104",
+        "ceiling": "2.1.104",
+        "representatives": ["2.1.104"]
+      }
+    },
+    "linuxOfficialInstaller": {
+      "unsupported": true
+    }
+  }
+}

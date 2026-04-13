@@ -1,0 +1,18 @@
+{
+  "packageName": "@anthropic-ai/claude-code",
+  "baseline": {
+    "versions": ["1.0.0", "1.0.1"],
+    "includeLatestFromNpm": true
+  },
+  "checks": {
+    "sentinels": [
+      { "id": "quick_safety_check", "pattern": "Quick safety check" },
+      { "id": "approval_reason", "pattern": "This command requires approval" },
+      { "id": "future_probe", "pattern": "Future untranslated probe" }
+    ],
+    "templateResidues": [
+      { "id": "duration_worked", "pattern": "Worked for" },
+      { "id": "guarded_duration", "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`" }
+    ]
+  }
+}

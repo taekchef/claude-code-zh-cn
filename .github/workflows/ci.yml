@@ -20,14 +20,20 @@ jobs:
         run: |
           bash -n install.sh
           bash -n uninstall.sh
+          bash -n plugin/bin/claude-launcher
           bash -n plugin/hooks/session-start
           bash -n plugin/hooks/notification
+          bash -n plugin/profile/claude-code-zh-cn.sh
 
       - name: JavaScript syntax check
         run: |
           node --check bun-binary-io.js
           node --check plugin/bun-binary-io.js
           node --check plugin/patch-cli.js
+          node --check scripts/verify-upstream-compat.js
 
       - name: Run tests
         run: node --test tests/*.test.js
+
+      - name: Verify upstream compatibility
+        run: node scripts/verify-upstream-compat.js
