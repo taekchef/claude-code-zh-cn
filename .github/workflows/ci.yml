@@ -31,6 +31,7 @@ jobs:
           node --check plugin/bun-binary-io.js
           node --check plugin/patch-cli.js
           node --check scripts/check-translation-sentinels.js
+          node --check scripts/generate-support-matrix.js
           node --check scripts/verify-upstream-compat.js
 
       - name: Run tests
@@ -47,3 +48,8 @@ jobs:
           tar -xzf "$TARBALL" -C "$TMP_DIR"
           node patch-cli.js "$TMP_DIR/package/cli.js" cli-translations.json >/dev/null
           node scripts/check-translation-sentinels.js "$TMP_DIR/package/cli.js"
+
+      - name: Check support matrix drift
+        run: |
+          node scripts/generate-support-matrix.js
+          git diff --exit-code docs/support-matrix.md

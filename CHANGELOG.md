@@ -6,6 +6,35 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [Unreleased]
+
+### 新增
+
+- npm 路径新增启动前自修复 launcher：`claude` 首次启动前会先检查 `.patched-version` 和关键探针，必要时先 patch 再 exec
+- 新增 `scripts/upstream-compat.config.json`、`scripts/verify-upstream-compat.js`、`scripts/check-translation-sentinels.js`、`scripts/generate-support-matrix.js`
+- 新增 `docs/support-matrix.md` 派生文档，支持边界改为由配置文件 + compat 验收结果生成
+
+### 改进
+
+- 特殊 patch 规则从单版本字符串修补收敛为模板家族：覆盖 `for`、`/btw`、folder trust、approval dialog 等高风险段
+- CI 新增 upstream compat、sentinel、support matrix 漂移检查
+- README 支持口径改为 `stable / experimental / unsupported`，不再写“支持最新版”
+
+### 修复
+
+- 修复 npm 更新后第一次启动可能先掉回关键英文的问题：launcher 现在会在 exec 前补 patch，失败时降级 warning + 继续启动
+- 修复一批高风险碎片依赖：`Enter to`、` to save `、` to edit this plan in ` 等已迁移到精确句子或结构化 patch
+- 危险碎片基线从 10 条降到 5 条，保留项仅剩 ` or `、` back`、` navigate · `、` to get started`、` to reference files or lines in your input`
+
+### 验证
+
+- `bash -n install.sh uninstall.sh plugin/bin/claude-launcher plugin/hooks/session-start plugin/profile/claude-code-zh-cn.sh`
+- `node --check patch-cli.js plugin/patch-cli.js scripts/check-translation-sentinels.js scripts/verify-upstream-compat.js scripts/generate-support-matrix.js`
+- `node --test tests/*.test.js`
+- `node scripts/verify-upstream-compat.js`
+- `node scripts/check-translation-sentinels.js <patched-cli>`
+- `node scripts/generate-support-matrix.js`
+
 ## [2.2.2] - 2026-04-13
 
 ### 改进

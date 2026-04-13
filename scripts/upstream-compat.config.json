@@ -29,18 +29,21 @@
       "stable": {
         "floor": "2.1.92",
         "ceiling": "2.1.104",
-        "representatives": ["2.1.92", "2.1.97", "2.1.104"]
+        "representatives": ["2.1.92", "2.1.97", "2.1.104"],
+        "notes": "PATH 优先 launcher + session-start 二层兜底，适用于 npm 全局安装。"
       }
     },
     "macosOfficialInstaller": {
       "experimental": {
         "floor": "2.1.104",
         "ceiling": "2.1.104",
-        "representatives": ["2.1.104"]
+        "representatives": ["2.1.104"],
+        "notes": "依赖 native repack / session-start；prelaunch launcher 不覆盖原生二进制。"
       }
     },
     "linuxOfficialInstaller": {
-      "unsupported": true
+      "unsupported": true,
+      "notes": "当前不支持 Linux 官方安装器；请改用 npm 路径。"
     }
   }
 }
