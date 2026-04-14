@@ -223,6 +223,75 @@ printf 'invoked' > ${JSON.stringify(invokedFile)}
   assert.equal(fs.existsSync(invokedFile), false, "helper=unknown should not fall back to npm patching");
 });
 
+test("session-start honors ZH_CN_REAL_CLAUDE when launcher is first on PATH", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-launcher-path-"));
+  const pluginRoot = path.join(tmp, "plugin");
+  const launcherBin = path.join(tmp, "launcher-bin");
+  const realBin = path.join(tmp, "real-bin");
+  const cliFile = path.join(tmp, "npm-prefix", "lib", "node_modules", "@anthropic-ai", "claude-code", "cli.js");
+  const realClaude = path.join(tmp, "npm-prefix", "bin", "claude");
+  const invokedFile = path.join(tmp, "patch-invoked");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(launcherBin, { recursive: true });
+  fs.mkdirSync(path.dirname(cliFile), { recursive: true });
+  fs.mkdirSync(path.dirname(realClaude), { recursive: true });
+
+  fs.writeFileSync(cliFile, '#!/usr/bin/env node\n// Version: 2.1.104\nlet safety="Quick safety check";\n');
+  fs.writeFileSync(path.join(launcherBin, "claude"), "#!/usr/bin/env bash\n");
+  fs.writeFileSync(realClaude, "#!/usr/bin/env bash\n");
+  fs.chmodSync(path.join(launcherBin, "claude"), 0o755);
+  fs.chmodSync(realClaude, 0o755);
+
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const cmd = process.argv[2];
+if (cmd === "detect") {
+  const real = fs.realpathSync(process.argv[3]);
+  const cli = path.resolve(path.dirname(real), "../lib/node_modules/@anthropic-ai/claude-code/cli.js");
+  process.stdout.write(fs.existsSync(cli) ? "npm:" + cli : "unknown");
+} else if (cmd === "check-deps") {
+  process.stdout.write("missing");
+}
+`
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf '1'
+printf 'invoked' > ${JSON.stringify(invokedFile)}
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+  fs.writeFileSync(path.join(pluginRoot, "manifest.json"), JSON.stringify({ version: "2.2.0" }));
+  fs.writeFileSync(path.join(pluginRoot, "patch-cli.js"), "console.log('patch');\n");
+  fs.writeFileSync(path.join(pluginRoot, "cli-translations.json"), "[]\n");
+  fs.writeFileSync(
+    path.join(pluginRoot, "compute-patch-revision.sh"),
+    "#!/usr/bin/env bash\ncompute_patch_revision(){ printf 'test-revision'; }\n"
+  );
+  fs.chmodSync(path.join(pluginRoot, "compute-patch-revision.sh"), 0o755);
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${launcherBin}:${realBin}:${process.env.PATH}`,
+      ZH_CN_REAL_CLAUDE: realClaude,
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(fs.existsSync(invokedFile), true, "hook should patch via the real claude path exported by launcher");
+});
+
 test("session-start auto-updates only to latest release tag without mutating source repo checkout", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-autoupdate-"));
   const home = path.join(tmp, "home");

@@ -40,6 +40,43 @@ function tryRegexReplace(pattern, replacer) {
     return hit;
 }
 
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function asDoubleQuotedLiteral(text) {
+    return JSON.stringify(text);
+}
+
+function splitApostropheLiteral(text) {
+    if (!text.includes("'")) {
+        return [text];
+    }
+
+    const parts = [];
+    const segments = text.split("'");
+    segments.forEach((segment, index) => {
+        parts.push(segment);
+        if (index !== segments.length - 1) {
+            parts.push("'");
+        }
+    });
+    return parts;
+}
+
+function trySplitDoubleQuotedLiteralReplace(en, zh) {
+    const parts = splitApostropheLiteral(en);
+    if (parts.length === 1) {
+        return false;
+    }
+
+    const pattern = new RegExp(
+        parts.map((part) => escapeRegExp(asDoubleQuotedLiteral(part))).join(String.raw`\s*,\s*`),
+        "g"
+    );
+    return tryRegexReplace(pattern, () => asDoubleQuotedLiteral(zh));
+}
+
 function scanDoubleQuotedLiterals(source) {
     const literals = [];
     const regexAllowedKeywords = new Set([
@@ -348,6 +385,24 @@ function replaceLiteralText(text, en, zh) {
     return text.replace(pattern, (match, boundary) => boundary + zh);
 }
 
+const specialSplitLiteralTranslations = [
+    {
+        en: "Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not, take a moment to review what's in this folder first.",
+        zh: "安全检查：这是你自己创建或信任的项目吗？（比如你自己的代码、知名开源项目、或团队的工作）。如果不是，请先查看此文件夹中的内容。",
+    },
+    {
+        en: "Claude Code'll be able to read, edit, and execute files here.",
+        zh: "Claude Code 将能在此目录中读取、编辑和执行文件。",
+    },
+];
+
+const specialLiteralTranslations = [
+    { en: "Tab to amend", zh: "按 Tab 修改" },
+    { en: "ctrl+e to explain", zh: "按 ctrl+e 说明" },
+    { en: " ready · shift+↓ to view", zh: " 已就绪 · 按 shift+↓ 查看" },
+    { en: "Failed to save ", zh: "保存失败：" },
+];
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -407,30 +462,19 @@ if (markerIdx !== -1) {
     }
 }
 
-// 4. 拆分字符串 patch（minifier 在 ' 处拆分字符串）
-// "Quick safety check:..." → 中文安全检查提示
-tryReplace(
-    '"Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not, take a moment to review what","\'","s in this folder first."',
-    '"安全检查：这是你自己创建或信任的项目吗？（比如你自己的代码、知名开源项目、或团队的工作）。如果不是，请先查看此文件夹中的内容。"'
-);
-tryReplace(
-    '"Claude Code","\'","ll be able to read, edit, and execute files here."',
-    '"Claude Code 将能在此目录中读取、编辑和执行文件。"'
-);
-
-// 5. 去掉 duration display 的 "for" 连接词
+// 4. 去掉 duration display 的 "for" 连接词
 // 原始: createElement(T, ..., verb, " for ", duration) → "沏了 for 27分26秒"
 // 修复: " for " → " "（仅匹配 createElement 文本节点模式）
 tryReplace('," for ",', '," ",');
 tryReplace('"Idle for "', '"空闲 "');
 
-// 5b. 主 spinner 的 duration display（反引号模板字符串）
+// 4b. 主 spinner 的 duration display（反引号模板字符串）
 // 原: `${bL} Worked for ${w3(Date.now()-V.startTime)}` → "烘焙了 Worked for 27分26秒"
 // 修: `${bL} ${w3(Date.now()-V.startTime)}` → "烘焙了 27分26秒"
 tryReplace(' Worked for ${w3(Date.now()-V.startTime)}', ' ${w3(Date.now()-V.startTime)}');
 tryReplace('${bL} Idle', '${bL} 空闲');
 
-// 5c. 同类 duration 模板的泛化匹配
+// 4c. 同类 duration 模板的泛化匹配
 // 某些版本会改变量名或表达式，但模板结构仍是 `${verb} Worked for ${duration}`。
 // 这里按模板形态处理，不再依赖固定变量名。
 tryRegexReplace(/\$\{[^}]+\}\s+Worked for\s+\$\{[^}]+\}/g, (match) =>
@@ -440,23 +484,65 @@ tryRegexReplace(/\$\{[^}]+\}\s+Idle(?=[`"])/g, (match) =>
     match.replace(" Idle", " 空闲")
 );
 
-// 5c. 消息完成后的状态行（显示 "翻搅了 for 51秒" 的地方）
+// 4d. 消息完成后的状态行（显示 "翻搅了 for 51秒" 的地方）
 // 原: let G=H&&`${O} for ${M}`  （O=动词, M=时长）
 // 修: let G=H&&`${O} ${M}`     → "翻搅了 51秒"
 tryReplace('`${O} for ${M}`', '`${O} ${M}`');
+tryRegexReplace(/&&`\$\{[^}]+\} for \$\{[^}]+\}`/g, (match) =>
+    match.replace(" for ", " ")
+);
+
+// 4e. /clear 省上下文提示（split fragment → 稳定模板）
+tryRegexReplace(
+    /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),\{color:"suggestion"\},"\/clear"\),\1\.createElement\(\2,\{dimColor:!0\}," to save "\),\1\.createElement\(\2,\{color:"suggestion"\},([A-Za-z0-9_$]+)," tokens"\)/g,
+    (match, factory, component, tokenCount) =>
+        `${factory}.createElement(${component},{color:"suggestion"},"/clear"),${factory}.createElement(${component},{dimColor:!0}," 保存 "),${factory}.createElement(${component},{color:"suggestion"},${tokenCount}," tokens")`
+);
+
+// 5. 保存并编辑快捷键提示（split fragment → 稳定模板）
+tryRegexReplace(
+    /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),\{color:"success"\},"Press ",([A-Za-z0-9_$]+)," or ",([A-Za-z0-9_$]+)," to save,"," ",\1\.createElement\(\2,\{bold:!0\},"e"\)," to save and edit"\)/g,
+    (match, factory, component, primaryKey, secondaryKey) =>
+        `${factory}.createElement(${component},{color:"success"},"按 ",${primaryKey}," 或 ",${secondaryKey}," 保存，按 ",${factory}.createElement(${component},{bold:!0},"e")," 保存并编辑")`
+);
+
+// 6. Quick Launch / plan open 等单点高风险 UI 片段迁移到结构化 patch
+tryRegexReplace(
+    /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),null,"• Cmd\+Esc",\1\.createElement\(\2,\{dimColor:!0\}," for Quick Launch"\)\)/g,
+    (match, factory, component) =>
+        `${factory}.createElement(${component},null,"• 快速启动",${factory}.createElement(${component},{dimColor:!0}," · Cmd+Esc"))`
+);
+tryRegexReplace(
+    /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),\{marginTop:1\},\1\.createElement\(([^,]+),\{dimColor:!0\},['"]"\/plan open"['"]\),\1\.createElement\(\3,\{dimColor:!0\}," to edit this plan in "\),\1\.createElement\(\3,\{bold:!0,dimColor:!0\},([A-Za-z0-9_$]+)\)\)/g,
+    (match, factory, containerComponent, textComponent, terminalName) =>
+        `${factory}.createElement(${containerComponent},{marginTop:1},${factory}.createElement(${textComponent},{dimColor:!0},"在 "),${factory}.createElement(${textComponent},{bold:!0,dimColor:!0},${terminalName}),${factory}.createElement(${textComponent},{dimColor:!0},' 中用 "/plan open" 编辑此计划'))`
+);
 
 // === 逐条翻译：只替换真实的双引号字符串字面量 ===
 //
-// 先扫描源码中的真实双引号字符串 token，再只在这些 token 内做替换。
+// 先处理 minifier 把 `'` 拆成 `"foo","'","bar"` 的高风险字面量（folder trust、/btw 等），
+// 再扫描源码中的真实双引号字符串 token，只在这些 token 内做替换。
 // 这样不会跨越源码结构误改对象键、标识符或注释。
 
 if (translationsFile && fs.existsSync(translationsFile)) {
-    const translations = JSON.parse(fs.readFileSync(translationsFile, "utf8"));
-    translations.sort((a, b) => b.en.length - a.en.length);
+    const translationRules = [
+        ...JSON.parse(fs.readFileSync(translationsFile, "utf8")),
+        ...specialLiteralTranslations,
+        ...specialSplitLiteralTranslations,
+    ];
+    translationRules.sort((a, b) => b.en.length - a.en.length);
+
+    for (const { en, zh } of translationRules) {
+        if (en === zh || !en.includes("'")) {
+            continue;
+        }
+        trySplitDoubleQuotedLiteralReplace(en, zh);
+    }
+
     const literals = scanDoubleQuotedLiterals(s);
     let literalsChanged = false;
 
-    for (const { en, zh } of translations) {
+    for (const { en, zh } of translationRules) {
         if (en === zh) continue;
 
         let hit = false;

@@ -9,6 +9,7 @@ MARKER_FILE="$PLUGIN_ROOT/.patched-version"
 SOURCE_REPO_FILE="$PLUGIN_ROOT/.source-repo"
 LAST_UPDATE_CHECK_FILE="$PLUGIN_ROOT/.last-update-check"
 UPDATE_CHECK_INTERVAL_SECONDS="${ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS:-21600}"
+LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
 STAGING_DIR=""
 
 source "$PLUGIN_ROOT/compute-patch-revision.sh"
@@ -183,6 +184,55 @@ write_update_status() {
     echo "$1" > "$PLUGIN_ROOT/.last-update-status"
 }
 
+find_real_claude_binary() {
+    if [ -n "${ZH_CN_REAL_CLAUDE:-}" ] && [ -x "${ZH_CN_REAL_CLAUDE:-}" ]; then
+        printf "%s" "$ZH_CN_REAL_CLAUDE"
+        return
+    fi
+
+    local filtered_path=""
+    local path_entry
+    local old_ifs="$IFS"
+    IFS=':'
+    for path_entry in ${PATH:-}; do
+        if [ "${path_entry:-}" = "$LAUNCHER_BIN_DIR" ]; then
+            continue
+        fi
+        if [ -z "$filtered_path" ]; then
+            filtered_path="$path_entry"
+        else
+            filtered_path="${filtered_path}:$path_entry"
+        fi
+    done
+    IFS="$old_ifs"
+
+    PATH="$filtered_path" command -v claude 2>/dev/null || true
+}
+
+npm_cli_probe_residue() {
+    node - "$1" <<'NODE'
+const fs = require("fs");
+
+const cliFile = process.argv[2];
+const probes = [
+  "Quick safety check",
+  "This command requires approval",
+  "Use /btw to ask a quick side question without interrupting Claude's current work",
+];
+
+try {
+  const text = fs.readFileSync(cliFile, "utf8");
+  const residue = probes.filter((probe) => text.includes(probe));
+  if (residue.length > 0) {
+    process.stdout.write(residue.join(" | "));
+    process.exit(0);
+  }
+} catch {}
+
+process.exit(1);
+NODE
+}
+
 # 自动更新：只同步已发布的 Release tag，不修改源码仓库工作树
 AUTO_UPDATE_MSG=""
 SOURCE_REPO="$(read_source_repo)"
@@ -217,7 +267,7 @@ fi
 INSTALL_INFO=""
 HELPER_AVAILABLE=false
 if [ -f "$PLUGIN_ROOT/bun-binary-io.js" ]; then
-    INSTALL_INFO="$(node "$PLUGIN_ROOT/bun-binary-io.js" detect "$(which claude 2>/dev/null || true)" 2>/dev/null || true)"
+    INSTALL_INFO="$(node "$PLUGIN_ROOT/bun-binary-io.js" detect "$(find_real_claude_binary)" 2>/dev/null || true)"
     HELPER_AVAILABLE=true
 fi
 
@@ -297,11 +347,27 @@ elif [ -f "$CLI_FILE" ]; then
     PATCHED_VERSION=""
     [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
 
-    if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ]; then
+    NPM_PROBE_RESIDUE=""
+    if NPM_PROBE_RESIDUE="$(npm_cli_probe_residue "$CLI_FILE")"; then
+        :
+    else
+        NPM_PROBE_RESIDUE=""
+    fi
+
+    if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ] || [ -n "$NPM_PROBE_RESIDUE" ]; then
         PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$CLI_FILE" 2>/dev/null || echo "0")
 
-        if [ "$PATCH_COUNT" != "0" ]; then
+        if NPM_PROBE_RESIDUE="$(npm_cli_probe_residue "$CLI_FILE")"; then
+            :
+        else
+            NPM_PROBE_RESIDUE=""
+        fi
+
+        if [ -z "$NPM_PROBE_RESIDUE" ]; then
             echo "$CURRENT_MARKER" > "$MARKER_FILE"
+        fi
+
+        if [ "$PATCH_COUNT" != "0" ] && [ -z "$NPM_PROBE_RESIDUE" ]; then
             AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字）"
         fi
     fi

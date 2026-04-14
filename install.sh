@@ -20,6 +20,11 @@ SOURCE_REPO_FILE="$PLUGIN_DST/.source-repo"
 LAST_UPDATE_CHECK_FILE="$PLUGIN_DST/.last-update-check"
 SOURCE_REPO_OVERRIDE="${ZH_CN_SOURCE_REPO:-}"
 SKIP_BANNER="${ZH_CN_SKIP_BANNER:-0}"
+LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
+LAUNCHER_FILE="$LAUNCHER_BIN_DIR/claude"
+PROFILE_FILES_OVERRIDE="${ZH_CN_PROFILE_FILES:-}"
+PROFILE_MARKER_START="# >>> claude-code-zh-cn launcher >>>"
+PROFILE_MARKER_END="# <<< claude-code-zh-cn launcher <<<"
 CLI_PATCH_STATUS_SUMMARY="已跳过（未执行 CLI Patch）"
 CLI_PATCH_STATUS_OK=false
 
@@ -60,6 +65,7 @@ print_completion() {
     echo -e "  ${GREEN}✓${NC} 通知 Hook → 中文翻译"
     echo -e "  ${GREEN}✓${NC} 输出风格 → Chinese"
     echo -e "  ${GREEN}✓${NC} 自动重 patch → Claude Code 更新后首次会话自动修复"
+    echo -e "  ${GREEN}✓${NC} npm 启动前自修复 → npm 更新后首次启动会先 patch"
     echo -e "  ${GREEN}✓${NC} 自动更新 → 插件发布新 Release 后自动同步"
 
     if [ "$CLI_PATCH_STATUS_OK" = true ]; then
@@ -247,6 +253,7 @@ sync_plugin_payload() {
     cp -R "$PLUGIN_SRC"/. "$PLUGIN_DST"/
     chmod +x "$PLUGIN_DST/patch-cli.sh" "$PLUGIN_DST/compute-patch-revision.sh" 2>/dev/null || true
     chmod +x "$PLUGIN_DST/hooks/session-start" "$PLUGIN_DST/hooks/notification" 2>/dev/null || true
+    chmod +x "$PLUGIN_DST/bin/claude-launcher" 2>/dev/null || true
 
     if [ "$SKIP_BANNER" != "1" ]; then
         echo -e "${GREEN}已安装插件 → ${PLUGIN_DST}${NC}"
@@ -259,9 +266,139 @@ resolve_real_path() {
         || printf "%s" "$1"
 }
 
+profile_source_line() {
+    local profile_script="$PLUGIN_DST/profile/claude-code-zh-cn.sh"
+    printf '[ -f "%s" ] && . "%s"' "$profile_script" "$profile_script"
+}
+
+list_profile_targets() {
+    if [ -n "${PROFILE_FILES_OVERRIDE:-}" ]; then
+        printf "%s\n" "$PROFILE_FILES_OVERRIDE"
+        return
+    fi
+
+    local shell_name="${SHELL##*/}"
+    local candidates=()
+    case "$shell_name" in
+        zsh)
+            candidates=("$HOME/.zshrc" "$HOME/.zprofile")
+            ;;
+        bash)
+            candidates=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
+            ;;
+        *)
+            candidates=("$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile")
+            ;;
+    esac
+
+    local target
+    for target in "${candidates[@]}"; do
+        if [ -f "$target" ]; then
+            printf "%s\n" "$target"
+            return
+        fi
+    done
+
+    printf "%s\n" "${candidates[0]}"
+}
+
+update_profile_injection() {
+    local target="$1"
+    local mode="$2"
+    local source_line
+    source_line="$(profile_source_line)"
+
+    PROFILE_TARGET="$target" \
+    PROFILE_MODE="$mode" \
+    PROFILE_MARKER_START="$PROFILE_MARKER_START" \
+    PROFILE_MARKER_END="$PROFILE_MARKER_END" \
+    PROFILE_SOURCE_LINE="$source_line" \
+    node - <<'NODE'
+const fs = require("fs");
+const path = process.env.PROFILE_TARGET;
+const mode = process.env.PROFILE_MODE;
+const start = process.env.PROFILE_MARKER_START;
+const end = process.env.PROFILE_MARKER_END;
+const sourceLine = process.env.PROFILE_SOURCE_LINE;
+const block = `${start}\n${sourceLine}\n${end}`;
+
+let content = "";
+if (fs.existsSync(path)) {
+  content = fs.readFileSync(path, "utf8");
+}
+
+const escapedStart = start.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapedEnd = end.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const blockPattern = new RegExp(`\\n?${escapedStart}[\\s\\S]*?${escapedEnd}\\n?`, "g");
+content = content.replace(blockPattern, "");
+
+if (mode === "install") {
+  const trimmed = content.replace(/\s+$/, "");
+  const prefix = trimmed.length > 0 ? `${trimmed}\n\n` : "";
+  content = `${prefix}${block}\n`;
+} else {
+  content = content.replace(/\s+$/, "");
+  if (content.length > 0) {
+    content += "\n";
+  }
+}
+
+fs.mkdirSync(require("path").dirname(path), { recursive: true });
+fs.writeFileSync(path, content);
+NODE
+}
+
+install_launcher() {
+    local source_launcher="$PLUGIN_DST/bin/claude-launcher"
+    local target
+
+    if [ ! -f "$source_launcher" ] || [ ! -f "$PLUGIN_DST/profile/claude-code-zh-cn.sh" ]; then
+        echo -e "${YELLOW}launcher 文件缺失，已跳过 PATH 注入${NC}"
+        return
+    fi
+
+    mkdir -p "$LAUNCHER_BIN_DIR"
+    cp "$source_launcher" "$LAUNCHER_FILE"
+    chmod +x "$LAUNCHER_FILE" 2>/dev/null || true
+
+    while IFS= read -r target; do
+        [ -n "$target" ] || continue
+        update_profile_injection "$target" install
+    done < <(list_profile_targets)
+
+    if [ "$SKIP_BANNER" != "1" ]; then
+        echo -e "${GREEN}已安装 launcher → ${LAUNCHER_FILE}${NC}"
+    fi
+}
+
+find_real_claude_binary() {
+    if [ -n "${ZH_CN_REAL_CLAUDE:-}" ] && [ -x "${ZH_CN_REAL_CLAUDE:-}" ]; then
+        printf "%s" "$ZH_CN_REAL_CLAUDE"
+        return
+    fi
+
+    local filtered_path=""
+    local path_entry
+    local old_ifs="$IFS"
+    IFS=':'
+    for path_entry in ${PATH:-}; do
+        if [ "${path_entry:-}" = "$LAUNCHER_BIN_DIR" ]; then
+            continue
+        fi
+        if [ -z "$filtered_path" ]; then
+            filtered_path="$path_entry"
+        else
+            filtered_path="${filtered_path}:$path_entry"
+        fi
+    done
+    IFS="$old_ifs"
+
+    PATH="$filtered_path" command -v claude 2>/dev/null || true
+}
+
 detect_installation() {
     local claude_bin
-    claude_bin="$(which claude 2>/dev/null || true)"
+    claude_bin="$(find_real_claude_binary)"
     if [ -z "$claude_bin" ]; then
         printf ""
         return
@@ -478,6 +615,7 @@ main() {
     detect_platform
     check_dependencies
     sync_plugin_payload
+    install_launcher
     merge_settings
     write_install_metadata
 

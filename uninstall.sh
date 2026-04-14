@@ -5,7 +5,12 @@
 set -euo pipefail
 
 SETTINGS_FILE="$HOME/.claude/settings.json"
-PLUGIN_DST="$HOME/.claude/plugins/claude-code-zh-cn"
+PLUGIN_DST="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
+LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
+LAUNCHER_FILE="$LAUNCHER_BIN_DIR/claude"
+PROFILE_FILES_OVERRIDE="${ZH_CN_PROFILE_FILES:-}"
+PROFILE_MARKER_START="# >>> claude-code-zh-cn launcher >>>"
+PROFILE_MARKER_END="# <<< claude-code-zh-cn launcher <<<"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,6 +20,65 @@ NC='\033[0m'
 
 echo -e "${BLUE}=== Claude Code 中文本地化插件 卸载 ===${NC}"
 echo ""
+
+list_profile_targets() {
+    if [ -n "${PROFILE_FILES_OVERRIDE:-}" ]; then
+        printf "%s\n" "$PROFILE_FILES_OVERRIDE"
+        return
+    fi
+
+    printf "%s\n" \
+        "$HOME/.zshrc" \
+        "$HOME/.zprofile" \
+        "$HOME/.bashrc" \
+        "$HOME/.bash_profile" \
+        "$HOME/.profile"
+}
+
+remove_profile_injection() {
+    local target="$1"
+
+    PROFILE_TARGET="$target" \
+    PROFILE_MARKER_START="$PROFILE_MARKER_START" \
+    PROFILE_MARKER_END="$PROFILE_MARKER_END" \
+    node - <<'NODE'
+const fs = require("fs");
+const path = process.env.PROFILE_TARGET;
+const start = process.env.PROFILE_MARKER_START;
+const end = process.env.PROFILE_MARKER_END;
+
+if (!fs.existsSync(path)) {
+  process.exit(0);
+}
+
+let content = fs.readFileSync(path, "utf8");
+const escapedStart = start.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapedEnd = end.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const blockPattern = new RegExp(`\\n?${escapedStart}[\\s\\S]*?${escapedEnd}\\n?`, "g");
+content = content.replace(blockPattern, "").replace(/\s+$/, "");
+if (content.length > 0) {
+  content += "\n";
+}
+fs.writeFileSync(path, content);
+NODE
+}
+
+remove_launcher_artifacts() {
+    local target
+
+    while IFS= read -r target; do
+        [ -n "$target" ] || continue
+        remove_profile_injection "$target"
+    done < <(list_profile_targets)
+
+    if [ -f "$LAUNCHER_FILE" ]; then
+        rm -f "$LAUNCHER_FILE"
+        echo -e "${GREEN}已移除 launcher${NC}"
+    fi
+    rmdir "$LAUNCHER_BIN_DIR" 2>/dev/null || true
+}
+
+remove_launcher_artifacts
 
 # 精准移除插件注入的 key（保留用户其他配置）
 if [ -f "$SETTINGS_FILE" ]; then
@@ -39,12 +103,6 @@ fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + '\n');
         echo "  - spinnerTipsOverride"
         echo "  - spinnerVerbs"
     fi
-fi
-
-# 移除插件
-if [ -d "$PLUGIN_DST" ]; then
-    rm -rf "$PLUGIN_DST"
-    echo -e "${GREEN}已移除插件目录${NC}"
 fi
 
 # 还原 patch（统一检测安装类型，避免共存场景误判）
@@ -84,6 +142,12 @@ if [ "$RESTORED" = false ]; then
         echo -e "${YELLOW}cli.js 没有备份文件，建议运行以下命令还原：${NC}"
         echo "  npm install -g @anthropic-ai/claude-code"
     fi
+fi
+
+# 移除插件
+if [ -d "$PLUGIN_DST" ]; then
+    rm -rf "$PLUGIN_DST"
+    echo -e "${GREEN}已移除插件目录${NC}"
 fi
 
 # 清理备份文件

@@ -1,0 +1,49 @@
+{
+  "packageName": "@anthropic-ai/claude-code",
+  "baseline": {
+    "versions": ["2.1.92", "2.1.97", "2.1.104", "2.1.107"],
+    "includeLatestFromNpm": true
+  },
+  "checks": {
+    "sentinels": [
+      { "id": "quick_safety_check", "pattern": "Quick safety check" },
+      { "id": "security_guide", "pattern": "Security guide" },
+      {
+        "id": "btw_prompt",
+        "pattern": "Use /btw to ask a quick side question without interrupting Claude's current work"
+      },
+      { "id": "approval_reason", "pattern": "This command requires approval" },
+      { "id": "proceed_prompt", "pattern": "Do you want to proceed?" },
+      { "id": "tab_to_amend", "pattern": "Tab to amend" },
+      { "id": "ctrl_e_to_explain", "pattern": "ctrl+e to explain" }
+    ],
+    "templateResidues": [
+      { "id": "duration_worked", "pattern": "Worked for" },
+      { "id": "duration_idle", "pattern": "Idle for" },
+      { "id": "duration_guarded", "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`" },
+      { "id": "duration_literal_connector", "regex": ",\\s*\" for \"\\s*," }
+    ]
+  },
+  "support": {
+    "npm": {
+      "stable": {
+        "floor": "2.1.92",
+        "ceiling": "2.1.107",
+        "representatives": ["2.1.92", "2.1.97", "2.1.104", "2.1.107"],
+        "notes": "PATH 优先 launcher + session-start 二层兜底，适用于 npm 全局安装。"
+      }
+    },
+    "macosOfficialInstaller": {
+      "experimental": {
+        "floor": "2.1.104",
+        "ceiling": "2.1.104",
+        "representatives": ["2.1.104"],
+        "notes": "依赖 native repack / session-start；prelaunch launcher 不覆盖原生二进制。"
+      }
+    },
+    "linuxOfficialInstaller": {
+      "unsupported": true,
+      "notes": "当前不支持 Linux 官方安装器；请改用 npm 路径。"
+    }
+  }
+}

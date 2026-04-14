@@ -80,10 +80,6 @@
     "zh": " 返回"
   },
   {
-    "en": " for Quick Launch",
-    "zh": " 快速启动"
-  },
-  {
     "en": " navigate · ",
     "zh": " 导航 · "
   },
@@ -92,16 +88,8 @@
     "zh": " 或 "
   },
   {
-    "en": " ready · shift+↓ to view",
-    "zh": " 就绪 · shift+↓ 查看"
-  },
-  {
     "en": " to cancel",
     "zh": " 取消"
-  },
-  {
-    "en": " to edit this plan in ",
-    "zh": " 编辑此计划在 "
   },
   {
     "en": " to get started",
@@ -110,10 +98,6 @@
   {
     "en": " to reference files or lines in your input",
     "zh": " 在输入中引用文件或行号"
-  },
-  {
-    "en": " to save ",
-    "zh": " 保存 "
   },
   {
     "en": " tokens · /autocompact",
@@ -1376,12 +1360,28 @@
     "zh": "按 Enter 确认 · 按 Esc 取消"
   },
   {
+    "en": "Enter to confirm · Esc to exit",
+    "zh": "按 Enter 确认 · 按 Esc 退出"
+  },
+  {
     "en": "Enter to confirm · Esc to skip",
     "zh": "按 Enter 确认 · 按 Esc 跳过"
   },
   {
+    "en": "Enter to copy link · Esc to cancel",
+    "zh": "按 Enter 复制链接 · 按 Esc 取消"
+  },
+  {
+    "en": "Enter to run · Esc to go back",
+    "zh": "按 Enter 运行 · 按 Esc 返回"
+  },
+  {
     "en": "Enter to select · Esc to continue",
     "zh": "按 Enter 选择 · 按 Esc 继续"
+  },
+  {
+    "en": "Enter to submit · Esc to cancel",
+    "zh": "按 Enter 提交 · 按 Esc 取消"
   },
   {
     "en": "Enter to view",
@@ -1806,6 +1806,10 @@
   {
     "en": "Install the Claude GitHub App",
     "zh": "安装 Claude GitHub App"
+  },
+  {
+    "en": "Hit Enter to queue up additional messages while Claude is working.",
+    "zh": "Claude 工作时，按 Enter 可继续排队输入消息。"
   },
   {
     "en": "Installation failed",
@@ -4060,6 +4064,10 @@
     "zh": "← → 调整"
   },
   {
+    "en": "↑/↓ to change · Enter to apply · Esc to cancel",
+    "zh": "按 ↑/↓ 切换 · 按 Enter 应用 · 按 Esc 取消"
+  },
+  {
     "en": "↑/↓ to select · Enter to continue",
     "zh": "↑/↓ 选择 · 按 Enter 继续"
   },
@@ -5750,10 +5758,6 @@
   {
     "en": "Task #",
     "zh": "任务 #"
-  },
-  {
-    "en": "Enter to",
-    "zh": "Enter"
   },
   {
     "en": "Never for",
