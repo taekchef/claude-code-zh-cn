@@ -70,6 +70,7 @@ function createLauncherContext() {
   fs.mkdirSync(home, { recursive: true });
   fs.writeFileSync(profileFile, "# test profile\n");
   linkCommands(shellBin, [
+    "bash",
     "node",
     "cp",
     "mkdir",
