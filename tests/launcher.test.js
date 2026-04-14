@@ -71,6 +71,7 @@ function createLauncherContext() {
   fs.writeFileSync(profileFile, "# test profile\n");
   linkCommands(shellBin, [
     "bash",
+    "env",
     "node",
     "cp",
     "mkdir",
