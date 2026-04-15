@@ -77,6 +77,29 @@ function trySplitDoubleQuotedLiteralReplace(en, zh) {
     return tryRegexReplace(pattern, () => asDoubleQuotedLiteral(zh));
 }
 
+function trySingleQuotedLiteralReplace(en, zh) {
+    if (en.includes("'") || zh.includes("'")) {
+        return false;
+    }
+
+    const pattern = new RegExp(`'${escapeRegExp(en)}'`, "g");
+    return tryRegexReplace(pattern, () => `'${zh}'`);
+}
+
+function tryBacktickLiteralReplace(en, zh) {
+    const pattern = new RegExp("`" + escapeRegExp(en) + "`", "g");
+    if (tryRegexReplace(pattern, () => `\`${zh}\``)) {
+        return true;
+    }
+
+    if (!en.endsWith("\n") && !zh.endsWith("\n")) {
+        const newlinePattern = new RegExp("`" + escapeRegExp(en + "\n") + "`", "g");
+        return tryRegexReplace(newlinePattern, () => `\`${zh}\n\``);
+    }
+
+    return false;
+}
+
 function scanDoubleQuotedLiterals(source) {
     const literals = [];
     const regexAllowedKeywords = new Set([
@@ -537,6 +560,12 @@ if (translationsFile && fs.existsSync(translationsFile)) {
             continue;
         }
         trySplitDoubleQuotedLiteralReplace(en, zh);
+    }
+
+    for (const { en, zh } of translationRules) {
+        if (en === zh) continue;
+        trySingleQuotedLiteralReplace(en, zh);
+        tryBacktickLiteralReplace(en, zh);
     }
 
     const literals = scanDoubleQuotedLiterals(s);
