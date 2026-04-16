@@ -77,30 +77,75 @@ function trySplitDoubleQuotedLiteralReplace(en, zh) {
     return tryRegexReplace(pattern, () => asDoubleQuotedLiteral(zh));
 }
 
-function trySingleQuotedLiteralReplace(en, zh) {
-    if (en.includes("'") || zh.includes("'")) {
+function escapeSingleQuotedLiteralContent(text) {
+    return text
+        .replace(/\\/g, "\\\\")
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n")
+        .replace(/\t/g, "\\t")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029")
+        .replace(/'/g, "\\'");
+}
+
+function replaceTemplateLiteralTextParts(parts, en, zh) {
+    let hit = false;
+    for (const part of parts) {
+        if (part.type !== "text" || !part.value.includes(en)) {
+            continue;
+        }
+        const replaced = replaceLiteralText(part.value, en, zh);
+        if (replaced === part.value) {
+            continue;
+        }
+        part.value = replaced;
+        hit = true;
+    }
+    return hit;
+}
+
+function splitTemplateSegments(text) {
+    return text.split(/\$\{[^}]+\}/g);
+}
+
+function replaceWholeTemplateLiteral(literal, en, zh) {
+    const exprParts = literal.parts.filter((part) => part.type === "expr");
+    if (exprParts.length === 0) {
         return false;
     }
 
-    const pattern = new RegExp(`'${escapeRegExp(en)}'`, "g");
-    return tryRegexReplace(pattern, () => `'${zh}'`);
-}
-
-function tryBacktickLiteralReplace(en, zh) {
-    const pattern = new RegExp("`" + escapeRegExp(en) + "`", "g");
-    if (tryRegexReplace(pattern, () => `\`${zh}\``)) {
-        return true;
+    const enSegments = splitTemplateSegments(en);
+    const zhSegments = splitTemplateSegments(zh);
+    if (enSegments.length !== exprParts.length + 1 || zhSegments.length !== exprParts.length + 1) {
+        return false;
     }
 
-    if (!en.endsWith("\n") && !zh.endsWith("\n")) {
-        const newlinePattern = new RegExp("`" + escapeRegExp(en + "\n") + "`", "g");
-        return tryRegexReplace(newlinePattern, () => `\`${zh}\n\``);
+    let segmentIndex = 0;
+    for (const part of literal.parts) {
+        if (part.type !== "text") {
+            continue;
+        }
+        if (part.value !== enSegments[segmentIndex++]) {
+            return false;
+        }
+    }
+    if (segmentIndex !== enSegments.length) {
+        return false;
     }
 
-    return false;
+    segmentIndex = 0;
+    let textIndex = 0;
+    for (const part of literal.parts) {
+        if (part.type !== "text") {
+            continue;
+        }
+        part.value = zhSegments[textIndex++] ?? "";
+    }
+    literal.text = literal.parts.map((part) => part.value).join("");
+    return true;
 }
 
-function scanDoubleQuotedLiterals(source) {
+function scanStringLiterals(source) {
     const literals = [];
     const regexAllowedKeywords = new Set([
         "case",
@@ -123,10 +168,15 @@ function scanDoubleQuotedLiterals(source) {
     let i = 0;
     let start = -1;
     let prevToken = { type: "start", value: "" };
-    const templateExprDepth = [];
+    const templateStack = [];
+    let recordStringLiteral = true;
 
     function setPrevToken(type, value = "") {
         prevToken = { type, value };
+    }
+
+    function currentTemplate() {
+        return templateStack[templateStack.length - 1] ?? null;
     }
 
     function isIdentifierStart(ch) {
@@ -166,18 +216,30 @@ function scanDoubleQuotedLiterals(source) {
 
                 if (ch === '"') {
                     start = i;
+                    recordStringLiteral = !(currentTemplate() && currentTemplate().exprDepth > 0);
                     state = "double";
                     i++;
                     continue;
                 }
 
                 if (ch === "'") {
+                    start = i;
+                    recordStringLiteral = !(currentTemplate() && currentTemplate().exprDepth > 0);
                     state = "single";
                     i++;
                     continue;
                 }
 
                 if (ch === "`") {
+                    start = i;
+                    templateStack.push({
+                        start,
+                        parts: [],
+                        textStart: i + 1,
+                        exprStart: -1,
+                        exprDepth: 0,
+                        recordLiteral: !(currentTemplate() && currentTemplate().exprDepth > 0),
+                    });
                     state = "template";
                     i++;
                     continue;
@@ -224,8 +286,9 @@ function scanDoubleQuotedLiterals(source) {
                 }
 
                 if (ch === "{") {
-                    if (templateExprDepth.length > 0) {
-                        templateExprDepth[templateExprDepth.length - 1]++;
+                    const template = currentTemplate();
+                    if (template && template.exprDepth > 0) {
+                        template.exprDepth++;
                     }
                     setPrevToken("open", ch);
                     i++;
@@ -233,10 +296,16 @@ function scanDoubleQuotedLiterals(source) {
                 }
 
                 if (ch === "}") {
-                    if (templateExprDepth.length > 0) {
-                        templateExprDepth[templateExprDepth.length - 1]--;
-                        if (templateExprDepth[templateExprDepth.length - 1] === 0) {
-                            templateExprDepth.pop();
+                    const template = currentTemplate();
+                    if (template && template.exprDepth > 0) {
+                        template.exprDepth--;
+                        if (template.exprDepth === 0) {
+                            template.parts.push({
+                                type: "expr",
+                                value: source.slice(template.exprStart, i + 1),
+                            });
+                            template.exprStart = -1;
+                            template.textStart = i + 1;
                             setPrevToken("templateExprEnd", ch);
                             state = "template";
                             i++;
@@ -294,11 +363,14 @@ function scanDoubleQuotedLiterals(source) {
                     continue;
                 }
                 if (ch === '"') {
-                    literals.push({
-                        start,
-                        end: i + 1,
-                        text: source.slice(start + 1, i),
-                    });
+                    if (recordStringLiteral) {
+                        literals.push({
+                            start,
+                            end: i + 1,
+                            text: source.slice(start + 1, i),
+                            quote: '"',
+                        });
+                    }
                     setPrevToken("string");
                     state = "code";
                     i++;
@@ -313,6 +385,14 @@ function scanDoubleQuotedLiterals(source) {
                     continue;
                 }
                 if (ch === "'") {
+                    if (recordStringLiteral) {
+                        literals.push({
+                            start,
+                            end: i + 1,
+                            text: source.slice(start + 1, i),
+                            quote: "'",
+                        });
+                    }
                     setPrevToken("string");
                     state = "code";
                     i++;
@@ -327,13 +407,33 @@ function scanDoubleQuotedLiterals(source) {
                     continue;
                 }
                 if (ch === "`") {
+                    const template = templateStack.pop();
+                    template.parts.push({
+                        type: "text",
+                        value: source.slice(template.textStart, i),
+                    });
+                    if (template.recordLiteral) {
+                        literals.push({
+                            start: template.start,
+                            end: i + 1,
+                            text: template.parts.map((part) => part.value).join(""),
+                            quote: "`",
+                            parts: template.parts,
+                        });
+                    }
                     setPrevToken("template");
                     state = "code";
                     i++;
                     continue;
                 }
                 if (ch === "$" && next === "{") {
-                    templateExprDepth.push(1);
+                    const template = currentTemplate();
+                    template.parts.push({
+                        type: "text",
+                        value: source.slice(template.textStart, i),
+                    });
+                    template.exprStart = i;
+                    template.exprDepth = 1;
                     setPrevToken("templateExprStart", "${");
                     state = "code";
                     i += 2;
@@ -541,10 +641,10 @@ tryRegexReplace(
         `${factory}.createElement(${containerComponent},{marginTop:1},${factory}.createElement(${textComponent},{dimColor:!0},"在 "),${factory}.createElement(${textComponent},{bold:!0,dimColor:!0},${terminalName}),${factory}.createElement(${textComponent},{dimColor:!0},' 中用 "/plan open" 编辑此计划'))`
 );
 
-// === 逐条翻译：只替换真实的双引号字符串字面量 ===
+// === 逐条翻译：只替换真实的字符串字面量 ===
 //
 // 先处理 minifier 把 `'` 拆成 `"foo","'","bar"` 的高风险字面量（folder trust、/btw 等），
-// 再扫描源码中的真实双引号字符串 token，只在这些 token 内做替换。
+// 再扫描源码中的真实字符串 token，只在这些 token 内做替换。
 // 这样不会跨越源码结构误改对象键、标识符或注释。
 
 if (translationsFile && fs.existsSync(translationsFile)) {
@@ -562,13 +662,7 @@ if (translationsFile && fs.existsSync(translationsFile)) {
         trySplitDoubleQuotedLiteralReplace(en, zh);
     }
 
-    for (const { en, zh } of translationRules) {
-        if (en === zh) continue;
-        trySingleQuotedLiteralReplace(en, zh);
-        tryBacktickLiteralReplace(en, zh);
-    }
-
-    const literals = scanDoubleQuotedLiterals(s);
+    const literals = scanStringLiterals(s);
     let literalsChanged = false;
 
     for (const { en, zh } of translationRules) {
@@ -576,10 +670,24 @@ if (translationsFile && fs.existsSync(translationsFile)) {
 
         let hit = false;
         for (const literal of literals) {
-            if (!literal.text.includes(en)) {
+            if (literal.quote === "`") {
+                if (!replaceWholeTemplateLiteral(literal, en, zh)) {
+                    if (!replaceTemplateLiteralTextParts(literal.parts, en, zh)) {
+                        continue;
+                    }
+                    literal.text = literal.parts.map((part) => part.value).join("");
+                }
+                hit = true;
+                literalsChanged = true;
                 continue;
             }
-            const replaced = replaceLiteralText(literal.text, en, zh);
+
+            const needle = literal.quote === "'" ? escapeSingleQuotedLiteralContent(en) : en;
+            const replacementText = literal.quote === "'" ? escapeSingleQuotedLiteralContent(zh) : zh;
+            if (!literal.text.includes(needle)) {
+                continue;
+            }
+            const replaced = replaceLiteralText(literal.text, needle, replacementText);
             if (replaced === literal.text) {
                 continue;
             }
@@ -597,7 +705,7 @@ if (translationsFile && fs.existsSync(translationsFile)) {
         for (const literal of literals) {
             rebuilt += s.slice(cursor, literal.start + 1);
             rebuilt += literal.text;
-            rebuilt += '"';
+            rebuilt += literal.quote;
             cursor = literal.end;
         }
         rebuilt += s.slice(cursor);
