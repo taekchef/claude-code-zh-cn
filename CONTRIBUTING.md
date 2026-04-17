@@ -11,7 +11,7 @@
 
 ```bash
 bash -n install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification
-node --check bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js
+node --check bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/verify-release-state.js
 node --test tests/*.test.js
 ```
 
@@ -32,6 +32,28 @@ bash scripts/sync-payload.sh
 ```
 
 `tests/plugin-payload.test.js` 会校验这些文件没有漂移。
+
+## 发布状态校验
+
+发布新版本后，运行：
+
+```bash
+node scripts/verify-release-state.js
+```
+
+该检查会读取 `plugin/manifest.json` 和 `CHANGELOG.md` 顶部版本，确认两者一致，并确认同名 `vX.Y.Z` Git tag 与 GitHub Release 都存在。它依赖 GitHub CLI：
+
+```bash
+gh release view vX.Y.Z --json tagName,url
+```
+
+输出中的 `MISSING` 表示对应 tag/release 确实缺失；`ERROR` 表示 GitHub CLI、网络或权限导致状态无法确认，需要修复环境后重跑。
+
+如果当前目录无法自动推断 GitHub 仓库，可以显式指定：
+
+```bash
+node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
+```
 
 ## 翻译数据规则
 
