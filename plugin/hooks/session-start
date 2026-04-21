@@ -68,6 +68,38 @@ process.exit(compare(latest, current) > 0 ? 0 : 1);
 NODE
 }
 
+native_binary_version() {
+    local binary_path="$1"
+    local version output temp_home
+
+    version="$(node "$PLUGIN_ROOT/bun-binary-io.js" version "$binary_path" 2>/dev/null || true)"
+    if [ -n "${version:-}" ]; then
+        printf '%s' "$version"
+        return
+    fi
+
+    temp_home="$(mktemp -d "${TMPDIR:-/tmp}/cczh-version-home.XXXXXX" 2>/dev/null || true)"
+    if [ -n "${temp_home:-}" ]; then
+        output="$(HOME="$temp_home" XDG_CONFIG_HOME="$temp_home/.config" XDG_CACHE_HOME="$temp_home/.cache" XDG_DATA_HOME="$temp_home/.local/share" "$binary_path" --version 2>/dev/null || true)"
+        rm -rf "$temp_home" 2>/dev/null || true
+    else
+        output="$("$binary_path" --version 2>/dev/null || true)"
+    fi
+
+    printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
+}
+
+is_supported_native_version() {
+    case "${1:-}" in
+        2.1.110|2.1.111|2.1.112)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 read_source_repo() {
     if [ ! -f "$SOURCE_REPO_FILE" ]; then
         return
@@ -299,42 +331,45 @@ fi
 
 AUTO_PATCH_MSG=""
 if [ -n "$NATIVE_BINARY" ]; then
-    # 原生二进制: best-effort re-patch（静默降级）
-    CURRENT_VERSION=$(node "$PLUGIN_ROOT/bun-binary-io.js" version "$NATIVE_BINARY" 2>/dev/null || true)
-    PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
-    CURRENT_MARKER="${CURRENT_VERSION}"
-    [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="${CURRENT_VERSION}|${PATCH_REVISION}"
-    PATCHED_VERSION=""
-    [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
+    # 原生二进制：只对已验证的 macOS 官方安装器旧版本做 best-effort re-patch。
+    # 未验证版本（尤其 latest）静默跳过，避免误改用户二进制。
+    CURRENT_VERSION=$(native_binary_version "$NATIVE_BINARY")
+    if is_supported_native_version "$CURRENT_VERSION"; then
+        PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
+        CURRENT_MARKER="${CURRENT_VERSION}"
+        [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="${CURRENT_VERSION}|${PATCH_REVISION}"
+        PATCHED_VERSION=""
+        [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
 
-    if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ]; then
-        if node "$PLUGIN_ROOT/bun-binary-io.js" check-deps 2>/dev/null | grep -q "ok"; then
-            tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-repatch.$$.js"
-            backup_path="${NATIVE_BINARY}.zh-cn-backup"
-            backup_version=""
-            if [ -f "$backup_path" ]; then
-                backup_version=$(node "$PLUGIN_ROOT/bun-binary-io.js" version "$backup_path" 2>/dev/null || true)
-            fi
+        if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ]; then
+            if node "$PLUGIN_ROOT/bun-binary-io.js" check-deps 2>/dev/null | grep -q "ok"; then
+                tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-repatch.$$.js"
+                backup_path="${NATIVE_BINARY}.zh-cn-backup"
+                backup_version=""
+                if [ -f "$backup_path" ]; then
+                    backup_version=$(native_binary_version "$backup_path")
+                fi
 
-            # 同版本时恢复 backup 保证干净基底；版本变化时刷新 backup 为当前版本
-            if [ -f "$backup_path" ] && [ -n "${CURRENT_VERSION:-}" ] && [ "${CURRENT_VERSION:-}" = "${backup_version:-}" ]; then
-                cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
-            else
-                cp "$NATIVE_BINARY" "$backup_path" 2>/dev/null || true
-            fi
+                # 同版本时恢复 backup 保证干净基底；版本变化时刷新 backup 为当前版本
+                if [ -f "$backup_path" ] && [ -n "${CURRENT_VERSION:-}" ] && [ "${CURRENT_VERSION:-}" = "${backup_version:-}" ]; then
+                    cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                else
+                    cp "$NATIVE_BINARY" "$backup_path" 2>/dev/null || true
+                fi
 
-            if node "$PLUGIN_ROOT/bun-binary-io.js" extract "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
-                PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
-                if [ "$PATCH_COUNT" != "0" ]; then
-                    if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
-                        echo "$CURRENT_MARKER" > "$MARKER_FILE"
-                        AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 原生二进制）"
+                if node "$PLUGIN_ROOT/bun-binary-io.js" extract "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
+                    PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
+                    if [ "$PATCH_COUNT" != "0" ]; then
+                        if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
+                            echo "$CURRENT_MARKER" > "$MARKER_FILE"
+                            AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental）"
+                        fi
                     fi
                 fi
+                rm -f "$tmp_js"
             fi
-            rm -f "$tmp_js"
+            # node-lief 不可用 → 静默跳过，保持 hook JSON 合法
         fi
-        # node-lief 不可用 → 静默跳过
     fi
 elif [ -f "$CLI_FILE" ]; then
     # 现有 npm 自动 re-patch 逻辑
