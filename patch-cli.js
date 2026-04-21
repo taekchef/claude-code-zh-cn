@@ -641,6 +641,12 @@ tryRegexReplace(
         `${factory}.createElement(${containerComponent},{marginTop:1},${factory}.createElement(${textComponent},{dimColor:!0},"在 "),${factory}.createElement(${textComponent},{bold:!0,dimColor:!0},${terminalName}),${factory}.createElement(${textComponent},{dimColor:!0},' 中用 "/plan open" 编辑此计划'))`
 );
 
+// 6b. advisor slash command 描述（结构化 patch，避免其他位置先命中导致命令定义漏替换）
+tryRegexReplace(
+    /name:"advisor",description:"Configure the 顾问工具 to consult a stronger model for guidance at key moments during a task"/g,
+    () => 'name:"advisor",description:"配置顾问工具，使其在任务中的关键时刻调用更强的模型提供指导。"'
+);
+
 // === 逐条翻译：只替换真实的字符串字面量 ===
 //
 // 先处理 minifier 把 `'` 拆成 `"foo","'","bar"` 的高风险字面量（folder trust、/btw 等），

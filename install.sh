@@ -490,12 +490,69 @@ patch_npm_cli() {
     else
         CLI_PATCH_STATUS_SUMMARY="cli.js 中文化（${patch_count:-0} 处硬编码文字）"
     fi
+
+    local residue=""
+    if residue="$(zh_cn_command_probe_residue "$cli_file")"; then
+        CLI_PATCH_STATUS_SUMMARY="cli.js patch 未完全生效（残留英文命令描述）"
+        CLI_PATCH_STATUS_OK=false
+        rm -f "$MARKER_FILE"
+        echo -e "${YELLOW}检测到未翻译残留：${residue}${NC}"
+        return
+    fi
+
     CLI_PATCH_STATUS_OK=true
 
     patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
         echo "${current_version}|${patch_revision}" > "$MARKER_FILE"
     fi
+}
+
+npm_cli_probe_residue() {
+    node - "$1" <<'NODE'
+const fs = require("fs");
+
+const cliFile = process.argv[2];
+const probes = [
+  "Quick safety check",
+  "This command requires approval",
+  "Use /btw to ask a quick side question without interrupting Claude's current work",
+];
+
+try {
+  const text = fs.readFileSync(cliFile, "utf8");
+  const residue = probes.filter((probe) => text.includes(probe));
+  if (residue.length > 0) {
+    process.stdout.write(residue.join(" | "));
+    process.exit(0);
+  }
+} catch {}
+
+process.exit(1);
+NODE
+}
+
+zh_cn_command_probe_residue() {
+    node - "$1" <<'NODE'
+const fs = require("fs");
+
+const cliFile = process.argv[2];
+const probes = [
+  'name:"advisor",description:"Configure the 顾问工具 to consult a stronger model for guidance at key moments during a task"',
+  'name:"ultrareview",description:`~10–20 min · Finds and verifies bugs in your branch. Runs in Claude Code on the web. See ${HpY}`',
+];
+
+try {
+  const text = fs.readFileSync(cliFile, "utf8");
+  const residue = probes.filter((probe) => text.includes(probe));
+  if (residue.length > 0) {
+    process.stdout.write(residue.join(" | "));
+    process.exit(0);
+  }
+} catch {}
+
+process.exit(1);
+NODE
 }
 
 patch_native_binary() {
