@@ -1,8 +1,8 @@
 {
   "packageName": "@anthropic-ai/claude-code",
   "baseline": {
-    "versions": ["2.1.92", "2.1.97", "2.1.104", "2.1.107", "2.1.110"],
-    "includeLatestFromNpm": true
+    "versions": ["2.1.92", "2.1.97", "2.1.104", "2.1.107", "2.1.110", "2.1.112"],
+    "includeLatestFromNpm": false
   },
   "checks": {
     "sentinels": [
@@ -28,17 +28,18 @@
     "npm": {
       "stable": {
         "floor": "2.1.92",
-        "ceiling": "2.1.110",
-        "representatives": ["2.1.92", "2.1.97", "2.1.104", "2.1.107", "2.1.110"],
-        "notes": "PATH 优先 launcher + session-start 二层兜底，适用于 npm 全局安装。"
+        "ceiling": "2.1.112",
+        "representatives": ["2.1.92", "2.1.97", "2.1.104", "2.1.107", "2.1.110", "2.1.112"],
+        "notes": "PATH 优先 launcher + session-start 二层兜底，适用于旧 cli.js npm 包形态；2.1.113+ native binary wrapper 暂不支持旧 CLI Patch。"
       }
     },
     "macosOfficialInstaller": {
       "experimental": {
-        "floor": "2.1.104",
-        "ceiling": "2.1.104",
-        "representatives": ["2.1.104"],
-        "notes": "依赖 native repack / session-start；prelaunch launcher 不覆盖原生二进制。"
+        "floor": "2.1.110",
+        "ceiling": "2.1.112",
+        "representatives": ["2.1.110", "2.1.111", "2.1.112"],
+        "verification": "2.1.110 PASS(native 1245) · 2.1.111 PASS(native 1241) · 2.1.112 PASS(native 1241)",
+        "notes": "官方安装器指定旧版本仍走 native binary；macOS arm64 已离线验证 extract/patch/repack/--version，插件可用 native patch experimental 处理，需要 node-lief；稳定使用仍建议 npm pinned。"
       }
     },
     "linuxOfficialInstaller": {

@@ -78,7 +78,7 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}[实验性] 原生二进制 patch — 如遇问题请提交 Issue${NC}"
+        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 属于 experimental，只对已验证旧版本开放"
     fi
 
     echo ""
@@ -115,17 +115,59 @@ check_dependencies() {
         USE_JQ=true
     fi
 
-    # 检查原生二进制依赖
     local install_info
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
-        local dep_status
+        local native_path native_version dep_status
+        native_path="${install_info#*:}"
+        native_version="$(native_binary_version "$native_path")"
         dep_status="$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null || echo "missing")"
-        if [ "$dep_status" != "ok" ]; then
-            echo -e "${YELLOW}检测到官方安装器版本，需要 node-lief 支持${NC}"
-            echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+
+        if is_supported_native_version "$native_version"; then
+            if [ "$dep_status" != "ok" ]; then
+                echo -e "${YELLOW}检测到官方安装器旧版本 ${native_version:-unknown}，CLI Patch 需要 node-lief${NC}"
+                echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+            else
+                echo -e "${YELLOW}检测到官方安装器旧版本 ${native_version}，将使用 experimental native patch${NC}"
+            fi
+        else
+            echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 不在 experimental 窗口内，会跳过 CLI Patch${NC}"
+            echo -e "  macOS 官方安装器已验证窗口：2.1.110 - 2.1.112"
+            echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         fi
     fi
+}
+
+native_binary_version() {
+    local binary_path="$1"
+    local version output temp_home
+
+    version="$(node "$PLUGIN_SRC/bun-binary-io.js" version "$binary_path" 2>/dev/null || true)"
+    if [ -n "${version:-}" ]; then
+        printf '%s' "$version"
+        return
+    fi
+
+    temp_home="$(mktemp -d "${TMPDIR:-/tmp}/cczh-version-home.XXXXXX" 2>/dev/null || true)"
+    if [ -n "${temp_home:-}" ]; then
+        output="$(HOME="$temp_home" XDG_CONFIG_HOME="$temp_home/.config" XDG_CACHE_HOME="$temp_home/.cache" XDG_DATA_HOME="$temp_home/.local/share" "$binary_path" --version 2>/dev/null || true)"
+        rm -rf "$temp_home" 2>/dev/null || true
+    else
+        output="$("$binary_path" --version 2>/dev/null || true)"
+    fi
+
+    printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
+}
+
+is_supported_native_version() {
+    case "${1:-}" in
+        2.1.110|2.1.111|2.1.112)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
 }
 
 ensure_settings_file() {
@@ -239,6 +281,11 @@ fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2) + '\n');
 
     if [ "$SKIP_BANNER" != "1" ]; then
         echo -e "${GREEN}已更新 settings.json${NC}"
+    fi
+
+    # 缓存完整 overlay 到插件目录，供 session-start hook 自修复使用
+    if [ -n "${PLUGIN_DST:-}" ] && [ -d "$PLUGIN_DST" ]; then
+        echo "$overlay_content" > "$PLUGIN_DST/.settings-overlay-cache.json"
     fi
 }
 
@@ -505,24 +552,33 @@ patch_native_binary() {
     local current_version backup_version
 
     echo ""
-    echo -e "${BLUE}检测到官方安装器（原生二进制），正在 patch...${NC}"
+    echo -e "${BLUE}检测到官方安装器（原生二进制）${NC}"
     echo -e "  二进制路径: ${binary_path}"
 
-    # 检查依赖
+    current_version="$(native_binary_version "$binary_path")"
+    if ! is_supported_native_version "$current_version"; then
+        echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 不在 experimental 窗口内，已跳过 CLI Patch${NC}"
+        echo -e "  macOS 官方安装器已验证窗口：2.1.110 - 2.1.112"
+        echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
+        CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制版本 ${current_version:-unknown} 未验证）"
+        return
+    fi
+
+    echo -e "  版本: ${current_version}（experimental）"
+
     local dep_status
     dep_status="$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null || echo "missing")"
     if [ "$dep_status" != "ok" ]; then
-        echo -e "${YELLOW}需要安装 node-lief 来支持原生二进制 patch${NC}"
+        echo -e "${YELLOW}需要安装 node-lief 来支持官方安装器 native patch${NC}"
         echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
         echo -e "  然后重新运行 ./install.sh"
         CLI_PATCH_STATUS_SUMMARY="已跳过（官方安装器 CLI Patch 需要 node-lief）"
         return
     fi
 
-    current_version=$(node "$PLUGIN_SRC/bun-binary-io.js" version "$binary_path" 2>/dev/null || true)
     backup_version=""
     if [ -f "$backup_path" ]; then
-        backup_version=$(node "$PLUGIN_SRC/bun-binary-io.js" version "$backup_path" 2>/dev/null || true)
+        backup_version="$(native_binary_version "$backup_path")"
     fi
 
     # 备份逻辑：仅同版本恢复 backup；版本变化时刷新 backup 为当前版本
@@ -540,7 +596,6 @@ patch_native_binary() {
         }
     fi
 
-    # 提取 → patch → 写回
     node "$PLUGIN_SRC/bun-binary-io.js" extract "$binary_path" "$tmp_js" || {
         echo -e "${RED}提取 JS 失败${NC}"
         CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制提取失败）"
@@ -560,7 +615,7 @@ patch_native_binary() {
             return
         }
         echo -e "${GREEN}已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
-        CLI_PATCH_STATUS_SUMMARY="原生二进制中文化（${patch_count} 处硬编码文字）"
+        CLI_PATCH_STATUS_SUMMARY="官方安装器 native 中文化（${patch_count} 处硬编码文字）"
         CLI_PATCH_STATUS_OK=true
     else
         echo -e "${YELLOW}未找到需要 patch 的内容${NC}"
@@ -570,9 +625,8 @@ patch_native_binary() {
 
     rm -f "$tmp_js"
 
-    # 更新 marker
     local patch_revision
-    current_version=$(node "$PLUGIN_SRC/bun-binary-io.js" version "$binary_path" 2>/dev/null || true)
+    current_version="$(native_binary_version "$binary_path")"
     patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
         echo "${current_version}|${patch_revision}" > "$MARKER_FILE"
