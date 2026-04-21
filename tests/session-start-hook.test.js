@@ -527,7 +527,7 @@ test("session-start writes .last-update-status on successful update", () => {
   assert.ok(status.includes("2.0.1"), `status should mention 2.0.1, got: ${status}`);
 });
 
-test("session-start native re-patch does not roll upgraded binary back to old backup version", () => {
+test("session-start native re-patch does not roll upgraded supported binary back to old backup version", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-upgrade-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -555,10 +555,10 @@ printf '1'
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.96\nUPGRADED\n");
-  fs.writeFileSync(backupBinary, "// Version: 2.1.92\nOLD BACKUP\n");
+  fs.writeFileSync(fakeBinary, "// Version: 2.1.112\nUPGRADED\n");
+  fs.writeFileSync(backupBinary, "// Version: 2.1.110\nOLD BACKUP\n");
   fs.chmodSync(fakeBinary, 0o755);
-  fs.writeFileSync(markerFile, "2.1.92|stale-revision\n");
+  fs.writeFileSync(markerFile, "2.1.110|stale-revision\n");
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
 
   const result = spawnSync("bash", [hookPath], {
@@ -581,10 +581,60 @@ printf '1'
   const refreshedBackup = fs.readFileSync(backupBinary, "utf8");
   const updatedMarker = fs.readFileSync(markerFile, "utf8").trim();
 
-  assert.match(currentBinary, /Version: 2\.1\.96/, "current binary should stay on upgraded version");
-  assert.match(currentBinary, /PATCHED/, "current binary should be re-patched");
-  assert.match(refreshedBackup, /Version: 2\.1\.96/, "backup should refresh to upgraded version before re-patch");
-  assert.match(updatedMarker, /^2\.1\.96\|/, "marker should update to the upgraded version");
+  assert.match(currentBinary, /Version: 2\.1\.112/, "current binary should stay on upgraded version");
+  assert.match(currentBinary, /PATCHED/, "supported native binary should be re-patched");
+  assert.match(refreshedBackup, /Version: 2\.1\.112/, "backup should refresh to upgraded version before re-patch");
+  assert.match(updatedMarker, /^2\.1\.112\|/, "marker should update to the upgraded version");
+});
+
+test("session-start skips native latest outside verified experimental window", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-latest-skip-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeBinary = path.join(tmp, "claude-native");
+  const invokedFile = path.join(tmp, "patch-invoked");
+  const markerFile = path.join(pluginRoot, ".patched-version");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(path.join(pluginRoot, "manifest.json"), JSON.stringify({ version: "2.0.5" }));
+  writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf 'invoked' > ${JSON.stringify(invokedFile)}
+printf '1'
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  fs.writeFileSync(fakeBinary, "// Version: 2.1.116\nLATEST\n");
+  fs.chmodSync(fakeBinary, 0o755);
+  fs.writeFileSync(markerFile, "2.1.112|stale-revision\n");
+  fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(fs.existsSync(invokedFile), false, "latest native should not be patched yet");
+  assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "2.1.112|stale-revision");
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
 test("session-start native path skips re-patch cleanly when node-lief deps are missing", () => {
@@ -630,7 +680,7 @@ printf 'invoked' > ${JSON.stringify(invokedFile)}
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.101\nORIGINAL\n");
+  fs.writeFileSync(fakeBinary, "// Version: 2.1.112\nORIGINAL\n");
   fs.chmodSync(fakeBinary, 0o755);
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
   fs.writeFileSync(markerFile, "2.1.92|stale-revision\n");

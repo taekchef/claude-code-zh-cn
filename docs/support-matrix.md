@@ -1,19 +1,19 @@
 # Support Matrix
 
-> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` on 2026-04-17.
+> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` on 2026-04-21.
 
 ## Tier Definition
 
 - `stable`：代表版本段已通过 compat matrix，且 npm 路径具备启动前自修复。
-- `experimental`：具备部分自动修复能力，但仍不承诺和 npm stable 同等级体验。
+- `experimental`：已有局部验证或手动路径，但仍不承诺和 npm stable 同等级体验。
 - `unsupported`：当前不建议使用，文档只保留明确边界，不承诺修复路径。
 
 ## Current Support
 
 | Channel | Tier | Version window | Representative verification | Notes |
 | --- | --- | --- | --- | --- |
-| npm global install | stable | 2.1.92 - 2.1.110 | 2.1.92 PASS · 2.1.97 PASS · 2.1.104 PASS · 2.1.107 PASS · 2.1.110 PASS | PATH 优先 launcher + session-start 二层兜底，适用于 npm 全局安装。 |
-| macOS official installer | experimental | 2.1.104 - 2.1.104 | 2.1.104 PASS | 依赖 native repack / session-start；prelaunch launcher 不覆盖原生二进制。 |
+| npm global install | stable | 2.1.92 - 2.1.112 | 2.1.92 PASS · 2.1.97 PASS · 2.1.104 PASS · 2.1.107 PASS · 2.1.110 PASS · 2.1.112 PASS | PATH 优先 launcher + session-start 二层兜底，适用于旧 cli.js npm 包形态；2.1.113+ native binary wrapper 暂不支持旧 CLI Patch。 |
+| macOS official installer | experimental | 2.1.110 - 2.1.112 | 2.1.110 PASS(native 1245) · 2.1.111 PASS(native 1241) · 2.1.112 PASS(native 1241) | 官方安装器指定旧版本仍走 native binary；macOS arm64 已离线验证 extract/patch/repack/--version，插件可用 native patch experimental 处理，需要 node-lief；稳定使用仍建议 npm pinned。 |
 | Linux official installer | unsupported | - | - | 当前不支持 Linux 官方安装器；请改用 npm 路径。 |
 
 ## Compatibility Matrix
