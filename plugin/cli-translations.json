@@ -428,6 +428,22 @@
     "zh": "使用此技能通过 settings.json 配置 Claude Code harness。"
   },
   {
+    "en": "Configure the 顾问工具 to consult a stronger model for guidance at key moments during a task",
+    "zh": "配置顾问工具，使其在任务中的关键时刻调用更强的模型提供指导。"
+  },
+  {
+    "en": "~10–20 min · Finds and verifies bugs in your branch. Runs in Claude Code on the web. See ${HpY}",
+    "zh": "约 10–20 分钟 · 查找并验证你当前分支中的缺陷。在 Claude Code 网页版中运行。详见 ${HpY}。"
+  },
+  {
+    "en": "Generate a one-line session recap now",
+    "zh": "立即生成一行会话总结"
+  },
+  {
+    "en": "Create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule.",
+    "zh": "创建、更新、列出或运行按 cron 计划执行的远程 Agent（triggers）。"
+  },
+  {
     "en": "Run a prompt or slash command on a recurring interval (e.g. /loop 5m /foo). Omit the interval to let the model self-pace.",
     "zh": "在固定间隔内运行提示词或斜杠命令（例如 /loop 5m /foo）。省略间隔则让模型自行调整节奏。"
   },
@@ -2966,6 +2982,10 @@
   {
     "en": "Runs in Claude Code on the web. When the plan is ready,",
     "zh": "在 Claude Code 网页版中运行。方案就绪后，"
+  },
+  {
+    "en": "Finds and verifies bugs in your branch using a multi-agent review fleet.",
+    "zh": "使用多 Agent 审查队列查找并验证你当前分支中的缺陷。"
   },
   {
     "en": "Sandbox",

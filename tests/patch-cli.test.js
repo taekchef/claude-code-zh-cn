@@ -132,6 +132,8 @@ test("string translation must not rewrite identifiers or object keys across code
 test("single-quoted and template literal command descriptions are translated", () => {
   const patched = patchFixture([
     'const updateConfig=\'Use this skill to configure the Claude Code harness via settings.json. Automated behaviors ("from now on when X", "each time X", "whenever X", "before/after X") require hooks configured in settings.json - the harness executes these, not Claude, so memory/preferences cannot fulfill them. Also use for: permissions ("allow X", "add permission", "move permission to"), env vars ("set X=Y"), hook troubleshooting, or any changes to settings.json/settings.local.json files. Examples: "allow npm commands", "add bq permission to global settings", "move permission to user settings", "set DEBUG=true", "when claude stops show X". For simple settings like theme/model, use Config tool.\';',
+    "const advisor='Configure the 顾问工具 to consult a stronger model for guidance at key moments during a task';",
+    "const ultrareview=`~10–20 min · Finds and verifies bugs in your branch. Runs in Claude Code on the web. See ${HpY}`;",
     "const claudeApi=`Build, debug, and optimize Claude API / Anthropic SDK apps. Apps built with this skill should include prompt caching.\n`;",
     "const model=`Set the AI model for Claude Code (currently ${lH(W5())})`;",
     "const fast=`Toggle fast mode (${im} only)`;",
@@ -140,6 +142,16 @@ test("single-quoted and template literal command descriptions are translated", (
 
   assert.equal(
     patched.includes("Use this skill to configure the Claude Code harness via settings.json."),
+    false,
+    patched
+  );
+  assert.equal(
+    patched.includes("Configure the 顾问工具 to consult a stronger model for guidance at key moments during a task"),
+    false,
+    patched
+  );
+  assert.equal(
+    patched.includes("~10–20 min · Finds and verifies bugs in your branch. Runs in Claude Code on the web. See ${HpY}"),
     false,
     patched
   );
@@ -159,6 +171,8 @@ test("single-quoted and template literal command descriptions are translated", (
     patched
   );
   assert.match(patched, /使用此技能通过 settings\.json 配置 Claude Code harness。/);
+  assert.match(patched, /配置顾问工具，使其在任务中的关键时刻调用更强的模型提供指导。/);
+  assert.match(patched, /约 10–20 分钟 · 查找并验证你当前分支中的缺陷。在 Claude Code 网页版中运行。详见 \$\{HpY\}。/);
   assert.match(patched, /构建、调试并优化 Claude API \/ Anthropic SDK 应用。使用此技能构建的应用应包含 prompt caching。/);
   assert.match(patched, /设置 Claude Code 使用的 AI 模型（当前为 \$\{lH\(W5\(\)\)\}）/);
   assert.match(patched, /切换快速模式（仅 \$\{im\}）/);

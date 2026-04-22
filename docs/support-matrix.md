@@ -1,6 +1,6 @@
 # Support Matrix
 
-> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` on 2026-04-21.
+> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` on 2026-04-22.
 
 ## Tier Definition
 
@@ -20,12 +20,12 @@
 
 | Version | Result | Patch count | Residue |
 | --- | --- | --- | --- |
-| 2.1.92 | pass | 1470 | - |
-| 2.1.97 | pass | 1466 | - |
-| 2.1.104 | pass | 1431 | - |
-| 2.1.107 | pass | 1404 | - |
-| 2.1.110 | pass | 1394 | - |
-| 2.1.112 | pass | 1390 | - |
+| 2.1.92 | pass | 1472 | - |
+| 2.1.97 | pass | 1468 | - |
+| 2.1.104 | pass | 1433 | - |
+| 2.1.107 | pass | 1407 | - |
+| 2.1.110 | pass | 1397 | - |
+| 2.1.112 | pass | 1392 | - |
 
 Summary: 6 pass / 0 fail
 
