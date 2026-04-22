@@ -6,6 +6,20 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.3.3] - 2026-04-22
+
+### 改进
+
+- 稳定支持窗口从 `2.1.92 - 2.1.110` 扩到 `2.1.92 - 2.1.112`
+- README 和 support matrix 明确说明：Claude Code `2.1.113+` / npm latest 已切换为 native binary wrapper，当前旧 CLI Patch 逻辑暂不支持
+- macOS 官方安装器指定旧版本口径改为 `experimental`：`2.1.110`、`2.1.111`、`2.1.112` 已用临时 native 二进制验证 extract / patch / repack / `--version`
+- `install.sh` 和 `session-start` 保留官方安装器 native patch 处理方法，但只对已验证旧版本窗口开放；`2.1.113+` / latest 会明确跳过
+- README 补充官方安装器指定旧版本的命令、native patch 处理方法和 `node-lief` 依赖，同时说明稳定 CLI Patch 仍推荐 npm pinned 安装方式
+
+### 验证
+
+- `node --test tests/*.test.js`
+
 ## [2.3.2] - 2026-04-16
 
 ### 修复
