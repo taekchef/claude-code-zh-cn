@@ -95,6 +95,8 @@ function detectBinaryFormat(filePath) {
     if (magic[0] === 0xCE && magic[1] === 0xFA && magic[2] === 0xED && magic[3] === 0xFE) return "MachO32";
     // ELF
     if (magic[0] === 0x7F && magic[1] === 0x45 && magic[2] === 0x4C && magic[3] === 0x46) return "ELF";
+    // PE (Windows)
+    if (magic[0] === 0x4D && magic[1] === 0x5A) return "PE";
     return "unknown";
   } catch {
     return "unknown";
@@ -113,20 +115,43 @@ function detectInstallation(claudeCmd) {
   // 2. 先判真实目标本身是不是 Bun 二进制（Codex 二审 #1）
   //    仅支持 Mach-O（macOS），ELF (Linux) 暂不开放
   const format = detectBinaryFormat(realPath);
-  if ((format === "MachO64" || format === "MachO32") && hasBunTrailer(realPath)) {
+  if ((format === "MachO64" || format === "MachO32" || format === "PE") && hasBunTrailer(realPath)) {
     return "native-bun:" + realPath;
   }
 
-  // 3. 不是二进制 → 检查是否在 npm 布局中
+  // 3. 不是二进制 → 检查是否在 npm 布局中 (Unix: ../lib/node_modules/, Windows: node_modules/)
   const npmCli = path.resolve(path.dirname(realPath),
     "../lib/node_modules/@anthropic-ai/claude-code/cli.js");
   if (fs.existsSync(npmCli)) return "npm:" + npmCli;
 
-  // 4. npm root -g 兜底
+  const npmCliWin = path.resolve(path.dirname(realPath),
+    "node_modules/@anthropic-ai/claude-code/cli.js");
+  if (fs.existsSync(npmCliWin)) return "npm:" + npmCliWin;
+
+  // 4. npm 安装的原生二进制 (v2.x+)
+  const npmExe = path.resolve(path.dirname(realPath),
+    "node_modules/@anthropic-ai/claude-code/bin/claude.exe");
+  if (fs.existsSync(npmExe)) {
+    const exeFormat = detectBinaryFormat(npmExe);
+    if ((exeFormat === "PE" || exeFormat === "MachO64" || exeFormat === "MachO32") && hasBunTrailer(npmExe)) {
+      return "native-bun:" + npmExe;
+    }
+  }
+
+  // 5. npm root -g 兜底
   try {
     const globalRoot = execSync("npm root -g", { encoding: "utf8" }).trim();
+
     const npmCli2 = path.join(globalRoot, "@anthropic-ai/claude-code/cli.js");
     if (fs.existsSync(npmCli2)) return "npm:" + npmCli2;
+
+    const npmExe2 = path.join(globalRoot, "@anthropic-ai/claude-code/bin/claude.exe");
+    if (fs.existsSync(npmExe2)) {
+      const exeFormat2 = detectBinaryFormat(npmExe2);
+      if ((exeFormat2 === "PE" || exeFormat2 === "MachO64" || exeFormat2 === "MachO32") && hasBunTrailer(npmExe2)) {
+        return "native-bun:" + npmExe2;
+      }
+    }
   } catch {}
 
   return "unknown";
