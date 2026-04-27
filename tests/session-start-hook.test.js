@@ -32,7 +32,7 @@ function createReleaseSourceRepo(tmpRoot) {
   const sourceRepo = path.join(tmpRoot, "source-repo");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
-  for (const relative of ["install.sh", "compute-patch-revision.sh", "settings-overlay.json"]) {
+  for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
   for (const relative of ["plugin", "tips", "verbs"]) {
@@ -66,7 +66,7 @@ function createSourceRepoWithoutTags(tmpRoot) {
   const sourceRepo = path.join(tmpRoot, "source-repo-no-tags");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
-  for (const relative of ["install.sh", "compute-patch-revision.sh", "settings-overlay.json"]) {
+  for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
   for (const relative of ["plugin", "tips", "verbs"]) {
