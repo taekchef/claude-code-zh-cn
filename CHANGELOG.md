@@ -6,6 +6,33 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.3.4] - 2026-04-27
+
+### 新增
+
+- 新增 Windows PowerShell 原生安装/卸载脚本：`install.ps1`、`uninstall.ps1`
+- 新增 Windows 版 Hook 和 launcher 包装：`session-start.ps1`、`notification.ps1`、`.cmd` 包装器和 PowerShell launcher
+- Windows npm `cli.js` 形态纳入 stable 支持窗口；Windows native `.exe` / latest 继续明确标为 unsupported CLI Patch
+- 补充 65 条 Claude Code UI 翻译，覆盖 transcript、thinking、computer-use、rewind 等新文案
+
+### 改进
+
+- Windows 自动更新链路改为走 `install.ps1 -UpdateOnly -SkipBanner`，不再依赖 `bash install.sh --update-only`
+- Release archive / session-start 自动更新导出内容补齐 `install.ps1`
+- 新增 settings 数据源检查，防止 `settings-overlay.json` 重新混入 spinner verbs / tips 重复数据
+- CI 升级到 Node 24 版本的 GitHub Actions
+- 补充维护者说明和 lessons 文档，方便后续 review / release 延续同一套判断口径
+
+### 贡献
+
+- 感谢 @Cec1c 贡献 Windows PowerShell 安装链路、Windows Hook / launcher 适配，以及新 UI 翻译补充
+
+### 验证
+
+- `node --test tests/*.test.js`
+- `node scripts/verify-upstream-compat.js --json`
+- `node scripts/generate-support-matrix.js`
+
 ## [2.3.3] - 2026-04-22
 
 ### 改进

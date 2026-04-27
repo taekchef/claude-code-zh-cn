@@ -178,7 +178,7 @@ export_release_to_staging() {
     local staging_dir="$3"
 
     mkdir -p "$staging_dir"
-    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh compute-patch-revision.sh settings-overlay.json verbs tips plugin 2>/dev/null \
+    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin 2>/dev/null \
         | tar -xf - -C "$staging_dir" 2>/dev/null
 }
 
