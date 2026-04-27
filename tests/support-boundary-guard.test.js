@@ -127,6 +127,21 @@ test("support boundary guard fails when config raises the stable ceiling past 2.
   assert.match(result.stdout, /2\.1\.112/);
 });
 
+test("support boundary guard fails when config uses latest instead of numeric versions", () => {
+  const repo = createFixture({}, {
+    npmStable: {
+      ceiling: "latest",
+      representatives: ["2.1.112", "latest"],
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.match(result.stdout, /npm stable ceiling/);
+  assert.match(result.stdout, /representatives 不能使用非数字版本 latest/);
+});
+
 test("support boundary guard allows PowerShell old-npm wording and skipped native latest", () => {
   const repo = createFixture({
     "README.md": [
