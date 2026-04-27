@@ -433,7 +433,7 @@
   },
   {
     "en": "Advisor Tool",
-    "zh": "顾问工具"
+    "zh": "Advisor Tool"
   },
   {
     "en": "Advisor disabled",
@@ -4997,7 +4997,19 @@
   },
   {
     "en": "Ultrareview billing",
-    "zh": "Ultrapreview 计费"
+    "zh": "Ultrareview 计费"
+  },
+  {
+    "en": "This review bills as Extra Usage (${cost}).",
+    "zh": "本次 review 会按 Extra Usage 计费（${cost}）。"
+  },
+  {
+    "en": "${billingNote}Ultrareview launched for ${target} (${duration}, runs in the cloud). Track: ${url}${scope}",
+    "zh": "${billingNote}Ultrareview 已为 ${target} 启动（${duration}，云端运行）。跟踪：${url}${scope}"
+  },
+  {
+    "en": "Run ultrareview in the cloud?",
+    "zh": "在云端运行 ultrareview？"
   },
   {
     "en": "Unable to connect to Anthropic services",
