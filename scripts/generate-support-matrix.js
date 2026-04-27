@@ -65,6 +65,11 @@ function buildMarkdown(config, compat) {
     : macosExperimental.verification ||
       renderRepresentativeStatus(macosExperimental.representatives, resultMap);
   const linuxUnsupported = config.support?.linuxOfficialInstaller || {};
+  const windowsNpm = config.support?.windowsNpmPowerShell || {};
+  const windowsNpmStable = windowsNpm.stable || {};
+  const windowsNpmTier = windowsNpm.unsupported ? "unsupported" : "stable";
+  const windowsNpmWindow = windowsNpm.unsupported ? windowsNpm : windowsNpmStable;
+  const windowsNativeUnsupported = config.support?.windowsNativeExe || {};
   const now = new Date();
   const generatedOn = [
     now.getFullYear(),
@@ -95,6 +100,12 @@ function buildMarkdown(config, compat) {
       macosWindow
     )} | ${macosVerification} | ${macosWindow.notes || "-"} |`,
     `| Linux official installer | unsupported | ${renderRange(linuxUnsupported)} | - | ${linuxUnsupported.notes || "-"} |`,
+    `| Windows / npm global install (PowerShell) | ${windowsNpmTier} | ${renderRange(
+      windowsNpmWindow
+    )} | - | ${windowsNpmWindow.notes || "-"} |`,
+    `| Windows / native .exe / latest | unsupported | ${renderRange(
+      windowsNativeUnsupported
+    )} | - | ${windowsNativeUnsupported.notes || "-"} |`,
     "",
     "## Compatibility Matrix",
     "",
