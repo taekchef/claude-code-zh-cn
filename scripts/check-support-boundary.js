@@ -49,7 +49,7 @@ function compareVersions(a, b) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|skipped|skip|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
 }
 
 function findSupportClaim(line) {
@@ -71,7 +71,7 @@ function findWindowsNativeClaim(line) {
   const mentionsNative = /native|原生|\.exe|二进制|binary wrapper|official installer|官方安装器/i.test(line);
   const mentionsNativeExe = /\.exe|native binary|原生二进制|二进制|binary wrapper/i.test(line);
   const scopedOldNpm = /旧\s*npm|old\s+npm|cli\.js/i.test(line) && /2\.1\.112/.test(line);
-  const mentionsCliPatch = /CLI Patch|完整 CLI|稳定|stable|支持/i.test(line);
+  const mentionsCliPatch = /CLI Patch|完整 CLI|稳定|stable/i.test(line);
   const hasSupportVerb = /已支持|支持|stable|可用|support/i.test(line);
 
   if (
