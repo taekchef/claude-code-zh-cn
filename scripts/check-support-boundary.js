@@ -49,7 +49,7 @@ function compareVersions(a, b) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|跳过|未验证|不会|仅启用|只启用|不再包含|skipped?|detected and skipped/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|not\s+supported|not\s+currently\s+supported|跳过|未验证|不会|仅启用|只启用|不再包含|skipped?|detected and skipped/i.test(line);
 }
 
 function findSupportClaim(line) {
