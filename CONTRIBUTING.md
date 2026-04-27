@@ -10,8 +10,9 @@
 ## 本地校验
 
 ```bash
-bash -n install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification
-node --check bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/verify-release-state.js
+for file in install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification; do bash -n "$file"; done
+for file in bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/verify-release-state.js scripts/verify-settings-sources.js; do node --check "$file"; done
+node scripts/verify-settings-sources.js
 node --test tests/*.test.js
 ```
 
@@ -60,6 +61,12 @@ node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
 - `verbs/zh-CN.json` 是 spinner verbs 的唯一数据源
 - `tips/zh-CN.json` 是 spinner tips 的唯一数据源
 - `settings-overlay.json` 不重复存储 verbs / tips 的实际内容
+
+改动这三个文件后，运行：
+
+```bash
+node scripts/verify-settings-sources.js
+```
 
 ## 支持矩阵
 
