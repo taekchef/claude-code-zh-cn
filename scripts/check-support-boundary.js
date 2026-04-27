@@ -38,9 +38,17 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
+function isSemver(version) {
+  return /^\d+\.\d+\.\d+$/.test(String(version || ""));
+}
+
 function compareVersions(a, b) {
-  const left = String(a).replace(/\+$/, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const right = String(b).replace(/\+$/, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
+  if (!isSemver(a) || !isSemver(b)) {
+    return null;
+  }
+
+  const left = String(a).split(".").map((part) => Number.parseInt(part, 10));
+  const right = String(b).split(".").map((part) => Number.parseInt(part, 10));
   for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
     const delta = (left[i] || 0) - (right[i] || 0);
     if (delta !== 0) return delta;
@@ -49,14 +57,18 @@ function compareVersions(a, b) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|not\s+supported|not\s+currently\s+supported|跳过|未验证|不会|仅启用|只启用|不再包含|skipped?|detected and skipped/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|not\s+supported|not\s+currently\s+supported|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
 }
 
 function findSupportClaim(line) {
   const versions = line.match(/\b\d+\.\d+\.\d+\+?/g) || [];
   const hasFutureVersion =
     /latest|最新版|最新版本/i.test(line) ||
-    versions.some((version) => compareVersions(version, STABLE_CEILING) > 0);
+    versions.some((version) => {
+      const normalized = version.replace(/\+$/, "");
+      const comparison = compareVersions(normalized, STABLE_CEILING);
+      return comparison !== null && comparison > 0;
+    });
   const hasSupportVerb = /支持|stable|已支持|可用|support|supported|pass|已验证/i.test(line);
 
   if (hasFutureVersion && hasSupportVerb && !isNegatedBoundaryLine(line)) {
@@ -126,6 +138,16 @@ function addConfigFindings(findings, repoRoot) {
   }
 
   for (const version of representatives) {
+    if (!isSemver(version)) {
+      findings.push({
+        file: relative,
+        line: 1,
+        message: `npm stable representatives 不能使用非数字版本 ${version}`,
+        text: `npm stable ceiling: ${STABLE_CEILING}`,
+      });
+      continue;
+    }
+
     if (compareVersions(version, STABLE_CEILING) > 0) {
       findings.push({
         file: relative,
@@ -161,7 +183,14 @@ function addSupportEntryFindings(findings, node, relative, pathParts) {
       });
     }
 
-    if (node.ceiling && compareVersions(node.ceiling, ceilingLimit) > 0) {
+    if (node.ceiling && !isSemver(node.ceiling)) {
+      findings.push({
+        file: relative,
+        line: 1,
+        message: `${entryPath} ceiling 不能使用非数字版本 ${node.ceiling}`,
+        text: `${entryPath}: ${node.ceiling}`,
+      });
+    } else if (node.ceiling && compareVersions(node.ceiling, ceilingLimit) > 0) {
       findings.push({
         file: relative,
         line: 1,
@@ -171,6 +200,16 @@ function addSupportEntryFindings(findings, node, relative, pathParts) {
     }
 
     for (const version of node.representatives || []) {
+      if (!isSemver(version)) {
+        findings.push({
+          file: relative,
+          line: 1,
+          message: `${entryPath} representatives 不能使用非数字版本 ${version}`,
+          text: `${entryPath}: ${JSON.stringify(node.representatives)}`,
+        });
+        continue;
+      }
+
       if (compareVersions(version, ceilingLimit) > 0) {
         findings.push({
           file: relative,

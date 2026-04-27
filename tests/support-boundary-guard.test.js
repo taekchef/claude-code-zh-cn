@@ -149,6 +149,35 @@ test("support boundary guard fails when config raises the stable ceiling past 2.
   assert.match(result.stdout, /2\.1\.112/);
 });
 
+test("support boundary guard fails when config uses latest instead of numeric versions", () => {
+  const repo = createFixture({}, {
+    npmStable: {
+      ceiling: "latest",
+      representatives: ["2.1.112", "latest"],
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.match(result.stdout, /npm stable ceiling/);
+  assert.match(result.stdout, /representatives 不能使用非数字版本 latest/);
+});
+
+test("support boundary guard allows PowerShell old-npm wording and skipped native latest", () => {
+  const repo = createFixture({
+    "README.md": [
+      "Windows：现已支持通过 `install.ps1` 在 PowerShell 5.1+ 中原生安装。也可以继续通过 WSL 使用 `install.sh`。",
+      "On Windows, a PowerShell install script (`install.ps1`) is available for the old npm `cli.js` form (2.1.92-2.1.112); Windows native `.exe` / `2.1.113+` / latest are detected and skipped for CLI Patch.",
+    ].join("\n"),
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /support-boundary-guard: OK/);
+});
+
 test("support boundary guard fails on PR #11 style broad Windows native support claims", () => {
   const repo = createFixture({
     "docs/support-matrix.md": "| Windows / native .exe / latest | stable | 2.1.113+ | - | Windows 原生已支持完整 CLI Patch。 |\n",
