@@ -131,7 +131,7 @@ check_dependencies() {
                 echo -e "${YELLOW}检测到官方安装器旧版本 ${native_version}，将使用 experimental native patch${NC}"
             fi
         else
-            echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 不在 experimental 窗口内，会跳过 CLI Patch${NC}"
+            echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
             echo -e "  macOS 官方安装器已验证窗口：2.1.110 - 2.1.112"
             echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         fi
@@ -557,10 +557,10 @@ patch_native_binary() {
 
     current_version="$(native_binary_version "$binary_path")"
     if ! is_supported_native_version "$current_version"; then
-        echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 不在 experimental 窗口内，已跳过 CLI Patch${NC}"
+        echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
         echo -e "  macOS 官方安装器已验证窗口：2.1.110 - 2.1.112"
         echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
-        CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制版本 ${current_version:-unknown} 未验证）"
+        CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch）"
         return
     fi
 
