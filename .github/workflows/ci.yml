@@ -30,9 +30,13 @@ jobs:
           node --check bun-binary-io.js
           node --check plugin/bun-binary-io.js
           node --check plugin/patch-cli.js
+          node --check scripts/check-support-boundary.js
           node --check scripts/check-translation-sentinels.js
           node --check scripts/generate-support-matrix.js
           node --check scripts/verify-upstream-compat.js
+
+      - name: Check support boundary
+        run: node scripts/check-support-boundary.js
 
       - name: Run tests
         run: node --test tests/*.test.js
