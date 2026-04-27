@@ -1,6 +1,6 @@
 # Support Matrix
 
-> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` on 2026-04-28.
+> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` on 2026-04-27.
 
 ## Tier Definition
 
