@@ -10,8 +10,8 @@
 ## 本地校验
 
 ```bash
-for file in install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification; do bash -n "$file"; done
-for file in bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/verify-release-state.js scripts/verify-settings-sources.js; do node --check "$file"; done
+for file in install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification; do bash -n "$file" || exit 1; done
+for file in bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/verify-release-state.js scripts/verify-settings-sources.js; do node --check "$file" || exit 1; done
 node scripts/verify-settings-sources.js
 node --test tests/*.test.js
 ```
