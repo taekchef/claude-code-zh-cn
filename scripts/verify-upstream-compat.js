@@ -46,6 +46,9 @@ function parseArgs(argv) {
       case "--packages-dir":
         args.packagesDir = argv[++i];
         break;
+      case "--translations":
+        args.translations = argv[++i];
+        break;
       case "--latest-version":
         args.latestVersion = argv[++i];
         break;
@@ -85,7 +88,7 @@ function parseBaselineOverride(raw) {
   return trimmed.split(",").map((part) => part.trim()).filter(Boolean);
 }
 
-function normalizeCheckList(entries, kind) {
+function normalizeCheckList(entries, kind, options = {}) {
   return (entries || []).map((entry, index) => {
     if (typeof entry === "string") {
       return { kind, id: `${kind}_${index}`, pattern: entry };
@@ -106,6 +109,9 @@ function normalizeCheckList(entries, kind) {
     return {
       kind,
       id: entry.id,
+      ...(options.includeRule ? { rule: entry.rule || null } : {}),
+      sourcePattern: entry.sourcePattern || null,
+      sourceRegex: entry.sourceRegex || null,
       pattern: entry.pattern || null,
       regex: entry.regex || null,
     };
@@ -126,6 +132,9 @@ function loadConfig(configPath) {
     checks: {
       sentinels: normalizeCheckList(config.checks?.sentinels, "sentinel"),
       templateResidues: normalizeCheckList(config.checks?.templateResidues, "template"),
+      upstreamTextGuards: normalizeCheckList(config.checks?.upstreamTextGuards, "upstream-text", {
+        includeRule: true,
+      }),
     },
   };
 }
@@ -217,11 +226,11 @@ function resolvePackageDir(config, args, version) {
   return downloadPackage(config.packageName, version, packagesDir);
 }
 
-function runPatch(cliSource, version) {
+function runPatch(cliSource, version, args) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-upstream-compat-"));
   const cliFile = path.join(tmpDir, `${version}.cli.js`);
   fs.copyFileSync(cliSource, cliFile);
-  const output = execFile("node", [patchCliPath, cliFile, translationsPath], {
+  const output = execFile("node", [patchCliPath, cliFile, args.translations || translationsPath], {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -261,6 +270,47 @@ function collectResidue(text, checks) {
   return residue;
 }
 
+function checkMatches(text, check, source = false) {
+  const pattern = source ? check.sourcePattern : check.pattern;
+  const regex = source ? check.sourceRegex : check.regex;
+
+  if (pattern && text.includes(pattern)) {
+    return true;
+  }
+
+  if (regex) {
+    const compiled = new RegExp(regex, "g");
+    return compiled.test(text);
+  }
+
+  return false;
+}
+
+function collectMissingRequired(originalText, patchedText, checks) {
+  const missing = [];
+  for (const check of checks.upstreamTextGuards) {
+    const hasSourceMatcher = Boolean(check.sourcePattern || check.sourceRegex);
+    if (hasSourceMatcher && !checkMatches(originalText, check, true)) {
+      continue;
+    }
+    if (!hasSourceMatcher && !checkMatches(originalText, check)) {
+      continue;
+    }
+    if (checkMatches(patchedText, check)) {
+      continue;
+    }
+
+    missing.push({
+      kind: check.kind,
+      id: check.id,
+      rule: check.rule || "required",
+      match: check.pattern || check.regex,
+    });
+  }
+
+  return missing;
+}
+
 function evaluateVersion(config, args, version) {
   const packageDir = resolvePackageDir(config, args, version);
   const cliSource = path.join(packageDir, "cli.js");
@@ -268,15 +318,18 @@ function evaluateVersion(config, args, version) {
     fail(`cli.js not found for version ${version}`);
   }
 
-  const { cliFile, patchCount } = runPatch(cliSource, version);
+  const { cliFile, patchCount } = runPatch(cliSource, version, args);
   const patched = fs.readFileSync(cliFile, "utf8");
+  const original = fs.readFileSync(cliSource, "utf8");
   const residue = collectResidue(patched, config.checks);
+  const missingRequired = collectMissingRequired(original, patched, config.checks);
 
   return {
     version,
-    status: residue.length > 0 ? "fail" : "pass",
+    status: residue.length > 0 || missingRequired.length > 0 ? "fail" : "pass",
     patchCount,
     residue,
+    missingRequired,
   };
 }
 
@@ -296,7 +349,10 @@ function printHuman(payload) {
     const residueSummary = result.residue.length
       ? result.residue.map((entry) => `${entry.kind}:${entry.id}`).join(",")
       : "-";
-    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary}`);
+    const missingSummary = result.missingRequired.length
+      ? result.missingRequired.map((entry) => `${entry.kind}:${entry.id}`).join(",")
+      : "-";
+    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}`);
   }
   console.log(`summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}`);
 }
