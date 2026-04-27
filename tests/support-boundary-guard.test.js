@@ -95,6 +95,28 @@ test("support boundary guard passes scoped current-boundary wording", () => {
   assert.match(result.stdout, /2\.1\.92 - 2\.1\.112/);
 });
 
+test("support boundary guard passes current repository files", () => {
+  const result = runGuard(repoRoot);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /support-boundary-guard: OK/);
+  assert.match(result.stdout, /2\.1\.92 - 2\.1\.112/);
+});
+
+test("support boundary guard treats explicit English unsupported wording as safe", () => {
+  const repo = createFixture({
+    "README.md": [
+      "Claude Code 2.1.113+ is not supported for CLI Patch.",
+      "Windows native .exe is not currently supported for CLI Patch.",
+    ].join("\n"),
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /support-boundary-guard: OK/);
+});
+
 test("support boundary guard fails when README claims 2.1.113+ or latest support", () => {
   const repo = createFixture({
     "README.md": "本插件 stable 支持 Claude Code 2.1.113+ / latest native binary wrapper。\n",

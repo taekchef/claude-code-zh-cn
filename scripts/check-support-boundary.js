@@ -57,14 +57,18 @@ function compareVersions(a, b) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|skipped|skip|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|not\s+supported|not\s+currently\s+supported|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
 }
 
 function findSupportClaim(line) {
   const versions = line.match(/\b\d+\.\d+\.\d+\+?/g) || [];
   const hasFutureVersion =
     /latest|最新版|最新版本/i.test(line) ||
-    versions.some((version) => compareVersions(version.replace(/\+$/, ""), STABLE_CEILING) > 0);
+    versions.some((version) => {
+      const normalized = version.replace(/\+$/, "");
+      const comparison = compareVersions(normalized, STABLE_CEILING);
+      return comparison !== null && comparison > 0;
+    });
   const hasSupportVerb = /支持|stable|已支持|可用|support|supported|pass|已验证/i.test(line);
 
   if (hasFutureVersion && hasSupportVerb && !isNegatedBoundaryLine(line)) {
@@ -77,9 +81,9 @@ function findSupportClaim(line) {
 function findWindowsNativeClaim(line) {
   const mentionsWindows = /Windows/i.test(line);
   const mentionsNative = /native|原生|\.exe|二进制|binary wrapper|official installer|官方安装器/i.test(line);
-  const mentionsNativeExe = /\.exe|native binary|原生二进制|二进制|binary wrapper/i.test(line);
+  const mentionsNativeExe = /Windows\s+native|Windows\s+原生|\.exe|native binary|原生二进制|binary wrapper/i.test(line);
   const scopedOldNpm = /旧\s*npm|old\s+npm|cli\.js/i.test(line) && /2\.1\.112/.test(line);
-  const mentionsCliPatch = /CLI Patch|完整 CLI|稳定|stable/i.test(line);
+  const mentionsCliPatch = /CLI Patch|完整 CLI|稳定|stable|支持/i.test(line);
   const hasSupportVerb = /已支持|支持|stable|可用|support/i.test(line);
 
   if (
@@ -88,7 +92,8 @@ function findWindowsNativeClaim(line) {
     mentionsCliPatch &&
     hasSupportVerb &&
     !isNegatedBoundaryLine(line) &&
-    (mentionsNativeExe || !scopedOldNpm)
+    mentionsNativeExe &&
+    !scopedOldNpm
   ) {
     return "Windows native 只能写成 WSL + npm stable，不能写成 native stable 支持";
   }
