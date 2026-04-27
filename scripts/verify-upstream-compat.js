@@ -7,10 +7,18 @@ const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
+const isWindows = process.platform === "win32";
 const repoRoot = path.resolve(__dirname, "..");
 const defaultConfigPath = path.join(__dirname, "upstream-compat.config.json");
 const patchCliPath = path.join(repoRoot, "patch-cli.js");
 const translationsPath = path.join(repoRoot, "cli-translations.json");
+
+function execFile(cmd, args, opts) {
+  if (isWindows) {
+    return execFileSync(cmd, args, { ...opts, shell: true });
+  }
+  return execFileSync(cmd, args, opts);
+}
 
 function fail(message) {
   throw new Error(message);
@@ -124,7 +132,7 @@ function loadConfig(configPath) {
 
 function fetchLatestVersion(packageName) {
   const versions = JSON.parse(
-    execFileSync("npm", ["view", packageName, "versions", "--json"], {
+    execFile("npm", ["view", packageName, "versions", "--json"], {
       cwd: repoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
@@ -181,13 +189,14 @@ function downloadPackage(packageName, version, packagesDir) {
   }
 
   fs.mkdirSync(versionRoot, { recursive: true });
-  const tarball = execFileSync("npm", ["pack", `${packageName}@${version}`, "--silent"], {
+  const tarball = execFile("npm", ["pack", `${packageName}@${version}`, "--silent"], {
     cwd: versionRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
-  execFileSync("tar", ["-xzf", tarball, "-C", versionRoot], {
+  const tarCwd = isWindows ? versionRoot.replace(/\\/g, "/").replace(/^([A-Z]):/, "/$1") : versionRoot;
+  execFile("tar", ["-xzf", tarball, "-C", tarCwd], {
     cwd: versionRoot,
     stdio: ["ignore", "ignore", "pipe"],
   });
@@ -212,7 +221,7 @@ function runPatch(cliSource, version) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-upstream-compat-"));
   const cliFile = path.join(tmpDir, `${version}.cli.js`);
   fs.copyFileSync(cliSource, cliFile);
-  const output = execFileSync("node", [patchCliPath, cliFile, translationsPath], {
+  const output = execFile("node", [patchCliPath, cliFile, translationsPath], {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],

@@ -15,17 +15,19 @@
 | npm global install | stable | 2.1.92 - 2.1.112 | 2.1.92 PASS · 2.1.97 PASS · 2.1.104 PASS · 2.1.107 PASS · 2.1.110 PASS · 2.1.112 PASS | PATH 优先 launcher + session-start 二层兜底，适用于旧 cli.js npm 包形态；2.1.113+ native binary wrapper 暂不支持旧 CLI Patch。 |
 | macOS official installer | experimental | 2.1.110 - 2.1.112 | 2.1.110 PASS(native 1245) · 2.1.111 PASS(native 1241) · 2.1.112 PASS(native 1241) | 官方安装器指定旧版本仍走 native binary；macOS arm64 已离线验证 extract/patch/repack/--version，插件可用 native patch experimental 处理，需要 node-lief；稳定使用仍建议 npm pinned。 |
 | Linux official installer | unsupported | - | - | 当前不支持 Linux 官方安装器；请改用 npm 路径。 |
+| Windows / npm global install (PowerShell) | stable | 2.1.92 - 2.1.112 | - | 新增 PowerShell 安装脚本（install.ps1）；适用于旧 npm cli.js 形态，CLI Patch 可用；Windows 上 session-start 二层兜底（launcher 暂不实现启动前自修复）。 |
+| Windows / native .exe / latest | unsupported | - | - | Windows native .exe（官方安装器或 2.1.113+ npm 原生 wrapper）会明确跳过 CLI Patch，仅启用 Layer 1~3；硬编码 UI 文字不会被完整翻译。 |
 
 ## Compatibility Matrix
 
 | Version | Result | Patch count | Residue |
 | --- | --- | --- | --- |
-| 2.1.92 | pass | 1470 | - |
-| 2.1.97 | pass | 1466 | - |
-| 2.1.104 | pass | 1431 | - |
-| 2.1.107 | pass | 1404 | - |
-| 2.1.110 | pass | 1394 | - |
-| 2.1.112 | pass | 1390 | - |
+| 2.1.92 | pass | 1522 | - |
+| 2.1.97 | pass | 1519 | - |
+| 2.1.104 | pass | 1484 | - |
+| 2.1.107 | pass | 1457 | - |
+| 2.1.110 | pass | 1448 | - |
+| 2.1.112 | pass | 1446 | - |
 
 Summary: 6 pass / 0 fail
 

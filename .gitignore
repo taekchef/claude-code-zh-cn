@@ -3,3 +3,6 @@ node_modules/
 *.tmp
 *.log
 .omx/
+.claude/
+WINDOWS-ADAPTATION.md
+_part1.ps1
