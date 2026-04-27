@@ -22,6 +22,36 @@
       { "id": "duration_idle", "pattern": "Idle for" },
       { "id": "duration_guarded", "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`" },
       { "id": "duration_literal_connector", "regex": ",\\s*\" for \"\\s*," }
+    ],
+    "upstreamTextGuards": [
+      {
+        "id": "advisor_prompt_tool_name",
+        "rule": "preserve",
+        "pattern": "# Advisor Tool\n\nYou have access to an \\`advisor\\` tool"
+      },
+      {
+        "id": "advisor_dialog_title",
+        "rule": "preserve",
+        "pattern": "title:\"Advisor Tool\""
+      },
+      {
+        "id": "stop_ultrareview_label",
+        "rule": "translate",
+        "sourcePattern": "label:\"Stop ultrareview\"",
+        "pattern": "label:\"停止 ultrareview\""
+      },
+      {
+        "id": "ultrareview_billing_template",
+        "rule": "template",
+        "sourceRegex": "body:`This review bills as Extra Usage \\(\\$\\{[^}]+\\}\\)\\.`",
+        "regex": "body:`本次 review 会按 Extra Usage 计费（\\$\\{[^}]+\\}）。`"
+      },
+      {
+        "id": "ultrareview_launch_template",
+        "rule": "template",
+        "sourceRegex": "text:`\\$\\{[^}]+\\}Ultrareview launched for \\$\\{[^}]+\\} \\(\\$\\{[^}]+\\}, runs in the cloud\\)\\. Track: \\$\\{[^}]+\\}\\$\\{[^}]+\\}`",
+        "regex": "text:`\\$\\{[^}]+\\}Ultrareview 已为 \\$\\{[^}]+\\} 启动（\\$\\{[^}]+\\}，云端运行）。跟踪：\\$\\{[^}]+\\}\\$\\{[^}]+\\}`"
+      }
     ]
   },
   "support": {

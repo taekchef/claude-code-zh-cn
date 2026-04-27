@@ -1,7 +1,7 @@
 {
   "packageName": "@anthropic-ai/claude-code",
   "baseline": {
-    "versions": ["1.0.0", "1.0.1"],
+    "versions": ["1.0.0", "1.0.1", "2.1.112-risk"],
     "includeLatestFromNpm": true
   },
   "checks": {
@@ -13,6 +13,36 @@
     "templateResidues": [
       { "id": "duration_worked", "pattern": "Worked for" },
       { "id": "guarded_duration", "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`" }
+    ],
+    "upstreamTextGuards": [
+      {
+        "id": "advisor_prompt_tool_name",
+        "rule": "preserve",
+        "pattern": "# Advisor Tool\n\nYou have access to an \\`advisor\\` tool"
+      },
+      {
+        "id": "advisor_dialog_title",
+        "rule": "preserve",
+        "pattern": "title:\"Advisor Tool\""
+      },
+      {
+        "id": "stop_ultrareview_label",
+        "rule": "translate",
+        "sourcePattern": "label:\"Stop ultrareview\"",
+        "pattern": "label:\"停止 ultrareview\""
+      },
+      {
+        "id": "ultrareview_billing_template",
+        "rule": "template",
+        "sourceRegex": "body:`This review bills as Extra Usage \\(\\$\\{[^}]+\\}\\)\\.`",
+        "regex": "body:`本次 review 会按 Extra Usage 计费（\\$\\{[^}]+\\}）。`"
+      },
+      {
+        "id": "ultrareview_launch_template",
+        "rule": "template",
+        "sourceRegex": "text:`\\$\\{[^}]+\\}Ultrareview launched for \\$\\{[^}]+\\} \\(\\$\\{[^}]+\\}, runs in the cloud\\)\\. Track: \\$\\{[^}]+\\}\\$\\{[^}]+\\}`",
+        "regex": "text:`\\$\\{[^}]+\\}Ultrareview 已为 \\$\\{[^}]+\\} 启动（\\$\\{[^}]+\\}，云端运行）。跟踪：\\$\\{[^}]+\\}\\$\\{[^}]+\\}`"
+      }
     ]
   }
 }

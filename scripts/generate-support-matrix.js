@@ -72,9 +72,9 @@ function buildMarkdown(config, compat) {
   const windowsNativeUnsupported = config.support?.windowsNativeExe || {};
   const now = new Date();
   const generatedOn = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
+    now.getUTCFullYear(),
+    String(now.getUTCMonth() + 1).padStart(2, "0"),
+    String(now.getUTCDate()).padStart(2, "0"),
   ].join("-");
 
   const lines = [
