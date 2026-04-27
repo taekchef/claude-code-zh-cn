@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v6
         with:
@@ -30,10 +32,15 @@ jobs:
           node --check bun-binary-io.js
           node --check plugin/bun-binary-io.js
           node --check plugin/patch-cli.js
+          node --check scripts/check-payload-sources.js
           node --check scripts/check-support-boundary.js
           node --check scripts/check-translation-sentinels.js
           node --check scripts/generate-support-matrix.js
           node --check scripts/verify-upstream-compat.js
+
+      - name: Check payload source edits
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-payload-sources.js --base "${{ github.event.pull_request.base.sha }}"
 
       - name: Check support boundary
         run: node scripts/check-support-boundary.js

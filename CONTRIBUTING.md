@@ -11,7 +11,8 @@
 
 ```bash
 for file in install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification; do bash -n "$file" || exit 1; done
-for file in bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/verify-release-state.js scripts/verify-settings-sources.js; do node --check "$file" || exit 1; done
+for file in bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/check-payload-sources.js scripts/verify-release-state.js scripts/verify-settings-sources.js; do node --check "$file" || exit 1; done
+node scripts/check-payload-sources.js --base origin/main
 node scripts/verify-settings-sources.js
 node --test tests/*.test.js
 ```
@@ -26,13 +27,24 @@ node --test tests/*.test.js
 - `bun-binary-io.js`
 - `compute-patch-revision.sh`
 
-修改根目录文件后，运行：
+规则：
+
+- 根目录文件是编辑源头，`plugin/` 下同名文件只是安装包 payload 镜像
+- 不要单独手改 `plugin/cli-translations.json`、`plugin/patch-cli.js` 等镜像文件
+- 要改翻译表，就改根目录 `cli-translations.json`
+- 要改 patch 逻辑，就改根目录 `patch-cli.js` / `patch-cli.sh`
+- 修改根目录源文件后，运行：
 
 ```bash
 bash scripts/sync-payload.sh
 ```
 
-`tests/plugin-payload.test.js` 会校验这些文件没有漂移。
+CI 有两道检查：
+
+- `scripts/check-payload-sources.js`：检查 PR 是否只改了 `plugin/` 镜像而没改源文件，或改了源文件但忘记同步镜像；失败时会列出不该手改的文件和应该改哪里
+- `tests/plugin-payload.test.js`：检查根目录源文件和 `plugin/` 镜像内容完全一致
+
+这两道检查只影响本地校验和 CI，不改变 `install.sh`、`plugin/hooks/session-start` 或用户现有安装流程。
 
 ## 发布状态校验
 
