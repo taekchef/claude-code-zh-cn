@@ -6,6 +6,22 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.3.5] - 2026-04-29
+
+### 新增
+
+- 新增支持边界 guard，固定 stable CLI Patch 支持窗口为 `2.1.92 - 2.1.112`，并拦截 `2.1.113+` / `latest` 等越界口径
+- 新增 payload 源文件 guard，防止只改 `plugin/` 镜像或改了根源文件却忘记同步发布 payload
+- 新增真实上游文案 guard，用真实上游样本校验高风险英文、必翻文案和动态模板形态
+- 补充 unsupported-version smoke check，验证超出支持边界的版本会被明确跳过，不会误走 CLI Patch
+
+### 验证
+
+- `node scripts/check-support-boundary.js`
+- `node scripts/check-payload-sources.js --base origin/main`
+- `node --test tests/*.test.js`
+- `node scripts/verify-upstream-compat.js --json`
+
 ## [2.3.4] - 2026-04-27
 
 ### 新增
