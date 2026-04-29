@@ -1432,6 +1432,10 @@
     "zh": "使用给定描述创建远程会话"
   },
   {
+    "en": "Create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule.",
+    "zh": "创建、更新、列出或运行按 cron 计划执行的远程 Agent（triggers）。"
+  },
+  {
     "en": "Create new agent",
     "zh": "创建新 Agent"
   },
@@ -2226,6 +2230,10 @@
   {
     "en": "Generate a report analyzing your Claude Code sessions",
     "zh": "生成 Claude Code 会话分析报告"
+  },
+  {
+    "en": "Generate a one-line session recap now",
+    "zh": "立即生成一行会话总结"
   },
   {
     "en": "Generate with Claude (recommended)",
