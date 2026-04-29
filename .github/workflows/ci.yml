@@ -64,3 +64,16 @@ jobs:
         run: |
           node scripts/generate-support-matrix.js
           git diff --exit-code docs/support-matrix.md
+
+  windows-install-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: PowerShell install smoke
+        shell: powershell
+        run: node --test tests/install-smoke.test.js
