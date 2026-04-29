@@ -68,7 +68,7 @@ $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.en
 
 $JS_BUILD_OVERLAY_FILES = "var fs=require('fs');var base=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));var verbs=JSON.parse(fs.readFileSync(process.argv[3],'utf8'));var tips=JSON.parse(fs.readFileSync(process.argv[4],'utf8'));base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:tips.tips.map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
 
-$JS_DEEP_MERGE_FILES = "var fs=require('fs');var sf=process.argv[2];var of=process.argv[3];var settings=JSON.parse(fs.readFileSync(sf,'utf8'));var overlay=JSON.parse(fs.readFileSync(of,'utf8'));function dm(b,o){var r={};var k;for(k in b){if(b.hasOwnProperty(k))r[k]=b[k]}for(k in o){if(!o.hasOwnProperty(k))continue;if(r[k]&&typeof r[k]==='object'&&!Array.isArray(r[k])&&o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k])){r[k]=dm(r[k],o[k])}else{r[k]=o[k]}}return r}var m=dm(settings,overlay);fs.writeFileSync(sf,JSON.stringify(m,null,2)+'\n');process.stdout.write('ok')"
+$JS_DEEP_MERGE_FILES = "var fs=require('fs');var sf=process.argv[2];var of=process.argv[3];function readJson(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var settings=readJson(sf);var overlay=readJson(of);function dm(b,o){var r={};var k;for(k in b){if(b.hasOwnProperty(k))r[k]=b[k]}for(k in o){if(!o.hasOwnProperty(k))continue;if(r[k]&&typeof r[k]==='object'&&!Array.isArray(r[k])&&o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k])){r[k]=dm(r[k],o[k])}else{r[k]=o[k]}}return r}var m=dm(settings,overlay);fs.writeFileSync(sf,JSON.stringify(m,null,2)+'\n');process.stdout.write('ok')"
 
 $JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['manifest.json','patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
 
@@ -161,7 +161,8 @@ function ensure-settings {
         }
         $dir = Split-Path -Parent $SettingsFile
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
-        '{}' | Out-File -FilePath $SettingsFile -Encoding utf8 -NoNewline
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($SettingsFile, '{}', $utf8NoBom)
     }
 }
 
@@ -259,7 +260,11 @@ function install-launcher {
     Copy-Item "$PluginSrc\bin\claude-launcher.cmd" "$LauncherBinDir\claude.cmd" -Force
 
     $currentUserPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-    if ($currentUserPath -notlike "*$LauncherBinDir*") {
+    if ($env:ZH_CN_SKIP_USER_PATH_UPDATE -eq "1") {
+        if (-not $SkipBanner) {
+            Write-CN "测试模式：已跳过用户 PATH 持久化写入" Yellow
+        }
+    } elseif ($currentUserPath -notlike "*$LauncherBinDir*") {
         $newPath = $LauncherBinDir
         if ($currentUserPath) { $newPath = "$LauncherBinDir;$currentUserPath" }
         [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
