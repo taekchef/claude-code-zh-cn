@@ -9,12 +9,34 @@
 
 ## 本地校验
 
+提交 PR 前跑这一条：
+
 ```bash
-for file in install.sh uninstall.sh plugin/hooks/session-start plugin/hooks/notification; do bash -n "$file" || exit 1; done
-for file in bun-binary-io.js plugin/bun-binary-io.js plugin/patch-cli.js scripts/check-payload-sources.js scripts/verify-release-state.js scripts/verify-settings-sources.js; do node --check "$file" || exit 1; done
-node scripts/check-payload-sources.js --base origin/main
-node scripts/verify-settings-sources.js
-node --test tests/*.test.js
+bash scripts/preflight.sh
+```
+
+它串起来的是 CI 里会拦 PR 的同一套检查：
+
+| 检查 | 本地命令覆盖 |
+| --- | --- |
+| shell / JavaScript 语法 | `bash -n`、`node --check` |
+| payload/source guard | `node scripts/check-payload-sources.js --base origin/main` |
+| support-boundary | `node scripts/check-support-boundary.js` |
+| 全量 tests | `node --test tests/*.test.js` |
+| upstream compat | `node scripts/verify-upstream-compat.js` |
+| translation sentinel | npm 拉取当前支持窗口最后一个版本，patch 后跑 `check-translation-sentinels.js` |
+| support-matrix drift | 重新生成 `docs/support-matrix.md`，再跑 `git diff --exit-code` |
+
+如果要对齐 GitHub PR 里的 base SHA：
+
+```bash
+bash scripts/preflight.sh --base <base-sha>
+```
+
+如果只是本地临时验证、没有 PR diff，可以跳过 payload/source guard：
+
+```bash
+bash scripts/preflight.sh --skip-payload-source
 ```
 
 ## payload 文件维护
