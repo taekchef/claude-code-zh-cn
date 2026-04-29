@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.3.6] - 2026-04-29
+
+### 修复
+
+- 修复 Windows PowerShell 首次安装时新建 `settings.json` 带 BOM，导致 Node 解析 JSON 失败的问题
+
+### 验证
+
+- 新增 Windows PowerShell install smoke，在 `windows-latest` 上验证旧 npm `cli.js` 形态会真实执行 CLI Patch
+- 验证 Windows native `.exe` / `2.1.113+` 会明确跳过 CLI Patch，不会误写成功标记
+- GitHub Actions：`windows-install-smoke` 和 `test` 均通过
+
 ## [2.3.5] - 2026-04-29
 
 ### 新增
