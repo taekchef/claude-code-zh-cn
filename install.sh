@@ -132,7 +132,7 @@ check_dependencies() {
             fi
         else
             echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
-            echo -e "  macOS 官方安装器已验证窗口：2.1.110 - 2.1.112"
+            echo -e "  macOS native 已验证窗口：$(native_support_summary)"
             echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         fi
     fi
@@ -160,14 +160,58 @@ native_binary_version() {
 }
 
 is_supported_native_version() {
-    case "${1:-}" in
-        2.1.110|2.1.111|2.1.112)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
+    local version="$1"
+    local support_file="$PLUGIN_SRC/support-window.json"
+
+    if [ ! -f "$support_file" ]; then
+        case "${version:-}" in
+            2.1.110|2.1.111|2.1.112)
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    fi
+
+    node - "$support_file" "$version" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+const version = process.argv[3];
+const data = JSON.parse(fs.readFileSync(file, "utf8"));
+const versions = [
+  ...(data.macosNativeOfficialInstallerExperimental?.versions || []),
+  ...(data.macosNativeExperimental?.versions || []),
+];
+process.exit(versions.includes(version) ? 0 : 1);
+NODE
+}
+
+native_support_summary() {
+    local support_file="$PLUGIN_SRC/support-window.json"
+
+    if [ ! -f "$support_file" ]; then
+        printf "2.1.110 - 2.1.112"
+        return
+    fi
+
+    node - "$support_file" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+const data = JSON.parse(fs.readFileSync(file, "utf8"));
+const ranges = [];
+for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+  const entry = data[key];
+  if (!entry || !entry.floor || !entry.ceiling) continue;
+  ranges.push(entry.floor === entry.ceiling ? entry.floor : `${entry.floor} - ${entry.ceiling}`);
+}
+process.stdout.write(ranges.join("；") || "无");
+NODE
+}
+
+native_binary_hash() {
+    local binary_path="$1"
+    node "$PLUGIN_SRC/bun-binary-io.js" hash "$binary_path" 2>/dev/null || printf "unknown"
 }
 
 ensure_settings_file() {
@@ -558,7 +602,7 @@ patch_native_binary() {
     current_version="$(native_binary_version "$binary_path")"
     if ! is_supported_native_version "$current_version"; then
         echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
-        echo -e "  macOS 官方安装器已验证窗口：2.1.110 - 2.1.112"
+        echo -e "  macOS native 已验证窗口：$(native_support_summary)"
         echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch）"
         return
@@ -625,11 +669,12 @@ patch_native_binary() {
 
     rm -f "$tmp_js"
 
-    local patch_revision
+    local patch_revision final_hash
     current_version="$(native_binary_version "$binary_path")"
+    final_hash="$(native_binary_hash "$binary_path")"
     patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
-        echo "${current_version}|${patch_revision}" > "$MARKER_FILE"
+        echo "native|${current_version}|${final_hash:-unknown}|${patch_revision}" > "$MARKER_FILE"
     fi
 }
 

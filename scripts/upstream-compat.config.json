@@ -65,12 +65,24 @@
     },
     "macosOfficialInstaller": {
       "experimental": {
+        "platform": "darwin-arm64",
         "floor": "2.1.110",
         "ceiling": "2.1.112",
         "representatives": ["2.1.110", "2.1.111", "2.1.112"],
+        "requires": ["node-lief"],
         "verification": "2.1.110 PASS(native 1245) · 2.1.111 PASS(native 1241) · 2.1.112 PASS(native 1241)",
         "notes": "官方安装器指定旧版本仍走 native binary；macOS arm64 已离线验证 extract/patch/repack/--version，插件可用 native patch experimental 处理，需要 node-lief；稳定使用仍建议 npm pinned。"
       }
+    },
+    "macosNativeExperimental": {
+      "platform": "darwin-arm64",
+      "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+      "floor": "2.1.123",
+      "ceiling": "2.1.123",
+      "representatives": ["2.1.123"],
+      "verification": "2.1.123 PASS(native 1262)",
+      "requires": ["node-lief"],
+      "notes": "macOS arm64 native binary experimental；需要 node-lief；只对明确验证版本开放，不代表 latest stable。"
     },
     "linuxOfficialInstaller": {
       "unsupported": true,

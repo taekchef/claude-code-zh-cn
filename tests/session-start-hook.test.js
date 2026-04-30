@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { execFileSync, spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -102,6 +103,8 @@ if (cmd === "detect") {
   process.stdout.write("ok");
 } else if (cmd === "version") {
   process.stdout.write(readVersion(process.argv[3]));
+} else if (cmd === "hash") {
+  process.stdout.write(require("node:crypto").createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
 } else if (cmd === "extract") {
   fs.copyFileSync(process.argv[3], process.argv[4]);
 } else if (cmd === "repack") {
@@ -584,7 +587,55 @@ printf '1'
   assert.match(currentBinary, /Version: 2\.1\.112/, "current binary should stay on upgraded version");
   assert.match(currentBinary, /PATCHED/, "supported native binary should be re-patched");
   assert.match(refreshedBackup, /Version: 2\.1\.112/, "backup should refresh to upgraded version before re-patch");
-  assert.match(updatedMarker, /^2\.1\.112\|/, "marker should update to the upgraded version");
+  assert.match(updatedMarker, /^native\|2\.1\.112\|[a-f0-9]{64}\|/, "marker should update to the upgraded native version");
+});
+
+test("session-start patches verified macOS native experimental version", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-verified-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeBinary = path.join(tmp, "claude-native");
+  const markerFile = path.join(pluginRoot, ".patched-version");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(path.join(pluginRoot, "manifest.json"), JSON.stringify({ version: "2.3.0" }));
+  writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf '\nPATCHED-EXPERIMENTAL\n' >> "$1"
+printf '1'
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  fs.writeFileSync(fakeBinary, "// Version: 2.1.123\nNATIVE\n");
+  fs.chmodSync(fakeBinary, 0o755);
+  fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(fs.readFileSync(fakeBinary, "utf8"), /PATCHED-EXPERIMENTAL/);
+  assert.match(fs.readFileSync(markerFile, "utf8").trim(), /^native\|2\.1\.123\|[a-f0-9]{64}\|/);
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
 test("session-start skips native latest outside verified experimental window", () => {
@@ -667,6 +718,8 @@ if (cmd === "detect") {
   process.stdout.write("missing");
 } else if (cmd === "version") {
   process.stdout.write(readVersion(process.argv[3]));
+} else if (cmd === "hash") {
+  process.stdout.write(require("node:crypto").createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
 }
 `
   );

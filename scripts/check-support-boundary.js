@@ -57,7 +57,17 @@ function compareVersions(a, b) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|unsupported|not\s+supported|not\s+currently\s+supported|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|不属于|不代表|unsupported|not\s+supported|not\s+currently\s+supported|not\s+stable|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
+}
+
+function isAllowedNativeExperimentalLine(line) {
+  const mentionsMacos = /macOS|darwin/i.test(line);
+  const mentionsNative = /native|原生|二进制|binary/i.test(line);
+  const experimental = /experimental|实验/i.test(line);
+  const stableClaim = /\bstable\b|稳定支持|stable CLI Patch/i.test(line);
+  const latestClaim = /\blatest\b|最新版|最新版本/i.test(line);
+
+  return mentionsMacos && mentionsNative && experimental && !stableClaim && !latestClaim;
 }
 
 function findSupportClaim(line) {
@@ -71,7 +81,12 @@ function findSupportClaim(line) {
     });
   const hasSupportVerb = /支持|stable|已支持|可用|support|supported|pass|已验证/i.test(line);
 
-  if (hasFutureVersion && hasSupportVerb && !isNegatedBoundaryLine(line)) {
+  if (
+    hasFutureVersion &&
+    hasSupportVerb &&
+    !isNegatedBoundaryLine(line) &&
+    !isAllowedNativeExperimentalLine(line)
+  ) {
     return "2.1.113+ / latest 不能写成 stable 支持";
   }
 
@@ -169,10 +184,11 @@ function addSupportEntryFindings(findings, node, relative, pathParts) {
   if (isEntry) {
     const pathText = entryPath.toLowerCase();
     const isMacosInstaller = pathText.includes("macosofficialinstaller");
+    const isMacosNativeExperimental = pathText.includes("macosnativeexperimental");
     const isWindowsNative =
       pathText.includes("windows") &&
       (pathText.includes("native") || pathText.includes("exe") || pathText.includes("binary") || pathText.includes("official"));
-    const ceilingLimit = isMacosInstaller ? STABLE_CEILING : STABLE_CEILING;
+    const ceilingLimit = isMacosNativeExperimental ? null : STABLE_CEILING;
 
     if (isWindowsNative && node.unsupported !== true) {
       findings.push({
@@ -190,7 +206,7 @@ function addSupportEntryFindings(findings, node, relative, pathParts) {
         message: `${entryPath} ceiling 不能使用非数字版本 ${node.ceiling}`,
         text: `${entryPath}: ${node.ceiling}`,
       });
-    } else if (node.ceiling && compareVersions(node.ceiling, ceilingLimit) > 0) {
+    } else if (node.ceiling && ceilingLimit && compareVersions(node.ceiling, ceilingLimit) > 0) {
       findings.push({
         file: relative,
         line: 1,
@@ -210,7 +226,7 @@ function addSupportEntryFindings(findings, node, relative, pathParts) {
         continue;
       }
 
-      if (compareVersions(version, ceilingLimit) > 0) {
+      if (ceilingLimit && compareVersions(version, ceilingLimit) > 0) {
         findings.push({
           file: relative,
           line: 1,
@@ -251,7 +267,7 @@ function buildFindings(repoRoot) {
 function printOk() {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${STABLE_RANGE}`);
-  console.log(`2.1.113+ / latest: 暂不支持 CLI Patch`);
+  console.log(`native CLI Patch: only explicitly verified macOS experimental versions; no latest stable claim`);
 }
 
 function printFail(findings) {

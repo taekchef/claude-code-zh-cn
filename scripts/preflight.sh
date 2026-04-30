@@ -82,6 +82,7 @@ run node --check plugin/patch-cli.js
 run node --check scripts/check-payload-sources.js
 run node --check scripts/check-support-boundary.js
 run node --check scripts/check-translation-sentinels.js
+run node --check scripts/generate-plugin-support-window.js
 run node --check scripts/generate-support-matrix.js
 run node --check scripts/verify-upstream-compat.js
 
@@ -95,6 +96,10 @@ fi
 
 step "Check support boundary"
 run node scripts/check-support-boundary.js
+
+step "Check plugin support window drift"
+run node scripts/generate-plugin-support-window.js --write
+run git diff --exit-code plugin/support-window.json
 
 step "Run tests"
 run node --test tests/*.test.js

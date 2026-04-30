@@ -60,3 +60,43 @@ test("support matrix generated date uses UTC to avoid timezone drift", () => {
 
   assert.match(markdown, /on 2026-04-27\./);
 });
+
+test("support matrix includes separate macOS native experimental row", () => {
+  const { buildMarkdown } = loadGeneratorWithDate(Date);
+  const markdown = buildMarkdown(
+    {
+      support: {
+        npm: {
+          stable: {
+            floor: "2.1.92",
+            ceiling: "2.1.112",
+            representatives: ["2.1.112"],
+            notes: "legacy npm stable",
+          },
+        },
+        macosOfficialInstaller: { unsupported: true },
+        macosNativeExperimental: {
+          floor: "2.1.123",
+          ceiling: "2.1.123",
+          representatives: ["2.1.123"],
+          verification: "2.1.123 PASS(native 1262)",
+          notes: "macOS arm64 native binary experimental；需要 node-lief；只对明确验证版本开放，不代表 latest stable。",
+        },
+        linuxOfficialInstaller: { unsupported: true },
+        windowsNativeExe: {
+          unsupported: true,
+          notes: "Windows native .exe unsupported.",
+        },
+      },
+    },
+    {
+      results: [{ version: "2.1.112", status: "pass", patchCount: 1450, residue: [] }],
+      summary: { pass: 1, fail: 0, skip: 0 },
+    }
+  );
+
+  assert.match(markdown, /npm global install \| stable \| 2\.1\.92 - 2\.1\.112/);
+  assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.123 - 2\.1\.123/);
+  assert.match(markdown, /2\.1\.123 PASS\(native 1262\)/);
+  assert.match(markdown, /Windows \/ native \.exe \/ latest \| unsupported/);
+});

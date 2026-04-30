@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -122,4 +123,15 @@ test("resolve returns the real path for symlinks", () => {
 test("check-deps returns ok or missing without crashing", () => {
   const output = runHelper(["check-deps"]);
   assert.match(output, /^(ok|missing)$/);
+});
+
+test("hash returns sha256 for binary marker identity", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-hash-"));
+  const file = path.join(tmp, "claude");
+  fs.writeFileSync(file, "native-binary-content\n");
+
+  const output = runHelper(["hash", file]);
+  const expected = crypto.createHash("sha256").update("native-binary-content\n").digest("hex");
+
+  assert.equal(output, expected);
 });

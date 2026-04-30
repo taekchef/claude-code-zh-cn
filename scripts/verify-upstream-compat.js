@@ -11,6 +11,8 @@ const isWindows = process.platform === "win32";
 const repoRoot = path.resolve(__dirname, "..");
 const defaultConfigPath = path.join(__dirname, "upstream-compat.config.json");
 const patchCliPath = path.join(repoRoot, "patch-cli.js");
+const patchCliShellPath = path.join(repoRoot, "patch-cli.sh");
+const binaryIoPath = path.join(repoRoot, "bun-binary-io.js");
 const translationsPath = path.join(repoRoot, "cli-translations.json");
 
 function execFile(cmd, args, opts) {
@@ -24,11 +26,20 @@ function fail(message) {
   throw new Error(message);
 }
 
+function compactError(error) {
+  return [error.stderr, error.stdout, error.message]
+    .filter(Boolean)
+    .map((part) => String(part).trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
 function parseArgs(argv) {
   const args = {
     config: defaultConfigPath,
     json: false,
     skipLatest: false,
+    nativeMacosArm64: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -54,6 +65,9 @@ function parseArgs(argv) {
         break;
       case "--skip-latest":
         args.skipLatest = true;
+        break;
+      case "--native-macos-arm64":
+        args.nativeMacosArm64 = true;
         break;
       case "--json":
         args.json = true;
@@ -178,12 +192,12 @@ function resolveVersions(config, args) {
 
 function findFixturePackage(fixturesDir, version) {
   const packageDir = path.join(fixturesDir, version, "package");
-  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+  if (fs.existsSync(packageDir)) {
     return packageDir;
   }
 
   const directDir = path.join(fixturesDir, version);
-  if (fs.existsSync(path.join(directDir, "cli.js"))) {
+  if (fs.existsSync(directDir)) {
     return directDir;
   }
 
@@ -191,9 +205,10 @@ function findFixturePackage(fixturesDir, version) {
 }
 
 function downloadPackage(packageName, version, packagesDir) {
-  const versionRoot = path.join(packagesDir, version);
+  const safePackageName = packageName.replace(/[^a-zA-Z0-9_.-]+/g, "_");
+  const versionRoot = path.join(packagesDir, `${safePackageName}-${version}`);
   const packageDir = path.join(versionRoot, "package");
-  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+  if (fs.existsSync(packageDir)) {
     return packageDir;
   }
 
@@ -210,11 +225,24 @@ function downloadPackage(packageName, version, packagesDir) {
     stdio: ["ignore", "ignore", "pipe"],
   });
 
-  if (!fs.existsSync(path.join(packageDir, "cli.js"))) {
-    fail(`Downloaded package ${packageName}@${version} does not contain package/cli.js`);
+  if (!fs.existsSync(packageDir)) {
+    fail(`Downloaded package ${packageName}@${version} did not unpack to package/`);
   }
 
   return packageDir;
+}
+
+function resolvePackageName(config, args, version) {
+  const nativeConfig = config.support?.macosNativeExperimental;
+  if (
+    args.nativeMacosArm64 &&
+    nativeConfig?.packageName &&
+    (nativeConfig.representatives || []).map(String).includes(String(version))
+  ) {
+    return nativeConfig.packageName;
+  }
+
+  return config.packageName;
 }
 
 function resolvePackageDir(config, args, version) {
@@ -223,7 +251,7 @@ function resolvePackageDir(config, args, version) {
   }
 
   const packagesDir = args.packagesDir || path.join(os.tmpdir(), "claude-code-zh-cn-upstream-cache");
-  return downloadPackage(config.packageName, version, packagesDir);
+  return downloadPackage(resolvePackageName(config, args, version), version, packagesDir);
 }
 
 function runPatch(cliSource, version, args) {
@@ -240,6 +268,174 @@ function runPatch(cliSource, version, args) {
     cliFile,
     patchCount: Number.parseInt(output || "0", 10) || 0,
   };
+}
+
+function classifyPackage(packageDir) {
+  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+    return "legacy";
+  }
+
+  if (fs.existsSync(path.join(packageDir, "claude"))) {
+    return "native";
+  }
+
+  if (fs.existsSync(path.join(packageDir, "bin", "claude.exe"))) {
+    return "native-wrapper";
+  }
+
+  return "unknown";
+}
+
+function currentNativePlatform() {
+  return process.env.CCZH_NATIVE_VERIFY_PLATFORM || `${process.platform}-${process.arch}`;
+}
+
+function nativeSkipResult(version, kind, skipReason, extra = {}) {
+  return {
+    version,
+    kind,
+    status: "skip",
+    patchCount: 0,
+    residue: [],
+    missingRequired: [],
+    skipReason,
+    ...extra,
+  };
+}
+
+function nativeFailResult(version, kind, error, extra = {}) {
+  return {
+    version,
+    kind,
+    status: "fail",
+    patchCount: 0,
+    residue: [],
+    missingRequired: [],
+    error,
+    ...extra,
+  };
+}
+
+function checkNativeDeps() {
+  if (process.env.CCZH_NATIVE_FORCE_DEPS) {
+    return process.env.CCZH_NATIVE_FORCE_DEPS;
+  }
+
+  return execFile("node", [binaryIoPath, "check-deps"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+function runNativeVerification(config, args, version, packageDir, kind) {
+  if (!args.nativeMacosArm64) {
+    return nativeSkipResult(version, kind, "native verification not enabled");
+  }
+
+  if (currentNativePlatform() !== "darwin-arm64") {
+    return nativeSkipResult(version, kind, "native verification requires macOS arm64");
+  }
+
+  let depStatus;
+  try {
+    depStatus = checkNativeDeps();
+  } catch (error) {
+    return nativeSkipResult(version, kind, `node-lief dependency check failed: ${compactError(error)}`);
+  }
+
+  if (depStatus !== "ok") {
+    return nativeSkipResult(version, kind, "node-lief dependency missing");
+  }
+
+  if (kind !== "native") {
+    return nativeSkipResult(version, kind, "native verification requires platform package with package/claude");
+  }
+
+  const binaryPath = path.join(packageDir, "claude");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-compat-"));
+  const extractedJs = path.join(tmpDir, "extracted.js");
+  const patchedBinary = path.join(tmpDir, "claude-patched");
+
+  try {
+    const detectOutput = execFile("node", [binaryIoPath, "detect", binaryPath], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+
+    if (!detectOutput.startsWith("native-bun:")) {
+      return nativeFailResult(version, kind, `native detect returned ${detectOutput || "empty"}`);
+    }
+
+    execFile("node", [binaryIoPath, "extract", binaryPath, extractedJs], {
+      cwd: repoRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+
+    const original = fs.readFileSync(extractedJs, "utf8");
+    const patchOutput = execFile("bash", [patchCliShellPath, extractedJs], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    const patchCount = Number.parseInt(patchOutput || "0", 10) || 0;
+    const patched = fs.readFileSync(extractedJs, "utf8");
+    const residue = collectResidue(patched, config.checks);
+    const missingRequired = collectMissingRequired(original, patched, config.checks);
+
+    fs.copyFileSync(binaryPath, patchedBinary);
+    fs.chmodSync(patchedBinary, 0o755);
+    execFile("node", [binaryIoPath, "repack", patchedBinary, extractedJs], {
+      cwd: repoRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+
+    const tempHome = path.join(tmpDir, "home");
+    fs.mkdirSync(tempHome, { recursive: true });
+    const versionOutput = execFile(patchedBinary, ["--version"], {
+      cwd: tmpDir,
+      encoding: "utf8",
+      timeout: 20000,
+      env: {
+        ...process.env,
+        HOME: tempHome,
+        XDG_CONFIG_HOME: path.join(tempHome, ".config"),
+        XDG_CACHE_HOME: path.join(tempHome, ".cache"),
+        XDG_DATA_HOME: path.join(tempHome, ".local", "share"),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+
+    const status =
+      patchCount <= 0 || residue.length > 0 || missingRequired.length > 0 || !versionOutput.includes(version)
+        ? "fail"
+        : "pass";
+
+    return {
+      version,
+      kind,
+      status,
+      patchCount,
+      residue,
+      missingRequired,
+      nativeVerification: {
+        packageName: resolvePackageName(config, args, version),
+        platform: "darwin-arm64",
+        detect: detectOutput.split(":")[0],
+        extract: "ok",
+        repack: "ok",
+        versionOutput,
+      },
+    };
+  } catch (error) {
+    return nativeFailResult(version, kind, compactError(error), {
+      nativeVerification: {
+        packageName: resolvePackageName(config, args, version),
+        platform: "darwin-arm64",
+      },
+    });
+  }
 }
 
 function collectResidue(text, checks) {
@@ -313,6 +509,16 @@ function collectMissingRequired(originalText, patchedText, checks) {
 
 function evaluateVersion(config, args, version) {
   const packageDir = resolvePackageDir(config, args, version);
+  const kind = classifyPackage(packageDir);
+
+  if (kind !== "legacy") {
+    if (kind === "native" || kind === "native-wrapper") {
+      return runNativeVerification(config, args, version, packageDir, kind);
+    }
+
+    fail(`Unsupported package shape for version ${version}`);
+  }
+
   const cliSource = path.join(packageDir, "cli.js");
   if (!fs.existsSync(cliSource)) {
     fail(`cli.js not found for version ${version}`);
@@ -326,6 +532,7 @@ function evaluateVersion(config, args, version) {
 
   return {
     version,
+    kind,
     status: residue.length > 0 || missingRequired.length > 0 ? "fail" : "pass",
     patchCount,
     residue,
@@ -336,10 +543,10 @@ function evaluateVersion(config, args, version) {
 function buildSummary(results) {
   return results.reduce(
     (summary, result) => {
-      summary[result.status] += 1;
+      summary[result.status] = (summary[result.status] || 0) + 1;
       return summary;
     },
-    { pass: 0, fail: 0 }
+    { pass: 0, fail: 0, skip: 0 }
   );
 }
 
@@ -352,9 +559,10 @@ function printHuman(payload) {
     const missingSummary = result.missingRequired.length
       ? result.missingRequired.map((entry) => `${entry.kind}:${entry.id}`).join(",")
       : "-";
-    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}`);
+    const skipSummary = result.skipReason ? `;skip=${result.skipReason}` : "";
+    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}${skipSummary}`);
   }
-  console.log(`summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}`);
+  console.log(`summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}\tskip=${payload.summary.skip}`);
 }
 
 function main() {

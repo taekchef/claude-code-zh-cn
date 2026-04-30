@@ -1,0 +1,39 @@
+{
+  "legacyNpmStable": {
+    "floor": "2.1.92",
+    "ceiling": "2.1.112",
+    "versions": [
+      "2.1.92",
+      "2.1.97",
+      "2.1.104",
+      "2.1.107",
+      "2.1.110",
+      "2.1.112"
+    ]
+  },
+  "macosNativeOfficialInstallerExperimental": {
+    "floor": "2.1.110",
+    "ceiling": "2.1.112",
+    "versions": [
+      "2.1.110",
+      "2.1.111",
+      "2.1.112"
+    ],
+    "platform": "darwin-arm64",
+    "requires": [
+      "node-lief"
+    ]
+  },
+  "macosNativeExperimental": {
+    "floor": "2.1.123",
+    "ceiling": "2.1.123",
+    "versions": [
+      "2.1.123"
+    ],
+    "platform": "darwin-arm64",
+    "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+    "requires": [
+      "node-lief"
+    ]
+  }
+}

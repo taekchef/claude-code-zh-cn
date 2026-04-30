@@ -90,14 +90,36 @@ native_binary_version() {
 }
 
 is_supported_native_version() {
-    case "${1:-}" in
-        2.1.110|2.1.111|2.1.112)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
+    local version="$1"
+    local support_file="$PLUGIN_ROOT/support-window.json"
+
+    if [ ! -f "$support_file" ]; then
+        case "${version:-}" in
+            2.1.110|2.1.111|2.1.112)
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    fi
+
+    node - "$support_file" "$version" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+const version = process.argv[3];
+const data = JSON.parse(fs.readFileSync(file, "utf8"));
+const versions = [
+  ...(data.macosNativeOfficialInstallerExperimental?.versions || []),
+  ...(data.macosNativeExperimental?.versions || []),
+];
+process.exit(versions.includes(version) ? 0 : 1);
+NODE
+}
+
+native_binary_hash() {
+    local binary_path="$1"
+    node "$PLUGIN_ROOT/bun-binary-io.js" hash "$binary_path" 2>/dev/null || printf "unknown"
 }
 
 read_source_repo() {
@@ -336,8 +358,9 @@ if [ -n "$NATIVE_BINARY" ]; then
     CURRENT_VERSION=$(native_binary_version "$NATIVE_BINARY")
     if is_supported_native_version "$CURRENT_VERSION"; then
         PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
-        CURRENT_MARKER="${CURRENT_VERSION}"
-        [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="${CURRENT_VERSION}|${PATCH_REVISION}"
+        CURRENT_HASH=$(native_binary_hash "$NATIVE_BINARY")
+        CURRENT_MARKER="native|${CURRENT_VERSION}|${CURRENT_HASH:-unknown}"
+        [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="native|${CURRENT_VERSION}|${CURRENT_HASH:-unknown}|${PATCH_REVISION}"
         PATCHED_VERSION=""
         [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
 
@@ -361,7 +384,10 @@ if [ -n "$NATIVE_BINARY" ]; then
                     PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
                     if [ "$PATCH_COUNT" != "0" ]; then
                         if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
-                            echo "$CURRENT_MARKER" > "$MARKER_FILE"
+                            FINAL_HASH=$(native_binary_hash "$NATIVE_BINARY")
+                            FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}"
+                            [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
+                            echo "$FINAL_MARKER" > "$MARKER_FILE"
                             AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental）"
                         fi
                     fi

@@ -58,6 +58,7 @@ function buildMarkdown(config, compat) {
   const npmStable = config.support?.npm?.stable || {};
   const macosInstaller = config.support?.macosOfficialInstaller || {};
   const macosExperimental = macosInstaller.experimental || {};
+  const macosNativeExperimental = config.support?.macosNativeExperimental || null;
   const macosTier = macosInstaller.unsupported ? "unsupported" : "experimental";
   const macosWindow = macosInstaller.unsupported ? macosInstaller : macosExperimental;
   const macosVerification = macosInstaller.unsupported
@@ -99,6 +100,16 @@ function buildMarkdown(config, compat) {
     `| macOS official installer | ${macosTier} | ${renderRange(
       macosWindow
     )} | ${macosVerification} | ${macosWindow.notes || "-"} |`,
+    ...(macosNativeExperimental && macosNativeExperimental.unsupported !== true
+      ? [
+          `| macOS native binary | experimental | ${renderRange(
+            macosNativeExperimental
+          )} | ${macosNativeExperimental.verification || renderRepresentativeStatus(
+            macosNativeExperimental.representatives,
+            resultMap
+          )} | ${macosNativeExperimental.notes || "-"} |`,
+        ]
+      : []),
     `| Linux official installer | unsupported | ${renderRange(linuxUnsupported)} | - | ${linuxUnsupported.notes || "-"} |`,
     `| Windows / npm global install (PowerShell) | ${windowsNpmTier} | ${renderRange(
       windowsNpmWindow
