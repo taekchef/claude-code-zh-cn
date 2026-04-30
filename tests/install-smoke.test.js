@@ -111,7 +111,7 @@ function copyTree(src, dst) {
   fs.copyFileSync(src, dst);
 }
 
-function createInstallSource(tmpRoot, invokedFile) {
+function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116") {
   const sourceRepo = path.join(tmpRoot, "source");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
@@ -132,7 +132,7 @@ if (cmd === "detect") {
 } else if (cmd === "check-deps") {
   process.stdout.write("ok");
 } else if (cmd === "version") {
-  process.stdout.write("2.1.116");
+  process.stdout.write(${JSON.stringify(nativeVersion)});
 } else if (cmd === "extract" || cmd === "repack") {
   fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
 } else if (cmd === "resolve") {
@@ -157,18 +157,18 @@ printf '1'
   return sourceRepo;
 }
 
-test("install smoke skips 2.1.113+ native binaries instead of pretending CLI Patch succeeded", { skip: unixShellRequired }, () => {
+test("install smoke skips unverified native binaries instead of pretending CLI Patch succeeded", { skip: unixShellRequired }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-unsupported-"));
   const home = path.join(tmp, "home");
   const fakeBin = path.join(tmp, "bin");
   const fakeClaude = path.join(fakeBin, "claude");
   const invokedFile = path.join(tmp, "patch-invoked");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
-  const sourceRepo = createInstallSource(tmp, invokedFile);
+  const sourceRepo = createInstallSource(tmp, invokedFile, "2.1.124");
   const profileFile = path.join(home, ".zshrc");
 
   fs.mkdirSync(fakeBin, { recursive: true });
-  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\necho '2.1.116 (Claude Code)'\n");
+  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\necho '2.1.124 (Claude Code)'\n");
   fs.chmodSync(fakeClaude, 0o755);
 
   const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
@@ -187,10 +187,11 @@ test("install smoke skips 2.1.113+ native binaries instead of pretending CLI Pat
 
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /2\.1\.116/, "the user-facing message should include the unsupported version");
+  assert.match(output, /2\.1\.124/, "the user-facing message should include the unsupported version");
   assert.match(output, /暂不支持 CLI Patch/, "the install path should clearly say CLI Patch is unsupported");
   assert.match(output, /已跳过 CLI Patch/, "the install path should safely skip CLI Patch");
-  assert.match(output, /2\.1\.110 - 2\.1\.112/, "the message should show the verified native window");
+  assert.match(output, /2\.1\.113 - 2\.1\.123/, "the message should show the verified native window");
+  assert.match(output, /不含 2\.1\.115/, "the message should mention the unpublished gap");
   assert.match(output, /Claude Code 2\.1\.112/, "the message should point users to the stable pinned version");
   assert.equal(fs.existsSync(invokedFile), false, "unsupported native should not call patch/extract/repack");
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "unsupported native should not write success marker");

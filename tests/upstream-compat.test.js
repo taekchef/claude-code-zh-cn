@@ -11,13 +11,17 @@ const fixtureConfig = path.join(__dirname, "upstream-compat-fixtures", "config.j
 const fixturesDir = path.join(__dirname, "upstream-compat-fixtures", "packages");
 const translationsFile = path.join(repoRoot, "cli-translations.json");
 
-function runCompat(args = []) {
+function runCompat(args = [], env = {}) {
   return spawnSync(
     "node",
     [compatScript, "--config", fixtureConfig, "--fixtures-dir", fixturesDir, ...args],
     {
       cwd: repoRoot,
       encoding: "utf8",
+      env: {
+        ...process.env,
+        ...env,
+      },
     }
   );
 }
@@ -129,6 +133,108 @@ test("verify-upstream-compat catches PR #10-style high-risk text regressions", (
       rule: "template",
       match:
         "text:`\\$\\{[^}]+\\}Ultrareview 已为 \\$\\{[^}]+\\} 启动（\\$\\{[^}]+\\}，云端运行）。跟踪：\\$\\{[^}]+\\}\\$\\{[^}]+\\}`",
+    },
+  ]);
+});
+
+test("verify-upstream-compat classifies native package shape", () => {
+  const result = runCompat(["--baseline", "2.1.123-native-fixture", "--skip-latest", "--json"]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  const [native] = payload.results;
+
+  assert.equal(native.version, "2.1.123-native-fixture");
+  assert.equal(native.kind, "native");
+  assert.equal(native.status, "skip");
+  assert.equal(native.patchCount, 0);
+  assert.deepEqual(native.residue, []);
+  assert.match(native.skipReason, /native verification not enabled/);
+  assert.equal(payload.summary.skip, 1);
+});
+
+test("verify-upstream-compat accepts native macOS flag and skips on non-macOS arm64", () => {
+  const result = runCompat(
+    ["--baseline", "2.1.123-native-fixture", "--skip-latest", "--native-macos-arm64", "--json"],
+    { CCZH_NATIVE_VERIFY_PLATFORM: "linux-x64" }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  const [native] = payload.results;
+
+  assert.equal(native.kind, "native");
+  assert.equal(native.status, "skip");
+  assert.match(native.skipReason, /requires macOS arm64/);
+});
+
+test("verify-upstream-compat reports missing node-lief as native dependency skip", () => {
+  const result = runCompat(
+    ["--baseline", "2.1.123-native-fixture", "--skip-latest", "--native-macos-arm64", "--json"],
+    {
+      CCZH_NATIVE_VERIFY_PLATFORM: "darwin-arm64",
+      CCZH_NATIVE_FORCE_DEPS: "missing",
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  const [native] = payload.results;
+
+  assert.equal(native.kind, "native");
+  assert.equal(native.status, "skip");
+  assert.match(native.skipReason, /node-lief/);
+});
+
+test("verify-upstream-compat fails when audited display output leaves user-visible English", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-config-"));
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: ["1.0.3-display"],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.checks.displayAudit = {
+    commands: [{ id: "top_help", args: ["--help"] }],
+    blockedPhrases: [
+      {
+        id: "future_display_sentence",
+        pattern: "Future display-only untranslated sentence",
+      },
+    ],
+    maxUntranslatedLines: 0,
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixturesDir, "--skip-latest", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+    }
+  );
+
+  assert.equal(result.status, 1, "display audit should block release-quality verification");
+  const payload = JSON.parse(result.stdout);
+  const [entry] = payload.results;
+
+  assert.equal(entry.version, "1.0.3-display");
+  assert.equal(entry.status, "fail");
+  assert.equal(entry.displayAudit.status, "fail");
+  assert.deepEqual(entry.displayAudit.issues, [
+    {
+      kind: "display",
+      id: "future_display_sentence",
+      command: "top_help",
+      match: "Future display-only untranslated sentence",
+    },
+    {
+      kind: "display-untranslated-line",
+      id: "top_help_line_4",
+      command: "top_help",
+      match: "--future                                          Future display-only untranslated sentence",
     },
   ]);
 });

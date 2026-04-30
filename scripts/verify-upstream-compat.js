@@ -5,12 +5,14 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
 
 const isWindows = process.platform === "win32";
 const repoRoot = path.resolve(__dirname, "..");
 const defaultConfigPath = path.join(__dirname, "upstream-compat.config.json");
 const patchCliPath = path.join(repoRoot, "patch-cli.js");
+const patchCliShellPath = path.join(repoRoot, "patch-cli.sh");
+const binaryIoPath = path.join(repoRoot, "bun-binary-io.js");
 const translationsPath = path.join(repoRoot, "cli-translations.json");
 
 function execFile(cmd, args, opts) {
@@ -20,8 +22,20 @@ function execFile(cmd, args, opts) {
   return execFileSync(cmd, args, opts);
 }
 
+function spawnFile(cmd, args, opts) {
+  return spawnSync(cmd, args, isWindows ? { ...opts, shell: true } : opts);
+}
+
 function fail(message) {
   throw new Error(message);
+}
+
+function compactError(error) {
+  return [error.stderr, error.stdout, error.message]
+    .filter(Boolean)
+    .map((part) => String(part).trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 function parseArgs(argv) {
@@ -29,6 +43,7 @@ function parseArgs(argv) {
     config: defaultConfigPath,
     json: false,
     skipLatest: false,
+    nativeMacosArm64: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -54,6 +69,9 @@ function parseArgs(argv) {
         break;
       case "--skip-latest":
         args.skipLatest = true;
+        break;
+      case "--native-macos-arm64":
+        args.nativeMacosArm64 = true;
         break;
       case "--json":
         args.json = true;
@@ -118,6 +136,62 @@ function normalizeCheckList(entries, kind, options = {}) {
   });
 }
 
+function normalizeDisplayCheckList(entries, kind) {
+  return (entries || []).map((entry, index) => {
+    if (typeof entry === "string") {
+      return { kind, id: `${kind}_${index}`, pattern: entry, command: null };
+    }
+
+    if (!entry || typeof entry !== "object") {
+      fail(`Invalid ${kind} display audit entry at index ${index}`);
+    }
+
+    if (!entry.id) {
+      fail(`Missing id for ${kind} display audit entry at index ${index}`);
+    }
+
+    if (!entry.pattern && !entry.regex) {
+      fail(`Missing pattern/regex for ${kind} display audit entry "${entry.id}"`);
+    }
+
+    return {
+      kind,
+      id: entry.id,
+      command: entry.command || null,
+      pattern: entry.pattern || null,
+      regex: entry.regex || null,
+    };
+  });
+}
+
+function normalizeDisplayAudit(audit) {
+  if (!audit) return null;
+
+  return {
+    commands: (audit.commands || []).map((command, index) => {
+      if (!command || typeof command !== "object") {
+        fail(`Invalid display audit command at index ${index}`);
+      }
+      if (!Array.isArray(command.args)) {
+        fail(`Display audit command "${command.id || index}" must define args`);
+      }
+
+      return {
+        id: command.id || `command_${index}`,
+        args: command.args.map(String),
+        optional: Boolean(command.optional),
+        timeoutMs: command.timeoutMs || audit.timeoutMs || 20000,
+      };
+    }),
+    blockedPhrases: normalizeDisplayCheckList(audit.blockedPhrases, "display"),
+    mustPreserve: normalizeDisplayCheckList(audit.mustPreserve, "display-preserve"),
+    allowedEnglishLineRegexes: audit.allowedEnglishLineRegexes || [],
+    allowedEnglishTerms: audit.allowedEnglishTerms || [],
+    minEnglishWords: audit.minEnglishWords || 2,
+    maxUntranslatedLines: Number.isInteger(audit.maxUntranslatedLines) ? audit.maxUntranslatedLines : 0,
+  };
+}
+
 function loadConfig(configPath) {
   const config = readJson(configPath);
   if (!config.packageName) {
@@ -135,6 +209,7 @@ function loadConfig(configPath) {
       upstreamTextGuards: normalizeCheckList(config.checks?.upstreamTextGuards, "upstream-text", {
         includeRule: true,
       }),
+      displayAudit: normalizeDisplayAudit(config.checks?.displayAudit),
     },
   };
 }
@@ -178,12 +253,12 @@ function resolveVersions(config, args) {
 
 function findFixturePackage(fixturesDir, version) {
   const packageDir = path.join(fixturesDir, version, "package");
-  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+  if (fs.existsSync(packageDir)) {
     return packageDir;
   }
 
   const directDir = path.join(fixturesDir, version);
-  if (fs.existsSync(path.join(directDir, "cli.js"))) {
+  if (fs.existsSync(directDir)) {
     return directDir;
   }
 
@@ -191,9 +266,10 @@ function findFixturePackage(fixturesDir, version) {
 }
 
 function downloadPackage(packageName, version, packagesDir) {
-  const versionRoot = path.join(packagesDir, version);
+  const safePackageName = packageName.replace(/[^a-zA-Z0-9_.-]+/g, "_");
+  const versionRoot = path.join(packagesDir, `${safePackageName}-${version}`);
   const packageDir = path.join(versionRoot, "package");
-  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+  if (fs.existsSync(packageDir)) {
     return packageDir;
   }
 
@@ -210,11 +286,24 @@ function downloadPackage(packageName, version, packagesDir) {
     stdio: ["ignore", "ignore", "pipe"],
   });
 
-  if (!fs.existsSync(path.join(packageDir, "cli.js"))) {
-    fail(`Downloaded package ${packageName}@${version} does not contain package/cli.js`);
+  if (!fs.existsSync(packageDir)) {
+    fail(`Downloaded package ${packageName}@${version} did not unpack to package/`);
   }
 
   return packageDir;
+}
+
+function resolvePackageName(config, args, version) {
+  const nativeConfig = config.support?.macosNativeExperimental;
+  if (
+    args.nativeMacosArm64 &&
+    nativeConfig?.packageName &&
+    (nativeConfig.representatives || []).map(String).includes(String(version))
+  ) {
+    return nativeConfig.packageName;
+  }
+
+  return config.packageName;
 }
 
 function resolvePackageDir(config, args, version) {
@@ -223,7 +312,7 @@ function resolvePackageDir(config, args, version) {
   }
 
   const packagesDir = args.packagesDir || path.join(os.tmpdir(), "claude-code-zh-cn-upstream-cache");
-  return downloadPackage(config.packageName, version, packagesDir);
+  return downloadPackage(resolvePackageName(config, args, version), version, packagesDir);
 }
 
 function runPatch(cliSource, version, args) {
@@ -240,6 +329,186 @@ function runPatch(cliSource, version, args) {
     cliFile,
     patchCount: Number.parseInt(output || "0", 10) || 0,
   };
+}
+
+function classifyPackage(packageDir) {
+  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+    return "legacy";
+  }
+
+  if (fs.existsSync(path.join(packageDir, "claude"))) {
+    return "native";
+  }
+
+  if (fs.existsSync(path.join(packageDir, "bin", "claude.exe"))) {
+    return "native-wrapper";
+  }
+
+  return "unknown";
+}
+
+function currentNativePlatform() {
+  return process.env.CCZH_NATIVE_VERIFY_PLATFORM || `${process.platform}-${process.arch}`;
+}
+
+function nativeSkipResult(version, kind, skipReason, extra = {}) {
+  return {
+    version,
+    kind,
+    status: "skip",
+    patchCount: 0,
+    residue: [],
+    missingRequired: [],
+    skipReason,
+    ...extra,
+  };
+}
+
+function nativeFailResult(version, kind, error, extra = {}) {
+  return {
+    version,
+    kind,
+    status: "fail",
+    patchCount: 0,
+    residue: [],
+    missingRequired: [],
+    error,
+    ...extra,
+  };
+}
+
+function checkNativeDeps() {
+  if (process.env.CCZH_NATIVE_FORCE_DEPS) {
+    return process.env.CCZH_NATIVE_FORCE_DEPS;
+  }
+
+  return execFile("node", [binaryIoPath, "check-deps"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+function runNativeVerification(config, args, version, packageDir, kind) {
+  if (!args.nativeMacosArm64) {
+    return nativeSkipResult(version, kind, "native verification not enabled");
+  }
+
+  if (currentNativePlatform() !== "darwin-arm64") {
+    return nativeSkipResult(version, kind, "native verification requires macOS arm64");
+  }
+
+  let depStatus;
+  try {
+    depStatus = checkNativeDeps();
+  } catch (error) {
+    return nativeSkipResult(version, kind, `node-lief dependency check failed: ${compactError(error)}`);
+  }
+
+  if (depStatus !== "ok") {
+    return nativeSkipResult(version, kind, "node-lief dependency missing");
+  }
+
+  if (kind !== "native") {
+    return nativeSkipResult(version, kind, "native verification requires platform package with package/claude");
+  }
+
+  const binaryPath = path.join(packageDir, "claude");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-compat-"));
+  const extractedJs = path.join(tmpDir, "extracted.js");
+  const patchedBinary = path.join(tmpDir, "claude-patched");
+
+  try {
+    const detectOutput = execFile("node", [binaryIoPath, "detect", binaryPath], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+
+    if (!detectOutput.startsWith("native-bun:")) {
+      return nativeFailResult(version, kind, `native detect returned ${detectOutput || "empty"}`);
+    }
+
+    execFile("node", [binaryIoPath, "extract", binaryPath, extractedJs], {
+      cwd: repoRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+
+    const original = fs.readFileSync(extractedJs, "utf8");
+    const patchOutput = execFile("bash", [patchCliShellPath, extractedJs], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    const patchCount = Number.parseInt(patchOutput || "0", 10) || 0;
+    const patched = fs.readFileSync(extractedJs, "utf8");
+    const residue = collectResidue(patched, config.checks);
+    const missingRequired = collectMissingRequired(original, patched, config.checks);
+
+    fs.copyFileSync(binaryPath, patchedBinary);
+    fs.chmodSync(patchedBinary, 0o755);
+    execFile("node", [binaryIoPath, "repack", patchedBinary, extractedJs], {
+      cwd: repoRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+
+    const tempHome = path.join(tmpDir, "home");
+    fs.mkdirSync(tempHome, { recursive: true });
+    const versionOutput = execFile(patchedBinary, ["--version"], {
+      cwd: tmpDir,
+      encoding: "utf8",
+      timeout: 20000,
+      env: {
+        ...process.env,
+        HOME: tempHome,
+        XDG_CONFIG_HOME: path.join(tempHome, ".config"),
+        XDG_CACHE_HOME: path.join(tempHome, ".cache"),
+        XDG_DATA_HOME: path.join(tempHome, ".local", "share"),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    const displayAudit = runDisplayAudit(config, {
+      run: (runArgs, runtimeOptions) =>
+        spawnFile(patchedBinary, runArgs, {
+          ...runtimeOptions,
+          encoding: "utf8",
+        }),
+    });
+
+    const status =
+      patchCount <= 0 ||
+      residue.length > 0 ||
+      missingRequired.length > 0 ||
+      displayAudit?.status === "fail" ||
+      !versionOutput.includes(version)
+        ? "fail"
+        : "pass";
+
+    return {
+      version,
+      kind,
+      status,
+      patchCount,
+      residue,
+      missingRequired,
+      nativeVerification: {
+        packageName: resolvePackageName(config, args, version),
+        platform: "darwin-arm64",
+        detect: detectOutput.split(":")[0],
+        extract: "ok",
+        repack: "ok",
+        versionOutput,
+      },
+      ...(displayAudit ? { displayAudit } : {}),
+    };
+  } catch (error) {
+    return nativeFailResult(version, kind, compactError(error), {
+      nativeVerification: {
+        packageName: resolvePackageName(config, args, version),
+        platform: "darwin-arm64",
+      },
+    });
+  }
 }
 
 function collectResidue(text, checks) {
@@ -311,8 +580,223 @@ function collectMissingRequired(originalText, patchedText, checks) {
   return missing;
 }
 
+function stripAnsi(text) {
+  return text.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");
+}
+
+function commandMatches(check, commandId) {
+  return !check.command || check.command === commandId;
+}
+
+function displayCheckMatches(text, check) {
+  if (check.pattern && text.includes(check.pattern)) {
+    return check.pattern;
+  }
+
+  if (check.regex) {
+    const compiled = new RegExp(check.regex, "g");
+    const match = text.match(compiled);
+    if (match && match[0]) {
+      return match[0];
+    }
+  }
+
+  return null;
+}
+
+function hasCjk(text) {
+  return /[\u3400-\u9fff]/.test(text);
+}
+
+function removeAllowedEnglishTerms(text, audit) {
+  let result = text;
+  for (const term of audit.allowedEnglishTerms) {
+    result = result.replace(new RegExp(escapeRegExp(term), "gi"), " ");
+  }
+  return result;
+}
+
+function isLikelyUntranslatedLine(line, audit, allowedLineRegexes) {
+  const trimmed = stripAnsi(line).trim();
+  if (!trimmed || hasCjk(trimmed)) {
+    return false;
+  }
+
+  if (allowedLineRegexes.some((regex) => regex.test(trimmed))) {
+    return false;
+  }
+
+  const scrubbed = removeAllowedEnglishTerms(trimmed, audit)
+    .replace(/`[^`]*`/g, " ")
+    .replace(/"[^"]*"/g, " ")
+    .replace(/'[^']*'/g, " ")
+    .replace(/--?[A-Za-z0-9][A-Za-z0-9-]*/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\b[A-Z][A-Z0-9_]{1,}\b/g, " ")
+    .replace(/\b[A-Za-z]:[\\/][^\s]+/g, " ")
+    .replace(/[~./][^\s]*/g, " ")
+    .replace(/[{}[\]():,|=+*#$\\]/g, " ");
+
+  const words = scrubbed.match(/[A-Za-z][A-Za-z']{2,}/g) || [];
+  const naturalWords = words.filter((word) => word !== word.toUpperCase());
+  return naturalWords.length >= audit.minEnglishWords;
+}
+
+function auditDisplayText(output, audit, commandId) {
+  const issues = [];
+  const allowedLineRegexes = audit.allowedEnglishLineRegexes.map((pattern) => new RegExp(pattern));
+
+  for (const check of audit.blockedPhrases) {
+    if (!commandMatches(check, commandId)) continue;
+    const match = displayCheckMatches(output, check);
+    if (!match) continue;
+    issues.push({
+      kind: check.kind,
+      id: check.id,
+      command: commandId,
+      match,
+    });
+  }
+
+  for (const check of audit.mustPreserve) {
+    if (!commandMatches(check, commandId)) continue;
+    const match = displayCheckMatches(output, check);
+    if (match) continue;
+    issues.push({
+      kind: check.kind,
+      id: check.id,
+      command: commandId,
+      match: check.pattern || check.regex,
+    });
+  }
+
+  const lines = output.split(/\r?\n/);
+  const untranslatedLineIssues = [];
+  lines.forEach((line, index) => {
+    if (!isLikelyUntranslatedLine(line, audit, allowedLineRegexes)) {
+      return;
+    }
+
+    untranslatedLineIssues.push({
+      kind: "display-untranslated-line",
+      id: `${commandId}_line_${index + 1}`,
+      command: commandId,
+      match: stripAnsi(line).trim(),
+    });
+  });
+
+  if (untranslatedLineIssues.length > audit.maxUntranslatedLines) {
+    issues.push(...untranslatedLineIssues.slice(audit.maxUntranslatedLines));
+  }
+
+  return issues;
+}
+
+function isolatedRuntimeEnv(tmpDir) {
+  const home = path.join(tmpDir, "home");
+  fs.mkdirSync(home, { recursive: true });
+  return {
+    ...process.env,
+    HOME: home,
+    XDG_CONFIG_HOME: path.join(home, ".config"),
+    XDG_CACHE_HOME: path.join(home, ".cache"),
+    XDG_DATA_HOME: path.join(home, ".local", "share"),
+    NO_COLOR: "1",
+    FORCE_COLOR: "0",
+    CI: "1",
+  };
+}
+
+function runDisplayAudit(config, runtime) {
+  const audit = config.checks.displayAudit;
+  if (!audit || audit.commands.length === 0) {
+    return null;
+  }
+
+  const issues = [];
+  const commands = [];
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-"));
+  const env = isolatedRuntimeEnv(tmpDir);
+
+  for (const command of audit.commands) {
+    const result = runtime.run(command.args, {
+      cwd: tmpDir,
+      env,
+      timeout: command.timeoutMs,
+    });
+    const stdout = result.stdout || "";
+    const stderr = result.stderr || "";
+    const output = `${stdout}${stderr ? `\n${stderr}` : ""}`;
+    const commandSummary = {
+      id: command.id,
+      args: command.args,
+      status: result.status,
+    };
+
+    if (result.error) {
+      if (command.optional) {
+        commands.push({ ...commandSummary, audit: "skip", error: result.error.message });
+        continue;
+      }
+
+      const issue = {
+        kind: "display-command",
+        id: `${command.id}_error`,
+        command: command.id,
+        match: result.error.message,
+      };
+      issues.push(issue);
+      commands.push({ ...commandSummary, audit: "fail", issueCount: 1 });
+      continue;
+    }
+
+    if (result.status !== 0) {
+      if (command.optional) {
+        commands.push({ ...commandSummary, audit: "skip" });
+        continue;
+      }
+
+      const issue = {
+        kind: "display-command",
+        id: `${command.id}_exit_${result.status}`,
+        command: command.id,
+        match: output.trim().slice(0, 300),
+      };
+      issues.push(issue);
+      commands.push({ ...commandSummary, audit: "fail", issueCount: 1 });
+      continue;
+    }
+
+    const commandIssues = auditDisplayText(output, audit, command.id);
+    issues.push(...commandIssues);
+    commands.push({
+      ...commandSummary,
+      audit: commandIssues.length > 0 ? "fail" : "pass",
+      issueCount: commandIssues.length,
+    });
+  }
+
+  return {
+    status: issues.length > 0 ? "fail" : "pass",
+    commandCount: commands.filter((command) => command.audit !== "skip").length,
+    issueCount: issues.length,
+    commands,
+    issues,
+  };
+}
+
 function evaluateVersion(config, args, version) {
   const packageDir = resolvePackageDir(config, args, version);
+  const kind = classifyPackage(packageDir);
+
+  if (kind !== "legacy") {
+    if (kind === "native" || kind === "native-wrapper") {
+      return runNativeVerification(config, args, version, packageDir, kind);
+    }
+
+    fail(`Unsupported package shape for version ${version}`);
+  }
+
   const cliSource = path.join(packageDir, "cli.js");
   if (!fs.existsSync(cliSource)) {
     fail(`cli.js not found for version ${version}`);
@@ -323,23 +807,32 @@ function evaluateVersion(config, args, version) {
   const original = fs.readFileSync(cliSource, "utf8");
   const residue = collectResidue(patched, config.checks);
   const missingRequired = collectMissingRequired(original, patched, config.checks);
+  const displayAudit = runDisplayAudit(config, {
+    run: (runArgs, runtimeOptions) =>
+      spawnFile("node", [cliFile, ...runArgs], {
+        ...runtimeOptions,
+        encoding: "utf8",
+      }),
+  });
 
   return {
     version,
-    status: residue.length > 0 || missingRequired.length > 0 ? "fail" : "pass",
+    kind,
+    status: residue.length > 0 || missingRequired.length > 0 || displayAudit?.status === "fail" ? "fail" : "pass",
     patchCount,
     residue,
     missingRequired,
+    ...(displayAudit ? { displayAudit } : {}),
   };
 }
 
 function buildSummary(results) {
   return results.reduce(
     (summary, result) => {
-      summary[result.status] += 1;
+      summary[result.status] = (summary[result.status] || 0) + 1;
       return summary;
     },
-    { pass: 0, fail: 0 }
+    { pass: 0, fail: 0, skip: 0 }
   );
 }
 
@@ -352,9 +845,10 @@ function printHuman(payload) {
     const missingSummary = result.missingRequired.length
       ? result.missingRequired.map((entry) => `${entry.kind}:${entry.id}`).join(",")
       : "-";
-    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}`);
+    const skipSummary = result.skipReason ? `;skip=${result.skipReason}` : "";
+    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}${skipSummary}`);
   }
-  console.log(`summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}`);
+  console.log(`summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}\tskip=${payload.summary.skip}`);
 }
 
 function main() {

@@ -164,6 +164,51 @@ test("support boundary guard fails when config uses latest instead of numeric ve
   assert.match(result.stdout, /representatives 不能使用非数字版本 latest/);
 });
 
+test("support boundary guard allows explicit macOS native experimental versions", () => {
+  const repo = createFixture({
+    "README.md": [
+      "macOS arm64 native binary: experimental for explicitly verified versions only.",
+      "2.1.113+ / latest 仍不属于 stable CLI Patch。",
+    ].join("\n"),
+    "docs/support-matrix.md":
+      "| macOS native binary | experimental | 2.1.123 - 2.1.123 | 2.1.123 PASS(native) | requires node-lief |\n",
+  }, {
+    support: {
+      macosNativeExperimental: {
+        platform: "darwin-arm64",
+        packageName: "@anthropic-ai/claude-code-darwin-arm64",
+        floor: "2.1.123",
+        ceiling: "2.1.123",
+        representatives: ["2.1.123"],
+        notes: "macOS arm64 native experimental; requires node-lief; verified versions only.",
+      },
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /support-boundary-guard: OK/);
+});
+
+test("support boundary guard still rejects latest in macOS native experimental representatives", () => {
+  const repo = createFixture({}, {
+    support: {
+      macosNativeExperimental: {
+        floor: "2.1.123",
+        ceiling: "latest",
+        representatives: ["2.1.123", "latest"],
+      },
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.match(result.stdout, /macosNativeExperimental/);
+  assert.match(result.stdout, /latest/);
+});
+
 test("support boundary guard allows PowerShell old-npm wording and skipped native latest", () => {
   const repo = createFixture({
     "README.md": [

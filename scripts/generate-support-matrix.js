@@ -27,7 +27,12 @@ function runCompatMatrix() {
 
 function renderRange(entry) {
   if (!entry || entry.unsupported) return "-";
-  if (entry.floor && entry.ceiling) return `${entry.floor} - ${entry.ceiling}`;
+  if (entry.floor && entry.ceiling) {
+    const excluded = Array.isArray(entry.excluded) && entry.excluded.length > 0
+      ? ` (不含 ${entry.excluded.join(", ")})`
+      : "";
+    return `${entry.floor} - ${entry.ceiling}${excluded}`;
+  }
   return entry.floor || entry.ceiling || "-";
 }
 
@@ -53,11 +58,53 @@ function renderResidue(result) {
   return result.residue.map((entry) => `${entry.kind}:${entry.id}`).join(", ");
 }
 
+function renderResult(status) {
+  if (status === "pass") return "PASS";
+  if (status === "fail") return "FAIL";
+  if (status === "skip") return "SKIP";
+  return status || "-";
+}
+
+function renderRuntime(result) {
+  if (!result?.nativeVerification) return "-";
+  const versionOutput = result.nativeVerification.versionOutput
+    ? `, ${result.nativeVerification.versionOutput}`
+    : "";
+  return `${result.nativeVerification.detect || result.kind || "native"} ${result.nativeVerification.repack || "checked"}${versionOutput}`;
+}
+
+function renderDisplayAudit(result) {
+  const audit = result?.displayAudit;
+  if (!audit) return "-";
+  if (audit.status === "pass") {
+    return `PASS (${audit.commandCount} surfaces)`;
+  }
+  if (audit.status === "fail") {
+    return `FAIL (${audit.issueCount} issues / ${audit.commandCount} surfaces)`;
+  }
+  return renderResult(audit.status);
+}
+
+function renderCoverageForChannel(tier, verification) {
+  if (tier === "stable") return "完整链路已验证";
+  if (tier === "experimental" && /display/i.test(verification || "")) return "native + 显示审计已验证";
+  if (tier === "experimental") return "实验验证中";
+  return "不承诺完整汉化";
+}
+
+function renderAction(tier, notes) {
+  if (tier === "stable") return "推荐";
+  if (tier === "experimental") return "只用已验证版本";
+  if (/不支持|unsupported|跳过/.test(notes || "")) return "不建议";
+  return "看备注";
+}
+
 function buildMarkdown(config, compat) {
   const resultMap = new Map(compat.results.map((entry) => [entry.version, entry]));
   const npmStable = config.support?.npm?.stable || {};
   const macosInstaller = config.support?.macosOfficialInstaller || {};
   const macosExperimental = macosInstaller.experimental || {};
+  const macosNativeExperimental = config.support?.macosNativeExperimental || null;
   const macosTier = macosInstaller.unsupported ? "unsupported" : "experimental";
   const macosWindow = macosInstaller.unsupported ? macosInstaller : macosExperimental;
   const macosVerification = macosInstaller.unsupported
@@ -82,6 +129,43 @@ function buildMarkdown(config, compat) {
     "",
     `> Generated from \`scripts/upstream-compat.config.json\` + \`node scripts/verify-upstream-compat.js --json\` on ${generatedOn}.`,
     "",
+    "## Quick Decision",
+    "",
+    "| 安装方式 | 版本范围 | 状态 | 汉化效果 | 建议 |",
+    "| --- | --- | --- | --- | --- |",
+    `| npm global install | ${renderRange(npmStable)} | stable | ${renderCoverageForChannel(
+      "stable"
+    )} | ${renderAction("stable", npmStable.notes)} |`,
+    `| macOS official installer | ${renderRange(macosWindow)} | ${macosTier} | ${renderCoverageForChannel(
+      macosTier,
+      macosVerification
+    )} | ${renderAction(macosTier, macosWindow.notes)} |`,
+    ...(macosNativeExperimental && macosNativeExperimental.unsupported !== true
+      ? [
+          `| macOS native binary | ${renderRange(
+            macosNativeExperimental
+          )} | experimental | ${renderCoverageForChannel(
+            "experimental",
+            macosNativeExperimental.verification
+          )} | ${renderAction("experimental", macosNativeExperimental.notes)} |`,
+        ]
+      : []),
+    `| Linux official installer | ${renderRange(linuxUnsupported)} | unsupported | ${renderCoverageForChannel(
+      "unsupported"
+    )} | ${renderAction("unsupported", linuxUnsupported.notes)} |`,
+    `| Windows / npm global install (PowerShell) | ${renderRange(
+      windowsNpmWindow
+    )} | ${windowsNpmTier} | ${renderCoverageForChannel(windowsNpmTier)} | ${renderAction(
+      windowsNpmTier,
+      windowsNpmWindow.notes
+    )} |`,
+    `| Windows / native .exe / latest | ${renderRange(
+      windowsNativeUnsupported
+    )} | unsupported | ${renderCoverageForChannel("unsupported")} | ${renderAction(
+      "unsupported",
+      windowsNativeUnsupported.notes
+    )} |`,
+    "",
     "## Tier Definition",
     "",
     "- `stable`：代表版本段已通过 compat matrix，且 npm 路径具备启动前自修复。",
@@ -99,6 +183,16 @@ function buildMarkdown(config, compat) {
     `| macOS official installer | ${macosTier} | ${renderRange(
       macosWindow
     )} | ${macosVerification} | ${macosWindow.notes || "-"} |`,
+    ...(macosNativeExperimental && macosNativeExperimental.unsupported !== true
+      ? [
+          `| macOS native binary | experimental | ${renderRange(
+            macosNativeExperimental
+          )} | ${macosNativeExperimental.verification || renderRepresentativeStatus(
+            macosNativeExperimental.representatives,
+            resultMap
+          )} | ${macosNativeExperimental.notes || "-"} |`,
+        ]
+      : []),
     `| Linux official installer | unsupported | ${renderRange(linuxUnsupported)} | - | ${linuxUnsupported.notes || "-"} |`,
     `| Windows / npm global install (PowerShell) | ${windowsNpmTier} | ${renderRange(
       windowsNpmWindow
@@ -109,11 +203,13 @@ function buildMarkdown(config, compat) {
     "",
     "## Compatibility Matrix",
     "",
-    "| Version | Result | Patch count | Residue |",
-    "| --- | --- | --- | --- |",
+    "| Version | Package shape | Result | Runtime | 汉化显示审计 | Patch count | Residue |",
+    "| --- | --- | --- | --- | --- | --- | --- |",
     ...compat.results.map(
       (result) =>
-        `| ${result.version} | ${result.status} | ${result.patchCount} | ${renderResidue(result)} |`
+        `| ${result.version} | ${result.kind || "-"} | ${renderResult(result.status)} | ${renderRuntime(
+          result
+        )} | ${renderDisplayAudit(result)} | ${result.patchCount} | ${renderResidue(result)} |`
     ),
     "",
     `Summary: ${compat.summary.pass} pass / ${compat.summary.fail} fail`,

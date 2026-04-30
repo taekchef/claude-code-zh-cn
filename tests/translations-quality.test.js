@@ -82,6 +82,29 @@ test("high-visibility translations use the curated wording", () => {
     ["Try running /plugin to manually install the think-back plugin.", "可以尝试运行 /plugin 手动安装 think-back 插件。"],
     ["plugin - Manage installed plugins", "插件 - 管理已安装插件"],
     ["↑/↓ to change · Enter to apply · Esc to cancel", "按 ↑/↓ 切换 · 按 Enter 应用 · 按 Esc 取消"],
+    [
+      "Claude Code - starts an interactive session by default, use -p/--print for non-interactive output",
+      "Claude Code - 默认启动交互式会话；使用 -p/--print 输出非交互结果",
+    ],
+    ["Arguments:", "参数："],
+    ["Options:", "选项："],
+    ["Commands:", "命令："],
+    ["Your prompt", "你的提示词"],
+    ["Display help for command", "显示命令帮助"],
+    ["Manage background and configured agents", "管理后台和已配置的 Agent"],
+    ["Manage authentication", "管理身份验证"],
+    ["Inspect auto mode classifier configuration", "查看自动模式分类器配置"],
+    ["Configure and manage MCP servers", "配置和管理 MCP 服务器"],
+    ["Set up a long-lived authentication token (requires Claude subscription)", "设置长期身份验证 token（需要 Claude 订阅）"],
+    ["Check for updates and install if available", "检查更新并安装可用版本"],
+    [
+      "Run a cloud-hosted multi-agent code review of the current branch (or a PR number / base branch) and print the findings",
+      "在云端运行多 Agent 代码审查，目标可为当前分支、PR 编号或基准分支，并打印结果",
+    ],
+    [
+      "Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)",
+      "安装 Claude Code 原生构建。使用 [target] 指定版本（stable、latest 或具体版本）",
+    ],
   ]);
 
   for (const [en, zh] of expected) {

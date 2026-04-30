@@ -18,6 +18,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { execSync, execFileSync } = require("child_process");
 
 // ============================================================================
@@ -600,6 +601,31 @@ function cmdCheckDeps() {
   process.stdout.write(LIEF ? "ok" : "missing");
 }
 
+function cmdHash() {
+  const binaryPath = process.argv[3];
+  if (!binaryPath) {
+    process.stderr.write("Usage: bun-binary-io.js hash <binary>\n");
+    process.exit(1);
+  }
+
+  const hash = crypto.createHash("sha256");
+  const fd = fs.openSync(binaryPath, "r");
+  const buffer = Buffer.alloc(1024 * 1024);
+  try {
+    let bytesRead = 0;
+    do {
+      bytesRead = fs.readSync(fd, buffer, 0, buffer.length, null);
+      if (bytesRead > 0) {
+        hash.update(buffer.subarray(0, bytesRead));
+      }
+    } while (bytesRead > 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+
+  process.stdout.write(hash.digest("hex"));
+}
+
 // ============================================================================
 // CLI 入口
 // ============================================================================
@@ -612,10 +638,11 @@ switch (command) {
   case "version": cmdVersion(); break;
   case "resolve": cmdResolve(); break;
   case "check-deps": cmdCheckDeps(); break;
+  case "hash": cmdHash(); break;
   default:
     process.stderr.write(
       "Usage: bun-binary-io.js <command> [args...]\n" +
-      "Commands: detect, extract, repack, version, resolve, check-deps\n"
+      "Commands: detect, extract, repack, version, resolve, check-deps, hash\n"
     );
     process.exit(1);
 }
