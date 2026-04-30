@@ -125,10 +125,10 @@ check_dependencies() {
 
         if is_supported_native_version "$native_version"; then
             if [ "$dep_status" != "ok" ]; then
-                echo -e "${YELLOW}检测到官方安装器旧版本 ${native_version:-unknown}，CLI Patch 需要 node-lief${NC}"
+                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version:-unknown}，CLI Patch 需要 node-lief${NC}"
                 echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
             else
-                echo -e "${YELLOW}检测到官方安装器旧版本 ${native_version}，将使用 experimental native patch${NC}"
+                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将使用 experimental native patch${NC}"
             fi
         else
             echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
@@ -203,7 +203,11 @@ const ranges = [];
 for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
   const entry = data[key];
   if (!entry || !entry.floor || !entry.ceiling) continue;
-  ranges.push(entry.floor === entry.ceiling ? entry.floor : `${entry.floor} - ${entry.ceiling}`);
+  let range = entry.floor === entry.ceiling ? entry.floor : `${entry.floor} - ${entry.ceiling}`;
+  if (Array.isArray(entry.excluded) && entry.excluded.length > 0) {
+    range += ` (不含 ${entry.excluded.join(", ")})`;
+  }
+  ranges.push(range);
 }
 process.stdout.write(ranges.join("；") || "无");
 NODE

@@ -27,7 +27,12 @@ function runCompatMatrix() {
 
 function renderRange(entry) {
   if (!entry || entry.unsupported) return "-";
-  if (entry.floor && entry.ceiling) return `${entry.floor} - ${entry.ceiling}`;
+  if (entry.floor && entry.ceiling) {
+    const excluded = Array.isArray(entry.excluded) && entry.excluded.length > 0
+      ? ` (不含 ${entry.excluded.join(", ")})`
+      : "";
+    return `${entry.floor} - ${entry.ceiling}${excluded}`;
+  }
   return entry.floor || entry.ceiling || "-";
 }
 

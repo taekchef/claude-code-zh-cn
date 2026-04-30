@@ -78,6 +78,7 @@ function buildSupportWindow(config) {
     payload.macosNativeExperimental = {
       floor: macosNative.floor,
       ceiling: macosNative.ceiling,
+      excluded: macosNative.excluded || [],
       versions: versionsFrom(macosNative),
       platform: macosNative.platform || "darwin-arm64",
       packageName: macosNative.packageName || "@anthropic-ai/claude-code-darwin-arm64",

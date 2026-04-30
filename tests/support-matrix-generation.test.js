@@ -76,10 +76,11 @@ test("support matrix includes separate macOS native experimental row", () => {
         },
         macosOfficialInstaller: { unsupported: true },
         macosNativeExperimental: {
-          floor: "2.1.123",
+          floor: "2.1.113",
           ceiling: "2.1.123",
-          representatives: ["2.1.123"],
-          verification: "2.1.123 PASS(native 1262)",
+          excluded: ["2.1.115"],
+          representatives: ["2.1.113", "2.1.114", "2.1.116", "2.1.123"],
+          verification: "2.1.113 PASS(native 1358) · 2.1.123 PASS(native 1262)",
           notes: "macOS arm64 native binary experimental；需要 node-lief；只对明确验证版本开放，不代表 latest stable。",
         },
         linuxOfficialInstaller: { unsupported: true },
@@ -98,7 +99,8 @@ test("support matrix includes separate macOS native experimental row", () => {
   assert.match(markdown, /## Quick Decision/);
   assert.match(markdown, /汉化效果/);
   assert.match(markdown, /npm global install \| stable \| 2\.1\.92 - 2\.1\.112/);
-  assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.123 - 2\.1\.123/);
+  assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.113 - 2\.1\.123 \(不含 2\.1\.115\)/);
+  assert.match(markdown, /2\.1\.113 PASS\(native 1358\)/);
   assert.match(markdown, /2\.1\.123 PASS\(native 1262\)/);
   assert.match(markdown, /Windows \/ native \.exe \/ latest \| unsupported/);
 });

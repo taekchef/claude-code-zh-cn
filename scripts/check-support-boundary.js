@@ -274,7 +274,7 @@ function printFail(findings) {
   console.log("support-boundary-guard: FAIL");
   console.log("当前官方边界:");
   console.log(`- stable CLI Patch: ${STABLE_RANGE}`);
-  console.log("- 2.1.113+ / latest: 暂不支持 CLI Patch；改回 unsupported / 跳过口径");
+  console.log("- 2.1.113+ / latest: 不能写成 stable；macOS native 只能写已验证 experimental 窗口");
   console.log("- Windows 只能写成 WSL + npm stable，不能写成 Windows native stable");
   console.log("");
 

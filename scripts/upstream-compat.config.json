@@ -150,12 +150,24 @@
     "macosNativeExperimental": {
       "platform": "darwin-arm64",
       "packageName": "@anthropic-ai/claude-code-darwin-arm64",
-      "floor": "2.1.123",
+      "floor": "2.1.113",
       "ceiling": "2.1.123",
-      "representatives": ["2.1.123"],
-      "verification": "2.1.123 PASS(native 1334, display 11/11)",
+      "excluded": ["2.1.115"],
+      "representatives": [
+        "2.1.113",
+        "2.1.114",
+        "2.1.116",
+        "2.1.117",
+        "2.1.118",
+        "2.1.119",
+        "2.1.120",
+        "2.1.121",
+        "2.1.122",
+        "2.1.123"
+      ],
+      "verification": "2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11)",
       "requires": ["node-lief"],
-      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 extract / patch / repack / --version 和 11 个稳定显示面审计；只对明确验证版本开放，不代表未来 latest 自动稳定。"
+      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113、2.1.114、2.1.116 - 2.1.123 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115 官方未发布；不代表未来 latest 自动稳定。"
     },
     "linuxOfficialInstaller": {
       "unsupported": true,
