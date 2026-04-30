@@ -95,8 +95,55 @@ test("support matrix includes separate macOS native experimental row", () => {
     }
   );
 
+  assert.match(markdown, /## Quick Decision/);
+  assert.match(markdown, /汉化效果/);
   assert.match(markdown, /npm global install \| stable \| 2\.1\.92 - 2\.1\.112/);
   assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.123 - 2\.1\.123/);
   assert.match(markdown, /2\.1\.123 PASS\(native 1262\)/);
   assert.match(markdown, /Windows \/ native \.exe \/ latest \| unsupported/);
+});
+
+test("support matrix shows display audit status beside patch count", () => {
+  const { buildMarkdown } = loadGeneratorWithDate(Date);
+  const markdown = buildMarkdown(
+    {
+      support: {
+        npm: {
+          stable: {
+            floor: "2.1.92",
+            ceiling: "2.1.112",
+            representatives: ["2.1.112"],
+            notes: "legacy npm stable",
+          },
+        },
+        macosOfficialInstaller: { unsupported: true },
+        linuxOfficialInstaller: { unsupported: true },
+      },
+    },
+    {
+      results: [
+        {
+          version: "2.1.112",
+          kind: "legacy",
+          status: "pass",
+          patchCount: 1450,
+          residue: [],
+          displayAudit: { status: "pass", issueCount: 0, commandCount: 5 },
+        },
+        {
+          version: "2.1.123",
+          kind: "native",
+          status: "fail",
+          patchCount: 1262,
+          residue: [],
+          displayAudit: { status: "fail", issueCount: 2, commandCount: 9 },
+        },
+      ],
+      summary: { pass: 1, fail: 1, skip: 0 },
+    }
+  );
+
+  assert.match(markdown, /\| Version \| Package shape \| Result \| Runtime \| 汉化显示审计 \| Patch count \| Residue \|/);
+  assert.match(markdown, /\| 2\.1\.112 \| legacy \| PASS \| - \| PASS \(5 surfaces\) \| 1450 \| - \|/);
+  assert.match(markdown, /\| 2\.1\.123 \| native \| FAIL \| - \| FAIL \(2 issues \/ 9 surfaces\) \| 1262 \| - \|/);
 });

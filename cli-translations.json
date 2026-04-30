@@ -6290,5 +6290,325 @@
   {
     "en": "📝 Keep thinking...",
     "zh": "📝 继续思考中..."
+  },
+  {
+    "en": "Claude Code - starts an interactive session by default, use -p/--print for non-interactive output",
+    "zh": "Claude Code - 默认启动交互式会话；使用 -p/--print 输出非交互结果"
+  },
+  {
+    "en": "Arguments:",
+    "zh": "参数："
+  },
+  {
+    "en": "Options:",
+    "zh": "选项："
+  },
+  {
+    "en": "Commands:",
+    "zh": "命令："
+  },
+  {
+    "en": "Your prompt",
+    "zh": "你的提示词"
+  },
+  {
+    "en": "Display help for command",
+    "zh": "显示命令帮助"
+  },
+  {
+    "en": "display help for command",
+    "zh": "显示命令帮助"
+  },
+  {
+    "en": "JSON object defining custom agents (e.g. '{\"reviewer\": {\"description\": \"Reviews code\", \"prompt\": \"You are a code reviewer\"}}')",
+    "zh": "定义自定义 Agent 的 JSON 对象（例如 '{\"reviewer\": {\"description\": \"Reviews code\", \"prompt\": \"You are a code reviewer\"}}'）"
+  },
+  {
+    "en": "Enable bypassing all permission checks as an option, without it being enabled by default. Recommended only for sandboxes with no internet access.",
+    "zh": "允许把跳过所有权限检查作为可选项，但默认不启用。仅建议在无网络访问的沙箱中使用。"
+  },
+  {
+    "en": "Comma or space-separated list of tool names to allow (e.g. \"Bash(git *) Edit\")",
+    "zh": "允许使用的工具名称列表，可用逗号或空格分隔（例如 \"Bash(git *) Edit\"）"
+  },
+  {
+    "en": "Comma or space-separated list of tool names to allow (e.g. \"Bash(git:*) Edit\")",
+    "zh": "允许使用的工具名称列表，可用逗号或空格分隔（例如 \"Bash(git:*) Edit\"）"
+  },
+  {
+    "en": "Comma or space-separated list of tool names to deny (e.g. \"Bash(git *) Edit\")",
+    "zh": "拒绝使用的工具名称列表，可用逗号或空格分隔（例如 \"Bash(git *) Edit\"）"
+  },
+  {
+    "en": "Comma or space-separated list of tool names to deny (e.g. \"Bash(git:*) Edit\")",
+    "zh": "拒绝使用的工具名称列表，可用逗号或空格分隔（例如 \"Bash(git:*) Edit\"）"
+  },
+  {
+    "en": "Minimal mode: skip hooks, LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery. Sets CLAUDE_CODE_SIMPLE=1. Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read). 3P providers (Bedrock/Vertex/Foundry) use their own credentials. Skills still resolve via /skill-name. Explicitly provide context via: --system-prompt[-file], --append-system-prompt[-file], --add-dir (CLAUDE.md dirs), --mcp-config, --settings, --agents, --plugin-dir.",
+    "zh": "极简模式：跳过 hooks、LSP、插件同步、归因、自动记忆、后台预取、钥匙串读取和 CLAUDE.md 自动发现。设置 CLAUDE_CODE_SIMPLE=1。Anthropic 身份验证严格使用 ANTHROPIC_API_KEY 或通过 --settings 配置的 apiKeyHelper（不会读取 OAuth 和钥匙串）。第三方 provider（Bedrock/Vertex/Foundry）使用各自凭据。Skills 仍可通过 /skill-name 解析。请显式提供上下文：--system-prompt[-file]、--append-system-prompt[-file]、--add-dir（CLAUDE.md 目录）、--mcp-config、--settings、--agents、--plugin-dir。"
+  },
+  {
+    "en": "Enable SendUserMessage tool for agent-to-user communication",
+    "zh": "启用 SendUserMessage 工具，用于 Agent 向用户通信"
+  },
+  {
+    "en": "Bypass all permission checks. Recommended only for sandboxes with no internet access.",
+    "zh": "跳过所有权限检查。仅建议在无网络访问的沙箱中使用。"
+  },
+  {
+    "en": "Disable all skills",
+    "zh": "禁用所有 skills"
+  },
+  {
+    "en": "Effort level for the current session (low, medium, high, xhigh, max)",
+    "zh": "当前会话的 effort 级别（low、medium、high、xhigh、max）"
+  },
+  {
+    "en": "Move per-machine sections (cwd, env info, memory paths, git status) from the system prompt into the first user message. Improves cross-user prompt-cache reuse. Only applies with the default system prompt (ignored with --system-prompt). (default: false)",
+    "zh": "将每台机器不同的信息段（cwd、env 信息、memory 路径、git 状态）从系统提示词移到第一条用户消息中。这样可提高跨用户 prompt cache 复用。仅适用于默认系统提示词（使用 --system-prompt 时忽略）。（默认：false）"
+  },
+  {
+    "en": "Move per-machine sections (cwd, env info, memory paths, git status) from the system prompt into the first user message. Improves cross-user prompt-cache reuse. Only applies with the default system prompt (ignored with --system-prompt).",
+    "zh": "将每台机器不同的信息段（cwd、env 信息、memory 路径、git 状态）从系统提示词移到第一条用户消息中。这样可提高跨用户 prompt cache 复用。仅适用于默认系统提示词（使用 --system-prompt 时忽略）。"
+  },
+  {
+    "en": "Enable automatic fallback to specified model when default model is overloaded (only works with --print)",
+    "zh": "默认模型过载时自动回退到指定模型（仅 --print 有效）"
+  },
+  {
+    "en": "File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)",
+    "zh": "启动时要下载的文件资源。格式：file_id:relative_path（例如 --file file_abc:doc.txt file_def:img.png）"
+  },
+  {
+    "en": "When resuming, create a new session ID instead of reusing the original (use with --resume or --continue)",
+    "zh": "恢复会话时创建新的 session ID，而不是复用原 session ID（与 --resume 或 --continue 搭配使用）"
+  },
+  {
+    "en": "Resume a session linked to a PR by PR number/URL, or open interactive picker with optional search term",
+    "zh": "通过 PR 编号/URL 恢复关联会话，或打开交互式选择器并可输入搜索词"
+  },
+  {
+    "en": "Resume a conversation by session ID, or open interactive picker with optional search term",
+    "zh": "通过 session ID 恢复对话，或打开交互式选择器并可输入搜索词"
+  },
+  {
+    "en": "Include all hook lifecycle events in the output stream (only works with --output-format=stream-json)",
+    "zh": "在输出流中包含所有 Hook 生命周期事件（仅 --output-format=stream-json 有效）"
+  },
+  {
+    "en": "Include partial message chunks as they arrive (only works with --print and --output-format=stream-json)",
+    "zh": "消息片段到达时立即包含在输出中（仅 --print 且 --output-format=stream-json 有效）"
+  },
+  {
+    "en": "JSON Schema for structured output validation. Example: {\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}",
+    "zh": "用于结构化输出校验的 JSON Schema。示例：{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}"
+  },
+  {
+    "en": "[DEPRECATED. Use --debug instead] Enable MCP debug mode (shows MCP server errors)",
+    "zh": "[已废弃。请改用 --debug] 启用 MCP debug 模式（显示 MCP 服务器错误）"
+  },
+  {
+    "en": "Set a display name for this session (shown in /resume and terminal title)",
+    "zh": "设置此会话的显示名称（显示在 /resume 和终端标题中）"
+  },
+  {
+    "en": "Set a display name for this session (shown in the prompt box, /resume picker, and terminal title)",
+    "zh": "设置此会话的显示名称（显示在提示框、/resume 选择器和终端标题中）"
+  },
+  {
+    "en": "Disable session persistence - sessions will not be saved to disk and cannot be resumed (only works with --print)",
+    "zh": "禁用会话持久化 - 会话不会保存到磁盘，也无法恢复（仅 --print 有效）"
+  },
+  {
+    "en": "Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B) (default: [])",
+    "zh": "仅为当前会话从目录加载插件（可重复：--plugin-dir A --plugin-dir B）（默认：[]）"
+  },
+  {
+    "en": "Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)",
+    "zh": "仅为当前会话从目录加载插件（可重复：--plugin-dir A --plugin-dir B）"
+  },
+  {
+    "en": "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when Claude is run with the -p mode. Only use this flag in directories you trust.",
+    "zh": "打印响应并退出（适合管道）。注意：使用 -p 模式运行 Claude 时会跳过工作区信任对话框。只在你信任的目录中使用此 flag。"
+  },
+  {
+    "en": "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when Claude is run in non-interactive mode (via -p, or when stdout is not a TTY, e.g. piped or redirected output). Only use this in directories you trust.",
+    "zh": "打印响应并退出（适合管道）。注意：Claude 以非交互模式运行时会跳过工作区信任对话框（例如使用 -p，或 stdout 不是 TTY，如管道/重定向输出）。只在你信任的目录中使用。"
+  },
+  {
+    "en": "Re-emit user messages from stdin back on stdout for acknowledgment (only works with --input-format=stream-json and --output-format=stream-json)",
+    "zh": "将 stdin 中的用户消息重新输出到 stdout 作为确认（仅 --input-format=stream-json 且 --output-format=stream-json 有效）"
+  },
+  {
+    "en": "Path to a settings JSON file or a JSON string to load additional settings from",
+    "zh": "用于加载额外设置的 settings JSON 文件路径或 JSON 字符串"
+  },
+  {
+    "en": "Create a tmux session for the worktree (requires --worktree). Uses iTerm2 native panes when available; use --tmux=classic for traditional tmux.",
+    "zh": "为 worktree 创建 tmux 会话（需要 --worktree）。可用时使用 iTerm2 原生窗格；使用 --tmux=classic 可启用传统 tmux。"
+  },
+  {
+    "en": "Specify the list of available tools from the built-in set. Use \"\" to disable all tools, \"default\" to use all tools, or specify tool names (e.g. \"Bash,Edit,Read\").",
+    "zh": "从内置集合中指定可用工具列表。使用 \"\" 禁用所有工具，使用 \"default\" 启用所有工具，或指定工具名（例如 \"Bash,Edit,Read\"）。"
+  },
+  {
+    "en": "Output the version number",
+    "zh": "输出版本号"
+  },
+  {
+    "en": "List configured agents",
+    "zh": "列出已配置的 agents"
+  },
+  {
+    "en": "Manage background and configured agents",
+    "zh": "管理后台和已配置的 Agent"
+  },
+  {
+    "en": "Manage authentication",
+    "zh": "管理身份验证"
+  },
+  {
+    "en": "Inspect auto mode classifier configuration",
+    "zh": "查看自动模式分类器配置"
+  },
+  {
+    "en": "Check the health of your Claude Code auto-updater. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.",
+    "zh": "检查 Claude Code 自动更新器的健康状态。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。"
+  },
+  {
+    "en": "Set up a long-lived authentication token (requires Claude subscription)",
+    "zh": "设置长期身份验证 token（需要 Claude 订阅）"
+  },
+  {
+    "en": "Check for updates and install if available",
+    "zh": "检查更新并安装可用版本"
+  },
+  {
+    "en": "Sign in to your Anthropic account",
+    "zh": "登录你的 Anthropic 账号"
+  },
+  {
+    "en": "Log out from your Anthropic account",
+    "zh": "退出你的 Anthropic 账号"
+  },
+  {
+    "en": "Show authentication status",
+    "zh": "显示身份验证状态"
+  },
+  {
+    "en": "Print the effective auto mode config as JSON: your settings where set, defaults otherwise",
+    "zh": "以 JSON 打印实际生效的 auto mode 配置：已设置项使用你的设置，其余使用默认值"
+  },
+  {
+    "en": "Get AI feedback on your custom auto mode rules",
+    "zh": "获取 AI 对你自定义 auto mode 规则的反馈"
+  },
+  {
+    "en": "Print the default auto mode environment, allow, and deny rules as JSON",
+    "zh": "以 JSON 打印默认 auto mode 环境、允许规则和拒绝规则"
+  },
+  {
+    "en": "Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)",
+    "zh": "安装 Claude Code 原生构建。使用 [target] 指定版本（stable、latest 或具体版本）"
+  },
+  {
+    "en": "Configure and manage MCP servers",
+    "zh": "配置和管理 MCP 服务器"
+  },
+  {
+    "en": "Add an MCP server to Claude Code.",
+    "zh": "向 Claude Code 添加 MCP 服务器。"
+  },
+  {
+    "en": "# Add HTTP server:",
+    "zh": "# 添加 HTTP 服务器："
+  },
+  {
+    "en": "# Add HTTP server with headers:",
+    "zh": "# 添加带 headers 的 HTTP 服务器："
+  },
+  {
+    "en": "# Add stdio server with environment variables:",
+    "zh": "# 添加带环境变量的 stdio 服务器："
+  },
+  {
+    "en": "# Add stdio server with subprocess flags:",
+    "zh": "# 添加带子进程 flag 的 stdio 服务器："
+  },
+  {
+    "en": "Add an MCP server (stdio or SSE) with a JSON string",
+    "zh": "使用 JSON 字符串添加 MCP 服务器（stdio 或 SSE）"
+  },
+  {
+    "en": "Get details about an MCP server. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.",
+    "zh": "获取 MCP 服务器详情。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。"
+  },
+  {
+    "en": "Remove an MCP server",
+    "zh": "移除 MCP 服务器"
+  },
+  {
+    "en": "Reset all approved and rejected project-scoped (.mcp.json) servers within this project",
+    "zh": "重置此项目内所有已批准和已拒绝的项目级（.mcp.json）服务器"
+  },
+  {
+    "en": "Start the Claude Code MCP server",
+    "zh": "启动 Claude Code MCP 服务器"
+  },
+  {
+    "en": "Manage Claude Code plugins",
+    "zh": "管理 Claude Code 插件"
+  },
+  {
+    "en": "Disable an enabled plugin",
+    "zh": "禁用已启用的插件"
+  },
+  {
+    "en": "Enable a disabled plugin",
+    "zh": "启用已禁用的插件"
+  },
+  {
+    "en": "Install a plugin from available marketplaces (use plugin@marketplace for specific marketplace)",
+    "zh": "从可用插件市场安装插件（使用 plugin@插件市场名 指定插件市场）"
+  },
+  {
+    "en": "List installed plugins",
+    "zh": "列出已安装插件"
+  },
+  {
+    "en": "Manage Claude Code marketplaces",
+    "zh": "管理 Claude Code 插件市场"
+  },
+  {
+    "en": "Uninstall an installed plugin",
+    "zh": "卸载已安装插件"
+  },
+  {
+    "en": "Update a plugin to the latest version (restart required to apply)",
+    "zh": "将插件更新到最新版本（需要重启后生效）"
+  },
+  {
+    "en": "Validate a plugin or marketplace",
+    "zh": "验证插件或插件市场"
+  },
+  {
+    "en": "Remove auto-installed dependencies that are no longer needed",
+    "zh": "移除不再需要的自动安装依赖"
+  },
+  {
+    "en": "Create a {name}--v{version} git tag for a plugin release, validating that plugin.json and any enclosing marketplace entry agree",
+    "zh": "为插件发布创建 {name}--v{version} git tag，并校验 plugin.json 与所属插件市场条目一致"
+  },
+  {
+    "en": "Print the raw bugs.json payload instead of formatted findings",
+    "zh": "打印原始 bugs.json payload，而不是格式化后的 findings"
+  },
+  {
+    "en": "Maximum minutes to wait for the review to finish (default: 30)",
+    "zh": "等待 review 完成的最长分钟数（默认：30）"
+  },
+  {
+    "en": "Run a cloud-hosted multi-agent code review of the current branch (or a PR number / base branch) and print the findings",
+    "zh": "在云端运行多 Agent 代码审查，目标可为当前分支、PR 编号或基准分支，并打印结果"
   }
 ]

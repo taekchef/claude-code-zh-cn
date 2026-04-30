@@ -13,17 +13,20 @@
 - 新增 macOS arm64 native binary experimental 支持通道，已验证 Claude Code `2.1.123` 可完成 extract / patch / repack / 临时 `--version`
 - 新增 `plugin/support-window.json` 运行时支持窗口，由 `scripts/upstream-compat.config.json` 生成，避免安装脚本和 Hook 分散硬编码版本
 - 新增 `scripts/generate-plugin-support-window.js`，并纳入 preflight 漂移检查
+- 新增显示面审计：compat 验证会真实运行顶层和关键子命令 help，阻断用户可见自然语言漏翻，同时保留命令、flag、JSON、MCP 等不该翻译的结构
 
 ### 改进
 
 - `verify-upstream-compat.js` 增加 native package 形态识别和 `--native-macos-arm64` 验证模式
 - `install.sh` 和 `session-start` 改为按已验证 native 版本窗口启用 CLI Patch，未验证 native 版本继续安全跳过
 - native patch marker 改为包含版本、二进制 hash 和 patch 规则指纹，减少重复 patch 和升级误判
-- support matrix 和 README 区分 legacy stable、macOS native experimental、Windows/Linux native unsupported
+- support matrix 和 README 区分 legacy stable、macOS native experimental、Windows/Linux native unsupported，并用“快速决策 + 汉化显示审计”降低用户理解成本
+- 补齐 `2.1.123` native 新增的顶层命令、plugin、MCP、auth、auto-mode、doctor、install、update、ultrareview 等稳定显示面文案
 
 ### 验证
 
-- `node scripts/verify-upstream-compat.js --baseline 2.1.123 --skip-latest --native-macos-arm64 --json`：`2.1.123 PASS(native 1262)`
+- `node scripts/verify-upstream-compat.js --baseline 2.1.123 --skip-latest --native-macos-arm64 --json`：`2.1.123 PASS(native 1334, display 11/11)`
+- `node scripts/verify-upstream-compat.js --baseline 2.1.112 --skip-latest --json`：`2.1.112 PASS(display 11/11)`
 - `node --test tests/support-window-generation.test.js`
 - `node --test tests/upstream-compat.test.js`
 - `node --test tests/session-start-hook.test.js`

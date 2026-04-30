@@ -52,7 +52,80 @@
         "sourceRegex": "text:`\\$\\{[^}]+\\}Ultrareview launched for \\$\\{[^}]+\\} \\(\\$\\{[^}]+\\}, runs in the cloud\\)\\. Track: \\$\\{[^}]+\\}\\$\\{[^}]+\\}`",
         "regex": "text:`\\$\\{[^}]+\\}Ultrareview 已为 \\$\\{[^}]+\\} 启动（\\$\\{[^}]+\\}，云端运行）。跟踪：\\$\\{[^}]+\\}\\$\\{[^}]+\\}`"
       }
-    ]
+    ],
+    "displayAudit": {
+      "commands": [
+        { "id": "top_help", "args": ["--help"] },
+        { "id": "agents_help", "args": ["agents", "--help"], "optional": true },
+        { "id": "auth_help", "args": ["auth", "--help"], "optional": true },
+        { "id": "auto_mode_help", "args": ["auto-mode", "--help"], "optional": true },
+        { "id": "doctor_help", "args": ["doctor", "--help"], "optional": true },
+        { "id": "install_help", "args": ["install", "--help"], "optional": true },
+        { "id": "mcp_help", "args": ["mcp", "--help"], "optional": true },
+        { "id": "plugin_help", "args": ["plugin", "--help"], "optional": true },
+        { "id": "setup_token_help", "args": ["setup-token", "--help"], "optional": true },
+        { "id": "update_help", "args": ["update", "--help"], "optional": true },
+        { "id": "ultrareview_help", "args": ["ultrareview", "--help"], "optional": true }
+      ],
+      "blockedPhrases": [
+        { "id": "usage_heading", "pattern": "Usage:" },
+        { "id": "arguments_heading", "pattern": "Arguments:" },
+        { "id": "options_heading", "pattern": "Options:" },
+        { "id": "commands_heading", "pattern": "Commands:" },
+        { "id": "your_prompt", "pattern": "Your prompt" },
+        { "id": "display_help_for_command", "pattern": "Display help for command" },
+        { "id": "interactive_session_description", "pattern": "starts an interactive session by default" },
+        { "id": "install_target_hint", "pattern": "Use [target] to specify version" }
+      ],
+      "mustPreserve": [
+        { "id": "top_model_flag", "command": "top_help", "pattern": "--model" },
+        { "id": "top_print_flag", "command": "top_help", "pattern": "--print" },
+        { "id": "top_json_schema_term", "command": "top_help", "pattern": "JSON Schema" },
+        { "id": "top_anthropic_api_key", "command": "top_help", "pattern": "ANTHROPIC_API_KEY" },
+        { "id": "top_mcp_term", "command": "top_help", "pattern": "MCP" },
+        { "id": "top_stream_json_value", "command": "top_help", "pattern": "stream-json" }
+      ],
+      "allowedEnglishTerms": [
+        "Claude Code",
+        "Claude",
+        "Anthropic",
+        "Agent",
+        "API",
+        "MCP",
+        "JSON",
+        "Schema",
+        "PR",
+        "IDE",
+        "OAuth",
+        "Bedrock",
+        "Vertex",
+        "Foundry",
+        "LSP",
+        "Hook",
+        "Bash",
+        "Edit",
+        "Read",
+        "UUID",
+        "URL",
+        "Sonnet",
+        "Opus",
+        "tmux",
+        "iTerm2",
+        "TTY",
+        "stdin",
+        "stdout",
+        "npm",
+        "stable",
+        "latest",
+        "stream-json"
+      ],
+      "allowedEnglishLineRegexes": [
+        "^\\s*[a-z][a-z0-9-]*(\\|[a-z][a-z0-9-]*)?(\\s+\\[[^\\]]+\\])?$",
+        "^\\s*claude\\s+.*$"
+      ],
+      "minEnglishWords": 2,
+      "maxUntranslatedLines": 0
+    }
   },
   "support": {
     "npm": {
@@ -80,9 +153,9 @@
       "floor": "2.1.123",
       "ceiling": "2.1.123",
       "representatives": ["2.1.123"],
-      "verification": "2.1.123 PASS(native 1262)",
+      "verification": "2.1.123 PASS(native 1334, display 11/11)",
       "requires": ["node-lief"],
-      "notes": "macOS arm64 native binary experimental；需要 node-lief；只对明确验证版本开放，不代表 latest stable。"
+      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 extract / patch / repack / --version 和 11 个稳定显示面审计；只对明确验证版本开放，不代表未来 latest 自动稳定。"
     },
     "linuxOfficialInstaller": {
       "unsupported": true,

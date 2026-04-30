@@ -185,3 +185,56 @@ test("verify-upstream-compat reports missing node-lief as native dependency skip
   assert.equal(native.status, "skip");
   assert.match(native.skipReason, /node-lief/);
 });
+
+test("verify-upstream-compat fails when audited display output leaves user-visible English", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-config-"));
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: ["1.0.3-display"],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.checks.displayAudit = {
+    commands: [{ id: "top_help", args: ["--help"] }],
+    blockedPhrases: [
+      {
+        id: "future_display_sentence",
+        pattern: "Future display-only untranslated sentence",
+      },
+    ],
+    maxUntranslatedLines: 0,
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixturesDir, "--skip-latest", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+    }
+  );
+
+  assert.equal(result.status, 1, "display audit should block release-quality verification");
+  const payload = JSON.parse(result.stdout);
+  const [entry] = payload.results;
+
+  assert.equal(entry.version, "1.0.3-display");
+  assert.equal(entry.status, "fail");
+  assert.equal(entry.displayAudit.status, "fail");
+  assert.deepEqual(entry.displayAudit.issues, [
+    {
+      kind: "display",
+      id: "future_display_sentence",
+      command: "top_help",
+      match: "Future display-only untranslated sentence",
+    },
+    {
+      kind: "display-untranslated-line",
+      id: "top_help_line_4",
+      command: "top_help",
+      match: "--future                                          Future display-only untranslated sentence",
+    },
+  ]);
+});

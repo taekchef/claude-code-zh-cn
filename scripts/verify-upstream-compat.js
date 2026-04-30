@@ -5,7 +5,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
 
 const isWindows = process.platform === "win32";
 const repoRoot = path.resolve(__dirname, "..");
@@ -20,6 +20,10 @@ function execFile(cmd, args, opts) {
     return execFileSync(cmd, args, { ...opts, shell: true });
   }
   return execFileSync(cmd, args, opts);
+}
+
+function spawnFile(cmd, args, opts) {
+  return spawnSync(cmd, args, isWindows ? { ...opts, shell: true } : opts);
 }
 
 function fail(message) {
@@ -132,6 +136,62 @@ function normalizeCheckList(entries, kind, options = {}) {
   });
 }
 
+function normalizeDisplayCheckList(entries, kind) {
+  return (entries || []).map((entry, index) => {
+    if (typeof entry === "string") {
+      return { kind, id: `${kind}_${index}`, pattern: entry, command: null };
+    }
+
+    if (!entry || typeof entry !== "object") {
+      fail(`Invalid ${kind} display audit entry at index ${index}`);
+    }
+
+    if (!entry.id) {
+      fail(`Missing id for ${kind} display audit entry at index ${index}`);
+    }
+
+    if (!entry.pattern && !entry.regex) {
+      fail(`Missing pattern/regex for ${kind} display audit entry "${entry.id}"`);
+    }
+
+    return {
+      kind,
+      id: entry.id,
+      command: entry.command || null,
+      pattern: entry.pattern || null,
+      regex: entry.regex || null,
+    };
+  });
+}
+
+function normalizeDisplayAudit(audit) {
+  if (!audit) return null;
+
+  return {
+    commands: (audit.commands || []).map((command, index) => {
+      if (!command || typeof command !== "object") {
+        fail(`Invalid display audit command at index ${index}`);
+      }
+      if (!Array.isArray(command.args)) {
+        fail(`Display audit command "${command.id || index}" must define args`);
+      }
+
+      return {
+        id: command.id || `command_${index}`,
+        args: command.args.map(String),
+        optional: Boolean(command.optional),
+        timeoutMs: command.timeoutMs || audit.timeoutMs || 20000,
+      };
+    }),
+    blockedPhrases: normalizeDisplayCheckList(audit.blockedPhrases, "display"),
+    mustPreserve: normalizeDisplayCheckList(audit.mustPreserve, "display-preserve"),
+    allowedEnglishLineRegexes: audit.allowedEnglishLineRegexes || [],
+    allowedEnglishTerms: audit.allowedEnglishTerms || [],
+    minEnglishWords: audit.minEnglishWords || 2,
+    maxUntranslatedLines: Number.isInteger(audit.maxUntranslatedLines) ? audit.maxUntranslatedLines : 0,
+  };
+}
+
 function loadConfig(configPath) {
   const config = readJson(configPath);
   if (!config.packageName) {
@@ -149,6 +209,7 @@ function loadConfig(configPath) {
       upstreamTextGuards: normalizeCheckList(config.checks?.upstreamTextGuards, "upstream-text", {
         includeRule: true,
       }),
+      displayAudit: normalizeDisplayAudit(config.checks?.displayAudit),
     },
   };
 }
@@ -406,9 +467,20 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       },
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
+    const displayAudit = runDisplayAudit(config, {
+      run: (runArgs, runtimeOptions) =>
+        spawnFile(patchedBinary, runArgs, {
+          ...runtimeOptions,
+          encoding: "utf8",
+        }),
+    });
 
     const status =
-      patchCount <= 0 || residue.length > 0 || missingRequired.length > 0 || !versionOutput.includes(version)
+      patchCount <= 0 ||
+      residue.length > 0 ||
+      missingRequired.length > 0 ||
+      displayAudit?.status === "fail" ||
+      !versionOutput.includes(version)
         ? "fail"
         : "pass";
 
@@ -427,6 +499,7 @@ function runNativeVerification(config, args, version, packageDir, kind) {
         repack: "ok",
         versionOutput,
       },
+      ...(displayAudit ? { displayAudit } : {}),
     };
   } catch (error) {
     return nativeFailResult(version, kind, compactError(error), {
@@ -507,6 +580,211 @@ function collectMissingRequired(originalText, patchedText, checks) {
   return missing;
 }
 
+function stripAnsi(text) {
+  return text.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");
+}
+
+function commandMatches(check, commandId) {
+  return !check.command || check.command === commandId;
+}
+
+function displayCheckMatches(text, check) {
+  if (check.pattern && text.includes(check.pattern)) {
+    return check.pattern;
+  }
+
+  if (check.regex) {
+    const compiled = new RegExp(check.regex, "g");
+    const match = text.match(compiled);
+    if (match && match[0]) {
+      return match[0];
+    }
+  }
+
+  return null;
+}
+
+function hasCjk(text) {
+  return /[\u3400-\u9fff]/.test(text);
+}
+
+function removeAllowedEnglishTerms(text, audit) {
+  let result = text;
+  for (const term of audit.allowedEnglishTerms) {
+    result = result.replace(new RegExp(escapeRegExp(term), "gi"), " ");
+  }
+  return result;
+}
+
+function isLikelyUntranslatedLine(line, audit, allowedLineRegexes) {
+  const trimmed = stripAnsi(line).trim();
+  if (!trimmed || hasCjk(trimmed)) {
+    return false;
+  }
+
+  if (allowedLineRegexes.some((regex) => regex.test(trimmed))) {
+    return false;
+  }
+
+  const scrubbed = removeAllowedEnglishTerms(trimmed, audit)
+    .replace(/`[^`]*`/g, " ")
+    .replace(/"[^"]*"/g, " ")
+    .replace(/'[^']*'/g, " ")
+    .replace(/--?[A-Za-z0-9][A-Za-z0-9-]*/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\b[A-Z][A-Z0-9_]{1,}\b/g, " ")
+    .replace(/\b[A-Za-z]:[\\/][^\s]+/g, " ")
+    .replace(/[~./][^\s]*/g, " ")
+    .replace(/[{}[\]():,|=+*#$\\]/g, " ");
+
+  const words = scrubbed.match(/[A-Za-z][A-Za-z']{2,}/g) || [];
+  const naturalWords = words.filter((word) => word !== word.toUpperCase());
+  return naturalWords.length >= audit.minEnglishWords;
+}
+
+function auditDisplayText(output, audit, commandId) {
+  const issues = [];
+  const allowedLineRegexes = audit.allowedEnglishLineRegexes.map((pattern) => new RegExp(pattern));
+
+  for (const check of audit.blockedPhrases) {
+    if (!commandMatches(check, commandId)) continue;
+    const match = displayCheckMatches(output, check);
+    if (!match) continue;
+    issues.push({
+      kind: check.kind,
+      id: check.id,
+      command: commandId,
+      match,
+    });
+  }
+
+  for (const check of audit.mustPreserve) {
+    if (!commandMatches(check, commandId)) continue;
+    const match = displayCheckMatches(output, check);
+    if (match) continue;
+    issues.push({
+      kind: check.kind,
+      id: check.id,
+      command: commandId,
+      match: check.pattern || check.regex,
+    });
+  }
+
+  const lines = output.split(/\r?\n/);
+  const untranslatedLineIssues = [];
+  lines.forEach((line, index) => {
+    if (!isLikelyUntranslatedLine(line, audit, allowedLineRegexes)) {
+      return;
+    }
+
+    untranslatedLineIssues.push({
+      kind: "display-untranslated-line",
+      id: `${commandId}_line_${index + 1}`,
+      command: commandId,
+      match: stripAnsi(line).trim(),
+    });
+  });
+
+  if (untranslatedLineIssues.length > audit.maxUntranslatedLines) {
+    issues.push(...untranslatedLineIssues.slice(audit.maxUntranslatedLines));
+  }
+
+  return issues;
+}
+
+function isolatedRuntimeEnv(tmpDir) {
+  const home = path.join(tmpDir, "home");
+  fs.mkdirSync(home, { recursive: true });
+  return {
+    ...process.env,
+    HOME: home,
+    XDG_CONFIG_HOME: path.join(home, ".config"),
+    XDG_CACHE_HOME: path.join(home, ".cache"),
+    XDG_DATA_HOME: path.join(home, ".local", "share"),
+    NO_COLOR: "1",
+    FORCE_COLOR: "0",
+    CI: "1",
+  };
+}
+
+function runDisplayAudit(config, runtime) {
+  const audit = config.checks.displayAudit;
+  if (!audit || audit.commands.length === 0) {
+    return null;
+  }
+
+  const issues = [];
+  const commands = [];
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-"));
+  const env = isolatedRuntimeEnv(tmpDir);
+
+  for (const command of audit.commands) {
+    const result = runtime.run(command.args, {
+      cwd: tmpDir,
+      env,
+      timeout: command.timeoutMs,
+    });
+    const stdout = result.stdout || "";
+    const stderr = result.stderr || "";
+    const output = `${stdout}${stderr ? `\n${stderr}` : ""}`;
+    const commandSummary = {
+      id: command.id,
+      args: command.args,
+      status: result.status,
+    };
+
+    if (result.error) {
+      if (command.optional) {
+        commands.push({ ...commandSummary, audit: "skip", error: result.error.message });
+        continue;
+      }
+
+      const issue = {
+        kind: "display-command",
+        id: `${command.id}_error`,
+        command: command.id,
+        match: result.error.message,
+      };
+      issues.push(issue);
+      commands.push({ ...commandSummary, audit: "fail", issueCount: 1 });
+      continue;
+    }
+
+    if (result.status !== 0) {
+      if (command.optional) {
+        commands.push({ ...commandSummary, audit: "skip" });
+        continue;
+      }
+
+      const issue = {
+        kind: "display-command",
+        id: `${command.id}_exit_${result.status}`,
+        command: command.id,
+        match: output.trim().slice(0, 300),
+      };
+      issues.push(issue);
+      commands.push({ ...commandSummary, audit: "fail", issueCount: 1 });
+      continue;
+    }
+
+    const commandIssues = auditDisplayText(output, audit, command.id);
+    issues.push(...commandIssues);
+    commands.push({
+      ...commandSummary,
+      audit: commandIssues.length > 0 ? "fail" : "pass",
+      issueCount: commandIssues.length,
+    });
+  }
+
+  return {
+    status: issues.length > 0 ? "fail" : "pass",
+    commandCount: commands.filter((command) => command.audit !== "skip").length,
+    issueCount: issues.length,
+    commands,
+    issues,
+  };
+}
+
 function evaluateVersion(config, args, version) {
   const packageDir = resolvePackageDir(config, args, version);
   const kind = classifyPackage(packageDir);
@@ -529,14 +807,22 @@ function evaluateVersion(config, args, version) {
   const original = fs.readFileSync(cliSource, "utf8");
   const residue = collectResidue(patched, config.checks);
   const missingRequired = collectMissingRequired(original, patched, config.checks);
+  const displayAudit = runDisplayAudit(config, {
+    run: (runArgs, runtimeOptions) =>
+      spawnFile("node", [cliFile, ...runArgs], {
+        ...runtimeOptions,
+        encoding: "utf8",
+      }),
+  });
 
   return {
     version,
     kind,
-    status: residue.length > 0 || missingRequired.length > 0 ? "fail" : "pass",
+    status: residue.length > 0 || missingRequired.length > 0 || displayAudit?.status === "fail" ? "fail" : "pass",
     patchCount,
     residue,
     missingRequired,
+    ...(displayAudit ? { displayAudit } : {}),
   };
 }
 
