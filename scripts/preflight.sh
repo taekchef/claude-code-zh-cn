@@ -84,6 +84,7 @@ run node --check scripts/check-support-boundary.js
 run node --check scripts/check-translation-sentinels.js
 run node --check scripts/generate-plugin-support-window.js
 run node --check scripts/generate-support-matrix.js
+run node --check scripts/sync-doc-derived-counts.js
 run node --check scripts/verify-upstream-compat.js
 
 if [ "$SKIP_PAYLOAD_SOURCE" -eq 1 ]; then
@@ -125,5 +126,8 @@ run node scripts/check-translation-sentinels.js "$TMP_DIR/package/cli.js"
 step "Check support matrix drift"
 run node scripts/generate-support-matrix.js
 run git diff --exit-code docs/support-matrix.md
+
+step "Check doc derived counts"
+run node scripts/sync-doc-derived-counts.js --check
 
 printf '\npreflight: OK\n'
