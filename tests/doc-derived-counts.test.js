@@ -48,6 +48,23 @@ function makeStale(filePath) {
   fs.writeFileSync(filePath, text);
 }
 
+function makeNativeStale(filePath) {
+  let text = fs.readFileSync(filePath, "utf8");
+  for (const [pattern, replacement] of [
+    [/2\.1\.113--2\.1\.123/g, "9.9.113--9.9.123"],
+    [/2\.1\.113 - 2\.1\.123/g, "9.9.113 - 9.9.123"],
+    [/2\.1\.116 - 2\.1\.123/g, "9.9.116 - 9.9.123"],
+    [/2\.1\.115/g, "9.9.115"],
+    [/1323-1358/g, "1-2"],
+    [/11\/11/g, "3/4"],
+    [/11 个稳定显示面/g, "4 个稳定显示面"],
+    [/2\.1\.113 through `2\.1\.123` except unpublished `2\.1\.115`/g, "9.9.113 through `9.9.123` except unpublished `9.9.115`"],
+  ]) {
+    text = text.replace(pattern, replacement);
+  }
+  fs.writeFileSync(filePath, text);
+}
+
 test("doc-derived count sync passes current README, AGENTS, and CLAUDE docs", () => {
   assert.equal(fs.existsSync(syncScript), true, "missing scripts/sync-doc-derived-counts.js");
 
@@ -88,4 +105,30 @@ test("doc-derived count sync rewrites stale docs from source files", () => {
     assert.doesNotMatch(text, /777777 个 spinner 动词/);
     assert.doesNotMatch(text, /666666 条 spinner 提示/);
   }
+});
+
+test("doc-derived count sync rewrites README native support facts from config and matrix", () => {
+  const { files } = copyDocFixtures();
+  const readme = files.find((file) => path.basename(file) === "README.md");
+  makeNativeStale(readme);
+
+  const staleResult = runSync(["--check", readme]);
+  assert.equal(staleResult.status, 1, "stale native README facts should fail the guard");
+
+  const writeResult = runSync(["--write", readme]);
+  assert.equal(writeResult.status, 0, writeResult.stderr || writeResult.stdout);
+
+  const checkResult = runSync(["--check", readme]);
+  assert.equal(checkResult.status, 0, checkResult.stderr || checkResult.stdout);
+
+  const text = fs.readFileSync(readme, "utf8");
+  assert.match(text, /macos%20native-2\.1\.113--2\.1\.123%20experimental/);
+  assert.match(text, /2\.1\.113 - 2\.1\.123/);
+  assert.match(text, /不含未发布的 `2\.1\.115`/);
+  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.123`/);
+  assert.match(text, /1323-1358 处/);
+  assert.match(text, /显示审计 11\/11 PASS/);
+  assert.match(text, /11 个稳定显示面/);
+  assert.match(text, /2\.1\.113` through `2\.1\.123` except unpublished `2\.1\.115`/);
+  assert.doesNotMatch(text, /9\.9\.|1-2 处|3\/4|4 个稳定显示面/);
 });

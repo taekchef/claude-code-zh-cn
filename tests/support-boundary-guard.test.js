@@ -133,10 +133,30 @@ test("support boundary guard fails when README claims 2.1.113+ or latest support
   assert.match(result.stdout, /改回/);
 });
 
-test("support boundary guard fails when config raises the stable ceiling past 2.1.112", () => {
-  const repo = createFixture({}, {
+test("support boundary guard follows a numeric stable window from config", () => {
+  const repo = createFixture({
+    "README.md": [
+      "| macOS / npm 全局安装 | stable | 2.1.92 - 2.1.113 |",
+      "2.1.114+ / latest 暂不承诺稳定 CLI Patch。",
+      "Windows native .exe / latest 不支持 CLI Patch。",
+    ].join("\n"),
+  }, {
     npmStable: {
       ceiling: "2.1.113",
+      representatives: ["2.1.92", "2.1.113"],
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /stable CLI Patch: 2\.1\.92 - 2\.1\.113/);
+});
+
+test("support boundary guard fails when stable representatives exceed config ceiling", () => {
+  const repo = createFixture({}, {
+    npmStable: {
+      ceiling: "2.1.112",
       representatives: ["2.1.92", "2.1.112", "2.1.113"],
     },
   });
@@ -145,8 +165,7 @@ test("support boundary guard fails when config raises the stable ceiling past 2.
 
   assert.equal(result.status, 1, result.stderr || result.stdout);
   assert.match(result.stdout, /scripts\/upstream-compat\.config\.json/);
-  assert.match(result.stdout, /npm stable ceiling/);
-  assert.match(result.stdout, /2\.1\.112/);
+  assert.match(result.stdout, /representatives 不能超过 config ceiling 2\.1\.112/);
 });
 
 test("support boundary guard fails when config uses latest instead of numeric versions", () => {
@@ -160,7 +179,7 @@ test("support boundary guard fails when config uses latest instead of numeric ve
   const result = runGuard(repo);
 
   assert.equal(result.status, 1, result.stderr || result.stdout);
-  assert.match(result.stdout, /npm stable ceiling/);
+  assert.match(result.stdout, /npm stable floor \/ ceiling 必须是数字版本/);
   assert.match(result.stdout, /representatives 不能使用非数字版本 latest/);
 });
 
