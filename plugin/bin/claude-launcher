@@ -11,15 +11,11 @@ log_warning() {
     printf "%s %s\n" "$WARNING_PREFIX" "$1" >&2
 }
 
-find_real_claude_binary() {
-    if [ -n "${ZH_CN_REAL_CLAUDE:-}" ] && [ -x "${ZH_CN_REAL_CLAUDE:-}" ]; then
-        printf "%s" "$ZH_CN_REAL_CLAUDE"
-        return
-    fi
-
+launcher_filtered_path() {
     local filtered_path=""
     local path_entry
     local old_ifs="$IFS"
+
     IFS=':'
     for path_entry in ${PATH:-}; do
         if [ "${path_entry:-}" = "$LAUNCHER_BIN_DIR" ]; then
@@ -32,6 +28,18 @@ find_real_claude_binary() {
         fi
     done
     IFS="$old_ifs"
+
+    printf "%s" "$filtered_path"
+}
+
+find_real_claude_binary() {
+    if [ -n "${ZH_CN_REAL_CLAUDE:-}" ] && [ -x "${ZH_CN_REAL_CLAUDE:-}" ]; then
+        printf "%s" "$ZH_CN_REAL_CLAUDE"
+        return
+    fi
+
+    local filtered_path
+    filtered_path="$(launcher_filtered_path)"
 
     PATH="$filtered_path" command -v claude 2>/dev/null || true
 }
@@ -136,6 +144,7 @@ maybe_patch_npm_cli() {
 
 main() {
     local real_claude=""
+    local filtered_path=""
     local install_info=""
     local install_kind=""
     local install_target=""
@@ -158,7 +167,8 @@ main() {
         fi
     fi
 
-    exec env ZH_CN_REAL_CLAUDE="$real_claude" "$real_claude" "$@"
+    filtered_path="$(launcher_filtered_path)"
+    exec env PATH="$filtered_path" ZH_CN_REAL_CLAUDE="$real_claude" "$real_claude" "$@"
 }
 
 main "$@"

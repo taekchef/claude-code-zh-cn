@@ -153,6 +153,33 @@ function detect-install {
     return $null
 }
 
+function detect-launcher-install {
+    param([string]$ClaudeBin)
+    if (-not $ClaudeBin) { return $null }
+    try {
+        $realPath = (Resolve-Path $ClaudeBin).ProviderPath
+    } catch {
+        return $null
+    }
+
+    $claudeDir = Split-Path -Parent $realPath
+    $candidates = @(
+        (Join-Path $claudeDir "..\lib\node_modules\@anthropic-ai\claude-code\cli.js"),
+        (Join-Path $claudeDir "node_modules\@anthropic-ai\claude-code\cli.js")
+    )
+
+    foreach ($candidate in $candidates) {
+        try {
+            $fullPath = [System.IO.Path]::GetFullPath($candidate)
+        } catch {
+            $fullPath = $candidate
+        }
+        if (Test-Path $fullPath) { return "npm:$fullPath" }
+    }
+
+    return $null
+}
+
 # ======== Settings 操作 ========
 function ensure-settings {
     if (-not (Test-Path $SettingsFile)) {
@@ -295,7 +322,7 @@ function remove-launcher-artifacts {
 
 function install-launcher {
     $realClaude = find-real-claude
-    $installInfo = detect-install $realClaude
+    $installInfo = detect-launcher-install $realClaude
     $kind = ""
     if ($installInfo) {
         $kind = ($installInfo -split ':', 2)[0]

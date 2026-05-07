@@ -7,6 +7,10 @@ const { execFileSync, spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function locateCommand(command) {
   return execFileSync("/usr/bin/which", [command], { encoding: "utf8" }).trim();
 }
@@ -168,6 +172,41 @@ exit 1
   };
 }
 
+function createCmuxWrapperContext() {
+  const context = createUnsupportedWrapperContext();
+  const pathFile = path.join(context.tmp, "cmux-path");
+  const loopFile = path.join(context.tmp, "cmux-loop");
+
+  fs.mkdirSync(context.launcherBin, { recursive: true });
+  fs.copyFileSync(path.join(repoRoot, "plugin", "bin", "claude-launcher"), context.launcherFile);
+  fs.chmodSync(context.launcherFile, 0o755);
+
+  fs.writeFileSync(
+    path.join(context.realBin, "claude"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' "$PATH" > ${JSON.stringify(pathFile)}
+case ":$PATH:" in
+  *":${context.launcherBin}:"*)
+    depth="\${CMUX_DEPTH:-0}"
+    if [ "$depth" -ge 2 ]; then
+      printf 'reentered depth=%s argc=%s\\n' "$depth" "$#" > ${JSON.stringify(loopFile)}
+      exit 88
+    fi
+    padding="$(printf 'cmux-hop-%s-%04096d' "$depth" 0)"
+    CMUX_DEPTH="$((depth + 1))" claude "$@" "$padding"
+    ;;
+  *)
+    printf 'cmux wrapper ok\\n'
+    ;;
+esac
+`
+  );
+  fs.chmodSync(path.join(context.realBin, "claude"), 0o755);
+
+  return { ...context, pathFile, loopFile };
+}
+
 function runInstall(context) {
   return spawnSync("/bin/bash", [path.join(repoRoot, "install.sh")], {
     cwd: repoRoot,
@@ -279,6 +318,29 @@ test("install.sh ignores global npm fallback when current claude is a third-part
     /claude-code-zh-cn launcher/,
     "profile launcher injection should not be added from npm fallback"
   );
+});
+
+test("launcher strips itself from PATH before execing third-party wrappers to avoid cmux-style argv growth", () => {
+  const context = createCmuxWrapperContext();
+
+  const launch = runClaude(context, { ZH_CN_REAL_CLAUDE: "" });
+
+  assert.equal(launch.status, 0, launch.stderr || launch.stdout);
+  assert.match(launch.stdout, /cmux wrapper ok/);
+  assert.doesNotMatch(
+    fs.readFileSync(context.pathFile, "utf8"),
+    new RegExp(`${escapeRegex(context.launcherBin)}(?::|$)`),
+    "third-party wrapper should not inherit the zh-cn launcher path"
+  );
+  assert.equal(fs.existsSync(context.loopFile), false, "wrapper should not re-enter the zh-cn launcher");
+});
+
+test("Windows launchers pass filtered PATH to the real claude command", () => {
+  const ps1 = fs.readFileSync(path.join(repoRoot, "plugin", "bin", "claude-launcher.ps1"), "utf8");
+  const cmd = fs.readFileSync(path.join(repoRoot, "plugin", "bin", "claude-launcher.cmd"), "utf8");
+
+  assert.match(ps1, /\$env:PATH = \$filtered[\s\S]*& \$realClaude @PassThruArgs/);
+  assert.match(cmd, /set "PATH=%FILTERED_PATH%"/);
 });
 
 test("uninstall.sh removes launcher injection and restores npm cli backup", () => {

@@ -22,4 +22,6 @@ if (-not $realClaude) {
 }
 
 $env:ZH_CN_REAL_CLAUDE = $realClaude
+$env:PATH = $filtered
 & $realClaude @PassThruArgs
+exit $LASTEXITCODE
