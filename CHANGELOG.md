@@ -6,6 +6,20 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.4] - 2026-05-08
+
+### 修复
+
+- 修复 launcher 启动第三方 wrapper 时仍把 `~/.claude/bin` 留在子进程 PATH 里，导致 cmux 这类 wrapper 内部再次调用 `claude` 时重新进入本插件 launcher，循环追加参数并最终触发 `Argument list too long`
+- Windows launcher 同步传递过滤后的 PATH，避免同类 wrapper 递归
+- Windows 安装脚本的 launcher 注入判断改为只看当前 `claude` 的本地 npm `cli.js` 布局，不再用全局 npm fallback 决定是否注入 PATH
+
+### 验证
+
+- 新增 cmux-style wrapper 回归测试：第三方 wrapper 继承的 PATH 不再包含本插件 launcher 目录，也不会重新进入 launcher
+- 新增 Windows launcher / install.ps1 防回归检查
+- `node --test tests/launcher.test.js tests/install-smoke.test.js`
+
 ## [2.4.3] - 2026-05-07
 
 ### 修复

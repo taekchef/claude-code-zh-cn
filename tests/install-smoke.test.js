@@ -210,13 +210,18 @@ test("Windows PowerShell old-npm install smoke is wired into CI", () => {
 
 test("install.ps1 gates launcher injection to Windows old npm cli.js installs", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  const launcherDetectorStart = script.indexOf("function detect-launcher-install");
+  const launcherDetectorEnd = script.indexOf("# ======== Settings 操作 ========");
+  const launcherDetector = script.slice(launcherDetectorStart, launcherDetectorEnd);
 
+  assert.ok(launcherDetectorStart >= 0, "install.ps1 should have a launcher-only detector");
   assert.match(script, /function remove-launcher-artifacts \{/);
   assert.match(script, /当前安装方式不是 npm cli\.js/);
   assert.match(script, /remove-launcher-artifacts/);
   assert.match(script, /launcher 目录还有其他文件，未移除 PATH/);
-  assert.match(script, /detect-install \$realClaude/);
+  assert.match(script, /detect-launcher-install \$realClaude/);
   assert.match(script, /\$kind -ne "npm"/);
+  assert.doesNotMatch(launcherDetector, /npm root -g/, "launcher gating must not use global npm fallback");
 });
 
 test(
