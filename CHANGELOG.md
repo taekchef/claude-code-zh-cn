@@ -6,6 +6,24 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.1] - 2026-05-07
+
+### 修复
+
+- 修复 README / AGENTS / CLAUDE 里的翻译条数、spinner 数量、patch 数量和 native 支持窗口容易漂移的问题；这些数字现在会从源文件、支持配置和 support matrix 自动校验
+- 修复 README 支持系统和安装建议区块可能与 `scripts/upstream-compat.config.json` 不一致的问题，避免公开文档和真实支持窗口说法分叉
+
+### 改进
+
+- `preflight.sh` 新增 README support window 和 doc-derived counts 检查，发布前会直接拦住手改数字、漏同步支持口径的情况
+- support boundary guard 改为复用配置渲染的 README 支持片段，减少硬编码文案维护
+
+### 验证
+
+- `node scripts/sync-doc-derived-counts.js --check`
+- `node scripts/sync-readme-support-window.js --check`
+- `node --test tests/*.test.js`
+
 ## [2.4.0] - 2026-04-30
 
 ### 新增
