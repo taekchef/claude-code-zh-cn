@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.2] - 2026-05-07
+
+### 修复
+
+- 修复第三方 Claude wrapper（例如 cmux）场景下，安装脚本仍注入 `~/.claude/bin/claude` launcher，导致启动时报 `Argument list too long` 的问题
+- 非 npm `cli.js` 安装方式现在会跳过 npm 启动前自修复，并清理本插件旧的 launcher PATH 注入，避免第三方 wrapper 和本插件 launcher 串联
+
+### 验证
+
+- 新增第三方 wrapper 回归测试：不支持的安装方式会移除旧 launcher 和 profile 注入
+- `node --test tests/*.test.js`
+
 ## [2.4.1] - 2026-05-07
 
 ### 修复

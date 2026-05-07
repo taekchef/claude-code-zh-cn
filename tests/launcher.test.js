@@ -100,6 +100,56 @@ function createLauncherContext() {
   };
 }
 
+function createUnsupportedWrapperContext() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-unsupported-wrapper-"));
+  const home = path.join(tmp, "home");
+  const shellBin = path.join(tmp, "cmd-bin");
+  const realBin = path.join(tmp, "third-party-bin");
+  const profileFile = path.join(home, ".zshrc");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const launcherBin = path.join(home, ".claude", "bin");
+  const thirdPartyClaude = path.join(realBin, "claude");
+
+  fs.mkdirSync(home, { recursive: true });
+  fs.mkdirSync(realBin, { recursive: true });
+  fs.writeFileSync(profileFile, "# test profile\n");
+  fs.writeFileSync(
+    thirdPartyClaude,
+    "#!/usr/bin/env bash\nprintf 'third-party claude wrapper\\n'\n"
+  );
+  fs.chmodSync(thirdPartyClaude, 0o755);
+
+  linkCommands(shellBin, [
+    "bash",
+    "env",
+    "node",
+    "cp",
+    "mkdir",
+    "find",
+    "chmod",
+    "cat",
+    "sed",
+    "head",
+    "which",
+    "date",
+    "tr",
+    "dirname",
+    "rm",
+    "grep",
+  ]);
+
+  return {
+    tmp,
+    home,
+    shellBin,
+    realBin,
+    profileFile,
+    pluginRoot,
+    launcherBin,
+    launcherFile: path.join(launcherBin, "claude"),
+  };
+}
+
 function runInstall(context) {
   return spawnSync("/bin/bash", [path.join(repoRoot, "install.sh")], {
     cwd: repoRoot,
@@ -170,6 +220,33 @@ test("launcher warns and still execs real claude when prelaunch patch fails", ()
   assert.equal(fs.readFileSync(context.invokedFile, "utf8"), "invoked");
   assert.match(launch.stderr, /prelaunch patch failed/i);
   assert.match(fs.readFileSync(context.cliFile, "utf8"), /Quick safety check/);
+});
+
+test("install.sh removes stale launcher injection for unsupported third-party claude wrappers", () => {
+  const context = createUnsupportedWrapperContext();
+  const profileBlock = [
+    "# test profile",
+    "",
+    "# >>> claude-code-zh-cn launcher >>>",
+    `[ -f "${context.pluginRoot}/profile/claude-code-zh-cn.sh" ] && . "${context.pluginRoot}/profile/claude-code-zh-cn.sh"`,
+    "# <<< claude-code-zh-cn launcher <<<",
+    "",
+  ].join("\n");
+
+  fs.mkdirSync(context.launcherBin, { recursive: true });
+  fs.writeFileSync(context.launcherFile, "#!/usr/bin/env bash\n# claude-code-zh-cn launcher\nexit 99\n");
+  fs.chmodSync(context.launcherFile, 0o755);
+  fs.writeFileSync(context.profileFile, profileBlock);
+
+  const install = runInstall(context);
+
+  assert.equal(install.status, 0, install.stderr || install.stdout);
+  assert.equal(fs.existsSync(context.launcherFile), false, "stale launcher should be removed");
+  assert.doesNotMatch(
+    fs.readFileSync(context.profileFile, "utf8"),
+    /claude-code-zh-cn launcher/,
+    "profile launcher injection should be removed"
+  );
 });
 
 test("uninstall.sh removes launcher injection and restores npm cli backup", () => {

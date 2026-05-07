@@ -27,6 +27,8 @@ PROFILE_MARKER_START="# >>> claude-code-zh-cn launcher >>>"
 PROFILE_MARKER_END="# <<< claude-code-zh-cn launcher <<<"
 CLI_PATCH_STATUS_SUMMARY="已跳过（未执行 CLI Patch）"
 CLI_PATCH_STATUS_OK=false
+LAUNCHER_STATUS_SUMMARY="已跳过（未执行 launcher 安装）"
+LAUNCHER_STATUS_OK=false
 
 source "$SCRIPT_DIR/compute-patch-revision.sh"
 
@@ -65,7 +67,11 @@ print_completion() {
     echo -e "  ${GREEN}✓${NC} 通知 Hook → 中文翻译"
     echo -e "  ${GREEN}✓${NC} 输出风格 → Chinese"
     echo -e "  ${GREEN}✓${NC} 自动重 patch → Claude Code 更新后首次会话自动修复"
-    echo -e "  ${GREEN}✓${NC} npm 启动前自修复 → npm 更新后首次启动会先 patch"
+    if [ "$LAUNCHER_STATUS_OK" = true ]; then
+        echo -e "  ${GREEN}✓${NC} npm 启动前自修复 → ${LAUNCHER_STATUS_SUMMARY}"
+    else
+        echo -e "  ${YELLOW}!${NC} npm 启动前自修复 → ${LAUNCHER_STATUS_SUMMARY}"
+    fi
     echo -e "  ${GREEN}✓${NC} 自动更新 → 插件发布新 Release 后自动同步"
 
     if [ "$CLI_PATCH_STATUS_OK" = true ]; then
@@ -443,12 +449,44 @@ fs.writeFileSync(path, content);
 NODE
 }
 
+remove_launcher_artifacts() {
+    local target
+
+    while IFS= read -r target; do
+        [ -n "$target" ] || continue
+        update_profile_injection "$target" remove
+    done < <(list_profile_targets)
+
+    if [ -f "$LAUNCHER_FILE" ]; then
+        if grep -q "claude-code-zh-cn" "$LAUNCHER_FILE" 2>/dev/null; then
+            rm -f "$LAUNCHER_FILE"
+        elif [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}检测到自定义 launcher，未自动删除：${LAUNCHER_FILE}${NC}"
+        fi
+    fi
+    rmdir "$LAUNCHER_BIN_DIR" 2>/dev/null || true
+}
+
 install_launcher() {
     local source_launcher="$PLUGIN_DST/bin/claude-launcher"
+    local install_info install_kind
     local target
+
+    install_info="$(detect_installation)"
+    install_kind="${install_info%%:*}"
+
+    if [ "$install_kind" != "npm" ]; then
+        remove_launcher_artifacts
+        LAUNCHER_STATUS_SUMMARY="已跳过（当前安装方式不是 npm cli.js）"
+        if [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}当前安装方式不需要 npm 启动前自修复，已跳过 launcher PATH 注入${NC}"
+        fi
+        return
+    fi
 
     if [ ! -f "$source_launcher" ] || [ ! -f "$PLUGIN_DST/profile/claude-code-zh-cn.sh" ]; then
         echo -e "${YELLOW}launcher 文件缺失，已跳过 PATH 注入${NC}"
+        LAUNCHER_STATUS_SUMMARY="已跳过（launcher 文件缺失）"
         return
     fi
 
@@ -464,6 +502,8 @@ install_launcher() {
     if [ "$SKIP_BANNER" != "1" ]; then
         echo -e "${GREEN}已安装 launcher → ${LAUNCHER_FILE}${NC}"
     fi
+    LAUNCHER_STATUS_SUMMARY="npm 更新后首次启动会先 patch"
+    LAUNCHER_STATUS_OK=true
 }
 
 find_real_claude_binary() {
