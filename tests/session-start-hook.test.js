@@ -118,6 +118,88 @@ if (cmd === "detect") {
   );
 }
 
+test("session-start repairs settings from cached overlay before emitting JSON", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-settings-repair-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const settingsFile = path.join(home, ".claude", "settings.json");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+
+  fs.writeFileSync(
+    path.join(pluginRoot, "compute-patch-revision.sh"),
+    "#!/usr/bin/env bash\ncompute_patch_revision(){ printf 'test-revision'; }\n"
+  );
+  fs.chmodSync(path.join(pluginRoot, "compute-patch-revision.sh"), 0o755);
+  fs.writeFileSync(path.join(fakeBin, "claude"), "#!/usr/bin/env bash\n");
+  fs.chmodSync(path.join(fakeBin, "claude"), 0o755);
+
+  const overlay = {
+    language: "Chinese",
+    spinnerTipsEnabled: true,
+    spinnerVerbs: {
+      loading: "加载中",
+      thinking: "思考中",
+    },
+    spinnerTipsOverride: {
+      excludeDefault: true,
+      tips: ["保持简洁"],
+    },
+  };
+  fs.writeFileSync(path.join(pluginRoot, ".settings-overlay-cache.json"), JSON.stringify(overlay, null, 2) + "\n");
+  fs.writeFileSync(
+    settingsFile,
+    JSON.stringify(
+      {
+        theme: "dark",
+        permissions: {
+          allow: ["Bash(git status:*)"],
+        },
+      },
+      null,
+      2
+    ) + "\n"
+  );
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.doesNotThrow(() => JSON.parse(result.stdout), "hook output must remain valid JSON");
+
+  const repaired = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
+  assert.equal(repaired.language, "Chinese");
+  assert.equal(repaired.spinnerTipsEnabled, true);
+  assert.deepEqual(repaired.spinnerVerbs, overlay.spinnerVerbs);
+  assert.deepEqual(repaired.spinnerTipsOverride, overlay.spinnerTipsOverride);
+  assert.equal(repaired.theme, "dark");
+  assert.deepEqual(repaired.permissions, { allow: ["Bash(git status:*)"] });
+});
+
+test("Windows session-start hook repairs settings from cached overlay", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
+
+  assert.match(script, /\.settings-overlay-cache\.json/);
+  assert.match(script, /function Repair-SettingsFromCache/);
+  assert.match(script, /spinnerTipsOverride/);
+  assert.match(script, /fs\.writeFileSync\(settingsFile/);
+  assert.match(script, /Repair-SettingsFromCache/);
+});
+
 test("session-start re-patches when plugin changed even if Claude Code version is unchanged", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-"));
   const pluginRoot = path.join(tmp, "plugin");

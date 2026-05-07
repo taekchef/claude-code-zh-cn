@@ -167,22 +167,29 @@ function normalizeDisplayCheckList(entries, kind) {
 function normalizeDisplayAudit(audit) {
   if (!audit) return null;
 
-  return {
-    commands: (audit.commands || []).map((command, index) => {
-      if (!command || typeof command !== "object") {
-        fail(`Invalid display audit command at index ${index}`);
-      }
-      if (!Array.isArray(command.args)) {
-        fail(`Display audit command "${command.id || index}" must define args`);
-      }
+  const commands = (audit.commands || []).map((command, index) => {
+    if (!command || typeof command !== "object") {
+      fail(`Invalid display audit command at index ${index}`);
+    }
+    if (!Array.isArray(command.args)) {
+      fail(`Display audit command "${command.id || index}" must define args`);
+    }
 
-      return {
-        id: command.id || `command_${index}`,
-        args: command.args.map(String),
-        optional: Boolean(command.optional),
-        timeoutMs: command.timeoutMs || audit.timeoutMs || 20000,
-      };
-    }),
+    return {
+      id: command.id || `command_${index}`,
+      args: command.args.map(String),
+      optional: Boolean(command.optional),
+      timeoutMs: command.timeoutMs || audit.timeoutMs || 20000,
+    };
+  });
+  const minCommandCount = Number.isInteger(audit.minCommandCount) ? audit.minCommandCount : commands.length;
+  if (minCommandCount < 0 || minCommandCount > commands.length) {
+    fail(`displayAudit.minCommandCount must be between 0 and ${commands.length}`);
+  }
+
+  return {
+    commands,
+    minCommandCount,
     blockedPhrases: normalizeDisplayCheckList(audit.blockedPhrases, "display"),
     mustPreserve: normalizeDisplayCheckList(audit.mustPreserve, "display-preserve"),
     allowedEnglishLineRegexes: audit.allowedEnglishLineRegexes || [],
@@ -265,12 +272,40 @@ function findFixturePackage(fixturesDir, version) {
   fail(`Fixture package for version ${version} not found in ${fixturesDir}`);
 }
 
+function downloadedPackageShapeError(packageDir) {
+  if (!fs.existsSync(packageDir)) {
+    return "missing package/";
+  }
+
+  if (!fs.existsSync(path.join(packageDir, "package.json"))) {
+    return "missing package.json";
+  }
+
+  if (fs.existsSync(path.join(packageDir, "cli.js"))) {
+    return null;
+  }
+
+  if (fs.existsSync(path.join(packageDir, "claude"))) {
+    return null;
+  }
+
+  if (fs.existsSync(path.join(packageDir, "bin", "claude.exe"))) {
+    return null;
+  }
+
+  return "missing cli.js or native executable";
+}
+
 function downloadPackage(packageName, version, packagesDir) {
   const safePackageName = packageName.replace(/[^a-zA-Z0-9_.-]+/g, "_");
   const versionRoot = path.join(packagesDir, `${safePackageName}-${version}`);
   const packageDir = path.join(versionRoot, "package");
   if (fs.existsSync(packageDir)) {
-    return packageDir;
+    const shapeError = downloadedPackageShapeError(packageDir);
+    if (!shapeError) {
+      return packageDir;
+    }
+    fs.rmSync(versionRoot, { recursive: true, force: true });
   }
 
   fs.mkdirSync(versionRoot, { recursive: true });
@@ -288,6 +323,11 @@ function downloadPackage(packageName, version, packagesDir) {
 
   if (!fs.existsSync(packageDir)) {
     fail(`Downloaded package ${packageName}@${version} did not unpack to package/`);
+  }
+
+  const shapeError = downloadedPackageShapeError(packageDir);
+  if (shapeError) {
+    fail(`Downloaded package ${packageName}@${version} is incomplete: ${shapeError}`);
   }
 
   return packageDir;
@@ -776,9 +816,22 @@ function runDisplayAudit(config, runtime) {
     });
   }
 
+  const commandCount = commands.filter((command) => command.audit !== "skip").length;
+  if (commandCount < audit.minCommandCount) {
+    const skipped = commands
+      .filter((command) => command.audit === "skip")
+      .map((command) => command.id)
+      .join(", ");
+    issues.push({
+      kind: "display-command-count",
+      id: "minimum_display_surfaces",
+      match: `expected at least ${audit.minCommandCount} audited surfaces, got ${commandCount}; skipped: ${skipped || "-"}`,
+    });
+  }
+
   return {
     status: issues.length > 0 ? "fail" : "pass",
-    commandCount: commands.filter((command) => command.audit !== "skip").length,
+    commandCount,
     issueCount: issues.length,
     commands,
     issues,

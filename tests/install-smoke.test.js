@@ -208,6 +208,17 @@ test("Windows PowerShell old-npm install smoke is wired into CI", () => {
   );
 });
 
+test("install.ps1 gates launcher injection to Windows old npm cli.js installs", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+
+  assert.match(script, /function remove-launcher-artifacts \{/);
+  assert.match(script, /当前安装方式不是 npm cli\.js/);
+  assert.match(script, /remove-launcher-artifacts/);
+  assert.match(script, /launcher 目录还有其他文件，未移除 PATH/);
+  assert.match(script, /detect-install \$realClaude/);
+  assert.match(script, /\$kind -ne "npm"/);
+});
+
 test(
   "install.ps1 patches Windows old npm cli.js representatives without touching the real user install",
   { skip: windowsPowerShellRequired },
@@ -263,6 +274,7 @@ test(
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-ps-native-"));
     const fakeClaude = path.join(tmp, "native", "claude.exe");
     const pluginRoot = path.join(tmp, "home", ".claude", "plugins", "claude-code-zh-cn");
+    const launcherBin = path.join(tmp, "home", ".claude", "bin");
     const markerFile = path.join(pluginRoot, ".patched-version");
     createFakePeBinary(fakeClaude);
 
@@ -276,6 +288,8 @@ test(
     assert.equal(result.status, 0, output);
     assert.match(output, /原生二进制/, output);
     assert.match(output, /暂不支持 patch/, output);
+    assert.equal(fs.existsSync(path.join(launcherBin, "claude.cmd")), false, "unsupported native exe must not install launcher");
+    assert.equal(fs.existsSync(path.join(launcherBin, "claude.ps1")), false, "unsupported native exe must not install launcher");
     assert.equal(fs.existsSync(markerFile), false, "unsupported native exe must not write a success marker");
     assert.equal(readUserPath(powershell), beforeUserPath, "smoke must not mutate persistent Windows user PATH");
   }

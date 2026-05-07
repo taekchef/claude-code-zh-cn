@@ -248,7 +248,67 @@ function sync-plugin {
 }
 
 # ======== Launcher 安装 ========
+function remove-launcher-file {
+    param([string]$Target)
+    if (-not (Test-Path $Target)) { return }
+
+    $content = ""
+    try {
+        $content = [System.IO.File]::ReadAllText($Target, [System.Text.Encoding]::UTF8)
+    } catch {}
+
+    if ($content -match "claude-code-zh-cn") {
+        Remove-Item $Target -Force -ErrorAction SilentlyContinue
+        return $true
+    } elseif (-not $SkipBanner) {
+        Write-CN "检测到自定义 launcher，未自动删除：$Target" Yellow
+    }
+    return $false
+}
+
+function remove-launcher-artifacts {
+    $removedCmd = remove-launcher-file "$LauncherBinDir\claude.cmd"
+    $removedPs1 = remove-launcher-file "$LauncherBinDir\claude.ps1"
+
+    $remaining = @()
+    if (Test-Path $LauncherBinDir) {
+        $remaining = @(Get-ChildItem $LauncherBinDir -ErrorAction SilentlyContinue)
+        if (-not $remaining) {
+            Remove-Item $LauncherBinDir -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if ($remaining -and -not $SkipBanner -and ($removedCmd -or $removedPs1)) {
+        Write-CN "launcher 目录还有其他文件，未移除 PATH：$LauncherBinDir" Yellow
+    }
+
+    if (-not $remaining -and $env:ZH_CN_SKIP_USER_PATH_UPDATE -ne "1") {
+        $currentUserPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        if ($currentUserPath -like "*$LauncherBinDir*") {
+            $newPath = ($currentUserPath -split ';' | Where-Object {
+                $_ -ne $LauncherBinDir -and $_ -ne "$LauncherBinDir\"
+            }) -join ';'
+            [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+        }
+    }
+}
+
 function install-launcher {
+    $realClaude = find-real-claude
+    $installInfo = detect-install $realClaude
+    $kind = ""
+    if ($installInfo) {
+        $kind = ($installInfo -split ':', 2)[0]
+    }
+
+    if ($kind -ne "npm") {
+        remove-launcher-artifacts
+        if (-not $SkipBanner) {
+            Write-CN "当前安装方式不是 npm cli.js，已跳过 launcher PATH 注入" Yellow
+        }
+        return
+    }
+
     if (-not (Test-Path "$PluginSrc\bin\claude-launcher.cmd")) {
         if (-not $SkipBanner) {
             Write-CN "launcher 文件缺失，已跳过 PATH 注入" Yellow

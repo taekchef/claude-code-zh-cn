@@ -14,6 +14,8 @@ $PluginRoot = if ($env:CLAUDE_PLUGIN_ROOT) {
 $MarkerFile = Join-Path $PluginRoot ".patched-version"
 $SourceRepoFile = Join-Path $PluginRoot ".source-repo"
 $LastUpdateCheckFile = Join-Path $PluginRoot ".last-update-check"
+$SettingsOverlayCacheFile = Join-Path $PluginRoot ".settings-overlay-cache.json"
+$SettingsFile = "$env:USERPROFILE\.claude\settings.json"
 $UpdateCheckInterval = if ($env:ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS) {
     [int]$env:ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS
 } else { 21600 }
@@ -114,6 +116,31 @@ function Get-InstallInfo($ClaudeBin) {
     node $helperFile detect "$ClaudeBin" 2>$null
 }
 
+function Repair-SettingsFromCache {
+    if (-not (Test-Path $SettingsOverlayCacheFile)) { return }
+
+    $settingsDir = Split-Path -Parent $SettingsFile
+    New-Item -Force -ItemType Directory -Path $settingsDir | Out-Null
+
+    $code = @'
+const fs=require("fs");
+const settingsFile=process.argv[2];
+const overlayFile=process.argv[3];
+const pluginKeys=["language","spinnerTipsEnabled","spinnerVerbs","spinnerTipsOverride"];
+function readJson(file,fallback){try{return JSON.parse(fs.readFileSync(file,"utf8").replace(/^\uFEFF/,""))}catch(e){return fallback}}
+function isObject(value){return value&&typeof value==="object"&&!Array.isArray(value)}
+function deepMerge(base,override){const result={...base};for(const [key,value] of Object.entries(override)){if(isObject(result[key])&&isObject(value)){result[key]=deepMerge(result[key],value)}else{result[key]=value}}return result}
+const overlay=readJson(overlayFile,null);
+if(!isObject(overlay)) process.exit(0);
+const settingsRaw=readJson(settingsFile,{});
+const settings=isObject(settingsRaw)?settingsRaw:{};
+const merged=deepMerge(settings,overlay);
+const changed=pluginKeys.some((key)=>JSON.stringify(settings[key])!==JSON.stringify(merged[key]));
+if(changed){fs.writeFileSync(settingsFile,JSON.stringify(merged,null,2)+"\n")}
+'@
+    Invoke-JsScript -Code $code -Args @($SettingsFile, $SettingsOverlayCacheFile) | Out-Null
+}
+
 # ======== Auto Update ========
 $AutoUpdateMsg = ""
 $SourceRepo = $null
@@ -202,6 +229,8 @@ if ($InstallInfo) {
         }
     }
 }
+
+Repair-SettingsFromCache
 
 # ======== Cleanup tmp dir ========
 if (Test-Path $TmpDir) {

@@ -8,6 +8,8 @@ PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
 MARKER_FILE="$PLUGIN_ROOT/.patched-version"
 SOURCE_REPO_FILE="$PLUGIN_ROOT/.source-repo"
 LAST_UPDATE_CHECK_FILE="$PLUGIN_ROOT/.last-update-check"
+SETTINGS_OVERLAY_CACHE_FILE="$PLUGIN_ROOT/.settings-overlay-cache.json"
+SETTINGS_FILE="$HOME/.claude/settings.json"
 UPDATE_CHECK_INTERVAL_SECONDS="${ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS:-21600}"
 LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
 STAGING_DIR=""
@@ -238,6 +240,54 @@ write_update_status() {
     echo "$1" > "$PLUGIN_ROOT/.last-update-status"
 }
 
+repair_settings_from_cache() {
+    [ -f "$SETTINGS_OVERLAY_CACHE_FILE" ] || return 0
+
+    mkdir -p "$(dirname "$SETTINGS_FILE")" 2>/dev/null || return 0
+
+    ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY_CACHE="$SETTINGS_OVERLAY_CACHE_FILE" node <<'NODE' >/dev/null 2>&1 || true
+const fs = require("fs");
+
+const settingsFile = process.env.ZH_CN_SETTINGS;
+const overlayFile = process.env.ZH_CN_OVERLAY_CACHE;
+
+function readJson(file, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+function isPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (isPlainObject(result[key]) && isPlainObject(value)) {
+      result[key] = deepMerge(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+const overlay = readJson(overlayFile, null);
+if (!isPlainObject(overlay)) {
+  process.exit(0);
+}
+
+const settings = readJson(settingsFile, {});
+const base = isPlainObject(settings) ? settings : {};
+const merged = deepMerge(base, overlay);
+
+fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2) + "\n");
+NODE
+}
+
 find_real_claude_binary() {
     if [ -n "${ZH_CN_REAL_CLAUDE:-}" ] && [ -x "${ZH_CN_REAL_CLAUDE:-}" ]; then
         printf "%s" "$ZH_CN_REAL_CLAUDE"
@@ -433,6 +483,8 @@ elif [ -f "$CLI_FILE" ]; then
         fi
     fi
 fi
+
+repair_settings_from_cache
 
 # 读取用户输入
 read -r INPUT

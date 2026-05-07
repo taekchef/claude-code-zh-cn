@@ -238,3 +238,124 @@ test("verify-upstream-compat fails when audited display output leaves user-visib
     },
   ]);
 });
+
+test("verify-upstream-compat fails when display audit silently skips expected surfaces", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-count-config-"));
+  const fixtures = path.join(tmp, "packages");
+  const packageDir = path.join(fixtures, "1.0.4-display-count", "package");
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "cli.js"),
+    [
+      "#!/usr/bin/env node",
+      "if (process.argv[2] === '--help') {",
+      "  console.log('用法：claude [options]');",
+      "  process.exit(0);",
+      "}",
+      "process.exit(2);",
+      "",
+    ].join("\n")
+  );
+
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: ["1.0.4-display-count"],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.checks.displayAudit = {
+    minCommandCount: 2,
+    commands: [
+      { id: "top_help", args: ["--help"] },
+      { id: "missing_help", args: ["missing", "--help"], optional: true },
+    ],
+    maxUntranslatedLines: 0,
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixtures, "--skip-latest", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+    }
+  );
+
+  assert.equal(result.status, 1, "skipped display surfaces should block generated matrix drift");
+  const payload = JSON.parse(result.stdout);
+  const [entry] = payload.results;
+
+  assert.equal(entry.status, "fail");
+  assert.equal(entry.displayAudit.status, "fail");
+  assert.equal(entry.displayAudit.commandCount, 1);
+  assert.match(entry.displayAudit.issues[0].match, /expected at least 2 audited surfaces, got 1/);
+});
+
+test("verify-upstream-compat refreshes a corrupt downloaded package cache", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-corrupt-cache-"));
+  const packagesDir = path.join(tmp, "cache");
+  const packageName = "@anthropic-ai/claude-code";
+  const version = "1.0.5-corrupt-cache";
+  const safePackageName = packageName.replace(/[^a-zA-Z0-9_.-]+/g, "_");
+  const badPackageDir = path.join(packagesDir, `${safePackageName}-${version}`, "package");
+  fs.mkdirSync(badPackageDir, { recursive: true });
+  fs.writeFileSync(path.join(badPackageDir, "stale.txt"), "bad cache\n");
+
+  const binDir = path.join(tmp, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  const fakeNpm = path.join(binDir, "npm");
+  fs.writeFileSync(
+    fakeNpm,
+    [
+      "#!/usr/bin/env node",
+      "const fs = require('node:fs');",
+      "const path = require('node:path');",
+      "const { execFileSync } = require('node:child_process');",
+      "const root = process.cwd();",
+      "const staging = path.join(root, 'pack-staging');",
+      "const packageDir = path.join(staging, 'package');",
+      "fs.mkdirSync(packageDir, { recursive: true });",
+      "fs.writeFileSync(path.join(packageDir, 'package.json'), JSON.stringify({ name: '@anthropic-ai/claude-code', version: '1.0.5-corrupt-cache' }));",
+      "fs.writeFileSync(path.join(packageDir, 'cli.js'), `#!/usr/bin/env node\\nconsole.log('Quick safety check')\\n`);",
+      "execFileSync('tar', ['-czf', 'claude-code-1.0.5-corrupt-cache.tgz', '-C', staging, 'package'], { cwd: root });",
+      "process.stdout.write('claude-code-1.0.5-corrupt-cache.tgz\\n');",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(fakeNpm, 0o755);
+
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: [version],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.checks = {
+    sentinels: [],
+    templateResidues: [],
+    upstreamTextGuards: [],
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--packages-dir", packagesDir, "--skip-latest", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+      },
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(fs.existsSync(path.join(badPackageDir, "stale.txt")), false);
+  assert.equal(fs.existsSync(path.join(badPackageDir, "cli.js")), true);
+  assert.equal(fs.existsSync(path.join(badPackageDir, "package.json")), true);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.summary.pass, 1);
+});
