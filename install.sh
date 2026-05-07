@@ -467,17 +467,49 @@ remove_launcher_artifacts() {
     rmdir "$LAUNCHER_BIN_DIR" 2>/dev/null || true
 }
 
+detect_launcher_installation() {
+    local claude_bin
+    claude_bin="$(find_real_claude_binary)"
+    if [ -z "$claude_bin" ]; then
+        return 0
+    fi
+
+    node - "$claude_bin" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+
+let realPath = "";
+try {
+  realPath = fs.realpathSync(process.argv[2]);
+} catch {
+  process.exit(0);
+}
+
+const candidates = [
+  path.resolve(path.dirname(realPath), "../lib/node_modules/@anthropic-ai/claude-code/cli.js"),
+  path.resolve(path.dirname(realPath), "node_modules/@anthropic-ai/claude-code/cli.js"),
+];
+
+for (const cliFile of candidates) {
+  if (fs.existsSync(cliFile)) {
+    process.stdout.write(`npm:${cliFile}`);
+    process.exit(0);
+  }
+}
+NODE
+}
+
 install_launcher() {
     local source_launcher="$PLUGIN_DST/bin/claude-launcher"
     local install_info install_kind
     local target
 
-    install_info="$(detect_installation)"
+    install_info="$(detect_launcher_installation)"
     install_kind="${install_info%%:*}"
 
     if [ "$install_kind" != "npm" ]; then
         remove_launcher_artifacts
-        LAUNCHER_STATUS_SUMMARY="已跳过（当前安装方式不是 npm cli.js）"
+        LAUNCHER_STATUS_SUMMARY="已跳过（当前 claude 命令不是 npm cli.js）"
         if [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${YELLOW}当前安装方式不需要 npm 启动前自修复，已跳过 launcher PATH 注入${NC}"
         fi

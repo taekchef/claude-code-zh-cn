@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.3] - 2026-05-07
+
+### 修复
+
+- 加强第三方 wrapper 兼容修复：即使机器上同时存在全局 npm Claude，只要当前 PATH 命中的 `claude` 不是 npm `cli.js` 安装，也不会注入本插件 launcher
+- launcher 安装判断现在只看当前实际 `claude` 命令本身，不再用 `npm root -g` 兜底结果决定 PATH 注入，避免 cmux 等第三方 wrapper 再次被串联
+
+### 验证
+
+- 新增混合安装回归测试：第三方 wrapper + 全局 npm Claude 共存时仍跳过 launcher 注入
+- `node --test tests/launcher.test.js`
+
 ## [2.4.2] - 2026-05-07
 
 ### 修复

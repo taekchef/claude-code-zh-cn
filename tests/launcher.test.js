@@ -100,11 +100,12 @@ function createLauncherContext() {
   };
 }
 
-function createUnsupportedWrapperContext() {
+function createUnsupportedWrapperContext({ withGlobalNpmFallback = false } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-unsupported-wrapper-"));
   const home = path.join(tmp, "home");
   const shellBin = path.join(tmp, "cmd-bin");
   const realBin = path.join(tmp, "third-party-bin");
+  const globalRoot = path.join(tmp, "global-node-modules");
   const profileFile = path.join(home, ".zshrc");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
   const launcherBin = path.join(home, ".claude", "bin");
@@ -137,6 +138,23 @@ function createUnsupportedWrapperContext() {
     "rm",
     "grep",
   ]);
+
+  if (withGlobalNpmFallback) {
+    const globalCliDir = path.join(globalRoot, "@anthropic-ai", "claude-code");
+    fs.mkdirSync(globalCliDir, { recursive: true });
+    fs.writeFileSync(path.join(globalCliDir, "cli.js"), englishCliFixture());
+    fs.writeFileSync(
+      path.join(shellBin, "npm"),
+      `#!/usr/bin/env bash
+if [ "$1" = "root" ] && [ "$2" = "-g" ]; then
+  printf '%s\\n' ${JSON.stringify(globalRoot)}
+  exit 0
+fi
+exit 1
+`
+    );
+    fs.chmodSync(path.join(shellBin, "npm"), 0o755);
+  }
 
   return {
     tmp,
@@ -246,6 +264,20 @@ test("install.sh removes stale launcher injection for unsupported third-party cl
     fs.readFileSync(context.profileFile, "utf8"),
     /claude-code-zh-cn launcher/,
     "profile launcher injection should be removed"
+  );
+});
+
+test("install.sh ignores global npm fallback when current claude is a third-party wrapper", () => {
+  const context = createUnsupportedWrapperContext({ withGlobalNpmFallback: true });
+
+  const install = runInstall(context);
+
+  assert.equal(install.status, 0, install.stderr || install.stdout);
+  assert.equal(fs.existsSync(context.launcherFile), false, "launcher should not be installed from npm fallback");
+  assert.doesNotMatch(
+    fs.readFileSync(context.profileFile, "utf8"),
+    /claude-code-zh-cn launcher/,
+    "profile launcher injection should not be added from npm fallback"
   );
 });
 
