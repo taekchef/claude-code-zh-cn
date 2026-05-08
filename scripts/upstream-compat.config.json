@@ -55,6 +55,18 @@
         "pattern": "You are a status line setup agent for Claude Code."
       },
       {
+        "id": "statusline_setup_home_path_guard",
+        "rule": "preserve",
+        "sourcePattern": "You are a status line setup agent for Claude Code.",
+        "pattern": "Never invent or guess an absolute /Users/... path"
+      },
+      {
+        "id": "statusline_command_agent_prompt_path_guard",
+        "rule": "preserve",
+        "sourcePattern": "with subagent_type \"statusline-setup\" and the prompt",
+        "pattern": "CRITICAL TOOL PATH RULE"
+      },
+      {
         "id": "web_search_exact_terms_contract",
         "rule": "preserve",
         "pattern": "Use exact search terms without * or ?"

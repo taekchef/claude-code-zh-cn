@@ -210,6 +210,42 @@ test("model prompt contract translations are skipped while regular UI still patc
   assert.match(patched, /const ui="欢迎回来！";/);
 });
 
+test("statusline setup prompt uses tilde paths instead of guessed home directories", () => {
+  const patched = patchFixture([
+    "const statuslineSetup=`You are a status line setup agent for Claude Code. Your job is to create or update the statusLine command in the user's Claude Code settings.",
+    '',
+    "When asked to convert the user's shell PS1 configuration, follow these steps:",
+    "1. Read the user's shell configuration files in this order of preference:",
+    '   - ~/.zshrc',
+    '   - ~/.bashrc',
+    '   - ~/.bash_profile',
+    '   - ~/.profile',
+    '',
+    'Update ~/.claude/settings.json when ready.`;',
+    "",
+  ]);
+
+  assert.match(patched, /Path handling for tools:/);
+  assert.match(patched, /Use shell-relative paths exactly as written when calling tools/);
+  assert.match(patched, /~\/\.zshrc/);
+  assert.match(patched, /~\/\.claude\/settings\.json/);
+  assert.match(patched, /Never invent or guess an absolute \/Users\/\.\.\. path/);
+  assert.equal(patched.includes("`/Users/...`"), false, patched);
+  assert.equal(/[\u3400-\u9fff]/.test(patched), false, patched);
+});
+
+test("/statusline command forwards path guard into setup agent task prompt", () => {
+  const patched = patchFixture([
+    'const statuslineCommand={async getPromptForCommand(H){let _=H.trim()||"Configure my statusLine from my shell PS1 configuration";return[{type:"text",text:`Create an ${n9} with subagent_type "statusline-setup" and the prompt "${_}"`}]}};',
+    "",
+  ]);
+
+  assert.match(patched, /CRITICAL TOOL PATH RULE/);
+  assert.match(patched, /use only ~\/\.zshrc, ~\/\.bashrc, ~\/\.bash_profile, ~\/\.profile, and ~\/\.claude\/settings\.json/);
+  assert.match(patched, /never use an absolute \/Users\/\.\.\. path/);
+  assert.equal(/[\u3400-\u9fff]/.test(patched), false, patched);
+});
+
 test("single-quoted and template matches in comments or regex literals stay untouched", () => {
   const patched = patchFixture([
     "// `Toggle fast mode (${im} only)` should remain untouched in comments",

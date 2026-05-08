@@ -6,6 +6,24 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.6] - 2026-05-09
+
+### 改进
+
+- macOS native experimental 支持窗口扩展到已验证的 Claude Code `2.1.133`，并明确 `2.1.124 - 2.1.132` 未纳入本轮支持，避免把未验证 latest 误报为稳定支持
+- SessionStart 中文上下文新增“机器配置保护”，生成或修改 `settings.json`、`statusLine`、Hook、MCP、工具参数等机器可读内容时保留 key、命令、路径、`subagent_type` 等原文
+
+### 修复
+
+- CLI Patch 现在跳过模型内部 prompt contract 片段，避免 `/statusline`、memory、环境说明等内部 prompt 被半中文化后影响工具调用或 subagent 设置流程
+- `/statusline` 内置 setup agent 和 Agent 任务 prompt 新增路径保护，要求工具调用使用 `~/.zshrc`、`~/.claude/settings.json` 等 `~` 路径，避免第三方模型猜测 `/Users/...` 绝对路径后卡在权限流程
+- 补齐 Claude Code `2.1.133` 新增 help 文案翻译，同时保持模型协议文本不被误 patch
+
+### 验证
+
+- `npm_config_cache=/private/tmp/cczh-npm-cache bash scripts/preflight.sh`
+- `npm_config_cache=/private/tmp/cczh-npm-cache npm_config_prefix=/private/tmp/cczh-node-lief node scripts/verify-upstream-compat.js --baseline 2.1.133 --skip-latest --native-macos-arm64 --json`
+
 ## [2.4.5] - 2026-05-08
 
 ### 改进

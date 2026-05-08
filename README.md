@@ -127,7 +127,7 @@ cd claude-code-zh-cn
 - ✅ 备份现有 `~/.claude/settings.json` 和 `cli.js`（或原生二进制）
 - ✅ 合并中文设置到 settings.json
 - ✅ 安装插件到 `~/.claude/plugins/claude-code-zh-cn/`
-- ✅ 在 stable 安装方式上 patch 硬编码文字（1662 条翻译；当前 stable 代表版本 `2.1.112` 实测 1511 处有效 patch，显示审计 11/11 PASS）
+- ✅ 在 stable 安装方式上 patch 硬编码文字（1662 条翻译；当前 stable 代表版本 `2.1.112` 实测 1513 处有效 patch，显示审计 11/11 PASS）
 - ✅ 在 macOS native experimental 已验证版本上 patch 硬编码文字（`2.1.113 - 2.1.114`、`2.1.116 - 2.1.123`、`2.1.133` 实测 1321-1358 处，显示审计 11/11 PASS）
 - ✅ 如当前安装方式暂不支持 CLI Patch 或缺少 `node-lief`，自动跳过 Layer 4 并保留 Layer 1~3
 
@@ -218,7 +218,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File uninstall.ps1
 | 中文上下文注入 | - | SessionStart Hook |
 | 通知翻译 | 6 条 | Notification Hook |
 | 输出风格 | - | Chinese Output Style |
-| UI 文字中文化 | 1662 条翻译，`2.1.112` 实测 1511 处有效 patch；macOS native experimental `2.1.113 - 2.1.114`、`2.1.116 - 2.1.123`、`2.1.133` 实测 1321-1358 处；固定显示面审计均为 11/11 PASS | CLI Patch（扫描真实双引号字符串 token 后逐条替换）+ 显示面审计 |
+| UI 文字中文化 | 1662 条翻译，`2.1.112` 实测 1513 处有效 patch；macOS native experimental `2.1.113 - 2.1.114`、`2.1.116 - 2.1.123`、`2.1.133` 实测 1321-1358 处；固定显示面审计均为 11/11 PASS | CLI Patch（扫描真实双引号字符串 token 后逐条替换）+ 显示面审计 |
 | 自动重 patch | - | 版本检测，更新后首次会话自动修复 |
 | 插件自动更新 | - | SessionStart Hook（只跟随已发布 Release tag） |
 

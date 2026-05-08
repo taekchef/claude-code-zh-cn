@@ -530,8 +530,43 @@ function shouldSkipTranslationRule(rule) {
     return rule && (rule.skipPatch === true || rule.skipPatch === "model-prompt-contract");
 }
 
+function installStatuslinePromptPathGuard() {
+    const source =
+        "Your job is to create or update the statusLine command in the user's Claude Code settings.\n\nWhen asked to convert the user's shell PS1 configuration, follow these steps:";
+    const replacement =
+        "Your job is to create or update the statusLine command in the user's Claude Code settings.\n\nPath handling for tools:\n- Use shell-relative paths exactly as written when calling tools: ~/.zshrc, ~/.bashrc, ~/.bash_profile, ~/.profile, and ~/.claude/settings.json.\n- Never invent or guess an absolute /Users/... path; the host resolves ~ for the current user.\n\nWhen asked to convert the user's shell PS1 configuration, follow these steps:";
+    tryReplace(source, replacement);
+}
+
+function installStatuslineCommandPromptPathGuard() {
+    const guard =
+        " CRITICAL TOOL PATH RULE: use only ~/.zshrc, ~/.bashrc, ~/.bash_profile, ~/.profile, and ~/.claude/settings.json when calling Read or Edit; never use an absolute /Users/... path.";
+    tryRegexReplace(
+        /`Create an \$\{([^}]+)\} with subagent_type "statusline-setup" and the prompt "\$\{([^}]+)\}"`/g,
+        (match, agentExpr, promptExpr) => {
+            if (match.includes("CRITICAL TOOL PATH RULE")) {
+                return match;
+            }
+            return (
+                "`Create an ${" +
+                agentExpr +
+                '} with subagent_type "statusline-setup" and the prompt "${' +
+                promptExpr +
+                "}" +
+                guard +
+                '"`'
+            );
+        }
+    );
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
+
+// 0. /statusline 内部 agent prompt 防守：第三方模型容易猜错 /Users/... 绝对路径。
+// 保持英文，不做中文化；只强化工具路径契约。
+installStatuslinePromptPathGuard();
+installStatuslineCommandPromptPathGuard();
 
 // 1. 过去式动词数组
 tryReplace(
