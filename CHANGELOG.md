@@ -6,6 +6,26 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.5] - 2026-05-08
+
+### 改进
+
+- CI 改为通过 `scripts/preflight.sh` 统一执行 PR 维护检查，减少本地和远端检查口径分叉
+- 新增 macOS native latest candidate workflow，可手动或定时验证最新 native 候选版本，并只上传 JSON 结果，不自动扩大支持窗口
+- 安装脚本改用共享 Node helper 处理 settings JSON 合并和 patch revision，减少对 Python / 大环境变量的依赖
+- README 新增“30 秒怎么选”，把 old npm、macOS native experimental、latest / next、Windows PowerShell 的使用建议放在快速开始入口
+
+### 修复
+
+- 自动更新打包现在包含 `scripts/install-json-helper.js`，避免更新包缺少安装 helper
+- 卸载脚本只删除带有本插件标记的 launcher，遇到用户自定义 launcher 会保留并提示
+- Windows 安装脚本会检查 install-json-helper 执行失败，避免 helper 异常时静默继续
+
+### 验证
+
+- `node --test tests/*.test.js`
+- `npm_config_cache=/private/tmp/cczh-npm-cache bash scripts/preflight.sh --base origin/main --skip-release-state`
+
 ## [2.4.4] - 2026-05-08
 
 ### 修复
