@@ -64,6 +64,16 @@ function run-js {
     }
 }
 
+function run-install-json-helper {
+    param([string[]]$HelperArgs)
+    $output = & node $InstallJsonHelper @HelperArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-CN "错误：install-json-helper 执行失败" Red
+        exit 1
+    }
+    return $output
+}
+
 # ======== Settings 合并脚本（单行 JS，无特殊字符） ========
 $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.env.ZH_CN_SETTINGS_DIR;try{var all=fs.readdirSync(dir).filter(function(n){return n.indexOf('settings.json.zh-cn-backup.')===0}).sort();var stale=all.slice(0,Math.max(0,all.length-5));for(var i=0;i<stale.length;i++){fs.unlinkSync(path.join(dir,stale[i]))}}catch(e){}"
 $JS_BUILD_OVERLAY_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var base=r(process.argv[2]);var verbs=r(process.argv[3]);var tips=r(process.argv[4]);base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:(tips.tips||[]).map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
@@ -199,7 +209,7 @@ function remove-old-backups {
 
 function build-overlay {
     if (Test-Path $InstallJsonHelper) {
-        return node $InstallJsonHelper build-overlay $OverlayFile "$ScriptDir\verbs\zh-CN.json" "$ScriptDir\tips\zh-CN.json"
+        return run-install-json-helper -HelperArgs @("build-overlay", $OverlayFile, "$ScriptDir\verbs\zh-CN.json", "$ScriptDir\tips\zh-CN.json")
     }
     return run-js $JS_BUILD_OVERLAY_FILES @($OverlayFile, "$ScriptDir\verbs\zh-CN.json", "$ScriptDir\tips\zh-CN.json")
 }
@@ -221,7 +231,7 @@ function merge-settings {
     [System.IO.File]::WriteAllText($overlayTempFile, $overlayContent, $utf8NoBom)
     try {
         if (Test-Path $InstallJsonHelper) {
-            $mergeResult = node $InstallJsonHelper deep-merge-settings $SettingsFile $overlayTempFile
+            $mergeResult = run-install-json-helper -HelperArgs @("deep-merge-settings", $SettingsFile, $overlayTempFile)
         } else {
             $mergeResult = run-js $JS_DEEP_MERGE_FILES @($SettingsFile, $overlayTempFile)
         }
@@ -360,7 +370,7 @@ function install-launcher {
 function get-patch-revision {
     param([string]$Root)
     if (Test-Path $InstallJsonHelper) {
-        node $InstallJsonHelper patch-revision $Root
+        run-install-json-helper -HelperArgs @("patch-revision", $Root)
     } else {
         run-js $JS_PATCH_REVISION @($Root)
     }

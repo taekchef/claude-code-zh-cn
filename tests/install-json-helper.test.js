@@ -118,3 +118,13 @@ test("Windows uninstall protects custom launcher files with the same zh-cn marke
   assert.match(script, /claude-code-zh-cn/);
   assert.match(script, /检测到自定义 launcher，未自动删除/);
 });
+
+test("Windows installer checks install-json-helper native command failures", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+
+  assert.match(script, /function run-install-json-helper/);
+  assert.match(script, /\$LASTEXITCODE -ne 0/);
+  assert.match(script, /run-install-json-helper -HelperArgs @\("build-overlay"/);
+  assert.match(script, /run-install-json-helper -HelperArgs @\("deep-merge-settings"/);
+  assert.match(script, /run-install-json-helper -HelperArgs @\("patch-revision"/);
+});
