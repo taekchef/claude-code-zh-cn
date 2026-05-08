@@ -15,7 +15,7 @@
 bash scripts/preflight.sh
 ```
 
-它串起来的是 CI 里会拦 PR 的同一套检查：
+它串起来的是本地 full preflight，也是主线/发布前应该跑的完整检查：
 
 | 检查 | 本地命令覆盖 |
 | --- | --- |
@@ -39,6 +39,14 @@ bash scripts/preflight.sh --base <base-sha>
 ```bash
 bash scripts/preflight.sh --skip-payload-source
 ```
+
+CI 和本地 full preflight 有一个有意差异：PR / main push 发生时还不一定有 tag / GitHub Release，所以 CI 会跳过 release-state：
+
+```bash
+bash scripts/preflight.sh --base <base-sha> --skip-release-state
+```
+
+`push main` 的 CI 因为不是 PR diff，还会用 `--skip-payload-source` 跳过 PR 专用的 payload/source guard。发布后必须单独跑 `node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn`，确认 tag / GitHub Release 已补齐。
 
 ## payload 文件维护
 

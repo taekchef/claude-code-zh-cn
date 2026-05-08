@@ -15,6 +15,7 @@ BACKUP_FILE="$HOME/.claude/settings.json.zh-cn-backup.$(date +%Y%m%d%H%M%S)"
 OVERLAY_FILE="$SCRIPT_DIR/settings-overlay.json"
 PLUGIN_SRC="$SCRIPT_DIR/plugin"
 PLUGIN_DST="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
+INSTALL_JSON_HELPER="$SCRIPT_DIR/scripts/install-json-helper.js"
 MARKER_FILE="$PLUGIN_DST/.patched-version"
 SOURCE_REPO_FILE="$PLUGIN_DST/.source-repo"
 LAST_UPDATE_CHECK_FILE="$PLUGIN_DST/.last-update-check"
@@ -30,7 +31,13 @@ CLI_PATCH_STATUS_OK=false
 LAUNCHER_STATUS_SUMMARY="已跳过（未执行 launcher 安装）"
 LAUNCHER_STATUS_OK=false
 
-source "$SCRIPT_DIR/compute-patch-revision.sh"
+if [ -f "$INSTALL_JSON_HELPER" ]; then
+    compute_patch_revision() {
+        node "$INSTALL_JSON_HELPER" patch-revision "$1"
+    }
+else
+    source "$SCRIPT_DIR/compute-patch-revision.sh"
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -259,18 +266,24 @@ try {
 }
 
 build_overlay_content() {
-    local overlay_content verbs_content tips_content
+    if [ -f "$INSTALL_JSON_HELPER" ]; then
+        node "$INSTALL_JSON_HELPER" build-overlay \
+            "$OVERLAY_FILE" \
+            "$SCRIPT_DIR/verbs/zh-CN.json" \
+            "$SCRIPT_DIR/tips/zh-CN.json"
+        return
+    fi
 
-    overlay_content=$(cat "$OVERLAY_FILE")
-    verbs_content=$(cat "$SCRIPT_DIR/verbs/zh-CN.json")
-    tips_content=$(cat "$SCRIPT_DIR/tips/zh-CN.json")
-
-    ZH_CN_BASE="$overlay_content" ZH_CN_VERBS="$verbs_content" ZH_CN_TIPS="$tips_content" node -e "
-const base = JSON.parse(process.env.ZH_CN_BASE);
-const verbs = JSON.parse(process.env.ZH_CN_VERBS);
-const tips = JSON.parse(process.env.ZH_CN_TIPS);
+    ZH_CN_BASE_FILE="$OVERLAY_FILE" \
+    ZH_CN_VERBS_FILE="$SCRIPT_DIR/verbs/zh-CN.json" \
+    ZH_CN_TIPS_FILE="$SCRIPT_DIR/tips/zh-CN.json" \
+    node -e "
+const fs = require('fs');
+const base = JSON.parse(fs.readFileSync(process.env.ZH_CN_BASE_FILE, 'utf8').replace(/^\uFEFF/, ''));
+const verbs = JSON.parse(fs.readFileSync(process.env.ZH_CN_VERBS_FILE, 'utf8').replace(/^\uFEFF/, ''));
+const tips = JSON.parse(fs.readFileSync(process.env.ZH_CN_TIPS_FILE, 'utf8').replace(/^\uFEFF/, ''));
 base.spinnerVerbs = verbs;
-base.spinnerTipsOverride = { excludeDefault: true, tips: tips.tips.map(t => t.text) };
+base.spinnerTipsOverride = { excludeDefault: true, tips: (tips.tips || []).map(t => t.text) };
 process.stdout.write(JSON.stringify(base));
 "
 }
@@ -301,25 +314,27 @@ merge_settings() {
         fi
         echo "$merged" > "$SETTINGS_FILE"
     else
-        ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY="$overlay_content" node -e "
+        local overlay_temp
+        overlay_temp="${SETTINGS_FILE}.zh-cn-overlay.$$"
+        printf '%s' "$overlay_content" > "$overlay_temp"
+        if [ -f "$INSTALL_JSON_HELPER" ]; then
+            node "$INSTALL_JSON_HELPER" deep-merge-settings "$SETTINGS_FILE" "$overlay_temp" >/dev/null
+        else
+            ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY_FILE="$overlay_temp" node -e "
 const fs = require('fs');
 
-const settingsFile = process.env.ZH_CN_SETTINGS;
-const overlayContent = process.env.ZH_CN_OVERLAY;
-const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
-const overlay = JSON.parse(overlayContent);
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
 
 function deepMerge(base, override) {
   const result = { ...base };
   for (const [key, value] of Object.entries(override)) {
-    if (
-      result[key] &&
-      typeof result[key] === 'object' &&
-      !Array.isArray(result[key]) &&
-      value &&
-      typeof value === 'object' &&
-      !Array.isArray(value)
-    ) {
+    if (isPlainObject(result[key]) && isPlainObject(value)) {
       result[key] = deepMerge(result[key], value);
     } else {
       result[key] = value;
@@ -328,9 +343,11 @@ function deepMerge(base, override) {
   return result;
 }
 
-const merged = deepMerge(settings, overlay);
-fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2) + '\n');
-" 2>/dev/null
+const merged = deepMerge(readJson(process.env.ZH_CN_SETTINGS), readJson(process.env.ZH_CN_OVERLAY_FILE));
+fs.writeFileSync(process.env.ZH_CN_SETTINGS, JSON.stringify(merged, null, 2) + '\n');
+"
+        fi
+        rm -f "$overlay_temp" 2>/dev/null || true
     fi
 
     if [ "$SKIP_BANNER" != "1" ]; then

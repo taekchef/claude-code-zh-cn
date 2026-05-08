@@ -1,0 +1,64 @@
+name: Native Latest Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Claude Code version to verify. Leave empty to use npm latest."
+        required: false
+        type: string
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify macOS native candidate
+    # GitHub currently maps macos-15 to the macOS 15 arm64 hosted runner.
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install native verification dependency
+        run: npm install --no-save node-lief
+
+      - name: Resolve candidate version
+        id: version
+        shell: bash
+        run: |
+          INPUT_VERSION="${{ inputs.version || '' }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="$(npm view @anthropic-ai/claude-code version)"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify native candidate
+        id: verify
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          JSON_PATH="${RUNNER_TEMP}/native-latest-candidate-${VERSION}.json"
+          set +e
+          node scripts/verify-upstream-compat.js --baseline "${VERSION}" --skip-latest --native-macos-arm64 --json > "$JSON_PATH"
+          STATUS=$?
+          set -e
+          echo "json_path=${JSON_PATH}" >> "$GITHUB_OUTPUT"
+          exit "$STATUS"
+
+      - name: Upload native candidate JSON
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-latest-candidate-${{ steps.version.outputs.version }}
+          path: ${{ steps.verify.outputs.json_path }}
+          if-no-files-found: error

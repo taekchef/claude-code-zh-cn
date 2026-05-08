@@ -6,16 +6,19 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PAYLOAD_BASE="${PREFLIGHT_BASE:-origin/main}"
 SKIP_PAYLOAD_SOURCE=0
+SKIP_RELEASE_STATE=0
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/preflight.sh [--base <git-ref>] [--skip-payload-source]
+Usage: bash scripts/preflight.sh [--base <git-ref>] [--skip-payload-source] [--skip-release-state]
 
-Runs the local PR preflight suite that mirrors CI-blocking checks.
+Runs the local maintainer preflight suite. CI can use skip flags for checks that
+only make sense after publishing.
 
 Options:
   --base <git-ref>       Base ref for payload/source guard. Default: origin/main
   --skip-payload-source  Skip the PR-diff payload/source guard, useful outside PR branches
+  --skip-release-state   Skip tag/release checks, useful for pull_request CI before publishing
   -h, --help             Show this help
 EOF
 }
@@ -32,6 +35,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --skip-payload-source)
       SKIP_PAYLOAD_SOURCE=1
+      shift
+      ;;
+    --skip-release-state)
+      SKIP_RELEASE_STATE=1
       shift
       ;;
     -h|--help)
@@ -84,6 +91,7 @@ run node --check scripts/check-support-boundary.js
 run node --check scripts/check-translation-sentinels.js
 run node --check scripts/generate-plugin-support-window.js
 run node --check scripts/generate-support-matrix.js
+run node --check scripts/install-json-helper.js
 run node --check scripts/sync-doc-derived-counts.js
 run node --check scripts/sync-readme-support-window.js
 run node --check scripts/verify-release-state.js
@@ -107,8 +115,13 @@ run git diff --exit-code plugin/support-window.json
 step "Run tests"
 run node --test tests/*.test.js
 
-step "Verify release state"
-run node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
+if [ "$SKIP_RELEASE_STATE" -eq 1 ]; then
+  step "Verify release state"
+  echo "Skipped by --skip-release-state"
+else
+  step "Verify release state"
+  run node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
+fi
 
 step "Verify upstream compatibility"
 run node scripts/verify-upstream-compat.js
