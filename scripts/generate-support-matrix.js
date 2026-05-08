@@ -117,17 +117,10 @@ function buildMarkdown(config, compat) {
   const windowsNpmTier = windowsNpm.unsupported ? "unsupported" : "stable";
   const windowsNpmWindow = windowsNpm.unsupported ? windowsNpm : windowsNpmStable;
   const windowsNativeUnsupported = config.support?.windowsNativeExe || {};
-  const now = new Date();
-  const generatedOn = [
-    now.getUTCFullYear(),
-    String(now.getUTCMonth() + 1).padStart(2, "0"),
-    String(now.getUTCDate()).padStart(2, "0"),
-  ].join("-");
-
   const lines = [
     "# Support Matrix",
     "",
-    `> Generated from \`scripts/upstream-compat.config.json\` + \`node scripts/verify-upstream-compat.js --json\` on ${generatedOn}.`,
+    "> Generated from `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json`.",
     "",
     "## Quick Decision",
     "",

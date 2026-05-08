@@ -38,6 +38,7 @@ test("preflight script is the local entrypoint for CI-blocking checks", () => {
     "node --check scripts/generate-support-matrix.js",
     "node --check scripts/sync-doc-derived-counts.js",
     "node --check scripts/sync-readme-support-window.js",
+    "node --check scripts/verify-release-state.js",
     "node --check scripts/verify-upstream-compat.js",
     "node scripts/check-payload-sources.js --base",
     "node scripts/check-support-boundary.js",
@@ -45,6 +46,7 @@ test("preflight script is the local entrypoint for CI-blocking checks", () => {
     "node scripts/sync-doc-derived-counts.js --check",
     "node --test tests/*.test.js",
     "node scripts/verify-upstream-compat.js",
+    "node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn",
     "npm pack @anthropic-ai/claude-code@${VERSION} --silent",
     "node scripts/check-translation-sentinels.js",
     "node scripts/generate-support-matrix.js",
@@ -59,6 +61,7 @@ test("CONTRIBUTING points contributors at the one-command preflight", () => {
 
   assert.match(text, /bash scripts\/preflight\.sh/);
   assert.match(text, /本地校验/);
+  assert.match(text, /release-state \| `node scripts\/verify-release-state\.js --github-repo taekchef\/claude-code-zh-cn`/);
 });
 
 function escapeSnippet(snippet) {
