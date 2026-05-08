@@ -23,6 +23,7 @@ bash scripts/preflight.sh
 | payload/source guard | `node scripts/check-payload-sources.js --base origin/main` |
 | support-boundary | `node scripts/check-support-boundary.js` |
 | 全量 tests | `node --test tests/*.test.js` |
+| release-state | `node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn` |
 | upstream compat | `node scripts/verify-upstream-compat.js` |
 | translation sentinel | npm 拉取当前支持窗口最后一个版本，patch 后跑 `check-translation-sentinels.js` |
 | support-matrix drift | 重新生成 `docs/support-matrix.md`，再跑 `git diff --exit-code` |
@@ -70,7 +71,7 @@ CI 有两道检查：
 
 ## 发布状态校验
 
-发布新版本后，运行：
+`bash scripts/preflight.sh` 已经会跑一次发布状态校验。发布新版本后，也可以单独运行：
 
 ```bash
 node scripts/verify-release-state.js

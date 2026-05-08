@@ -24,41 +24,44 @@ function loadGeneratorWithDate(DateImpl) {
   return sandbox.module.exports;
 }
 
-test("support matrix generated date uses UTC to avoid timezone drift", () => {
-  class DateWithDifferentLocalDay {
-    getFullYear() {
-      return 2026;
-    }
-    getMonth() {
-      return 3;
-    }
-    getDate() {
-      return 28;
-    }
+test("support matrix output omits wall-clock dates to avoid daily CI drift", () => {
+  class DateOne {
     getUTCFullYear() {
       return 2026;
     }
     getUTCMonth() {
-      return 3;
+      return 4;
     }
     getUTCDate() {
-      return 27;
+      return 5;
     }
   }
 
-  const { buildMarkdown } = loadGeneratorWithDate(DateWithDifferentLocalDay);
-  const markdown = buildMarkdown(
-    {
-      support: {
-        npm: { stable: { representatives: [] } },
-        macosOfficialInstaller: { unsupported: true },
-        linuxOfficialInstaller: { unsupported: true },
-      },
-    },
-    { results: [], summary: { pass: 0, fail: 0 } }
-  );
+  class DateTwo {
+    getUTCFullYear() {
+      return 2026;
+    }
+    getUTCMonth() {
+      return 4;
+    }
+    getUTCDate() {
+      return 7;
+    }
+  }
 
-  assert.match(markdown, /on 2026-04-27\./);
+  const config = {
+    support: {
+      npm: { stable: { representatives: [] } },
+      macosOfficialInstaller: { unsupported: true },
+      linuxOfficialInstaller: { unsupported: true },
+    },
+  };
+  const compat = { results: [], summary: { pass: 0, fail: 0 } };
+  const first = loadGeneratorWithDate(DateOne).buildMarkdown(config, compat);
+  const second = loadGeneratorWithDate(DateTwo).buildMarkdown(config, compat);
+
+  assert.equal(first, second);
+  assert.doesNotMatch(first, /on \d{4}-\d{2}-\d{2}\./);
 });
 
 test("support matrix includes separate macOS native experimental row", () => {

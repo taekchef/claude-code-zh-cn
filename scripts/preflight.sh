@@ -86,6 +86,7 @@ run node --check scripts/generate-plugin-support-window.js
 run node --check scripts/generate-support-matrix.js
 run node --check scripts/sync-doc-derived-counts.js
 run node --check scripts/sync-readme-support-window.js
+run node --check scripts/verify-release-state.js
 run node --check scripts/verify-upstream-compat.js
 
 if [ "$SKIP_PAYLOAD_SOURCE" -eq 1 ]; then
@@ -105,6 +106,9 @@ run git diff --exit-code plugin/support-window.json
 
 step "Run tests"
 run node --test tests/*.test.js
+
+step "Verify release state"
+run node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
 
 step "Verify upstream compatibility"
 run node scripts/verify-upstream-compat.js
