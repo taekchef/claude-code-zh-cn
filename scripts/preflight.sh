@@ -6,19 +6,20 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PAYLOAD_BASE="${PREFLIGHT_BASE:-origin/main}"
 SKIP_PAYLOAD_SOURCE=0
-SKIP_RELEASE_STATE=0
+RUN_RELEASE_STATE=0
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/preflight.sh [--base <git-ref>] [--skip-payload-source] [--skip-release-state]
+Usage: bash scripts/preflight.sh [--base <git-ref>] [--skip-payload-source] [--release-state] [--skip-release-state]
 
-Runs the local maintainer preflight suite. CI can use skip flags for checks that
-only make sense after publishing.
+Runs the local preflight suite. Tag/GitHub Release checks are opt-in because they
+only make sense during maintainer release closeout.
 
 Options:
   --base <git-ref>       Base ref for payload/source guard. Default: origin/main
   --skip-payload-source  Skip the PR-diff payload/source guard, useful outside PR branches
-  --skip-release-state   Skip tag/release checks, useful for pull_request CI before publishing
+  --release-state        Run tag/release checks for maintainer release closeout
+  --skip-release-state   Keep release-state skipped; accepted for CI/backward compatibility
   -h, --help             Show this help
 EOF
 }
@@ -37,8 +38,12 @@ while [ "$#" -gt 0 ]; do
       SKIP_PAYLOAD_SOURCE=1
       shift
       ;;
+    --release-state)
+      RUN_RELEASE_STATE=1
+      shift
+      ;;
     --skip-release-state)
-      SKIP_RELEASE_STATE=1
+      RUN_RELEASE_STATE=0
       shift
       ;;
     -h|--help)
@@ -115,12 +120,12 @@ run git diff --exit-code plugin/support-window.json
 step "Run tests"
 run node --test tests/*.test.js
 
-if [ "$SKIP_RELEASE_STATE" -eq 1 ]; then
-  step "Verify release state"
-  echo "Skipped by --skip-release-state"
-else
+if [ "$RUN_RELEASE_STATE" -eq 1 ]; then
   step "Verify release state"
   run node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
+else
+  step "Verify release state"
+  echo "Skipped by default; run with --release-state for maintainer release gate"
 fi
 
 step "Verify upstream compatibility"

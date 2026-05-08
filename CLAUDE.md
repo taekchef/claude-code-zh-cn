@@ -44,3 +44,4 @@ Claude Code CLI 中文本地化插件。
 4. **打 tag** — `git tag vX.Y.Z`
 5. **推送** — `git push origin main --tags`
 6. **发 Release** — `gh release create vX.Y.Z --title "vX.Y.Z" --notes "变更摘要"`
+7. **发布状态校验** — `bash scripts/preflight.sh --release-state`，确认 manifest / CHANGELOG / tag / GitHub Release 对齐
