@@ -15,7 +15,7 @@
 bash scripts/preflight.sh
 ```
 
-它串起来的是本地 full preflight，也是主线/发布前应该跑的完整检查：
+它串起来的是普通贡献者和 PR 应该跑的本地 preflight。普通贡献者不需要 GitHub CLI、tag 或 GitHub Release：
 
 | 检查 | 本地命令覆盖 |
 | --- | --- |
@@ -23,7 +23,6 @@ bash scripts/preflight.sh
 | payload/source guard | `node scripts/check-payload-sources.js --base origin/main` |
 | support-boundary | `node scripts/check-support-boundary.js` |
 | 全量 tests | `node --test tests/*.test.js` |
-| release-state | `node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn` |
 | upstream compat | `node scripts/verify-upstream-compat.js` |
 | translation sentinel | npm 拉取当前支持窗口最后一个版本，patch 后跑 `check-translation-sentinels.js` |
 | support-matrix drift | 重新生成 `docs/support-matrix.md`，再跑 `git diff --exit-code` |
@@ -40,13 +39,13 @@ bash scripts/preflight.sh --base <base-sha>
 bash scripts/preflight.sh --skip-payload-source
 ```
 
-CI 和本地 full preflight 有一个有意差异：PR / main push 发生时还不一定有 tag / GitHub Release，所以 CI 会跳过 release-state：
+CI 也会显式传 `--skip-release-state`，兼容旧命令写法；release-state 本身默认就是跳过的：
 
 ```bash
 bash scripts/preflight.sh --base <base-sha> --skip-release-state
 ```
 
-`push main` 的 CI 因为不是 PR diff，还会用 `--skip-payload-source` 跳过 PR 专用的 payload/source guard。发布后必须单独跑 `node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn`，确认 tag / GitHub Release 已补齐。
+`push main` 的 CI 因为不是 PR diff，还会用 `--skip-payload-source` 跳过 PR 专用的 payload/source guard。
 
 ## payload 文件维护
 
@@ -79,10 +78,18 @@ CI 有两道检查：
 
 ## 发布状态校验
 
-`bash scripts/preflight.sh` 已经会跑一次发布状态校验。发布新版本后，也可以单独运行：
+维护者发布闸门只在发布收尾时显式开启。版本还没打 tag / GitHub Release 的 PR 或发版准备分支，先跑普通 preflight，不要打开这个开关。
+
+发布后用 full preflight 带上 release-state：
 
 ```bash
-node scripts/verify-release-state.js
+bash scripts/preflight.sh --release-state
+```
+
+也可以单独运行：
+
+```bash
+node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
 ```
 
 该检查会读取 `plugin/manifest.json` 和 `CHANGELOG.md` 顶部版本，确认两者一致，并确认同名 `vX.Y.Z` Git tag 与 GitHub Release 都存在。它依赖 GitHub CLI：
