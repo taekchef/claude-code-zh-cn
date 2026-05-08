@@ -178,6 +178,38 @@ test("single-quoted literals with apostrophes are translated", () => {
   assert.match(patched, /复制 Claude 的最后一次回复到剪贴板（或 \/copy N 复制第 N 条最近的回复）/);
 });
 
+test("model prompt contract translations are skipped while regular UI still patches", () => {
+  const patched = patchFixture([
+    'const systemPrompt=`You are an interactive agent.',
+    'Your responses should be short and concise.',
+    'Saving a memory is a two-step process:',
+    'You have been invoked in the following environment: Version: Darwin Fast mode',
+    'Use exact search terms without * or ?.',
+    'Current context: active agent, active shell.',
+    'Output Style and Output style are settings payload labels.`;',
+    'const statuslineSetup=`You are a status line setup agent for Claude Code. Your job is to create or update the statusLine command in the user\\\'s Claude Code settings.',
+    'The status line JSON includes output_style and version fields.',
+    'Create an Agent with subagent_type "statusline-setup" and the prompt "Configure my statusLine from my shell PS1 configuration"`;',
+    'const ui="Welcome back!";',
+    "",
+  ]);
+
+  assert.equal(patched.includes("inter活动 Agent"), false, patched);
+  assert.equal(patched.includes("你的回复应该简短精炼"), false, patched);
+  assert.equal(patched.includes("保存记忆分两步"), false, patched);
+  assert.equal(patched.includes("你已在以下环境中被调用"), false, patched);
+  assert.equal(patched.includes("without * 或 ?"), false, patched);
+  assert.equal(patched.includes("活动 Agent"), false, patched);
+  assert.equal(patched.includes("活动 Shell"), false, patched);
+  assert.equal(patched.includes("输出风格"), false, patched);
+  assert.equal(patched.includes("版本：Darwin"), false, patched);
+  assert.equal(patched.includes("快速模式"), false, patched);
+  assert.equal(patched.includes("statusLine"), true, patched);
+  assert.equal(patched.includes("subagent_type \"statusline-setup\""), true, patched);
+  assert.equal(patched.includes("Configure my statusLine from my shell PS1 configuration"), true, patched);
+  assert.match(patched, /const ui="欢迎回来！";/);
+});
+
 test("single-quoted and template matches in comments or regex literals stay untouched", () => {
   const patched = patchFixture([
     "// `Toggle fast mode (${im} only)` should remain untouched in comments",

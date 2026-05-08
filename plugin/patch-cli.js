@@ -526,6 +526,10 @@ const specialLiteralTranslations = [
     { en: "Failed to save ", zh: "保存失败：" },
 ];
 
+function shouldSkipTranslationRule(rule) {
+    return rule && (rule.skipPatch === true || rule.skipPatch === "model-prompt-contract");
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -649,7 +653,9 @@ tryRegexReplace(
 
 if (translationsFile && fs.existsSync(translationsFile)) {
     const translationRules = [
-        ...JSON.parse(fs.readFileSync(translationsFile, "utf8")),
+        ...JSON.parse(fs.readFileSync(translationsFile, "utf8")).filter(
+            (rule) => !shouldSkipTranslationRule(rule)
+        ),
         ...specialLiteralTranslations,
         ...specialSplitLiteralTranslations,
     ];

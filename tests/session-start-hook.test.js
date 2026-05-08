@@ -208,6 +208,18 @@ test("Windows session-start hook repairs settings from cached overlay", () => {
   assert.match(script, /Repair-SettingsFromCache/);
 });
 
+test("session-start context protects machine-readable configuration", () => {
+  const shellHook = fs.readFileSync(hookPath, "utf8");
+  const psHook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
+
+  for (const source of [shellHook, psHook]) {
+    assert.match(source, /## 机器配置保护/);
+    assert.match(source, /settings\.json、JSON、shell 命令、Hook、statusLine、MCP/);
+    assert.match(source, /JSON key、枚举值、工具名、命令名、路径、环境变量名、subagent_type、slash command/);
+    assert.match(source, /不要为了中文化改变配置、命令或工具调用语义/);
+  }
+});
+
 test("session-start auto-update archive includes install-json-helper", () => {
   const shellHook = fs.readFileSync(hookPath, "utf8");
   const psHook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");

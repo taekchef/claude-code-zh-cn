@@ -20,5 +20,11 @@ test("cli-translations.json entries have valid en/zh string keys", () => {
     assert.equal("zh" in entry, true, `entry ${i} missing "zh" key`);
     assert.equal(typeof entry.en, "string", `entry ${i} "en" should be string`);
     assert.equal(typeof entry.zh, "string", `entry ${i} "zh" should be string`);
+    if ("skipPatch" in entry) {
+      assert.ok(
+        entry.skipPatch === true || entry.skipPatch === "model-prompt-contract",
+        `entry ${i} "skipPatch" should be true or "model-prompt-contract"`
+      );
+    }
   }
 });

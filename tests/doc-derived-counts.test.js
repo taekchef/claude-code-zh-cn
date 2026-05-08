@@ -51,14 +51,15 @@ function makeStale(filePath) {
 function makeNativeStale(filePath) {
   let text = fs.readFileSync(filePath, "utf8");
   for (const [pattern, replacement] of [
-    [/2\.1\.113--2\.1\.123/g, "9.9.113--9.9.123"],
-    [/2\.1\.113 - 2\.1\.123/g, "9.9.113 - 9.9.123"],
+    [/2\.1\.113--2\.1\.133/g, "9.9.113--9.9.133"],
+    [/2\.1\.113 - 2\.1\.133/g, "9.9.113 - 9.9.133"],
     [/2\.1\.116 - 2\.1\.123/g, "9.9.116 - 9.9.123"],
+    [/2\.1\.133/g, "9.9.133"],
     [/2\.1\.115/g, "9.9.115"],
-    [/1323-1358/g, "1-2"],
+    [/1321-1358/g, "1-2"],
     [/11\/11/g, "3/4"],
     [/11 个稳定显示面/g, "4 个稳定显示面"],
-    [/2\.1\.113 through `2\.1\.123` except unpublished `2\.1\.115`/g, "9.9.113 through `9.9.123` except unpublished `9.9.115`"],
+    [/2\.1\.113` through `2\.1\.133` except unsupported `2\.1\.115`, `2\.1\.124`, `2\.1\.125`, `2\.1\.126`, `2\.1\.127`, `2\.1\.128`, `2\.1\.129`, `2\.1\.130`, `2\.1\.131`, `2\.1\.132`/g, "9.9.113` through `9.9.133` except unsupported `9.9.115`"],
   ]) {
     text = text.replace(pattern, replacement);
   }
@@ -122,13 +123,13 @@ test("doc-derived count sync rewrites README native support facts from config an
   assert.equal(checkResult.status, 0, checkResult.stderr || checkResult.stdout);
 
   const text = fs.readFileSync(readme, "utf8");
-  assert.match(text, /macos%20native-2\.1\.113--2\.1\.123%20experimental/);
-  assert.match(text, /2\.1\.113 - 2\.1\.123/);
-  assert.match(text, /不含未发布的 `2\.1\.115`/);
-  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.123`/);
-  assert.match(text, /1323-1358 处/);
+  assert.match(text, /macos%20native-2\.1\.113--2\.1\.133%20experimental/);
+  assert.match(text, /2\.1\.113 - 2\.1\.133/);
+  assert.match(text, /不含未纳入本轮支持的 `2\.1\.115`、`2\.1\.124`/);
+  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.123`、`2\.1\.133`/);
+  assert.match(text, /1321-1358 处/);
   assert.match(text, /显示审计 11\/11 PASS/);
   assert.match(text, /11 个稳定显示面/);
-  assert.match(text, /2\.1\.113` through `2\.1\.123` except unpublished `2\.1\.115`/);
+  assert.match(text, /2\.1\.113` through `2\.1\.133` except unsupported `2\.1\.115`, `2\.1\.124`/);
   assert.doesNotMatch(text, /9\.9\.|1-2 处|3\/4|4 个稳定显示面/);
 });
