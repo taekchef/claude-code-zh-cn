@@ -102,7 +102,7 @@ test("support matrix includes separate macOS native experimental row", () => {
   assert.match(markdown, /## Quick Decision/);
   assert.match(markdown, /汉化效果/);
   assert.match(markdown, /npm global install \| stable \| 2\.1\.92 - 2\.1\.112/);
-  assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.113 - 2\.1\.123 \(不含 2\.1\.115\)/);
+  assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.113 - 2\.1\.123 \(不含未纳入本轮支持的 2\.1\.115\)/);
   assert.match(markdown, /2\.1\.113 PASS\(native 1358\)/);
   assert.match(markdown, /2\.1\.123 PASS\(native 1262\)/);
   assert.match(markdown, /Windows \/ native \.exe \/ latest \| unsupported/);

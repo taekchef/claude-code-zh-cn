@@ -190,8 +190,8 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   assert.match(output, /2\.1\.124/, "the user-facing message should include the unsupported version");
   assert.match(output, /暂不支持 CLI Patch/, "the install path should clearly say CLI Patch is unsupported");
   assert.match(output, /已跳过 CLI Patch/, "the install path should safely skip CLI Patch");
-  assert.match(output, /2\.1\.113 - 2\.1\.123/, "the message should show the verified native window");
-  assert.match(output, /不含 2\.1\.115/, "the message should mention the unpublished gap");
+  assert.match(output, /2\.1\.113 - 2\.1\.133/, "the message should show the verified native window");
+  assert.match(output, /不含 2\.1\.115.*2\.1\.124/, "the message should mention unsupported native gaps");
   assert.match(output, /Claude Code 2\.1\.112/, "the message should point users to the stable pinned version");
   assert.equal(fs.existsSync(invokedFile), false, "unsupported native should not call patch/extract/repack");
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "unsupported native should not write success marker");

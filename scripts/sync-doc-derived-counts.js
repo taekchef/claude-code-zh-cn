@@ -245,6 +245,8 @@ function readNativeFacts(config) {
     badgeRange: `${entry.floor}--${entry.ceiling}`,
     excluded,
     excludedPrimary: excluded[0] || "",
+    excludedBackticked: formatBacktickedList(excluded),
+    englishExcludedBackticked: excluded.map((version) => `\`${version}\``).join(", "),
     compactSegments,
     compactBackticked: formatBacktickedList(compactSegments),
     patchRange: `${verification.patchMin}-${verification.patchMax}`,
@@ -343,21 +345,21 @@ function rulesForDoc(file, counts) {
       ),
       rule(
         "macOS native support table facts",
-        /(\| macOS \/ native binary \| `experimental` \| `)[^`]+(`（不含未发布的 `)[^`]+(`） \| 当前 macOS arm64 native 已验证 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计)/g,
+        /(\| macOS \/ native binary \| `experimental` \| `)[^`]+(`（不含未纳入本轮支持的 ).+?(） \| 当前 macOS arm64 native 已验证 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计)/g,
         (_, before, excludedBefore, excludedAfter, auditSuffix) =>
-          `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedPrimary}${excludedAfter}${counts.macosNative.displayTotal}${auditSuffix}`
+          `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedBackticked}${excludedAfter}${counts.macosNative.displayTotal}${auditSuffix}`
       ),
       rule(
         "macOS native latest note facts",
-        /(已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。`)[^`]+(` 官方未发布)/g,
-        (_, before, middle, excludedBefore, excludedAfter) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${excludedBefore}${counts.macosNative.excludedPrimary}${excludedAfter}`
+        /(已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。).+?( 未纳入本轮支持)/g,
+        (_, before, middle, auditSuffix) =>
+          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${auditSuffix}${counts.macosNative.excludedBackticked} 未纳入本轮支持`
       ),
       rule(
         "macOS native install option facts",
-        /(\| Claude Code native binary `)[^`]+(`（macOS arm64，不含未发布的 `)[^`]+(`） \| 当前已验证的 native binary 版本，显示审计 )\d+\/\d+( PASS \| `experimental`（需要 `node-lief`） \|)/g,
+        /(\| Claude Code native binary `)[^`]+(`（macOS arm64，不含未纳入本轮支持的 ).+?(） \| 当前已验证的 native binary 版本，显示审计 )\d+\/\d+( PASS \| `experimental`（需要 `node-lief`） \|)/g,
         (_, before, excludedBefore, excludedAfter, suffix) =>
-          `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedPrimary}${excludedAfter}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
+          `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedBackticked}${excludedAfter}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
       ),
       rule(
         "native binary note audit facts",
@@ -367,15 +369,15 @@ function rulesForDoc(file, counts) {
       ),
       rule(
         "FAQ native support facts",
-        /(macOS arm64 native binary 走 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面；`)[^`]+(` 官方未发布)/g,
-        (_, before, middle, excludedBefore, excludedAfter) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${excludedBefore}${counts.macosNative.excludedPrimary}${excludedAfter}`
+        /(macOS arm64 native binary 走 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面；).+?( (?:未纳入本轮支持|官方未发布))/g,
+        (_, before, middle, auditSuffix) =>
+          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${auditSuffix}${counts.macosNative.excludedBackticked} 未纳入本轮支持`
       ),
       rule(
         "English native summary range",
-        /(from `)[^`]+(` through `)[^`]+(` except unpublished `)[^`]+(`, now guarded)/g,
-        (_, before, middle, excludedBefore, after) =>
-          `${before}${counts.macosNative.floor}${middle}${counts.macosNative.ceiling}${excludedBefore}${counts.macosNative.excludedPrimary}${after}`
+        /(from `)[^`]+(` through `)[^`]+(` except (?:unsupported|unpublished) ).+?(, now guarded)/g,
+        (_, before, middle, _excludedBefore, after) =>
+          `${before}${counts.macosNative.floor}${middle}${counts.macosNative.ceiling}\` except unsupported ${counts.macosNative.englishExcludedBackticked}${after}`
       ),
       rule(
         "project tree UI translation count",

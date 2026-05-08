@@ -97,7 +97,8 @@
   },
   {
     "en": " or ",
-    "zh": " 或 "
+    "zh": " 或 ",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": " report the issue at https://github.com/anthropics/claude-code/issues",
@@ -2089,7 +2090,8 @@
   },
   {
     "en": "Fast mode",
-    "zh": "快速模式"
+    "zh": "快速模式",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "Fast mode OFF",
@@ -3325,11 +3327,13 @@
   },
   {
     "en": "Output Style",
-    "zh": "输出风格"
+    "zh": "输出风格",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "Output style",
-    "zh": "输出风格"
+    "zh": "输出风格",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "Override settings are managed by a higher-priority configuration and cannot be changed locally.",
@@ -4113,7 +4117,8 @@
   },
   {
     "en": "Saving a memory is a two-step process:",
-    "zh": "保存记忆分两步："
+    "zh": "保存记忆分两步：",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "Scope: ",
@@ -5317,7 +5322,8 @@
   },
   {
     "en": "Version: ",
-    "zh": "版本："
+    "zh": "版本：",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "Vertex base URL",
@@ -5677,7 +5683,8 @@
   },
   {
     "en": "You have been invoked in the following environment: ",
-    "zh": "你已在以下环境中被调用："
+    "zh": "你已在以下环境中被调用：",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "You have not answered all questions",
@@ -5729,7 +5736,8 @@
   },
   {
     "en": "Your responses should be short and concise.",
-    "zh": "你的回复应该简短精炼。"
+    "zh": "你的回复应该简短精炼。",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "[Image data detected and sent to Claude]",
@@ -5781,11 +5789,13 @@
   },
   {
     "en": "active agent",
-    "zh": "活动 Agent"
+    "zh": "活动 Agent",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "active shell",
-    "zh": "活动 Shell"
+    "zh": "活动 Shell",
+    "skipPatch": "model-prompt-contract"
   },
   {
     "en": "add hook",
@@ -6416,8 +6426,28 @@
     "zh": "设置此会话的显示名称（显示在提示框、/resume 选择器和终端标题中）"
   },
   {
+    "en": "Enable debug mode with optional category filtering (e.g., \"api,hooks\" or \"!1p,!file\")",
+    "zh": "启用 debug 模式，并可选按类别过滤（例如 \"api,hooks\" 或 \"!1p,!file\"）"
+  },
+  {
     "en": "Disable session persistence - sessions will not be saved to disk and cannot be resumed (only works with --print)",
     "zh": "禁用会话持久化 - 会话不会保存到磁盘，也无法恢复（仅 --print 有效）"
+  },
+  {
+    "en": "Input format (only works with --print): \"text\" (default), or \"stream-json\" (realtime streaming input) (choices: \"text\", \"stream-json\")",
+    "zh": "输入格式（仅 --print 有效）：\"text\"（默认）或 \"stream-json\"（实时流式输入）（可选：\"text\"、\"stream-json\"）"
+  },
+  {
+    "en": "Input format (only works with --print): \"text\" (default), or \"stream-json\" (realtime streaming input)",
+    "zh": "输入格式（仅 --print 有效）：\"text\"（默认）或 \"stream-json\"（实时流式输入）"
+  },
+  {
+    "en": "Load a plugin from a directory or .zip for this session only (repeatable: --plugin-dir A --plugin-dir B.zip)",
+    "zh": "仅为当前会话从目录或 .zip 加载插件（可重复：--plugin-dir A --plugin-dir B.zip）"
+  },
+  {
+    "en": "Fetch a plugin .zip from a URL for this session only (repeatable: --plugin-url A --plugin-url B)",
+    "zh": "仅为当前会话从 URL 获取插件 .zip（可重复：--plugin-url A --plugin-url B）"
   },
   {
     "en": "Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B) (default: [])",
@@ -6426,6 +6456,18 @@
   {
     "en": "Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)",
     "zh": "仅为当前会话从目录加载插件（可重复：--plugin-dir A --plugin-dir B）"
+  },
+  {
+    "en": "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-sonnet-4-6').",
+    "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-sonnet-4-6'）。"
+  },
+  {
+    "en": "Output format (only works with --print): \"text\" (default), \"json\" (single result), or \"stream-json\" (realtime streaming) (choices: \"text\", \"json\", \"stream-json\")",
+    "zh": "输出格式（仅 --print 有效）：\"text\"（默认）、\"json\"（单次结果）或 \"stream-json\"（实时流式输出）（可选：\"text\"、\"json\"、\"stream-json\"）"
+  },
+  {
+    "en": "Output format (only works with --print): \"text\" (default), \"json\" (single result), or \"stream-json\" (realtime streaming)",
+    "zh": "输出格式（仅 --print 有效）：\"text\"（默认）、\"json\"（单次结果）或 \"stream-json\"（实时流式输出）"
   },
   {
     "en": "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when Claude is run with the -p mode. Only use this flag in directories you trust.",
@@ -6558,6 +6600,10 @@
   {
     "en": "Manage Claude Code plugins",
     "zh": "管理 Claude Code 插件"
+  },
+  {
+    "en": "Manage Claude Code project state",
+    "zh": "管理 Claude Code 项目状态"
   },
   {
     "en": "Disable an enabled plugin",

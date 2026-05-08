@@ -217,6 +217,30 @@ test("high-risk fragment inventory stays reduced to the approved remainder", () 
   );
 });
 
+test("model-facing prompt contract fragments are marked patch-skip", () => {
+  const entries = new Map(loadTranslations().map((entry) => [entry.en, entry]));
+  const promptContractFragments = [
+    " or ",
+    "Fast mode",
+    "Output Style",
+    "Output style",
+    "Saving a memory is a two-step process:",
+    "Version: ",
+    "You have been invoked in the following environment: ",
+    "Your responses should be short and concise.",
+    "active agent",
+    "active shell",
+  ];
+
+  for (const fragment of promptContractFragments) {
+    assert.equal(
+      entries.get(fragment)?.skipPatch,
+      "model-prompt-contract",
+      `prompt contract fragment should be skipped by patch-cli.js: ${fragment}`
+    );
+  }
+});
+
 test("translations avoid legacy half-translated phrasing for key UX terms", () => {
   const disallowedPatterns = [
     /旁路问题/,

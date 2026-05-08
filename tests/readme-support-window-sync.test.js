@@ -143,9 +143,9 @@ test("README support window sync rewrites badges, support table, and install adv
   const text = fs.readFileSync(readmePath, "utf8");
   assert.match(text, /npm%20stable-2\.1\.90--2\.1\.120-green/);
   assert.match(text, /macos%20native-2\.1\.121--2\.1\.130%20experimental-yellow/);
-  assert.match(text, /\| macOS \/ native binary \| `experimental` \| `2\.1\.121 - 2\.1\.130`（不含未发布的 `2\.1\.125`） \|/);
+  assert.match(text, /\| macOS \/ native binary \| `experimental` \| `2\.1\.121 - 2\.1\.130`（不含未纳入本轮支持的 `2\.1\.125`） \|/);
   assert.match(text, /npm install -g @anthropic-ai\/claude-code@2\.1\.120/);
-  assert.match(text, /Claude Code native binary `2\.1\.121 - 2\.1\.130`（macOS arm64，不含未发布的 `2\.1\.125`）/);
+  assert.match(text, /Claude Code native binary `2\.1\.121 - 2\.1\.130`（macOS arm64，不含未纳入本轮支持的 `2\.1\.125`）/);
   assert.match(text, /显示审计 7\/7 PASS/);
   assert.match(text, /7 个稳定显示面/);
   assert.match(text, /Windows \/ native \.exe \/ latest \| `unsupported`/);

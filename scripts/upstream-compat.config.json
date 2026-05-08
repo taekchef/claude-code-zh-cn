@@ -35,6 +35,31 @@
         "pattern": "title:\"Advisor Tool\""
       },
       {
+        "id": "system_prompt_short_concise",
+        "rule": "preserve",
+        "pattern": "Your responses should be short and concise."
+      },
+      {
+        "id": "system_prompt_memory_contract",
+        "rule": "preserve",
+        "pattern": "Saving a memory is a two-step process:"
+      },
+      {
+        "id": "system_prompt_environment_header",
+        "rule": "preserve",
+        "pattern": "You have been invoked in the following environment:"
+      },
+      {
+        "id": "statusline_setup_agent_prompt",
+        "rule": "preserve",
+        "pattern": "You are a status line setup agent for Claude Code."
+      },
+      {
+        "id": "web_search_exact_terms_contract",
+        "rule": "preserve",
+        "pattern": "Use exact search terms without * or ?"
+      },
+      {
         "id": "stop_ultrareview_label",
         "rule": "translate",
         "sourcePattern": "label:\"Stop ultrareview\"",
@@ -151,8 +176,19 @@
       "platform": "darwin-arm64",
       "packageName": "@anthropic-ai/claude-code-darwin-arm64",
       "floor": "2.1.113",
-      "ceiling": "2.1.123",
-      "excluded": ["2.1.115"],
+      "ceiling": "2.1.133",
+      "excluded": [
+        "2.1.115",
+        "2.1.124",
+        "2.1.125",
+        "2.1.126",
+        "2.1.127",
+        "2.1.128",
+        "2.1.129",
+        "2.1.130",
+        "2.1.131",
+        "2.1.132"
+      ],
       "representatives": [
         "2.1.113",
         "2.1.114",
@@ -163,11 +199,12 @@
         "2.1.120",
         "2.1.121",
         "2.1.122",
-        "2.1.123"
+        "2.1.123",
+        "2.1.133"
       ],
-      "verification": "2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11)",
+      "verification": "2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11) · 2.1.133 PASS(native 1321, display 11/11)",
       "requires": ["node-lief"],
-      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113、2.1.114、2.1.116 - 2.1.123 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115 官方未发布；不代表未来 latest 自动稳定。"
+      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113、2.1.114、2.1.116 - 2.1.123、2.1.133 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.124 - 2.1.132 未纳入本轮支持；不代表未来 latest 自动稳定。"
     },
     "linuxOfficialInstaller": {
       "unsupported": true,

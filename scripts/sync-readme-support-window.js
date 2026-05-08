@@ -112,7 +112,7 @@ function renderRangeWithExcluded(entry, { code = true } = {}) {
   const range = renderRange(entry);
   const wrapped = code && range !== "-" ? `\`${range}\`` : range;
   const excluded = Array.isArray(entry?.excluded) && entry.excluded.length > 0
-    ? `（不含未发布的 ${entry.excluded.map((version) => `\`${version}\``).join("、")}）`
+    ? `（不含未纳入本轮支持的 ${entry.excluded.map((version) => `\`${version}\``).join("、")}）`
     : "";
   return `${wrapped}${excluded}`;
 }
@@ -121,7 +121,7 @@ function renderNativeInstallLabel(entry) {
   const range = renderRange(entry);
   if (range === "-") return "-";
   const excluded = Array.isArray(entry?.excluded) && entry.excluded.length > 0
-    ? `，不含未发布的 ${entry.excluded.map((version) => `\`${version}\``).join("、")}`
+    ? `，不含未纳入本轮支持的 ${entry.excluded.map((version) => `\`${version}\``).join("、")}`
     : "";
   return `\`${range}\`（macOS arm64${excluded}）`;
 }
@@ -223,7 +223,7 @@ function renderSupportSystems(config) {
     : "-";
   const macosNativeAudit = parseNativeDisplayAudit(macosNative);
   const macosExcluded = macosNative?.excluded?.length
-    ? `${macosNative.excluded.map((version) => `\`${version}\``).join("、")} 官方未发布；`
+    ? `${macosNative.excluded.map((version) => `\`${version}\``).join("、")} 未纳入本轮支持；`
     : "";
   const nativeBoundary = nextMajorBoundary(npmStable);
   const nativeLatestNote = macosNative && macosNative.unsupported !== true
