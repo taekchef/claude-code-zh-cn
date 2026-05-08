@@ -72,8 +72,12 @@ remove_launcher_artifacts() {
     done < <(list_profile_targets)
 
     if [ -f "$LAUNCHER_FILE" ]; then
-        rm -f "$LAUNCHER_FILE"
-        echo -e "${GREEN}已移除 launcher${NC}"
+        if grep -q "claude-code-zh-cn" "$LAUNCHER_FILE" 2>/dev/null; then
+            rm -f "$LAUNCHER_FILE"
+            echo -e "${GREEN}已移除 launcher${NC}"
+        else
+            echo -e "${YELLOW}检测到自定义 launcher，未自动删除：${LAUNCHER_FILE}${NC}"
+        fi
     fi
     rmdir "$LAUNCHER_BIN_DIR" 2>/dev/null || true
 }

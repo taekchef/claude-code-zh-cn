@@ -177,9 +177,9 @@ if ($SourceRepo -and (Test-Path "$SourceRepo\.git") -and $env:ZH_CN_DISABLE_AUTO
                         New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
                         Push-Location $SourceRepo
                         try {
-                            git archive --format=tar $LatestTag install.ps1 install.sh compute-patch-revision.sh settings-overlay.json verbs tips plugin 2>$null | tar -xf - -C $stagingDir 2>$null
+                            git archive --format=tar $LatestTag install.ps1 install.sh compute-patch-revision.sh scripts/install-json-helper.js settings-overlay.json verbs tips plugin 2>$null | tar -xf - -C $stagingDir 2>$null
                         } finally { Pop-Location }
-                        if ((Test-Path "$stagingDir\install.ps1") -and (Test-Path "$stagingDir\settings-overlay.json") -and (Test-Path "$stagingDir\plugin\manifest.json")) {
+                        if ((Test-Path "$stagingDir\install.ps1") -and (Test-Path "$stagingDir\scripts\install-json-helper.js") -and (Test-Path "$stagingDir\settings-overlay.json") -and (Test-Path "$stagingDir\plugin\manifest.json")) {
                             $env:CLAUDE_PLUGIN_ROOT = $PluginRoot
                             $env:ZH_CN_SOURCE_REPO = $SourceRepo
                             $env:ZH_CN_SKIP_BANNER = "1"

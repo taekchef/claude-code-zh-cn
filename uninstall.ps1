@@ -29,14 +29,32 @@ if (-not $SkipBanner) {
     Write-Host ""
 }
 
+function Remove-LauncherFile {
+    param([string]$Target)
+    if (-not (Test-Path $Target)) { return $false }
+
+    $content = ""
+    try {
+        $content = [System.IO.File]::ReadAllText($Target, [System.Text.Encoding]::UTF8)
+    } catch {}
+
+    if ($content -match "claude-code-zh-cn") {
+        Remove-Item $Target -Force -ErrorAction SilentlyContinue
+        return $true
+    }
+
+    if (-not $SkipBanner) {
+        Write-Host "检测到自定义 launcher，未自动删除：$Target" -ForegroundColor Yellow
+    }
+    return $false
+}
+
 # 1. 移除 launcher
 $removedLauncher = $false
-if (Test-Path $LauncherFile) {
-    Remove-Item $LauncherFile -Force
+if (Remove-LauncherFile $LauncherFile) {
     $removedLauncher = $true
 }
-if (Test-Path $LauncherPs1File) {
-    Remove-Item $LauncherPs1File -Force
+if (Remove-LauncherFile $LauncherPs1File) {
     $removedLauncher = $true
 }
 # 清理空目录
@@ -52,7 +70,7 @@ if ($removedLauncher) {
 
 # 2. 从用户 PATH 中移除 launcher 目录
 $currentUserPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-if ($currentUserPath -like "*$LauncherBinDir*") {
+if ((-not (Test-Path $LauncherBinDir)) -and $currentUserPath -like "*$LauncherBinDir*") {
     $newPath = ($currentUserPath -split ';' | Where-Object {
         $_ -ne $LauncherBinDir -and $_ -ne "$LauncherBinDir\"
     }) -join ';'

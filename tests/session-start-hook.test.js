@@ -36,6 +36,10 @@ function createReleaseSourceRepo(tmpRoot) {
   for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
+  copyTree(
+    path.join(repoRoot, "scripts", "install-json-helper.js"),
+    path.join(sourceRepo, "scripts", "install-json-helper.js")
+  );
   for (const relative of ["plugin", "tips", "verbs"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
@@ -70,6 +74,10 @@ function createSourceRepoWithoutTags(tmpRoot) {
   for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
+  copyTree(
+    path.join(repoRoot, "scripts", "install-json-helper.js"),
+    path.join(sourceRepo, "scripts", "install-json-helper.js")
+  );
   for (const relative of ["plugin", "tips", "verbs"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
@@ -198,6 +206,16 @@ test("Windows session-start hook repairs settings from cached overlay", () => {
   assert.match(script, /spinnerTipsOverride/);
   assert.match(script, /fs\.writeFileSync\(settingsFile/);
   assert.match(script, /Repair-SettingsFromCache/);
+});
+
+test("session-start auto-update archive includes install-json-helper", () => {
+  const shellHook = fs.readFileSync(hookPath, "utf8");
+  const psHook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
+
+  assert.match(shellHook, /scripts\/install-json-helper\.js/);
+  assert.match(shellHook, /validate_staging_release/);
+  assert.match(psHook, /scripts\/install-json-helper\.js/);
+  assert.match(psHook, /scripts\\install-json-helper\.js/);
 });
 
 test("session-start re-patches when plugin changed even if Claude Code version is unchanged", () => {

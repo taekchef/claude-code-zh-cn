@@ -16,6 +16,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = $PSScriptRoot
 $SettingsFile = "$env:USERPROFILE\.claude\settings.json"
 $OverlayFile = "$ScriptDir\settings-overlay.json"
+$InstallJsonHelper = "$ScriptDir\scripts\install-json-helper.js"
 $PluginSrc = "$ScriptDir\plugin"
 $PluginDst = "$env:USERPROFILE\.claude\plugins\claude-code-zh-cn"
 if ($env:CLAUDE_PLUGIN_ROOT) { $PluginDst = $env:CLAUDE_PLUGIN_ROOT }
@@ -65,13 +66,9 @@ function run-js {
 
 # ======== Settings 合并脚本（单行 JS，无特殊字符） ========
 $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.env.ZH_CN_SETTINGS_DIR;try{var all=fs.readdirSync(dir).filter(function(n){return n.indexOf('settings.json.zh-cn-backup.')===0}).sort();var stale=all.slice(0,Math.max(0,all.length-5));for(var i=0;i<stale.length;i++){fs.unlinkSync(path.join(dir,stale[i]))}}catch(e){}"
-
-$JS_BUILD_OVERLAY_FILES = "var fs=require('fs');var base=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));var verbs=JSON.parse(fs.readFileSync(process.argv[3],'utf8'));var tips=JSON.parse(fs.readFileSync(process.argv[4],'utf8'));base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:tips.tips.map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
-
-$JS_DEEP_MERGE_FILES = "var fs=require('fs');var sf=process.argv[2];var of=process.argv[3];function readJson(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var settings=readJson(sf);var overlay=readJson(of);function dm(b,o){var r={};var k;for(k in b){if(b.hasOwnProperty(k))r[k]=b[k]}for(k in o){if(!o.hasOwnProperty(k))continue;if(r[k]&&typeof r[k]==='object'&&!Array.isArray(r[k])&&o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k])){r[k]=dm(r[k],o[k])}else{r[k]=o[k]}}return r}var m=dm(settings,overlay);fs.writeFileSync(sf,JSON.stringify(m,null,2)+'\n');process.stdout.write('ok')"
-
+$JS_BUILD_OVERLAY_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var base=r(process.argv[2]);var verbs=r(process.argv[3]);var tips=r(process.argv[4]);base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:(tips.tips||[]).map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
+$JS_DEEP_MERGE_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var sf=process.argv[2];var of=process.argv[3];function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={};var k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}fs.writeFileSync(sf,JSON.stringify(dm(r(sf),r(of)),null,2)+'\n');process.stdout.write('ok')"
 $JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['manifest.json','patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
-
 
 # ======== 输出函数 ========
 function completion {
@@ -201,19 +198,10 @@ function remove-old-backups {
 }
 
 function build-overlay {
-    $baseFile = "$TmpDir\overlay-base-$PID.json"
-    $verbsFile = "$TmpDir\overlay-verbs-$PID.json"
-    $tipsFile = "$TmpDir\overlay-tips-$PID.json"
-    New-Item -Force -ItemType Directory -Path $TmpDir | Out-Null
-    [System.IO.File]::Copy($OverlayFile, $baseFile, $true)
-    [System.IO.File]::Copy("$ScriptDir\verbs\zh-CN.json", $verbsFile, $true)
-    [System.IO.File]::Copy("$ScriptDir\tips\zh-CN.json", $tipsFile, $true)
-    try {
-        $result = run-js $JS_BUILD_OVERLAY_FILES @($baseFile, $verbsFile, $tipsFile)
-    } finally {
-        Remove-Item $baseFile, $verbsFile, $tipsFile -Force -ErrorAction SilentlyContinue
+    if (Test-Path $InstallJsonHelper) {
+        return node $InstallJsonHelper build-overlay $OverlayFile "$ScriptDir\verbs\zh-CN.json" "$ScriptDir\tips\zh-CN.json"
     }
-    return $result
+    return run-js $JS_BUILD_OVERLAY_FILES @($OverlayFile, "$ScriptDir\verbs\zh-CN.json", "$ScriptDir\tips\zh-CN.json")
 }
 
 function merge-settings {
@@ -232,7 +220,11 @@ function merge-settings {
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
     [System.IO.File]::WriteAllText($overlayTempFile, $overlayContent, $utf8NoBom)
     try {
-        $mergeResult = run-js $JS_DEEP_MERGE_FILES @($SettingsFile, $overlayTempFile)
+        if (Test-Path $InstallJsonHelper) {
+            $mergeResult = node $InstallJsonHelper deep-merge-settings $SettingsFile $overlayTempFile
+        } else {
+            $mergeResult = run-js $JS_DEEP_MERGE_FILES @($SettingsFile, $overlayTempFile)
+        }
     } finally {
         Remove-Item $overlayTempFile -Force -ErrorAction SilentlyContinue
     }
@@ -367,7 +359,11 @@ function install-launcher {
 # ======== CLI Patch ========
 function get-patch-revision {
     param([string]$Root)
-    run-js $JS_PATCH_REVISION @($Root)
+    if (Test-Path $InstallJsonHelper) {
+        node $InstallJsonHelper patch-revision $Root
+    } else {
+        run-js $JS_PATCH_REVISION @($Root)
+    }
 }
 
 function read-cli-version {

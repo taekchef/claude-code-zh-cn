@@ -6,3 +6,8 @@ node_modules/
 .claude/
 WINDOWS-ADAPTATION.md
 _part1.ps1
+
+# Local website drafts; not part of the current published payload.
+website/
+website-v2/
+website-v3/

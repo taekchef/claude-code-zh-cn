@@ -202,7 +202,7 @@ export_release_to_staging() {
     local staging_dir="$3"
 
     mkdir -p "$staging_dir"
-    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin 2>/dev/null \
+    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh install.ps1 compute-patch-revision.sh scripts/install-json-helper.js settings-overlay.json verbs tips plugin 2>/dev/null \
         | tar -xf - -C "$staging_dir" 2>/dev/null
 }
 
@@ -210,6 +210,7 @@ validate_staging_release() {
     local staging_dir="$1"
 
     [ -f "$staging_dir/install.sh" ] || return 1
+    [ -f "$staging_dir/scripts/install-json-helper.js" ] || return 1
     [ -f "$staging_dir/settings-overlay.json" ] || return 1
     [ -f "$staging_dir/plugin/manifest.json" ] || return 1
     [ -f "$staging_dir/plugin/patch-cli.sh" ] || return 1
