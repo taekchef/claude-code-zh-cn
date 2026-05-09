@@ -196,21 +196,41 @@ fetch_latest_release_tag() {
     git -C "$source_repo" tag -l 'v*' --sort=-version:refname | head -1
 }
 
+release_contains_path() {
+    local source_repo="$1"
+    local latest_tag="$2"
+    local release_path="$3"
+
+    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" cat-file -e "${latest_tag}:${release_path}" 2>/dev/null
+}
+
+archive_release_paths() {
+    local source_repo="$1"
+    local latest_tag="$2"
+    local staging_dir="$3"
+    shift 3
+
+    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" "$@" 2>/dev/null \
+        | tar -xf - -C "$staging_dir" 2>/dev/null
+}
+
 export_release_to_staging() {
     local source_repo="$1"
     local latest_tag="$2"
     local staging_dir="$3"
 
     mkdir -p "$staging_dir"
-    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" install.sh install.ps1 compute-patch-revision.sh scripts/install-json-helper.js settings-overlay.json verbs tips plugin 2>/dev/null \
-        | tar -xf - -C "$staging_dir" 2>/dev/null
+    archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin || return 1
+
+    if release_contains_path "$source_repo" "$latest_tag" "scripts/install-json-helper.js"; then
+        archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" scripts/install-json-helper.js || true
+    fi
 }
 
 validate_staging_release() {
     local staging_dir="$1"
 
     [ -f "$staging_dir/install.sh" ] || return 1
-    [ -f "$staging_dir/scripts/install-json-helper.js" ] || return 1
     [ -f "$staging_dir/settings-overlay.json" ] || return 1
     [ -f "$staging_dir/plugin/manifest.json" ] || return 1
     [ -f "$staging_dir/plugin/patch-cli.sh" ] || return 1

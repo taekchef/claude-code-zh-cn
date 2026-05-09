@@ -65,6 +65,18 @@ process.exit(cmp(parse(process.argv[2]),parse(process.argv[3]))>0?0:1)
     return ($LASTEXITCODE -eq 0)
 }
 
+function Test-ReleasePath {
+    param([string]$Ref, [string]$Path)
+    git cat-file -e "${Ref}:$Path" 2>$null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Export-ReleasePaths {
+    param([string]$Ref, [string]$Destination, [string[]]$Paths)
+    git archive --format=tar $Ref @Paths 2>$null | tar -xf - -C $Destination 2>$null
+    return ($LASTEXITCODE -eq 0)
+}
+
 function Find-RealClaudeBinary {
     if ($env:ZH_CN_REAL_CLAUDE -and (Get-Command $env:ZH_CN_REAL_CLAUDE -ErrorAction SilentlyContinue)) {
         return $env:ZH_CN_REAL_CLAUDE
@@ -177,9 +189,13 @@ if ($SourceRepo -and (Test-Path "$SourceRepo\.git") -and $env:ZH_CN_DISABLE_AUTO
                         New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
                         Push-Location $SourceRepo
                         try {
-                            git archive --format=tar $LatestTag install.ps1 install.sh compute-patch-revision.sh scripts/install-json-helper.js settings-overlay.json verbs tips plugin 2>$null | tar -xf - -C $stagingDir 2>$null
+                            $requiredArchivePaths = @("install.ps1", "install.sh", "compute-patch-revision.sh", "settings-overlay.json", "verbs", "tips", "plugin")
+                            Export-ReleasePaths -Ref $LatestTag -Destination $stagingDir -Paths $requiredArchivePaths | Out-Null
+                            if (Test-ReleasePath -Ref $LatestTag -Path "scripts/install-json-helper.js") {
+                                Export-ReleasePaths -Ref $LatestTag -Destination $stagingDir -Paths @("scripts/install-json-helper.js") | Out-Null
+                            }
                         } finally { Pop-Location }
-                        if ((Test-Path "$stagingDir\install.ps1") -and (Test-Path "$stagingDir\scripts\install-json-helper.js") -and (Test-Path "$stagingDir\settings-overlay.json") -and (Test-Path "$stagingDir\plugin\manifest.json")) {
+                        if ((Test-Path "$stagingDir\install.ps1") -and (Test-Path "$stagingDir\settings-overlay.json") -and (Test-Path "$stagingDir\plugin\manifest.json")) {
                             $env:CLAUDE_PLUGIN_ROOT = $PluginRoot
                             $env:ZH_CN_SOURCE_REPO = $SourceRepo
                             $env:ZH_CN_SKIP_BANNER = "1"
