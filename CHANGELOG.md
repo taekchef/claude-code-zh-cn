@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.8] - 2026-05-09
+
+### 改进
+
+- macOS native experimental 支持窗口扩展到已验证的 Claude Code `2.1.138`，覆盖 `2.1.124`、`2.1.126`、`2.1.128`、`2.1.129`、`2.1.131 - 2.1.133`、`2.1.136 - 2.1.138`
+- 补齐新版顶层 help / auto-mode help 中的 project、plugin-dir、plugin-url、auto-mode defaults 文案翻译
+
+### 验证
+
+- `node --test tests/translations-quality.test.js`
+- `NODE_PATH=/private/tmp/cczh-node-lief/node_modules npm_config_cache=/private/tmp/cczh-npm-cache node scripts/verify-upstream-compat.js --config /private/tmp/cczh-native-candidate.config.json --baseline 2.1.124,2.1.126,2.1.128,2.1.129,2.1.131,2.1.132,2.1.133,2.1.136,2.1.137,2.1.138 --skip-latest --native-macos-arm64 --packages-dir /private/tmp/cczh-native-packages --json`
+
 ## [2.4.7] - 2026-05-09
 
 ### 修复

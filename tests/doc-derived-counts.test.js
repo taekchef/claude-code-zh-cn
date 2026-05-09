@@ -123,13 +123,14 @@ test("doc-derived count sync rewrites README native support facts from config an
   assert.equal(checkResult.status, 0, checkResult.stderr || checkResult.stdout);
 
   const text = fs.readFileSync(readme, "utf8");
-  assert.match(text, /macos%20native-2\.1\.113--2\.1\.133%20experimental/);
-  assert.match(text, /2\.1\.113 - 2\.1\.133/);
-  assert.match(text, /不含未纳入本轮支持的 `2\.1\.115`、`2\.1\.124`/);
-  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.123`、`2\.1\.133`/);
-  assert.match(text, /1321-1358 处/);
+  assert.match(text, /macos%20native-2\.1\.113--2\.1\.138%20experimental/);
+  assert.match(text, /2\.1\.113 - 2\.1\.138/);
+  assert.match(text, /不含未纳入本轮支持的 `2\.1\.115`、`2\.1\.125`/);
+  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.124`/);
+  assert.match(text, /`2\.1\.136 - 2\.1\.138`/);
+  assert.match(text, /1322-1358 处/);
   assert.match(text, /显示审计 11\/11 PASS/);
   assert.match(text, /11 个稳定显示面/);
-  assert.match(text, /2\.1\.113` through `2\.1\.133` except unsupported `2\.1\.115`, `2\.1\.124`/);
+  assert.match(text, /2\.1\.113` through `2\.1\.138` except unsupported `2\.1\.115`, `2\.1\.125`/);
   assert.doesNotMatch(text, /9\.9\.|1-2 处|3\/4|4 个稳定显示面/);
 });
