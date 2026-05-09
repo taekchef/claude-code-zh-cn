@@ -93,6 +93,15 @@ function createLegacyReleaseSourceRepoWithoutHelper(tmpRoot) {
   execFileSync("git", ["commit", "-m", "release 2.0.1"], { cwd: sourceRepo, encoding: "utf8" });
   execFileSync("git", ["tag", "v2.0.1"], { cwd: sourceRepo, encoding: "utf8" });
 
+  fs.mkdirSync(path.join(sourceRepo, "scripts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(sourceRepo, "scripts", "install-json-helper.js"),
+    '#!/usr/bin/env node\nprocess.stderr.write("worktree helper must not be used for helperless release tags\\n");\nprocess.exit(42);\n'
+  );
+  setManifestVersion(manifestPath, "2.0.99");
+  execFileSync("git", ["add", "."], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["commit", "-m", "dev only helper"], { cwd: sourceRepo, encoding: "utf8" });
+
   return sourceRepo;
 }
 
@@ -504,6 +513,16 @@ test("session-start auto-update accepts older release tags without install-json-
   const fakeBin = path.join(tmp, "bin");
   const cliFile = path.join(tmp, "lib", "node_modules", "@anthropic-ai", "claude-code", "cli.js");
   const sourceRepo = createLegacyReleaseSourceRepoWithoutHelper(tmp);
+  const helperInLatestTag = spawnSync("git", ["-C", sourceRepo, "cat-file", "-e", "v2.0.1:scripts/install-json-helper.js"], {
+    encoding: "utf8",
+  });
+
+  assert.notEqual(helperInLatestTag.status, 0, "fixture latest release tag must not contain install-json-helper");
+  assert.equal(
+    fs.existsSync(path.join(sourceRepo, "scripts", "install-json-helper.js")),
+    true,
+    "fixture worktree keeps a broken helper so this must exercise the staged release archive"
+  );
 
   fs.mkdirSync(pluginRoot, { recursive: true });
   fs.mkdirSync(fakeBin, { recursive: true });
@@ -544,6 +563,11 @@ test("session-start auto-update accepts older release tags without install-json-
     JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")).language,
     "Chinese",
     "helper-less update should still merge the Chinese settings overlay"
+  );
+  assert.match(
+    fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
+    /^ok v2\.0\.1 \d+$/,
+    "hook should record that the staged helper-less archive installed successfully"
   );
 });
 
