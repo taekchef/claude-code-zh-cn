@@ -97,6 +97,7 @@ run node --check scripts/check-translation-sentinels.js
 run node --check scripts/generate-plugin-support-window.js
 run node --check scripts/generate-support-matrix.js
 run node --check scripts/install-json-helper.js
+run node --check scripts/promote-native-candidate.js
 run node --check scripts/sync-doc-derived-counts.js
 run node --check scripts/sync-readme-support-window.js
 run node --check scripts/verify-release-state.js
