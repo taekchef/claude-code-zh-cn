@@ -241,6 +241,7 @@ test("/statusline command forwards path guard into setup agent task prompt", () 
   ]);
 
   assert.match(patched, /CRITICAL TOOL PATH RULE/);
+  assert.match(patched, /when calling Read, Edit, or Write/);
   assert.match(patched, /use only ~\/\.zshrc, ~\/\.bashrc, ~\/\.bash_profile, ~\/\.profile, and ~\/\.claude\/settings\.json/);
   assert.match(patched, /never use an absolute \/Users\/\.\.\. path/);
   assert.equal(/[\u3400-\u9fff]/.test(patched), false, patched);

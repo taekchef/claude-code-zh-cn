@@ -540,7 +540,7 @@ function installStatuslinePromptPathGuard() {
 
 function installStatuslineCommandPromptPathGuard() {
     const guard =
-        " CRITICAL TOOL PATH RULE: use only ~/.zshrc, ~/.bashrc, ~/.bash_profile, ~/.profile, and ~/.claude/settings.json when calling Read or Edit; never use an absolute /Users/... path.";
+        " CRITICAL TOOL PATH RULE: use only ~/.zshrc, ~/.bashrc, ~/.bash_profile, ~/.profile, and ~/.claude/settings.json when calling Read, Edit, or Write; never use an absolute /Users/... path.";
     tryRegexReplace(
         /`Create an \$\{([^}]+)\} with subagent_type "statusline-setup" and the prompt "\$\{([^}]+)\}"`/g,
         (match, agentExpr, promptExpr) => {
