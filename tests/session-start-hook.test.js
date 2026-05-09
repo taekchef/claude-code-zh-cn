@@ -29,20 +29,26 @@ function setManifestVersion(file, version) {
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n");
 }
 
-function createReleaseSourceRepo(tmpRoot) {
-  const sourceRepo = path.join(tmpRoot, "source-repo");
+function copyReleasePayload(sourceRepo, { includeInstallJsonHelper = true } = {}) {
   fs.mkdirSync(sourceRepo, { recursive: true });
 
   for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
-  copyTree(
-    path.join(repoRoot, "scripts", "install-json-helper.js"),
-    path.join(sourceRepo, "scripts", "install-json-helper.js")
-  );
+  if (includeInstallJsonHelper) {
+    copyTree(
+      path.join(repoRoot, "scripts", "install-json-helper.js"),
+      path.join(sourceRepo, "scripts", "install-json-helper.js")
+    );
+  }
   for (const relative of ["plugin", "tips", "verbs"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
+}
+
+function createReleaseSourceRepo(tmpRoot) {
+  const sourceRepo = path.join(tmpRoot, "source-repo");
+  copyReleasePayload(sourceRepo);
 
   execFileSync("git", ["init", "-b", "main"], { cwd: sourceRepo, encoding: "utf8" });
   execFileSync("git", ["config", "user.name", "Test User"], { cwd: sourceRepo, encoding: "utf8" });
@@ -63,6 +69,29 @@ function createReleaseSourceRepo(tmpRoot) {
   setManifestVersion(manifestPath, "2.0.99");
   execFileSync("git", ["add", "."], { cwd: sourceRepo, encoding: "utf8" });
   execFileSync("git", ["commit", "-m", "dev only 2.0.99"], { cwd: sourceRepo, encoding: "utf8" });
+
+  return sourceRepo;
+}
+
+function createLegacyReleaseSourceRepoWithoutHelper(tmpRoot) {
+  const sourceRepo = path.join(tmpRoot, "source-repo-legacy-helperless");
+  copyReleasePayload(sourceRepo, { includeInstallJsonHelper: false });
+
+  execFileSync("git", ["init", "-b", "main"], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["config", "user.name", "Test User"], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: sourceRepo, encoding: "utf8" });
+
+  const manifestPath = path.join(sourceRepo, "plugin", "manifest.json");
+
+  setManifestVersion(manifestPath, "2.0.0");
+  execFileSync("git", ["add", "."], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["commit", "-m", "release 2.0.0"], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["tag", "v2.0.0"], { cwd: sourceRepo, encoding: "utf8" });
+
+  setManifestVersion(manifestPath, "2.0.1");
+  execFileSync("git", ["add", "."], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["commit", "-m", "release 2.0.1"], { cwd: sourceRepo, encoding: "utf8" });
+  execFileSync("git", ["tag", "v2.0.1"], { cwd: sourceRepo, encoding: "utf8" });
 
   return sourceRepo;
 }
@@ -220,14 +249,15 @@ test("session-start context protects machine-readable configuration", () => {
   }
 });
 
-test("session-start auto-update archive includes install-json-helper", () => {
+test("session-start auto-update archives install-json-helper only as an optional payload file", () => {
   const shellHook = fs.readFileSync(hookPath, "utf8");
   const psHook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
 
   assert.match(shellHook, /scripts\/install-json-helper\.js/);
   assert.match(shellHook, /validate_staging_release/);
   assert.match(psHook, /scripts\/install-json-helper\.js/);
-  assert.match(psHook, /scripts\\install-json-helper\.js/);
+  assert.doesNotMatch(shellHook, /\[ -f "\$staging_dir\/scripts\/install-json-helper\.js" \] \|\| return 1/);
+  assert.doesNotMatch(psHook, /\(Test-Path "\$stagingDir\\scripts\\install-json-helper\.js"\) -and/);
 });
 
 test("session-start re-patches when plugin changed even if Claude Code version is unchanged", () => {
@@ -464,6 +494,56 @@ test("session-start auto-updates only to latest release tag without mutating sou
     JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")).language,
     "Chinese",
     "update-only install should still merge the Chinese settings overlay"
+  );
+});
+
+test("session-start auto-update accepts older release tags without install-json-helper", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-autoupdate-legacy-helperless-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const cliFile = path.join(tmp, "lib", "node_modules", "@anthropic-ai", "claude-code", "cli.js");
+  const sourceRepo = createLegacyReleaseSourceRepoWithoutHelper(tmp);
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(cliFile), { recursive: true });
+  fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  setManifestVersion(path.join(pluginRoot, "manifest.json"), "2.0.0");
+  fs.writeFileSync(path.join(pluginRoot, ".source-repo"), `${sourceRepo}\n`);
+  fs.writeFileSync(path.join(pluginRoot, ".last-update-check"), "0\n");
+  fs.writeFileSync(path.join(home, ".claude", "settings.json"), "{}\n");
+
+  fs.writeFileSync(cliFile, "#!/usr/bin/env node\n// Version: 2.1.96\n");
+  fs.writeFileSync(path.join(fakeBin, "claude"), "#!/usr/bin/env bash\n");
+  fs.chmodSync(path.join(fakeBin, "claude"), 0o755);
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(pluginRoot, "manifest.json"), "utf8")).version,
+    "2.0.1",
+    "helper-less release archive should still update through install.sh fallback logic"
+  );
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")).language,
+    "Chinese",
+    "helper-less update should still merge the Chinese settings overlay"
   );
 });
 
