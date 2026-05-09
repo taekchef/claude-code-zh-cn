@@ -6446,8 +6446,16 @@
     "zh": "仅为当前会话从目录或 .zip 加载插件（可重复：--plugin-dir A --plugin-dir B.zip）"
   },
   {
+    "en": "Load a plugin from a directory or .zip for this session only (repeatable: --plugin-dir A --plugin-dir B.zip) (default: [])",
+    "zh": "仅为当前会话从目录或 .zip 加载插件（可重复：--plugin-dir A --plugin-dir B.zip）（默认：[]）"
+  },
+  {
     "en": "Fetch a plugin .zip from a URL for this session only (repeatable: --plugin-url A --plugin-url B)",
     "zh": "仅为当前会话从 URL 获取插件 .zip（可重复：--plugin-url A --plugin-url B）"
+  },
+  {
+    "en": "Fetch a plugin .zip from a URL for this session only (repeatable: --plugin-url A --plugin-url B) (default: [])",
+    "zh": "仅为当前会话从 URL 获取插件 .zip（可重复：--plugin-url A --plugin-url B）（默认：[]）"
   },
   {
     "en": "Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B) (default: [])",
@@ -6548,6 +6556,10 @@
   {
     "en": "Print the default auto mode environment, allow, and deny rules as JSON",
     "zh": "以 JSON 打印默认 auto mode 环境、允许规则和拒绝规则"
+  },
+  {
+    "en": "Print the default auto mode environment, allow, soft_deny, and hard_deny rules as JSON",
+    "zh": "以 JSON 打印默认 auto mode 环境、allow、soft_deny 和 hard_deny 规则"
   },
   {
     "en": "Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)",

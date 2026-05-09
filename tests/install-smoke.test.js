@@ -164,11 +164,11 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   const fakeClaude = path.join(fakeBin, "claude");
   const invokedFile = path.join(tmp, "patch-invoked");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
-  const sourceRepo = createInstallSource(tmp, invokedFile, "2.1.124");
+  const sourceRepo = createInstallSource(tmp, invokedFile, "2.1.139");
   const profileFile = path.join(home, ".zshrc");
 
   fs.mkdirSync(fakeBin, { recursive: true });
-  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\necho '2.1.124 (Claude Code)'\n");
+  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\necho '2.1.139 (Claude Code)'\n");
   fs.chmodSync(fakeClaude, 0o755);
 
   const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
@@ -187,11 +187,11 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
 
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /2\.1\.124/, "the user-facing message should include the unsupported version");
+  assert.match(output, /2\.1\.139/, "the user-facing message should include the unsupported version");
   assert.match(output, /暂不支持 CLI Patch/, "the install path should clearly say CLI Patch is unsupported");
   assert.match(output, /已跳过 CLI Patch/, "the install path should safely skip CLI Patch");
-  assert.match(output, /2\.1\.113 - 2\.1\.133/, "the message should show the verified native window");
-  assert.match(output, /不含 2\.1\.115.*2\.1\.124/, "the message should mention unsupported native gaps");
+  assert.match(output, /2\.1\.113 - 2\.1\.138/, "the message should show the verified native window");
+  assert.match(output, /不含 2\.1\.115.*2\.1\.125/, "the message should mention unsupported native gaps");
   assert.match(output, /Claude Code 2\.1\.112/, "the message should point users to the stable pinned version");
   assert.equal(fs.existsSync(invokedFile), false, "unsupported native should not call patch/extract/repack");
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "unsupported native should not write success marker");

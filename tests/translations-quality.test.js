@@ -105,6 +105,19 @@ test("high-visibility translations use the curated wording", () => {
       "Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)",
       "安装 Claude Code 原生构建。使用 [target] 指定版本（stable、latest 或具体版本）",
     ],
+    ["Manage Claude Code project state", "管理 Claude Code 项目状态"],
+    [
+      "Load a plugin from a directory or .zip for this session only (repeatable: --plugin-dir A --plugin-dir B.zip) (default: [])",
+      "仅为当前会话从目录或 .zip 加载插件（可重复：--plugin-dir A --plugin-dir B.zip）（默认：[]）",
+    ],
+    [
+      "Fetch a plugin .zip from a URL for this session only (repeatable: --plugin-url A --plugin-url B) (default: [])",
+      "仅为当前会话从 URL 获取插件 .zip（可重复：--plugin-url A --plugin-url B）（默认：[]）",
+    ],
+    [
+      "Print the default auto mode environment, allow, soft_deny, and hard_deny rules as JSON",
+      "以 JSON 打印默认 auto mode 环境、allow、soft_deny 和 hard_deny 规则",
+    ],
   ]);
 
   for (const [en, zh] of expected) {
