@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.7] - 2026-05-09
+
+### 修复
+
+- 修复从旧 release tag 自动更新时，如果发布包里还没有 `scripts/install-json-helper.js`，SessionStart staged auto-update 会因归档路径不存在而失败的问题
+- Windows SessionStart 自动更新不再把 `scripts/install-json-helper.js` 当成 staged release 必需文件，旧发布包会继续走安装脚本 fallback 完成更新
+
+### 验证
+
+- `node --test tests/session-start-hook.test.js`
+- `npm_config_cache=/private/tmp/cczh-npm-cache bash scripts/preflight.sh --base origin/main --skip-release-state`
+
 ## [2.4.6] - 2026-05-09
 
 ### 改进
