@@ -1,6 +1,7 @@
 name: Native Latest Candidate
 
 on:
+  push: {}
   workflow_dispatch:
     inputs:
       version:
@@ -11,15 +12,31 @@ on:
     - cron: "17 3 * * *"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
+  validate:
+    name: Validate native candidate workflow
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Run native workflow contract tests
+        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js
+
   verify:
     name: Verify macOS native candidate
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     # GitHub currently maps macos-15 to the macOS 15 arm64 hosted runner.
     runs-on: macos-15
     timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6
@@ -77,7 +94,19 @@ jobs:
         if: success()
         shell: bash
         run: |
-          node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" --write
+          set +e
+          PROMOTE_OUTPUT="$(node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" --write 2>&1)"
+          PROMOTE_STATUS=$?
+          set -e
+          if [ "$PROMOTE_STATUS" -ne 0 ]; then
+            {
+              echo "## Native candidate boundary failure"
+              printf '%s\n' "$PROMOTE_OUTPUT"
+            } >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$PROMOTE_OUTPUT"
+            exit "$PROMOTE_STATUS"
+          fi
+          printf '%s\n' "$PROMOTE_OUTPUT"
           node scripts/generate-plugin-support-window.js --write
           node scripts/generate-support-matrix.js
           node scripts/sync-readme-support-window.js --write
@@ -92,8 +121,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: codex/native-latest-${{ steps.version.outputs.version }}
+          draft: true
           delete-branch: true
-          commit-message: chore: promote macOS native ${{ steps.version.outputs.version }}
+          commit-message: "chore: promote macOS native ${{ steps.version.outputs.version }}"
           title: "chore: promote macOS native ${{ steps.version.outputs.version }}"
           body: |
             Automated closeout for a verified macOS arm64 native Claude Code candidate.

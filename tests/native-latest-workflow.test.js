@@ -18,9 +18,19 @@ test("native latest candidate workflow can be triggered manually and on schedule
   assert.match(workflow, /-\s+cron:/);
 });
 
+test("native latest candidate workflow has a push validation job instead of empty push runs", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /^\s*push:\s*\{\}/m);
+  assert.doesNotMatch(workflow, /^\s*paths:/m);
+  assert.match(workflow, /name:\s*Validate native candidate workflow/);
+  assert.match(workflow, /node\s+--test\s+tests\/native-latest-workflow\.test\.js/);
+});
+
 test("native latest candidate workflow runs on macOS arm64 with native dependencies", () => {
   const workflow = readWorkflow();
 
+  assert.match(workflow, /if:\s*\$\{\{\s*github\.event_name == 'schedule' \|\| github\.event_name == 'workflow_dispatch'\s*\}\}/);
   assert.match(workflow, /runs-on:\s*macos-15\b/);
   assert.match(workflow, /macOS 15 arm64/);
   assert.match(workflow, /actions\/setup-node@v\d+/);
@@ -53,6 +63,8 @@ test("native latest candidate workflow promotes passing candidates into a PR-rea
   assert.match(workflow, /scripts\/sync-doc-derived-counts\.js\s+--write/);
   assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
   assert.match(workflow, /codex\/native-latest-/);
+  assert.match(workflow, /draft:\s*true/);
+  assert.match(workflow, /commit-message:\s*"chore: promote macOS native \$\{\{ steps\.version\.outputs\.version \}\}"/);
   assert.doesNotMatch(workflow, /\bgh\s+release\b/);
 });
 
@@ -63,5 +75,7 @@ test("native latest candidate workflow explains failed promotion boundaries", ()
   assert.match(workflow, /failure\(\)/);
   assert.match(workflow, /GITHUB_STEP_SUMMARY/);
   assert.match(workflow, /scripts\/promote-native-candidate\.js\s+--candidate/);
+  assert.match(workflow, /PROMOTE_OUTPUT/);
+  assert.match(workflow, /PROMOTE_STATUS/);
   assert.match(workflow, /2>&1/);
 });
