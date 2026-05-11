@@ -26,7 +26,7 @@ jobs:
           node-version: 24
 
       - name: Run native workflow contract tests
-        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js
+        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js tests/upstream-text-diff.test.js
 
   verify:
     name: Verify macOS native candidate
@@ -81,6 +81,38 @@ jobs:
           path: ${{ steps.verify.outputs.json_path }}
           if-no-files-found: error
 
+      - name: Generate native text diff report
+        id: text_diff
+        if: always() && steps.version.outputs.version != ''
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TEXT_REPORT_PATH="${RUNNER_TEMP}/native-latest-text-diff-${VERSION}.md"
+          set +e
+          node scripts/generate-upstream-text-diff.js --to "${VERSION}" --native-macos-arm64 > "$TEXT_REPORT_PATH"
+          TEXT_REPORT_STATUS=$?
+          set -e
+          if [ "$TEXT_REPORT_STATUS" -ne 0 ]; then
+            {
+              echo "# Upstream text diff: unavailable"
+              echo
+              echo "Text diff report failed; see workflow logs before treating this candidate as fully reviewed."
+            } > "$TEXT_REPORT_PATH"
+          fi
+          echo "text_report_path=${TEXT_REPORT_PATH}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Native latest text diff"
+            cat "$TEXT_REPORT_PATH"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload native text diff report
+        if: always() && steps.text_diff.outputs.text_report_path != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-latest-text-diff-${{ steps.version.outputs.version }}
+          path: ${{ steps.text_diff.outputs.text_report_path }}
+          if-no-files-found: error
+
       - name: Explain native candidate boundary failure
         if: failure() && steps.verify.outputs.json_path != ''
         shell: bash
@@ -131,3 +163,5 @@ jobs:
             This PR is generated only after native extract / patch / repack / --version and display audit pass. It updates the source-of-truth support config plus generated support surfaces, and keeps unverified latest versions outside the public support claim.
 
             Candidate JSON is attached to the workflow run as `native-latest-candidate-${{ steps.version.outputs.version }}`.
+
+            Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.
