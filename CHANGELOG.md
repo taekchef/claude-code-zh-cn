@@ -6,6 +6,31 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.9] - 2026-05-12
+
+### 新增
+
+- 新增 macOS native latest candidate 验证通过后的自动 closeout PR 流程：验证成功后可自动推广支持窗口、同步 README / support matrix / 派生计数，并打开 `codex/native-latest-<version>` 收口 PR
+- 新增 `scripts/promote-native-candidate.js`，推广前校验 candidate JSON 的 native package、patch、display audit、支持窗口边界，失败时输出可操作的阻断原因
+- 新增 native latest 文本差异报告，自动对比上一版与本次 latest 的上游 JS 字符串变化，并把 Markdown 报告写入 Actions summary 和 artifact，方便维护者检查新增 / 删除英文文案
+
+### 改进
+
+- Native latest workflow 新增 push 级别的轻量 contract 验证，避免只在手动 / 定时 macOS 验证时才发现流程脚本问题
+- 同步 macOS native `2.1.138` 和 `2.1.139` closeout 结果到 source-of-truth config、support matrix 和 README，保持自动推广产物、支持矩阵和公开说明一致
+- Native latest 验证新增新版本 package 解析保护，确保 macOS native candidate 下载 `@anthropic-ai/claude-code-darwin-arm64` 平台包，而不是误用 generic wrapper 包
+
+### 修复
+
+- 修复 native latest workflow 的验证依赖链路，避免 contract 验证失败时仍继续执行 macOS verify、promotion 和 closeout PR 创建
+- 修复 upstream text diff 跳过或截断带 `${...}` 插值、嵌套模板字符串的问题，避免用户可见英文文案漏出翻译审查
+- 补齐 Claude Code `2.1.139` 新增 plugin component inventory help 文案翻译
+
+### 验证
+
+- `node --test tests/*.test.js`
+- `npm_config_cache=/private/tmp/cczh-npm-cache bash scripts/preflight.sh --base origin/main --skip-release-state`
+
 ## [2.4.8] - 2026-05-09
 
 ### 改进
