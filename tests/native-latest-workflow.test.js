@@ -68,6 +68,18 @@ test("native latest candidate workflow promotes passing candidates into a PR-rea
   assert.doesNotMatch(workflow, /\bgh\s+release\b/);
 });
 
+test("native latest candidate workflow publishes an upstream text diff report", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /Generate native text diff report/);
+  assert.match(workflow, /scripts\/generate-upstream-text-diff\.js/);
+  assert.match(workflow, /text_report_path/);
+  assert.match(workflow, /Upload native text diff report/);
+  assert.match(workflow, /native-latest-text-diff-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
+  assert.match(workflow, /GITHUB_STEP_SUMMARY/);
+  assert.match(workflow, /Text diff report artifact/);
+});
+
 test("native latest candidate workflow explains failed promotion boundaries", () => {
   const workflow = readWorkflow();
 

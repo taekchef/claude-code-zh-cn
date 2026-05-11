@@ -37,6 +37,7 @@ test("preflight script is the local entrypoint for repo checks", () => {
     "node --check scripts/check-support-boundary.js",
     "node --check scripts/check-translation-sentinels.js",
     "node --check scripts/generate-support-matrix.js",
+    "node --check scripts/generate-upstream-text-diff.js",
     "node --check scripts/install-json-helper.js",
     "node --check scripts/promote-native-candidate.js",
     "node --check scripts/sync-doc-derived-counts.js",
