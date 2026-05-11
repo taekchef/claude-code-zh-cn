@@ -1,27 +1,64 @@
 {
   "packageName": "@anthropic-ai/claude-code",
   "baseline": {
-    "versions": ["2.1.92", "2.1.97", "2.1.104", "2.1.107", "2.1.110", "2.1.112"],
+    "versions": [
+      "2.1.92",
+      "2.1.97",
+      "2.1.104",
+      "2.1.107",
+      "2.1.110",
+      "2.1.112"
+    ],
     "includeLatestFromNpm": false
   },
   "checks": {
     "sentinels": [
-      { "id": "quick_safety_check", "pattern": "Quick safety check" },
-      { "id": "security_guide", "pattern": "Security guide" },
+      {
+        "id": "quick_safety_check",
+        "pattern": "Quick safety check"
+      },
+      {
+        "id": "security_guide",
+        "pattern": "Security guide"
+      },
       {
         "id": "btw_prompt",
         "pattern": "Use /btw to ask a quick side question without interrupting Claude's current work"
       },
-      { "id": "approval_reason", "pattern": "This command requires approval" },
-      { "id": "proceed_prompt", "pattern": "Do you want to proceed?" },
-      { "id": "tab_to_amend", "pattern": "Tab to amend" },
-      { "id": "ctrl_e_to_explain", "pattern": "ctrl+e to explain" }
+      {
+        "id": "approval_reason",
+        "pattern": "This command requires approval"
+      },
+      {
+        "id": "proceed_prompt",
+        "pattern": "Do you want to proceed?"
+      },
+      {
+        "id": "tab_to_amend",
+        "pattern": "Tab to amend"
+      },
+      {
+        "id": "ctrl_e_to_explain",
+        "pattern": "ctrl+e to explain"
+      }
     ],
     "templateResidues": [
-      { "id": "duration_worked", "pattern": "Worked for" },
-      { "id": "duration_idle", "pattern": "Idle for" },
-      { "id": "duration_guarded", "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`" },
-      { "id": "duration_literal_connector", "regex": ",\\s*\" for \"\\s*," }
+      {
+        "id": "duration_worked",
+        "pattern": "Worked for"
+      },
+      {
+        "id": "duration_idle",
+        "pattern": "Idle for"
+      },
+      {
+        "id": "duration_guarded",
+        "regex": "&&`\\$\\{[^}]+\\} for \\$\\{[^}]+\\}`"
+      },
+      {
+        "id": "duration_literal_connector",
+        "regex": ",\\s*\" for \"\\s*,"
+      }
     ],
     "upstreamTextGuards": [
       {
@@ -92,35 +129,158 @@
     ],
     "displayAudit": {
       "commands": [
-        { "id": "top_help", "args": ["--help"] },
-        { "id": "agents_help", "args": ["agents", "--help"], "optional": true },
-        { "id": "auth_help", "args": ["auth", "--help"], "optional": true },
-        { "id": "auto_mode_help", "args": ["auto-mode", "--help"], "optional": true },
-        { "id": "doctor_help", "args": ["doctor", "--help"], "optional": true },
-        { "id": "install_help", "args": ["install", "--help"], "optional": true },
-        { "id": "mcp_help", "args": ["mcp", "--help"], "optional": true },
-        { "id": "plugin_help", "args": ["plugin", "--help"], "optional": true },
-        { "id": "setup_token_help", "args": ["setup-token", "--help"], "optional": true },
-        { "id": "update_help", "args": ["update", "--help"], "optional": true },
-        { "id": "ultrareview_help", "args": ["ultrareview", "--help"], "optional": true }
+        {
+          "id": "top_help",
+          "args": [
+            "--help"
+          ]
+        },
+        {
+          "id": "agents_help",
+          "args": [
+            "agents",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "auth_help",
+          "args": [
+            "auth",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "auto_mode_help",
+          "args": [
+            "auto-mode",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "doctor_help",
+          "args": [
+            "doctor",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "install_help",
+          "args": [
+            "install",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "mcp_help",
+          "args": [
+            "mcp",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "plugin_help",
+          "args": [
+            "plugin",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "setup_token_help",
+          "args": [
+            "setup-token",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "update_help",
+          "args": [
+            "update",
+            "--help"
+          ],
+          "optional": true
+        },
+        {
+          "id": "ultrareview_help",
+          "args": [
+            "ultrareview",
+            "--help"
+          ],
+          "optional": true
+        }
       ],
       "blockedPhrases": [
-        { "id": "usage_heading", "pattern": "Usage:" },
-        { "id": "arguments_heading", "pattern": "Arguments:" },
-        { "id": "options_heading", "pattern": "Options:" },
-        { "id": "commands_heading", "pattern": "Commands:" },
-        { "id": "your_prompt", "pattern": "Your prompt" },
-        { "id": "display_help_for_command", "pattern": "Display help for command" },
-        { "id": "interactive_session_description", "pattern": "starts an interactive session by default" },
-        { "id": "install_target_hint", "pattern": "Use [target] to specify version" }
+        {
+          "id": "usage_heading",
+          "pattern": "Usage:"
+        },
+        {
+          "id": "arguments_heading",
+          "pattern": "Arguments:"
+        },
+        {
+          "id": "options_heading",
+          "pattern": "Options:"
+        },
+        {
+          "id": "commands_heading",
+          "pattern": "Commands:"
+        },
+        {
+          "id": "your_prompt",
+          "pattern": "Your prompt"
+        },
+        {
+          "id": "display_help_for_command",
+          "pattern": "Display help for command"
+        },
+        {
+          "id": "interactive_session_description",
+          "pattern": "starts an interactive session by default"
+        },
+        {
+          "id": "install_target_hint",
+          "pattern": "Use [target] to specify version"
+        }
       ],
       "mustPreserve": [
-        { "id": "top_model_flag", "command": "top_help", "pattern": "--model" },
-        { "id": "top_print_flag", "command": "top_help", "pattern": "--print" },
-        { "id": "top_json_schema_term", "command": "top_help", "pattern": "JSON Schema" },
-        { "id": "top_anthropic_api_key", "command": "top_help", "pattern": "ANTHROPIC_API_KEY" },
-        { "id": "top_mcp_term", "command": "top_help", "pattern": "MCP" },
-        { "id": "top_stream_json_value", "command": "top_help", "pattern": "stream-json" }
+        {
+          "id": "top_model_flag",
+          "command": "top_help",
+          "pattern": "--model"
+        },
+        {
+          "id": "top_print_flag",
+          "command": "top_help",
+          "pattern": "--print"
+        },
+        {
+          "id": "top_json_schema_term",
+          "command": "top_help",
+          "pattern": "JSON Schema"
+        },
+        {
+          "id": "top_anthropic_api_key",
+          "command": "top_help",
+          "pattern": "ANTHROPIC_API_KEY"
+        },
+        {
+          "id": "top_mcp_term",
+          "command": "top_help",
+          "pattern": "MCP"
+        },
+        {
+          "id": "top_stream_json_value",
+          "command": "top_help",
+          "pattern": "stream-json"
+        }
       ],
       "allowedEnglishTerms": [
         "Claude Code",
@@ -169,7 +329,14 @@
       "stable": {
         "floor": "2.1.92",
         "ceiling": "2.1.112",
-        "representatives": ["2.1.92", "2.1.97", "2.1.104", "2.1.107", "2.1.110", "2.1.112"],
+        "representatives": [
+          "2.1.92",
+          "2.1.97",
+          "2.1.104",
+          "2.1.107",
+          "2.1.110",
+          "2.1.112"
+        ],
         "notes": "PATH 优先 launcher + session-start 二层兜底，适用于旧 cli.js npm 包形态；2.1.113+ native binary wrapper 暂不支持旧 CLI Patch。"
       }
     },
@@ -178,8 +345,14 @@
         "platform": "darwin-arm64",
         "floor": "2.1.110",
         "ceiling": "2.1.112",
-        "representatives": ["2.1.110", "2.1.111", "2.1.112"],
-        "requires": ["node-lief"],
+        "representatives": [
+          "2.1.110",
+          "2.1.111",
+          "2.1.112"
+        ],
+        "requires": [
+          "node-lief"
+        ],
         "verification": "2.1.110 PASS(native 1245) · 2.1.111 PASS(native 1241) · 2.1.112 PASS(native 1241)",
         "notes": "官方安装器指定旧版本仍走 native binary；macOS arm64 已离线验证 extract/patch/repack/--version，插件可用 native patch experimental 处理，需要 node-lief；稳定使用仍建议 npm pinned。"
       }
@@ -220,8 +393,10 @@
         "2.1.138"
       ],
       "verification": "2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11) · 2.1.124 PASS(native 1331, display 11/11) · 2.1.126 PASS(native 1331, display 11/11) · 2.1.128 PASS(native 1331, display 11/11) · 2.1.129 PASS(native 1333, display 11/11) · 2.1.131 PASS(native 1333, display 11/11) · 2.1.132 PASS(native 1323, display 11/11) · 2.1.133 PASS(native 1323, display 11/11) · 2.1.136 PASS(native 1322, display 11/11) · 2.1.137 PASS(native 1322, display 11/11) · 2.1.138 PASS(native 1322, display 11/11)",
-      "requires": ["node-lief"],
-      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113、2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128、2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.138 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135 未发布或未纳入支持；不代表未来 latest 自动稳定。"
+      "requires": [
+        "node-lief"
+      ],
+      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113 - 2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128 - 2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.138 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135 未发布或未纳入支持；不代表未来 latest 自动稳定。"
     },
     "linuxOfficialInstaller": {
       "unsupported": true,
