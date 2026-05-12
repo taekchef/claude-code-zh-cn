@@ -30,6 +30,7 @@ jobs:
 
   verify:
     name: Verify macOS native candidate
+    needs: validate
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     # GitHub currently maps macos-15 to the macOS 15 arm64 hosted runner.
     runs-on: macos-15

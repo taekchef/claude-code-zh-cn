@@ -227,9 +227,69 @@ function unescapeSimple(raw) {
     .replace(/\\n/g, "\n")
     .replace(/\\r/g, "\r")
     .replace(/\\t/g, "\t")
+    .replace(/\\`/g, "`")
+    .replace(/\\\$/g, "$")
     .replace(/\\"/g, "\"")
     .replace(/\\'/g, "'")
     .replace(/\\\\/g, "\\");
+}
+
+function skipQuotedExpressionPart(source, start) {
+  const quote = source[start];
+  let i = start + 1;
+  while (i < source.length) {
+    if (source[i] === "\\") {
+      i += 2;
+      continue;
+    }
+    if (source[i] === quote) return i + 1;
+    i += 1;
+  }
+  return source.length;
+}
+
+function skipTemplateExpression(source, start) {
+  let depth = 1;
+  let i = start + 2;
+  while (i < source.length) {
+    const char = source[i];
+    if (char === "\\") {
+      i += 2;
+      continue;
+    }
+    if (char === "\"" || char === "'" || char === "`") {
+      i = skipQuotedExpressionPart(source, i);
+      continue;
+    }
+    if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return i + 1;
+    }
+    i += 1;
+  }
+  return source.length;
+}
+
+function templateLiteralText(body) {
+  let text = "";
+  let i = 0;
+  while (i < body.length) {
+    if (body[i] === "\\") {
+      text += body.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (body[i] === "$" && body[i + 1] === "{") {
+      text += "${...}";
+      i = skipTemplateExpression(body, i);
+      continue;
+    }
+    text += body[i];
+    i += 1;
+  }
+  return unescapeSimple(text);
 }
 
 function stringLiterals(source) {
@@ -240,10 +300,7 @@ function stringLiterals(source) {
     const raw = match[0];
     const quote = raw[0];
     const body = raw.slice(1, -1);
-    if (quote === "`" && body.includes("${")) {
-      continue;
-    }
-    literals.push(normalizeText(unescapeSimple(body)));
+    literals.push(normalizeText(quote === "`" ? templateLiteralText(body) : unescapeSimple(body)));
   }
   return literals.filter(Boolean);
 }
