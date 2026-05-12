@@ -38,6 +38,12 @@ test("native latest candidate workflow runs on macOS arm64 with native dependenc
   assert.match(workflow, /\bnpm\s+install\b[^\n]*\bnode-lief\b/);
 });
 
+test("native latest candidate verification waits for workflow validation", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /^\s*verify:\n(?:.*\n){0,4}?\s+needs:\s*validate/m);
+});
+
 test("native latest candidate workflow resolves the requested or current latest version", () => {
   const workflow = readWorkflow();
 
