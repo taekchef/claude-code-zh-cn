@@ -292,15 +292,41 @@ function templateLiteralText(body) {
   return unescapeSimple(text);
 }
 
+function readRawStringLiteral(source, start) {
+  const quote = source[start];
+  let i = start + 1;
+  while (i < source.length) {
+    if (source[i] === "\\") {
+      i += 2;
+      continue;
+    }
+    if (source[i] === quote) {
+      return source.slice(start, i + 1);
+    }
+    if (quote === "`" && source[i] === "$" && source[i + 1] === "{") {
+      i = skipTemplateExpression(source, i);
+      continue;
+    }
+    i += 1;
+  }
+  return null;
+}
+
 function stringLiterals(source) {
   const literals = [];
-  const pattern = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g;
-  let match;
-  while ((match = pattern.exec(source))) {
-    const raw = match[0];
+  for (let i = 0; i < source.length; i += 1) {
+    if (source[i] !== "\"" && source[i] !== "'" && source[i] !== "`") {
+      continue;
+    }
+
+    const raw = readRawStringLiteral(source, i);
+    if (!raw) {
+      continue;
+    }
     const quote = raw[0];
     const body = raw.slice(1, -1);
     literals.push(normalizeText(quote === "`" ? templateLiteralText(body) : unescapeSimple(body)));
+    i += raw.length - 1;
   }
   return literals.filter(Boolean);
 }

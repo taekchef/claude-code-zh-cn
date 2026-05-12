@@ -112,3 +112,40 @@ test("upstream text diff reports user-visible interpolated template literals", (
   assert.deepEqual(payload.added, ["Delete ${...} files?"]);
   assert.deepEqual(payload.needsTranslationReview, ["Delete ${...} files?"]);
 });
+
+test("upstream text diff keeps trailing text after nested template literals", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-text-diff-nested-template-test-"));
+  const packagesDir = path.join(tmp, "packages");
+  const configPath = path.join(tmp, "config.json");
+  const fromPackage = path.join(packagesDir, "1.0.0", "package");
+  const toPackage = path.join(packagesDir, "1.0.1", "package");
+  fs.mkdirSync(fromPackage, { recursive: true });
+  fs.mkdirSync(toPackage, { recursive: true });
+  fs.writeFileSync(path.join(fromPackage, "cli.js"), "const oldPrompt='Ready to continue?';\n");
+  fs.writeFileSync(
+    path.join(toPackage, "cli.js"),
+    "const confirm=`Proceed ${tag`after ${count}`} before deleting files?`;\n"
+  );
+  fs.writeFileSync(configPath, JSON.stringify({
+    packageName: "@fixture/claude-code",
+    baseline: { versions: ["1.0.0"] },
+  }));
+
+  const result = spawnSync("node", [
+    diffScript,
+    "--config", configPath,
+    "--fixtures-dir", packagesDir,
+    "--from", "1.0.0",
+    "--to", "1.0.1",
+    "--json",
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: process.env,
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  assert.deepEqual(payload.added, ["Proceed ${...} before deleting files?"]);
+  assert.deepEqual(payload.needsTranslationReview, ["Proceed ${...} before deleting files?"]);
+});
