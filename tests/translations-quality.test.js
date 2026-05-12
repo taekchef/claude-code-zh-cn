@@ -95,6 +95,7 @@ test("high-visibility translations use the curated wording", () => {
     ["Manage authentication", "管理身份验证"],
     ["Inspect auto mode classifier configuration", "查看自动模式分类器配置"],
     ["Configure and manage MCP servers", "配置和管理 MCP 服务器"],
+    ["Show a plugin's component inventory and projected token cost", "显示插件组件清单和预计 token 成本"],
     ["Set up a long-lived authentication token (requires Claude subscription)", "设置长期身份验证 token（需要 Claude 订阅）"],
     ["Check for updates and install if available", "检查更新并安装可用版本"],
     [

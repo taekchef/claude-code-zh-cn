@@ -186,6 +186,100 @@ test("verify-upstream-compat reports missing node-lief as native dependency skip
   assert.match(native.skipReason, /node-lief/);
 });
 
+test("verify-upstream-compat resolves new native macOS candidates to the platform package", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-package-resolve-"));
+  const packagesDir = path.join(tmp, "cache");
+  const requestsPath = path.join(tmp, "npm-requests.txt");
+  const binDir = path.join(tmp, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  const fakeNpm = path.join(binDir, "npm");
+  fs.writeFileSync(
+    fakeNpm,
+    [
+      "#!/usr/bin/env node",
+      "const fs = require('node:fs');",
+      "const path = require('node:path');",
+      "const { execFileSync } = require('node:child_process');",
+      "const spec = process.argv[3];",
+      "fs.appendFileSync(process.env.CCZH_NPM_REQUESTS, `${spec}\\n`);",
+      "const root = process.cwd();",
+      "const staging = path.join(root, 'pack-staging');",
+      "fs.rmSync(staging, { recursive: true, force: true });",
+      "const packageDir = path.join(staging, 'package');",
+      "fs.mkdirSync(packageDir, { recursive: true });",
+      "const isPlatformPackage = spec.startsWith('@anthropic-ai/claude-code-darwin-arm64@');",
+      "fs.writeFileSync(path.join(packageDir, 'package.json'), JSON.stringify({ name: spec.replace(/@2\\.1\\.139$/, ''), version: '2.1.139' }));",
+      "if (isPlatformPackage) {",
+      "  fs.writeFileSync(path.join(packageDir, 'claude'), '#!/bin/sh\\n');",
+      "} else {",
+      "  fs.mkdirSync(path.join(packageDir, 'bin'), { recursive: true });",
+      "  fs.writeFileSync(path.join(packageDir, 'bin', 'claude.exe'), 'wrapper\\n');",
+      "}",
+      "execFileSync('tar', ['-czf', 'claude-code-2.1.139.tgz', '-C', staging, 'package'], { cwd: root });",
+      "process.stdout.write('claude-code-2.1.139.tgz\\n');",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(fakeNpm, 0o755);
+
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: ["2.1.139"],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.checks = {
+    sentinels: [],
+    templateResidues: [],
+    upstreamTextGuards: [],
+  };
+  fixtureConfigJson.support = {
+    macosNativeExperimental: {
+      platform: "darwin-arm64",
+      packageName: "@anthropic-ai/claude-code-darwin-arm64",
+      floor: "2.1.113",
+      representatives: ["2.1.138"],
+    },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [
+      compatScript,
+      "--config",
+      configPath,
+      "--packages-dir",
+      packagesDir,
+      "--baseline",
+      "2.1.139",
+      "--skip-latest",
+      "--native-macos-arm64",
+      "--json",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+        CCZH_NATIVE_VERIFY_PLATFORM: "linux-x64",
+        CCZH_NPM_REQUESTS: requestsPath,
+      },
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(fs.readFileSync(requestsPath, "utf8").trim().split(/\r?\n/), [
+    "@anthropic-ai/claude-code-darwin-arm64@2.1.139",
+  ]);
+  const payload = JSON.parse(result.stdout);
+  const [native] = payload.results;
+  assert.equal(native.kind, "native");
+  assert.equal(native.status, "skip");
+  assert.match(native.skipReason, /requires macOS arm64/);
+});
+
 test("verify-upstream-compat fails when audited display output leaves user-visible English", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-config-"));
   const configPath = path.join(tmp, "config.json");

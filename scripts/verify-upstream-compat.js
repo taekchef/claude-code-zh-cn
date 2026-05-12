@@ -239,6 +239,23 @@ function uniqueVersions(versions) {
   return [...new Set(versions.filter(Boolean).map((value) => String(value)))];
 }
 
+function semverParts(version) {
+  const match = String(version || "").match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return null;
+  return match.slice(1).map((part) => Number.parseInt(part, 10));
+}
+
+function compareSemver(a, b) {
+  const left = semverParts(a);
+  const right = semverParts(b);
+  if (!left || !right) return null;
+  for (let index = 0; index < 3; index += 1) {
+    const delta = left[index] - right[index];
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
+
 function resolveVersions(config, args) {
   const baseline = parseBaselineOverride(args.baseline) || config.baseline.versions;
   const versions = uniqueVersions(baseline);
@@ -335,12 +352,12 @@ function downloadPackage(packageName, version, packagesDir) {
 
 function resolvePackageName(config, args, version) {
   const nativeConfig = config.support?.macosNativeExperimental;
-  if (
-    args.nativeMacosArm64 &&
-    nativeConfig?.packageName &&
-    (nativeConfig.representatives || []).map(String).includes(String(version))
-  ) {
-    return nativeConfig.packageName;
+  if (args.nativeMacosArm64 && nativeConfig?.packageName) {
+    const floorComparison = nativeConfig.floor ? compareSemver(version, nativeConfig.floor) : null;
+    const isKnownRepresentative = (nativeConfig.representatives || []).map(String).includes(String(version));
+    if ((floorComparison !== null && floorComparison >= 0) || isKnownRepresentative) {
+      return nativeConfig.packageName;
+    }
   }
 
   return config.packageName;

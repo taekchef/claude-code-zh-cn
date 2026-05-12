@@ -361,7 +361,7 @@
       "platform": "darwin-arm64",
       "packageName": "@anthropic-ai/claude-code-darwin-arm64",
       "floor": "2.1.113",
-      "ceiling": "2.1.138",
+      "ceiling": "2.1.139",
       "excluded": [
         "2.1.115",
         "2.1.125",
@@ -390,13 +390,14 @@
         "2.1.133",
         "2.1.136",
         "2.1.137",
-        "2.1.138"
+        "2.1.138",
+        "2.1.139"
       ],
-      "verification": "2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11) · 2.1.124 PASS(native 1331, display 11/11) · 2.1.126 PASS(native 1331, display 11/11) · 2.1.128 PASS(native 1331, display 11/11) · 2.1.129 PASS(native 1333, display 11/11) · 2.1.131 PASS(native 1333, display 11/11) · 2.1.132 PASS(native 1323, display 11/11) · 2.1.133 PASS(native 1323, display 11/11) · 2.1.136 PASS(native 1322, display 11/11) · 2.1.137 PASS(native 1322, display 11/11) · 2.1.138 PASS(native 1322, display 11/11)",
+      "verification": "2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11) · 2.1.124 PASS(native 1331, display 11/11) · 2.1.126 PASS(native 1331, display 11/11) · 2.1.128 PASS(native 1331, display 11/11) · 2.1.129 PASS(native 1333, display 11/11) · 2.1.131 PASS(native 1333, display 11/11) · 2.1.132 PASS(native 1323, display 11/11) · 2.1.133 PASS(native 1323, display 11/11) · 2.1.136 PASS(native 1322, display 11/11) · 2.1.137 PASS(native 1322, display 11/11) · 2.1.138 PASS(native 1322, display 11/11) · 2.1.139 PASS(native 1324, display 11/11)",
       "requires": [
         "node-lief"
       ],
-      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113 - 2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128 - 2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.138 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135 未发布或未纳入支持；不代表未来 latest 自动稳定。"
+      "notes": "macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113 - 2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128 - 2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.139 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135 未发布或未纳入支持；不代表未来 latest 自动稳定。"
     },
     "linuxOfficialInstaller": {
       "unsupported": true,

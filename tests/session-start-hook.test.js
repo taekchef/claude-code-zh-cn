@@ -879,7 +879,7 @@ printf '1'
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.139\nLATEST\n");
+  fs.writeFileSync(fakeBinary, "// Version: 2.1.140\nLATEST\n");
   fs.chmodSync(fakeBinary, 0o755);
   fs.writeFileSync(markerFile, "2.1.112|stale-revision\n");
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));

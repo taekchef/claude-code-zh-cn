@@ -6618,6 +6618,10 @@
     "zh": "管理 Claude Code 项目状态"
   },
   {
+    "en": "Show a plugin's component inventory and projected token cost",
+    "zh": "显示插件组件清单和预计 token 成本"
+  },
+  {
     "en": "Disable an enabled plugin",
     "zh": "禁用已启用的插件"
   },
