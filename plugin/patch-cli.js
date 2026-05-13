@@ -569,9 +569,9 @@ installStatuslinePromptPathGuard();
 installStatuslineCommandPromptPathGuard();
 
 // 1. 过去式动词数组
-tryReplace(
-    '["Baked","Brewed","Churned","Cogitated","Cooked","Crunched","Saut\u00e9ed","Worked"]',
-    '["烘焙了","沏了","翻搅了","琢磨了","烹饪了","嚼了","翻炒了","忙活了"]'
+tryRegexReplace(
+    /\["Baked","Brewed","Churned","Cogitated","Cooked","Crunched","Saut(?:\u00e9|\\u00e9|\\xE9)ed","Worked"\]/g,
+    () => '["烘焙了","沏了","翻搅了","琢磨了","烹饪了","嚼了","翻炒了","忙活了"]'
 );
 
 // 2. Tip: → 💡

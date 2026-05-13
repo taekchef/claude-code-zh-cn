@@ -17,6 +17,17 @@ function patchFixture(lines) {
   return fs.readFileSync(cliFile, "utf8");
 }
 
+test("past-tense status verbs are translated when upstream escapes Sautéed", () => {
+  const patched = patchFixture([
+    'var verbs=["Baked","Brewed","Churned","Cogitated","Cooked","Crunched","Saut\\xE9ed","Worked"];',
+    "",
+  ]);
+
+  assert.equal(patched.includes("Cooked"), false, patched);
+  assert.equal(patched.includes("Saut\\xE9ed"), false, patched);
+  assert.match(patched, /"烘焙了","沏了","翻搅了","琢磨了","烹饪了","嚼了","翻炒了","忙活了"/);
+});
+
 test("duration patch removes English 'for' from generic Worked/Idle variants", () => {
   const patched = patchFixture([
     "let teammate=`${verb} Worked for ${fmt(Date.now()-task.startTime)}`;",
