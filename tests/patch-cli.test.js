@@ -97,6 +97,30 @@ test("approval prompt patch keeps dialog text and key hints in Chinese", () => {
   assert.match(patched, / · 按 ctrl\+e 说明/);
 });
 
+test("bypass permissions startup warning is translated as a complete safety notice", () => {
+  const patched = patchFixture([
+    'const title="WARNING: Claude Code running in Bypass Permissions mode";',
+    'const patchedTitle="WARNING: Claude Code running in 跳过权限检查 mode";',
+    'const body="In Bypass Permissions mode, Claude Code will not ask for your approval before running potentially dangerous commands.";',
+    'const patchedBody="In 跳过权限检查 mode, Claude Code will not ask for your approval before running potentially dangerous commands.";',
+    'const scope="This mode should only be used in a sandboxed container/VM that has restricted internet access and can easily be restored if damaged.";',
+    'const responsibility="By proceeding, you accept all responsibility for actions taken while running in Bypass Permissions mode.";',
+    'const patchedResponsibility="By proceeding, you accept all responsibility for actions taken while running in 跳过权限检查 mode.";',
+    "",
+  ]);
+
+  assert.equal(patched.includes("WARNING: Claude Code running in"), false, patched);
+  assert.equal(patched.includes("Bypass Permissions"), false, patched);
+  assert.equal(patched.includes("will not ask for your approval"), false, patched);
+  assert.equal(patched.includes("potentially dangerous commands"), false, patched);
+  assert.equal(patched.includes("restricted internet access"), false, patched);
+  assert.equal(patched.includes("accept all responsibility"), false, patched);
+  assert.match(patched, /警告：Claude Code 正在以跳过权限检查模式运行/);
+  assert.match(patched, /不会在运行可能危险的命令前请求你的批准/);
+  assert.match(patched, /只应在有受限网络访问、且损坏后易于恢复的沙盒容器或虚拟机中使用/);
+  assert.match(patched, /继续操作即表示你接受在跳过权限检查模式下执行的所有操作责任/);
+});
+
 test("fragment migrations use targeted structural patches instead of broad english shards", () => {
   const patched = patchFixture([
     'let quick=YX.default.createElement(V,null,"• Cmd+Esc",YX.default.createElement(V,{dimColor:!0}," for Quick Launch"));',
