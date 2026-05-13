@@ -188,13 +188,48 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
   assert.match(output, /2\.1\.141/, "the user-facing message should include the unsupported version");
-  assert.match(output, /暂不支持 CLI Patch/, "the install path should clearly say CLI Patch is unsupported");
+  assert.match(output, /避免破坏 Mach-O 签名/, "the install path should explain why native patching is skipped");
   assert.match(output, /已跳过 CLI Patch/, "the install path should safely skip CLI Patch");
-  assert.match(output, /2\.1\.113 - 2\.1\.140/, "the message should show the verified native window");
-  assert.match(output, /不含 2\.1\.115.*2\.1\.125/, "the message should mention unsupported native gaps");
   assert.match(output, /Claude Code 2\.1\.112/, "the message should point users to the stable pinned version");
   assert.equal(fs.existsSync(invokedFile), false, "unsupported native should not call patch/extract/repack");
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "unsupported native should not write success marker");
+});
+
+test("install smoke skips verified macOS native binaries to avoid rewriting Mach-O", { skip: unixShellRequired }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-verified-skip-"));
+  const home = path.join(tmp, "home");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeClaude = path.join(fakeBin, "claude");
+  const invokedFile = path.join(tmp, "patch-invoked");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const sourceRepo = createInstallSource(tmp, invokedFile, "2.1.140");
+  const profileFile = path.join(home, ".zshrc");
+
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\necho '2.1.140 (Claude Code)'\n");
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
+    cwd: sourceRepo,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
+      ZH_CN_PROFILE_FILES: profileFile,
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    encoding: "utf8",
+  });
+
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
+  assert.match(output, /2\.1\.140/, "the user-facing message should include the native version");
+  assert.match(output, /原生二进制/, "the install path should identify native binary installs");
+  assert.match(output, /已跳过 CLI Patch/, "native Mach-O installs should skip binary patching");
+  assert.equal(fs.existsSync(invokedFile), false, "verified native should not call patch/extract/repack");
+  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "skipped native should not write success marker");
 });
 
 test("Windows PowerShell old-npm install smoke is wired into CI", () => {

@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.11] - 2026-05-14
+
+### 修复
+
+- macOS 官方安装器 / native / Mach-O 路径默认跳过 CLI Patch，不再 extract / patch / repack 官方二进制，避免破坏签名状态并触发 `zsh: killed`
+- `install.sh` 和 `session-start` 保留设置、Hook、输出风格和插件层中文化，但只在旧 npm `cli.js` 路径执行硬编码文字 patch
+- native latest workflow 改为只上传 candidate JSON 和文本差异报告，不再自动推广 native 支持窗口或创建 closeout PR
+
+### 验证
+
+- `node --test tests/install-smoke.test.js`
+- `node --test tests/session-start-hook.test.js`
+
 ## [2.4.10] - 2026-05-13
 
 ### 修复

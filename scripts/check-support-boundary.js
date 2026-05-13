@@ -85,13 +85,7 @@ function isNegatedBoundaryLine(line) {
 }
 
 function isAllowedNativeExperimentalLine(line) {
-  const mentionsMacos = /macOS|darwin/i.test(line);
-  const mentionsNative = /native|原生|二进制|binary/i.test(line);
-  const experimental = /experimental|实验/i.test(line);
-  const stableClaim = /\bstable\b|稳定支持|stable CLI Patch/i.test(line);
-  const latestClaim = /\blatest\b|最新版|最新版本/i.test(line);
-
-  return mentionsMacos && mentionsNative && experimental && !stableClaim && !latestClaim;
+  return false;
 }
 
 function findSupportClaim(line, boundary) {
@@ -295,14 +289,14 @@ function buildFindings(repoRoot) {
 function printOk(boundary) {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`native CLI Patch: only explicitly verified macOS experimental versions; no latest stable claim`);
+  console.log(`native CLI Patch: macOS native / Mach-O is skipped; only npm cli.js is stable`);
 }
 
 function printFail(findings, boundary) {
   console.log("support-boundary-guard: FAIL");
   console.log("当前官方边界:");
   console.log(`- stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；macOS native 只能写已验证 experimental 窗口`);
+  console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；macOS native / Mach-O 现在默认跳过 CLI Patch`);
   console.log("- Windows 只能写成 WSL + npm stable，不能写成 Windows native stable");
   console.log("");
 

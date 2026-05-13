@@ -69,23 +69,19 @@ function runPromote(args) {
   });
 }
 
-test("promote-native-candidate advances macOS native source-of-truth from a passing candidate", () => {
+test("promote-native-candidate refuses promotion while macOS native patch support is disabled", () => {
   const configPath = copyConfig();
   const candidatePath = tmpFile("candidate.json");
   writeJson(candidatePath, candidateResult());
 
   const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
 
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /promoted macOS native candidate 2\.1\.142/);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /native candidate promotion blocked for 2\.1\.142/);
+  assert.match(result.stderr, /support\.macosNativeExperimental is missing or unsupported/);
 
   const config = readJson(configPath);
-  const native = config.support.macosNativeExperimental;
-  assert.equal(native.ceiling, "2.1.142");
-  assert.ok(native.representatives.includes("2.1.142"));
-  assert.ok(native.excluded.includes("2.1.141"), "unverified gap should stay outside support");
-  assert.match(native.verification, /2\.1\.142 PASS\(native 1324, display 11\/11\)/);
-  assert.match(native.notes, /不代表未来 latest 自动稳定/);
+  assert.equal(config.support.macosNativeExperimental.unsupported, true);
 });
 
 test("promote-native-candidate rejects skipped candidates with a maintainer-readable boundary", () => {
@@ -108,8 +104,7 @@ test("promote-native-candidate rejects skipped candidates with a maintainer-read
   assert.match(result.stderr, /node-lief dependency missing/);
 
   const config = readJson(configPath);
-  assert.equal(config.support.macosNativeExperimental.ceiling, "2.1.140");
-  assert.equal(config.support.macosNativeExperimental.representatives.includes("2.1.142"), false);
+  assert.equal(config.support.macosNativeExperimental.unsupported, true);
 });
 
 test("promote-native-candidate requires display audit before support-window promotion", () => {
@@ -126,5 +121,5 @@ test("promote-native-candidate requires display audit before support-window prom
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /display audit did not pass/);
-  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.140");
+  assert.equal(readJson(configPath).support.macosNativeExperimental.unsupported, true);
 });

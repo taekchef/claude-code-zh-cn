@@ -746,13 +746,14 @@ test("session-start writes .last-update-status on successful update", () => {
   assert.ok(status.includes("2.0.1"), `status should mention 2.0.1, got: ${status}`);
 });
 
-test("session-start native re-patch does not roll upgraded supported binary back to old backup version", () => {
+test("session-start skips supported native without rolling back backup or rewriting binary", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-upgrade-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
   const fakeBin = path.join(tmp, "bin");
   const fakeBinary = path.join(tmp, "claude-native");
   const backupBinary = `${fakeBinary}.zh-cn-backup`;
+  const invokedFile = path.join(tmp, "patch-invoked");
   const markerFile = path.join(pluginRoot, ".patched-version");
 
   fs.mkdirSync(pluginRoot, { recursive: true });
@@ -766,6 +767,7 @@ test("session-start native re-patch does not roll upgraded supported binary back
     path.join(pluginRoot, "patch-cli.sh"),
     `#!/usr/bin/env bash
 set -euo pipefail
+printf 'invoked' > ${JSON.stringify(invokedFile)}
 if ! grep -q 'PATCHED' "$1"; then
   printf '\nPATCHED\n' >> "$1"
 fi
@@ -801,17 +803,19 @@ printf '1'
   const updatedMarker = fs.readFileSync(markerFile, "utf8").trim();
 
   assert.match(currentBinary, /Version: 2\.1\.112/, "current binary should stay on upgraded version");
-  assert.match(currentBinary, /PATCHED/, "supported native binary should be re-patched");
-  assert.match(refreshedBackup, /Version: 2\.1\.112/, "backup should refresh to upgraded version before re-patch");
-  assert.match(updatedMarker, /^native\|2\.1\.112\|[a-f0-9]{64}\|/, "marker should update to the upgraded native version");
+  assert.doesNotMatch(currentBinary, /PATCHED/, "supported native binary should not be re-patched");
+  assert.match(refreshedBackup, /Version: 2\.1\.110/, "existing backup should not be refreshed into the current binary path");
+  assert.equal(updatedMarker, "2.1.110|stale-revision", "skipped native should not write a success marker");
+  assert.equal(fs.existsSync(invokedFile), false, "supported native should not call patch/extract/repack");
 });
 
-test("session-start patches verified macOS native experimental version", () => {
+test("session-start skips verified macOS native experimental version", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-verified-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
   const fakeBin = path.join(tmp, "bin");
   const fakeBinary = path.join(tmp, "claude-native");
+  const invokedFile = path.join(tmp, "patch-invoked");
   const markerFile = path.join(pluginRoot, ".patched-version");
 
   fs.mkdirSync(pluginRoot, { recursive: true });
@@ -824,6 +828,7 @@ test("session-start patches verified macOS native experimental version", () => {
     path.join(pluginRoot, "patch-cli.sh"),
     `#!/usr/bin/env bash
 set -euo pipefail
+printf 'invoked' > ${JSON.stringify(invokedFile)}
 printf '\nPATCHED-EXPERIMENTAL\n' >> "$1"
 printf '1'
 `
@@ -849,8 +854,9 @@ printf '1'
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(fs.readFileSync(fakeBinary, "utf8"), /PATCHED-EXPERIMENTAL/);
-  assert.match(fs.readFileSync(markerFile, "utf8").trim(), /^native\|2\.1\.123\|[a-f0-9]{64}\|/);
+  assert.equal(fs.existsSync(invokedFile), false, "verified native should not call patch/extract/repack");
+  assert.equal(fs.readFileSync(fakeBinary, "utf8"), "// Version: 2.1.123\nNATIVE\n");
+  assert.equal(fs.existsSync(markerFile), false, "skipped native should not write success marker");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
@@ -904,7 +910,7 @@ printf '1'
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
-test("session-start native path skips re-patch cleanly when node-lief deps are missing", () => {
+test("session-start native path skips re-patch without checking native patch deps", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-node-lief-missing-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -969,7 +975,7 @@ printf 'invoked' > ${JSON.stringify(invokedFile)}
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(fs.existsSync(invokedFile), false, "missing deps should skip native re-patch");
+  assert.equal(fs.existsSync(invokedFile), false, "native path should skip re-patch");
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "2.1.92|stale-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });

@@ -183,10 +183,10 @@ test("support boundary guard fails when config uses latest instead of numeric ve
   assert.match(result.stdout, /representatives 不能使用非数字版本 latest/);
 });
 
-test("support boundary guard allows explicit macOS native experimental versions", () => {
+test("support boundary guard rejects macOS native experimental CLI Patch claims", () => {
   const repo = createFixture({
     "README.md": [
-      "macOS arm64 native binary: experimental for explicitly verified versions only.",
+      "macOS arm64 native binary 2.1.123 已验证 experimental CLI Patch。",
       "2.1.113+ / latest 仍不属于 stable CLI Patch。",
     ].join("\n"),
     "docs/support-matrix.md":
@@ -206,8 +206,9 @@ test("support boundary guard allows explicit macOS native experimental versions"
 
   const result = runGuard(repo);
 
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /support-boundary-guard: OK/);
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.match(result.stdout, /support-boundary-guard: FAIL/);
+  assert.match(result.stdout, /macOS arm64 native binary/);
 });
 
 test("support boundary guard still rejects latest in macOS native experimental representatives", () => {
