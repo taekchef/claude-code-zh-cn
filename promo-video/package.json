@@ -1,0 +1,24 @@
+{
+  "name": "claude-code-zh-cn-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "still": "remotion still src/index.ts PromoVideo out/preview.png --frame=420 --scale=0.5",
+    "still:short": "remotion still src/index.ts PromoShortVertical out/short-preview.png --frame=220 --scale=0.5",
+    "render": "remotion render src/index.ts PromoVideo out/claude-code-zh-cn-promo.mp4 --codec h264 --crf 18",
+    "render:short": "remotion render src/index.ts PromoShortVertical out/claude-code-zh-cn-promo-short-vertical.mp4 --codec h264 --crf 18"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.460",
+    "@remotion/media": "^4.0.460",
+    "@remotion/transitions": "^4.0.460",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "remotion": "^4.0.460",
+    "typescript": "^6.0.3"
+  }
+}
