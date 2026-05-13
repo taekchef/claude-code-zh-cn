@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.10] - 2026-05-13
+
+### 修复
+
+- 修复 Claude Code `2.1.139` native binary 中过去式状态动词数组使用 `Saut\xE9ed` 转义写法时绕过 CLI Patch，导致对话结束后显示 `Cooked 19s` 等英文状态的问题
+
+### 验证
+
+- `node --test tests/patch-cli.test.js`
+- `node --test tests/*.test.js`
+- `node scripts/verify-upstream-compat.js`
+
 ## [2.4.9] - 2026-05-12
 
 ### 新增
