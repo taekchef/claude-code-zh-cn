@@ -460,6 +460,8 @@ if [ -n "$NATIVE_BINARY" ]; then
                             [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
                             echo "$FINAL_MARKER" > "$MARKER_FILE"
                             AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental）"
+                        else
+                            cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                         fi
                     fi
                 fi
