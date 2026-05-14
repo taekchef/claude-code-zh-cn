@@ -5378,8 +5378,32 @@
     "zh": "警告："
   },
   {
+    "en": "WARNING: Claude Code running in Bypass Permissions mode",
+    "zh": "警告：Claude Code 正在以跳过权限检查模式运行"
+  },
+  {
     "en": "WARNING: Claude Code running in 跳过权限检查 mode",
-    "zh": "警告：Claude Code 正在跳过权限检查模式中运行"
+    "zh": "警告：Claude Code 正在以跳过权限检查模式运行"
+  },
+  {
+    "en": "In Bypass Permissions mode, Claude Code will not ask for your approval before running potentially dangerous commands.",
+    "zh": "在跳过权限检查模式下，Claude Code 不会在运行可能危险的命令前请求你的批准。"
+  },
+  {
+    "en": "In 跳过权限检查 mode, Claude Code will not ask for your approval before running potentially dangerous commands.",
+    "zh": "在跳过权限检查模式下，Claude Code 不会在运行可能危险的命令前请求你的批准。"
+  },
+  {
+    "en": "This mode should only be used in a sandboxed container/VM that has restricted internet access and can easily be restored if damaged.",
+    "zh": "此模式只应在有受限网络访问、且损坏后易于恢复的沙盒容器或虚拟机中使用。"
+  },
+  {
+    "en": "By proceeding, you accept all responsibility for actions taken while running in Bypass Permissions mode.",
+    "zh": "继续操作即表示你接受在跳过权限检查模式下执行的所有操作责任。"
+  },
+  {
+    "en": "By proceeding, you accept all responsibility for actions taken while running in 跳过权限检查 mode.",
+    "zh": "继续操作即表示你接受在跳过权限检查模式下执行的所有操作责任。"
   },
   {
     "en": "WARNING: Failed to turn on autofix for this PR",
