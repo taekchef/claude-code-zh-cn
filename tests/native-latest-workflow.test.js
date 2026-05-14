@@ -51,7 +51,7 @@ test("native latest candidate workflow resolves the requested or current latest 
   assert.match(workflow, /npm\s+view\s+@anthropic-ai\/claude-code\s+version/);
 });
 
-test("native latest candidate workflow uploads evidence without promoting Mach-O patch support", () => {
+test("native latest candidate workflow promotes passing candidates into a PR-ready branch", () => {
   const workflow = readWorkflow();
 
   assert.match(
@@ -60,14 +60,17 @@ test("native latest candidate workflow uploads evidence without promoting Mach-O
   );
   assert.match(workflow, /actions\/upload-artifact@v\d+/);
   assert.match(workflow, /path:\s*\$\{\{\s*steps\.verify\.outputs\.json_path\s*\}\}/);
-  assert.match(workflow, /Native candidate recorded/);
-  assert.match(workflow, /Mach-O rewriting can break the binary signature/);
-  assert.match(workflow, /Candidate JSON artifact: native-latest-candidate-/);
-  assert.doesNotMatch(workflow, /contents:\s*write/);
-  assert.doesNotMatch(workflow, /pull-requests:\s*write/);
-  assert.doesNotMatch(workflow, /scripts\/promote-native-candidate\.js\s+--candidate[^\n]*--write/);
-  assert.doesNotMatch(workflow, /peter-evans\/create-pull-request@v\d+/);
-  assert.doesNotMatch(workflow, /codex\/native-latest-/);
+  assert.match(workflow, /contents:\s*write/);
+  assert.match(workflow, /pull-requests:\s*write/);
+  assert.match(workflow, /scripts\/promote-native-candidate\.js\s+--candidate/);
+  assert.match(workflow, /scripts\/generate-plugin-support-window\.js\s+--write/);
+  assert.match(workflow, /scripts\/generate-support-matrix\.js/);
+  assert.match(workflow, /scripts\/sync-readme-support-window\.js\s+--write/);
+  assert.match(workflow, /scripts\/sync-doc-derived-counts\.js\s+--write/);
+  assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
+  assert.match(workflow, /codex\/native-latest-/);
+  assert.match(workflow, /draft:\s*true/);
+  assert.match(workflow, /commit-message:\s*"chore: promote macOS native \$\{\{ steps\.version\.outputs\.version \}\}"/);
   assert.doesNotMatch(workflow, /\bgh\s+release\b/);
 });
 
@@ -90,7 +93,7 @@ test("native latest candidate workflow explains failed promotion boundaries", ()
   assert.match(workflow, /failure\(\)/);
   assert.match(workflow, /GITHUB_STEP_SUMMARY/);
   assert.match(workflow, /scripts\/promote-native-candidate\.js\s+--candidate/);
+  assert.match(workflow, /PROMOTE_OUTPUT/);
+  assert.match(workflow, /PROMOTE_STATUS/);
   assert.match(workflow, /2>&1/);
-  assert.doesNotMatch(workflow, /PROMOTE_OUTPUT/);
-  assert.doesNotMatch(workflow, /PROMOTE_STATUS/);
 });

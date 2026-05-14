@@ -339,12 +339,6 @@ function rulesForDoc(file, counts) {
           `${before}${counts.uiTranslations}${middle}${counts.stableRepresentative}${stableAfter}${counts.stablePatchCount}${nativeMiddle}${counts.macosNative.compactBackticked}${nativeAfter}${counts.macosNative.patchRange}${auditPrefix}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
       ),
       rule(
-        "coverage UI patch row counts native skipped",
-        /(\| UI 文字中文化 \| )\d+( 条翻译，`)[^`]+(` 实测 )\d+( 处有效 patch；macOS native \/ Mach-O 默认跳过二进制改写 \|)/g,
-        (_, before, middle, after, suffix) =>
-          `${before}${counts.uiTranslations}${middle}${counts.stableRepresentative}${after}${counts.stablePatchCount}${suffix}`
-      ),
-      rule(
         "macOS native badge window",
         /(macos%20native-)[0-9.]+--[0-9.]+(%20experimental-yellow)/g,
         (_, before, after) => `${before}${counts.macosNative.badgeRange}${after}`
@@ -412,9 +406,7 @@ function applyRules(file, text, counts) {
       matches += 1;
       return entry.replace(...args);
     });
-    const nativeRule = /native|macOS native|English native|install native|FAQ native/.test(entry.label) ||
-      entry.label === "coverage UI patch row counts";
-    if (matches === 0 && !(nativeRule && !counts.macosNative)) {
+    if (matches === 0) {
       missing.push(entry.label);
     }
   }

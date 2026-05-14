@@ -186,14 +186,12 @@ function parseNativeDisplayAudit(entry) {
 }
 
 function renderBadges(config) {
-  const { npmStable, macosInstaller, macosNative } = supportEntries(config);
+  const { npmStable, macosNative } = supportEntries(config);
   const lines = [
     `[![npm stable](https://img.shields.io/badge/npm%20stable-${renderBadgeRange(
       npmStable
     )}-green)](./docs/support-matrix.md)`,
-    macosInstaller.unsupported
-      ? "[![macOS installer](https://img.shields.io/badge/macos%20installer-skipped-lightgrey)](./docs/support-matrix.md)"
-      : "[![macOS installer](https://img.shields.io/badge/macos%20installer-experimental-yellow)](./docs/support-matrix.md)",
+    `[![macOS installer](https://img.shields.io/badge/macos%20installer-experimental-yellow)](./docs/support-matrix.md)`,
   ];
 
   if (macosNative && macosNative.unsupported !== true) {
@@ -217,10 +215,6 @@ function renderSupportSystems(config) {
     windowsNative,
   } = supportEntries(config);
   const stablePinned = npmStable.ceiling || npmStable.representatives?.at(-1) || npmStable.floor;
-  const macosInstallerTier = macosInstaller.unsupported ? "unsupported" : "experimental";
-  const macosInstallerNotes = macosInstaller.unsupported
-    ? macosInstaller.notes || "检测到 macOS native / Mach-O 时跳过 CLI Patch，仅启用 Layer 1~3。"
-    : "指定旧版本的 native 二进制已验证；插件可用 native patch 处理，需要 `node-lief`，稳定仍建议 npm pinned";
   const macosNativeRange = macosNative && macosNative.unsupported !== true
     ? renderRangeWithExcluded(macosNative)
     : "-";
@@ -234,13 +228,13 @@ function renderSupportSystems(config) {
   const nativeBoundary = nextMajorBoundary(npmStable);
   const nativeLatestNote = macosNative && macosNative.unsupported !== true
     ? `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS arm64 native binary 现在有独立 experimental 通道，已验证 ${macosVerified} 的二进制改写链路和 ${macosNativeAudit.total} 个稳定显示面。${macosExcluded}\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`
-    : `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS native / Mach-O 默认跳过 CLI Patch，仅启用设置、Hook、输出风格和插件层中文化；\`latest\` 不是 stable 承诺。`;
+    : `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`;
 
   return [
     "| 系统 / 通道 | 当前口径 | 已验证窗口 | 说明 |",
     "|------|---------|-----------|------|",
     `| macOS / npm 全局安装 | \`stable\` | ${renderRangeWithExcluded(npmStable)} | 启动前 launcher 自修复 + \`session-start\` 二层兜底 |`,
-    `| macOS / 官方安装器 | \`${macosInstallerTier}\` | ${renderRangeWithExcluded(macosInstaller)} | ${macosInstallerNotes} |`,
+    `| macOS / 官方安装器 | \`experimental\` | ${renderRangeWithExcluded(macosInstaller)} | 指定旧版本的 native 二进制已验证；插件可用 native patch 处理，需要 \`node-lief\`，稳定仍建议 npm pinned |`,
     ...(macosNative && macosNative.unsupported !== true
       ? [
           `| macOS / native binary | \`experimental\` | ${macosNativeRange} | 当前 macOS arm64 native 已验证 extract / patch / repack / \`--version\` + ${macosNativeAudit.total} 个稳定显示面审计；需要 \`node-lief\`；未验证新版本会安全跳过 CLI Patch |`,
@@ -283,20 +277,6 @@ function renderInstallAdvice(config) {
     ? compactVersions(macosNative.representatives)
     : "-";
   const macosNativeAudit = parseNativeDisplayAudit(macosNative);
-  const macosNativeSupported = macosNative && macosNative.unsupported !== true;
-  const macosInstallerRows = macosInstaller.unsupported
-    ? [
-        "| `curl -fsSL https://claude.ai/install.sh \\| sh` | 官方安装器会安装 native / Mach-O 二进制；安装脚本不会改写该二进制 | `skipped`（仅启用 Layer 1~3） |",
-      ]
-    : [
-        `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定旧版本 | \`experimental\`（macOS arm64 已验证；插件会用 native patch 处理，需要 \`node-lief\`） |`,
-        "| `curl -fsSL https://claude.ai/install.sh \\| sh` | 官方安装器 latest | `experimental / skipped`（只有明确验证版本会启用 CLI Patch） |",
-      ];
-  const nativeBinaryNote = macosNativeSupported
-    ? `> **native binary 说明**：官方安装器和新版 npm 包都可能装到 native 二进制，不是旧 npm \`cli.js\`。本插件的处理方法是：用 \`bun-binary-io.js\` 提取二进制里的 JS → 复用 \`patch-cli.sh\` 翻译 → 再写回二进制。macOS arm64 ${renderRangeWithExcluded(
-        macosInstaller
-      )} 已在临时目录验证通过；${macosVerified} 额外通过 ${macosNativeAudit.total} 个稳定显示面审计。运行时需要 \`node-lief\`。要最稳，请优先使用 npm pinned 安装方式。`
-    : "> **native binary 说明**：官方安装器和新版 npm 包都可能装到 native / Mach-O 二进制，不是旧 npm `cli.js`。本插件现在不会 extract / patch / repack 该二进制，避免破坏签名状态并触发 macOS kill；会继续启用设置、Hook、输出风格和插件层中文化。";
 
   return [
     "当前安装方式口径如下：",
@@ -306,8 +286,8 @@ function renderInstallAdvice(config) {
     `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 推荐安装的旧 \`cli.js\` 版本；${renderRangeWithExcluded(
       npmStable
     )} 范围内也可用 | \`stable\` |`,
-    "| `npm install -g @anthropic-ai/claude-code` | npm 全局安装最新版；2.1.113+ native wrapper 会跳过 CLI Patch | `skipped`（仅启用 Layer 1~3） |",
-    ...macosInstallerRows,
+    "| `npm install -g @anthropic-ai/claude-code` | npm 全局安装最新版；macOS arm64 若版本正好在已验证 native 窗口内可走 experimental | `experimental / skipped`（未验证 native 版本会跳过 CLI Patch） |",
+    `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定旧版本 | \`experimental\`（macOS arm64 已验证；插件会用 native patch 处理，需要 \`node-lief\`） |`,
     ...(macosNative && macosNative.unsupported !== true
       ? [
           `| Claude Code native binary ${renderNativeInstallLabel(
@@ -315,11 +295,14 @@ function renderInstallAdvice(config) {
           )} | 当前已验证的 native binary 版本，显示审计 ${macosNativeAudit.passed}/${macosNativeAudit.total} PASS | \`experimental\`（需要 \`node-lief\`） |`,
         ]
       : []),
+    "| `curl -fsSL https://claude.ai/install.sh \\| sh` | 官方安装器 latest | `experimental / skipped`（只有明确验证版本会启用 CLI Patch） |",
     "| `powershell -File install.ps1` | Windows PowerShell 安装（仅适用于旧 npm cli.js 形态；检测到 native .exe 时会跳过 CLI Patch） | `stable`（需 PowerShell 5.1+；CLI Patch 仅 npm 路径） |",
     "",
     "安装脚本会自动检测安装方式，无需手动选择。",
     "",
-    nativeBinaryNote,
+    `> **native binary 说明**：官方安装器和新版 npm 包都可能装到 native 二进制，不是旧 npm \`cli.js\`。本插件的处理方法是：用 \`bun-binary-io.js\` 提取二进制里的 JS → 复用 \`patch-cli.sh\` 翻译 → 再写回二进制。macOS arm64 ${renderRangeWithExcluded(
+      macosInstaller
+    )} 已在临时目录验证通过；${macosVerified} 额外通过 ${macosNativeAudit.total} 个稳定显示面审计。运行时需要 \`node-lief\`。要最稳，请优先使用 npm pinned 安装方式。`,
     ">",
     "> **不支持的安装方式**：如当前安装方式暂不支持 CLI Patch，安装脚本会明确提示并只启用 Layer 1~3，不会误报“已完成全部 patch”。",
   ].join("\n");

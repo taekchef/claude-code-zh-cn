@@ -35,6 +35,9 @@ jobs:
     # GitHub currently maps macos-15 to the macOS 15 arm64 hosted runner.
     runs-on: macos-15
     timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6
@@ -120,16 +123,46 @@ jobs:
             node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" 2>&1
           } >> "$GITHUB_STEP_SUMMARY" || true
 
-      - name: Record native candidate read-only boundary
+      - name: Promote native candidate support surfaces
         if: success()
         shell: bash
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          {
-            echo "## Native candidate recorded"
-            echo
-            echo "Native binary patch promotion is disabled because macOS Mach-O rewriting can break the binary signature. This run only uploads evidence artifacts."
-            echo
-            echo "Candidate JSON artifact: native-latest-candidate-${VERSION}"
-            echo "Text diff report artifact: native-latest-text-diff-${VERSION}"
-          } >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          PROMOTE_OUTPUT="$(node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" --write 2>&1)"
+          PROMOTE_STATUS=$?
+          set -e
+          if [ "$PROMOTE_STATUS" -ne 0 ]; then
+            {
+              echo "## Native candidate boundary failure"
+              printf '%s\n' "$PROMOTE_OUTPUT"
+            } >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$PROMOTE_OUTPUT"
+            exit "$PROMOTE_STATUS"
+          fi
+          printf '%s\n' "$PROMOTE_OUTPUT"
+          node scripts/generate-plugin-support-window.js --write
+          node scripts/generate-support-matrix.js
+          node scripts/sync-readme-support-window.js --write
+          node scripts/sync-doc-derived-counts.js --write
+          node scripts/check-support-boundary.js
+          node scripts/sync-readme-support-window.js --check
+          node scripts/sync-doc-derived-counts.js --check
+
+      - name: Create native candidate closeout PR
+        if: success()
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: codex/native-latest-${{ steps.version.outputs.version }}
+          draft: true
+          delete-branch: true
+          commit-message: "chore: promote macOS native ${{ steps.version.outputs.version }}"
+          title: "chore: promote macOS native ${{ steps.version.outputs.version }}"
+          body: |
+            Automated closeout for a verified macOS arm64 native Claude Code candidate.
+
+            This PR is generated only after native extract / patch / repack / --version and display audit pass. It updates the source-of-truth support config plus generated support surfaces, and keeps unverified latest versions outside the public support claim.
+
+            Candidate JSON is attached to the workflow run as `native-latest-candidate-${{ steps.version.outputs.version }}`.
+
+            Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.

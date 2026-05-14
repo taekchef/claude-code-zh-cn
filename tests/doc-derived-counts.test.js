@@ -108,15 +108,29 @@ test("doc-derived count sync rewrites stale docs from source files", () => {
   }
 });
 
-test("doc-derived count sync accepts README without native patch support facts", () => {
+test("doc-derived count sync rewrites README native support facts from config and matrix", () => {
   const { files } = copyDocFixtures();
   const readme = files.find((file) => path.basename(file) === "README.md");
+  makeNativeStale(readme);
+
+  const staleResult = runSync(["--check", readme]);
+  assert.equal(staleResult.status, 1, "stale native README facts should fail the guard");
+
+  const writeResult = runSync(["--write", readme]);
+  assert.equal(writeResult.status, 0, writeResult.stderr || writeResult.stdout);
 
   const checkResult = runSync(["--check", readme]);
   assert.equal(checkResult.status, 0, checkResult.stderr || checkResult.stdout);
 
   const text = fs.readFileSync(readme, "utf8");
-  assert.doesNotMatch(text, /macos%20native-[0-9.]+--[0-9.]+%20experimental/);
-  assert.doesNotMatch(text, /macOS native experimental 已验证版本上 patch/);
-  assert.match(text, /macOS native \/ Mach-O 默认跳过二进制改写/);
+  assert.match(text, /macos%20native-2\.1\.113--2\.1\.140%20experimental/);
+  assert.match(text, /2\.1\.113 - 2\.1\.140/);
+  assert.match(text, /不含未纳入本轮支持的 `2\.1\.115`、`2\.1\.125`/);
+  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.124`/);
+  assert.match(text, /`2\.1\.136 - 2\.1\.140`/);
+  assert.match(text, /1322-1358 处/);
+  assert.match(text, /显示审计 11\/11 PASS/);
+  assert.match(text, /11 个稳定显示面/);
+  assert.match(text, /2\.1\.113` through `2\.1\.140` except unsupported `2\.1\.115`, `2\.1\.125`/);
+  assert.doesNotMatch(text, /9\.9\.|1-2 处|3\/4|4 个稳定显示面/);
 });
