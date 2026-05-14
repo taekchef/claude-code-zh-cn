@@ -46,6 +46,7 @@ function candidateResult(overrides = {}) {
           detect: "native-bun",
           extract: "ok",
           repack: "ok",
+          codeSignature: "ok",
           versionOutput: "2.1.142",
         },
         displayAudit: {
@@ -126,5 +127,30 @@ test("promote-native-candidate requires display audit before support-window prom
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /display audit did not pass/);
+  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.140");
+});
+
+test("promote-native-candidate requires codesign verification before support-window promotion", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  writeJson(
+    candidatePath,
+    candidateResult({
+      nativeVerification: {
+        packageName: "@anthropic-ai/claude-code-darwin-arm64",
+        platform: "darwin-arm64",
+        detect: "native-bun",
+        extract: "ok",
+        repack: "ok",
+        codeSignature: "failed",
+        versionOutput: "2.1.142",
+      },
+    })
+  );
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /native codesign boundary failed/);
   assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.140");
 });

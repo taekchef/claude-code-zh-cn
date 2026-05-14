@@ -219,6 +219,10 @@ function validateCandidate(config, payload) {
     reasons.push(`native repack boundary failed: ${native.repack || "unknown"}`);
   }
 
+  if (native.codeSignature !== "ok") {
+    reasons.push(`native codesign boundary failed: ${native.codeSignature || "unknown"}`);
+  }
+
   if (!String(native.versionOutput || "").includes(String(result.version || ""))) {
     reasons.push(`native runtime boundary failed: --version did not include ${result.version}`);
   }

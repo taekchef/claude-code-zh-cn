@@ -451,6 +451,21 @@ function atomicWriteBinary(LIEF, binary, outputPath, originalPath) {
   }
 }
 
+function runCodesign(args, action) {
+  try {
+    execFileSync("codesign", args, { stdio: ["ignore", "pipe", "pipe"] });
+  } catch (error) {
+    const stderr = Buffer.isBuffer(error.stderr) ? error.stderr.toString("utf8").trim() : "";
+    const detail = stderr ? `: ${stderr}` : "";
+    throw new Error(`codesign ${action} failed${detail}`);
+  }
+}
+
+function signAndVerifyMachO(outputPath) {
+  runCodesign(["-s", "-", "-f", outputPath], "sign");
+  runCodesign(["--verify", "--strict", "--verbose=4", outputPath], "verify");
+}
+
 function repackMachO(LIEF, machoBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize) {
   // 移除旧签名
   if (machoBinary.hasCodeSignature) {
@@ -478,12 +493,8 @@ function repackMachO(LIEF, machoBinary, binPath, newBunBuffer, outputPath, secti
 
   atomicWriteBinary(LIEF, machoBinary, outputPath, binPath);
 
-  // macOS 重签名
-  try {
-    execFileSync("codesign", ["-s", "-", "-f", outputPath], { stdio: "ignore" });
-  } catch {
-    process.stderr.write("Warning: codesign failed, binary may not run on macOS\n");
-  }
+  // macOS 必须重签并通过校验；否则运行时会被系统直接 kill。
+  signAndVerifyMachO(outputPath);
 }
 
 // ============================================================================

@@ -508,6 +508,10 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       cwd: repoRoot,
       stdio: ["ignore", "ignore", "pipe"],
     });
+    execFile("codesign", ["--verify", "--strict", "--verbose=4", patchedBinary], {
+      cwd: repoRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
 
     const tempHome = path.join(tmpDir, "home");
     fs.mkdirSync(tempHome, { recursive: true });
@@ -554,6 +558,7 @@ function runNativeVerification(config, args, version, packageDir, kind) {
         detect: detectOutput.split(":")[0],
         extract: "ok",
         repack: "ok",
+        codeSignature: "ok",
         versionOutput,
       },
       ...(displayAudit ? { displayAudit } : {}),

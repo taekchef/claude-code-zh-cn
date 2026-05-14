@@ -125,6 +125,14 @@ test("check-deps returns ok or missing without crashing", () => {
   assert.match(output, /^(ok|missing)$/);
 });
 
+test("repack treats codesign signing and verification as hard requirements", () => {
+  const helper = fs.readFileSync(helperPath, "utf8");
+
+  assert.match(helper, /runCodesign\(\["-s", "-", "-f", outputPath\], "sign"\)/);
+  assert.match(helper, /runCodesign\(\["--verify", "--strict", "--verbose=4", outputPath\], "verify"\)/);
+  assert.doesNotMatch(helper, /Warning: codesign failed/);
+});
+
 test("hash returns sha256 for binary marker identity", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-hash-"));
   const file = path.join(tmp, "claude");

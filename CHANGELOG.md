@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.11] - 2026-05-14
+
+### 修复
+
+- 修复 macOS native binary repack 后如果 `codesign` 或签名校验失败仍可能继续写入成功状态的问题；现在重签和 `codesign --verify --strict` 都是硬门槛，失败会直接阻断 native CLI Patch，避免用户启动时遇到 `zsh: killed`
+- Native candidate 推广流程新增 codesign 校验要求，防止未通过签名验证的候选版本进入支持窗口
+
+### 验证
+
+- `node --test tests/bun-binary-io.test.js tests/native-candidate-promotion.test.js`
+- `PATH=/Users/changfenhuang/.nvm/versions/node/v24.13.0/bin:$PATH /Users/changfenhuang/.nvm/versions/node/v24.13.0/bin/node scripts/verify-upstream-compat.js --baseline 2.1.140 --skip-latest --native-macos-arm64 --fixtures-dir /private/tmp/cczh-native-fixtures --json`
+
 ## [2.4.10] - 2026-05-13
 
 ### 修复
