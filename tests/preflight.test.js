@@ -78,6 +78,8 @@ test("CI uses preflight as the Ubuntu job entrypoint", () => {
   assert.match(workflow, /bash scripts\/preflight\.sh --base "\$\{\{ github\.event\.pull_request\.base\.sha \}\}" --skip-release-state/);
   assert.match(workflow, /bash scripts\/preflight\.sh --skip-payload-source --skip-release-state/);
   assert.match(workflow, /windows-install-smoke:/);
+  assert.match(workflow, /windows-2025-vs2026/);
+  assert.doesNotMatch(workflow, /windows-latest/);
   assert.match(workflow, /node --test tests\/install-smoke\.test\.js/);
 });
 

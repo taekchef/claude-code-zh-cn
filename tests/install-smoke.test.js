@@ -200,7 +200,10 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
 test("Windows PowerShell old-npm install smoke is wired into CI", () => {
   const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
 
-  assert.match(workflow, /windows-latest/, "CI should include a Windows runner for install.ps1 smoke");
+  assert.doesNotMatch(workflow, /windows-latest/, "CI should not rely on the floating Windows runner");
+  assert.match(workflow, /windows-2022/, "CI should pin the stable VS 2022 Windows runner");
+  assert.match(workflow, /windows-2025-vs2026/, "CI should preview the June 2026 VS 2026 Windows runner migration");
+  assert.match(workflow, /fail-fast: false/, "both Windows smoke lanes should report independently");
   assert.match(
     workflow,
     /node --test tests\/install-smoke\.test\.js/,
