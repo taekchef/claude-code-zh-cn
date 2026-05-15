@@ -27,7 +27,14 @@ jobs:
         run: bash scripts/preflight.sh --skip-payload-source --skip-release-state
 
   windows-install-smoke:
-    runs-on: windows-latest
+    name: windows-install-smoke (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - windows-2022
+          - windows-2025-vs2026
     steps:
       - uses: actions/checkout@v6
 
