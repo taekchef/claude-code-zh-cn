@@ -6538,6 +6538,14 @@
     "zh": "管理后台和已配置的 Agent"
   },
   {
+    "en": "Manage background agents",
+    "zh": "管理后台 Agent"
+  },
+  {
+    "en": "Show only background sessions started under",
+    "zh": "仅显示在此路径下启动的后台会话"
+  },
+  {
     "en": "Manage authentication",
     "zh": "管理身份验证"
   },
