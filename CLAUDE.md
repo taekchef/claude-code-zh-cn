@@ -5,7 +5,7 @@ Claude Code CLI 中文本地化插件。
 ## 项目结构
 
 - `patch-cli.sh` — CLI 硬编码文字 patch（被 install.sh 和 session-start hook 调用）
-- `cli-translations.json` — 1672 条 UI 翻译对照表（英文→中文），patch-cli.sh 从此文件读取
+- `cli-translations.json` — 1674 条 UI 翻译对照表（英文→中文），patch-cli.sh 从此文件读取
 - `install.sh` / `uninstall.sh` — 安装/卸载脚本
 - `compute-patch-revision.sh` — patch 规则指纹计算，供 install.sh 和 session-start hook 共用
 - `settings-overlay.json` — 合并到 settings.json 的中文设置（只含 language、spinnerTipsEnabled 等独有配置，**不含** verbs 和 tips 数据）

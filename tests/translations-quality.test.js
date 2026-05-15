@@ -92,6 +92,8 @@ test("high-visibility translations use the curated wording", () => {
     ["Your prompt", "你的提示词"],
     ["Display help for command", "显示命令帮助"],
     ["Manage background and configured agents", "管理后台和已配置的 Agent"],
+    ["Manage background agents", "管理后台 Agent"],
+    ["Show only background sessions started under", "仅显示在此路径下启动的后台会话"],
     ["Manage authentication", "管理身份验证"],
     ["Inspect auto mode classifier configuration", "查看自动模式分类器配置"],
     ["Configure and manage MCP servers", "配置和管理 MCP 服务器"],
