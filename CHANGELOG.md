@@ -6,6 +6,16 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.14] - 2026-05-17
+
+### 改进
+
+- macOS native experimental 支持窗口扩展到已验证的 Claude Code `2.1.143`，同步 README、support matrix 和插件支持窗口派生产物
+
+### 验证
+
+- `bash scripts/preflight.sh --base origin/main --skip-release-state`
+
 ## [2.4.13] - 2026-05-17
 
 ### 改进
