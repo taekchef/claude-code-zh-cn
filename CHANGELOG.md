@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.15] - 2026-05-17
+
+### 改进
+
+- 恢复 native latest 自动 closeout 的发布准备链路：Claude Code latest 通过 macOS native 验证并产生真实支持窗口变化后，会自动补 `plugin/manifest.json`、`CHANGELOG.md`，再创建带新插件版本号的 draft PR
+- Native latest workflow 新增 no-op 闸门：如果 latest 已经被当前支持窗口覆盖，只写 Actions summary，不再重复升版本或开空 PR
+
+### 验证
+
+- `node --test tests/*.test.js`
+- `npm_config_cache=/private/tmp/cczh-npm-cache-release-closeout bash scripts/preflight.sh --base origin/main --skip-release-state`
+
 ## [2.4.14] - 2026-05-17
 
 ### 改进

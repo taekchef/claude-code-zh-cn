@@ -26,7 +26,7 @@ jobs:
           node-version: 24
 
       - name: Run native workflow contract tests
-        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js tests/upstream-text-diff.test.js
+        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js tests/native-release-closeout.test.js tests/upstream-text-diff.test.js
 
   verify:
     name: Verify macOS native candidate
@@ -148,21 +148,48 @@ jobs:
           node scripts/sync-readme-support-window.js --check
           node scripts/sync-doc-derived-counts.js --check
 
-      - name: Create native candidate closeout PR
+      - name: Detect native closeout changes
+        id: closeout_changes
         if: success()
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Native latest closeout"
+              echo "No source-of-truth or generated support changes; latest is already covered."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare plugin release metadata
+        id: release
+        if: success() && steps.closeout_changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          node scripts/prepare-native-release-closeout.js --native-version "${{ steps.version.outputs.version }}" --date "$(date -u +%F)"
+          PLUGIN_VERSION="$(node -p 'require("./plugin/manifest.json").version')"
+          echo "plugin_version=${PLUGIN_VERSION}" >> "$GITHUB_OUTPUT"
+          node --test tests/native-latest-workflow.test.js tests/native-release-closeout.test.js
+
+      - name: Create native candidate closeout PR
+        if: success() && steps.closeout_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: codex/native-latest-${{ steps.version.outputs.version }}
           draft: true
           delete-branch: true
-          commit-message: "chore: promote macOS native ${{ steps.version.outputs.version }}"
-          title: "chore: promote macOS native ${{ steps.version.outputs.version }}"
+          commit-message: "chore: promote macOS native ${{ steps.version.outputs.version }} and prepare v${{ steps.release.outputs.plugin_version }}"
+          title: "chore: promote macOS native ${{ steps.version.outputs.version }} and prepare v${{ steps.release.outputs.plugin_version }}"
           body: |
             Automated closeout for a verified macOS arm64 native Claude Code candidate.
 
-            This PR is generated only after native extract / patch / repack / --version and display audit pass. It updates the source-of-truth support config plus generated support surfaces, and keeps unverified latest versions outside the public support claim.
+            This PR is generated only after native extract / patch / repack / --version and display audit pass. It updates the source-of-truth support config plus generated support surfaces, bumps plugin/manifest.json and CHANGELOG.md to v${{ steps.release.outputs.plugin_version }}, and keeps unverified latest versions outside the public support claim.
 
             Candidate JSON is attached to the workflow run as `native-latest-candidate-${{ steps.version.outputs.version }}`.
 
             Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.
+
+            After this PR merges, publish the prepared plugin version with tag `v${{ steps.release.outputs.plugin_version }}` and a GitHub Release, then run `bash scripts/preflight.sh --release-state`.
