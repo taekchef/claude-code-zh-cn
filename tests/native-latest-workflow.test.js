@@ -25,6 +25,7 @@ test("native latest candidate workflow has a push validation job instead of empt
   assert.doesNotMatch(workflow, /^\s*paths:/m);
   assert.match(workflow, /name:\s*Validate native candidate workflow/);
   assert.match(workflow, /node\s+--test\s+tests\/native-latest-workflow\.test\.js/);
+  assert.match(workflow, /tests\/native-release-closeout\.test\.js/);
 });
 
 test("native latest candidate workflow runs on macOS arm64 with native dependencies", () => {
@@ -67,10 +68,19 @@ test("native latest candidate workflow promotes passing candidates into a PR-rea
   assert.match(workflow, /scripts\/generate-support-matrix\.js/);
   assert.match(workflow, /scripts\/sync-readme-support-window\.js\s+--write/);
   assert.match(workflow, /scripts\/sync-doc-derived-counts\.js\s+--write/);
+  assert.match(workflow, /Detect native closeout changes/);
+  assert.match(workflow, /git\s+diff\s+--quiet/);
+  assert.match(workflow, /changed=false/);
+  assert.match(workflow, /Prepare plugin release metadata/);
+  assert.match(workflow, /scripts\/prepare-native-release-closeout\.js\s+--native-version/);
+  assert.match(workflow, /plugin\/manifest\.json/);
   assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
   assert.match(workflow, /codex\/native-latest-/);
   assert.match(workflow, /draft:\s*true/);
-  assert.match(workflow, /commit-message:\s*"chore: promote macOS native \$\{\{ steps\.version\.outputs\.version \}\}"/);
+  assert.match(workflow, /commit-message:\s*"chore: promote macOS native \$\{\{ steps\.version\.outputs\.version \}\} and prepare v\$\{\{ steps\.release\.outputs\.plugin_version \}\}"/);
+  assert.match(workflow, /steps\.closeout_changes\.outputs\.changed == 'true'/);
+  assert.match(workflow, /CHANGELOG\.md to v\$\{\{ steps\.release\.outputs\.plugin_version \}\}/);
+  assert.match(workflow, /bash scripts\/preflight\.sh --release-state/);
   assert.doesNotMatch(workflow, /\bgh\s+release\b/);
 });
 
