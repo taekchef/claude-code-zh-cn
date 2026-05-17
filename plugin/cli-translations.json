@@ -6490,6 +6490,46 @@
     "zh": "仅为当前会话从目录加载插件（可重复：--plugin-dir A --plugin-dir B）"
   },
   {
+    "en": "Additional directory to allow tool access to in dispatched sessions (repeatable)",
+    "zh": "允许分派会话访问的额外目录（可重复）"
+  },
+  {
+    "en": "Load plugins from specified directory for the agent view and dispatched sessions (repeatable)",
+    "zh": "从指定目录为 Agent 视图和分派会话加载插件（可重复）"
+  },
+  {
+    "en": "Settings file or JSON string to apply to the agent view and dispatched sessions",
+    "zh": "应用到 Agent 视图和分派会话的 settings 文件或 JSON 字符串"
+  },
+  {
+    "en": "MCP server configuration to apply to dispatched sessions (repeatable)",
+    "zh": "应用到分派会话的 MCP 服务器配置（可重复）"
+  },
+  {
+    "en": "Only use MCP servers from --mcp-config in dispatched sessions",
+    "zh": "分派会话仅使用 --mcp-config 中的 MCP 服务器"
+  },
+  {
+    "en": "Default permission mode for sessions dispatched from agent view",
+    "zh": "从 Agent 视图分派会话时使用的默认权限模式"
+  },
+  {
+    "en": "Alias for --permission-mode bypassPermissions",
+    "zh": "--permission-mode bypassPermissions 的别名"
+  },
+  {
+    "en": "Make bypass-permissions mode available to dispatched sessions without defaulting to it",
+    "zh": "让分派会话可使用 bypass-permissions 模式，但不默认启用"
+  },
+  {
+    "en": "Default model for sessions dispatched from agent view",
+    "zh": "从 Agent 视图分派会话时使用的默认模型"
+  },
+  {
+    "en": "Default effort level for sessions dispatched from agent view",
+    "zh": "从 Agent 视图分派会话时使用的默认 effort 级别"
+  },
+  {
     "en": "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-sonnet-4-6').",
     "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-sonnet-4-6'）。"
   },
