@@ -31,10 +31,10 @@ function copyConfig() {
 function candidateResult(overrides = {}) {
   return {
     packageName: "@anthropic-ai/claude-code",
-    baseline: ["2.1.143"],
+    baseline: ["2.1.145"],
     results: [
       {
-        version: "2.1.143",
+        version: "2.1.145",
         kind: "native",
         status: "pass",
         patchCount: 1324,
@@ -47,7 +47,7 @@ function candidateResult(overrides = {}) {
           extract: "ok",
           repack: "ok",
           codeSignature: "ok",
-          versionOutput: "2.1.143",
+          versionOutput: "2.1.145",
         },
         displayAudit: {
           status: "pass",
@@ -78,14 +78,14 @@ test("promote-native-candidate advances macOS native source-of-truth from a pass
   const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /promoted macOS native candidate 2\.1\.143/);
+  assert.match(result.stdout, /promoted macOS native candidate 2\.1\.145/);
 
   const config = readJson(configPath);
   const native = config.support.macosNativeExperimental;
-  assert.equal(native.ceiling, "2.1.143");
-  assert.ok(native.representatives.includes("2.1.143"));
-  assert.ok(native.excluded.includes("2.1.142"), "unverified gap should stay outside support");
-  assert.match(native.verification, /2\.1\.143 PASS\(native 1324, display 11\/11\)/);
+  assert.equal(native.ceiling, "2.1.145");
+  assert.ok(native.representatives.includes("2.1.145"));
+  assert.ok(native.excluded.includes("2.1.144"), "unverified gap should stay outside support");
+  assert.match(native.verification, /2\.1\.145 PASS\(native 1324, display 11\/11\)/);
   assert.match(native.notes, /不代表未来 latest 自动稳定/);
 });
 
@@ -109,8 +109,8 @@ test("promote-native-candidate rejects skipped candidates with a maintainer-read
   assert.match(result.stderr, /node-lief dependency missing/);
 
   const config = readJson(configPath);
-  assert.equal(config.support.macosNativeExperimental.ceiling, "2.1.141");
-  assert.equal(config.support.macosNativeExperimental.representatives.includes("2.1.143"), false);
+  assert.equal(config.support.macosNativeExperimental.ceiling, "2.1.143");
+  assert.equal(config.support.macosNativeExperimental.representatives.includes("2.1.145"), false);
 });
 
 test("promote-native-candidate requires display audit before support-window promotion", () => {
@@ -127,7 +127,7 @@ test("promote-native-candidate requires display audit before support-window prom
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /display audit did not pass/);
-  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.141");
+  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.143");
 });
 
 test("promote-native-candidate requires codesign verification before support-window promotion", () => {
@@ -143,7 +143,7 @@ test("promote-native-candidate requires codesign verification before support-win
         extract: "ok",
         repack: "ok",
         codeSignature: "failed",
-        versionOutput: "2.1.143",
+        versionOutput: "2.1.145",
       },
     })
   );
@@ -152,5 +152,5 @@ test("promote-native-candidate requires codesign verification before support-win
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /native codesign boundary failed/);
-  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.141");
+  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, "2.1.143");
 });

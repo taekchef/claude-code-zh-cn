@@ -51,6 +51,8 @@ test("plugin support window is generated from compat config", () => {
     "2.1.139",
     "2.1.140",
     "2.1.141",
+    "2.1.142",
+    "2.1.143",
   ]);
   assert.deepEqual(parsed.macosNativeExperimental.excluded, [
     "2.1.115",
