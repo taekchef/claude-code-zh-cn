@@ -955,7 +955,7 @@ printf '1'
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.142\nLATEST\n");
+  fs.writeFileSync(fakeBinary, "// Version: 2.1.144\nLATEST\n");
   fs.chmodSync(fakeBinary, 0o755);
   fs.writeFileSync(markerFile, "2.1.112|stale-revision\n");
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
@@ -975,7 +975,7 @@ printf '1'
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(fs.existsSync(invokedFile), false, "latest native should not be patched yet");
+  assert.equal(fs.existsSync(invokedFile), false, "unverified native should not be patched yet");
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "2.1.112|stale-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
