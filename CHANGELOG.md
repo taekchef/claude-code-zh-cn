@@ -12,10 +12,12 @@
 
 - 恢复 native latest 自动 closeout 的发布准备链路：Claude Code latest 通过 macOS native 验证并产生真实支持窗口变化后，会自动补 `plugin/manifest.json`、`CHANGELOG.md`，再创建带新插件版本号的 draft PR
 - Native latest workflow 新增 no-op 闸门：如果 latest 已经被当前支持窗口覆盖，只写 Actions summary，不再重复升版本或开空 PR
+- Native latest 候选失败时会自动生成接手报告并开草稿修复 PR，避免维护者只能从邮件和 artifact 手工捞线索
 
 ### 验证
 
 - `node --test tests/*.test.js`
+- `node --test tests/native-latest-workflow.test.js tests/native-failure-handoff.test.js tests/preflight.test.js`
 - `npm_config_cache=/private/tmp/cczh-npm-cache-release-closeout bash scripts/preflight.sh --base origin/main --skip-release-state`
 
 ## [2.4.14] - 2026-05-17

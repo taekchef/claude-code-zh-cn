@@ -26,7 +26,7 @@ jobs:
           node-version: 24
 
       - name: Run native workflow contract tests
-        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js tests/native-release-closeout.test.js tests/upstream-text-diff.test.js
+        run: node --test tests/native-latest-workflow.test.js tests/native-candidate-promotion.test.js tests/native-failure-handoff.test.js tests/native-release-closeout.test.js tests/upstream-text-diff.test.js
 
   verify:
     name: Verify macOS native candidate
@@ -122,6 +122,46 @@ jobs:
             echo "## Native candidate boundary failure"
             node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" 2>&1
           } >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Prepare native failure handoff
+        id: failure_handoff
+        if: failure() && steps.verify.outputs.json_path != ''
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPORT_PATH="docs/native-latest-failures/${VERSION}.md"
+          node scripts/prepare-native-failure-handoff.js \
+            --candidate "${{ steps.verify.outputs.json_path }}" \
+            --text-report "${{ steps.text_diff.outputs.text_report_path }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --head-sha "${{ github.sha }}" \
+            --output "$REPORT_PATH"
+          echo "report_path=${REPORT_PATH}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Native failure handoff"
+            echo "Prepared \`${REPORT_PATH}\`; the next step opens or updates a draft PR branch for maintainer takeover."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create native candidate failure handoff PR
+        if: failure() && steps.failure_handoff.outputs.report_path != ''
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: codex/native-latest-${{ steps.version.outputs.version }}-fix
+          draft: true
+          delete-branch: true
+          commit-message: "chore: hand off macOS native ${{ steps.version.outputs.version }} failure"
+          title: "fix: follow up macOS native ${{ steps.version.outputs.version }} candidate failure"
+          body: |
+            Automated handoff for a failed macOS arm64 native Claude Code candidate.
+
+            This draft PR is created when the candidate does not pass native verification or display audit. The branch starts with a generated failure report so the maintainer can take it over directly, add the required translations or guard fix, and rerun the candidate workflow.
+
+            Failure report: `${{ steps.failure_handoff.outputs.report_path }}`.
+
+            Candidate JSON artifact: `native-latest-candidate-${{ steps.version.outputs.version }}`.
+
+            Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.
 
       - name: Promote native candidate support surfaces
         if: success()

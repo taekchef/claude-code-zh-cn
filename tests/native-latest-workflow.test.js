@@ -107,3 +107,17 @@ test("native latest candidate workflow explains failed promotion boundaries", ()
   assert.match(workflow, /PROMOTE_STATUS/);
   assert.match(workflow, /2>&1/);
 });
+
+test("native latest candidate workflow opens a handoff PR for failed candidates", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /Prepare native failure handoff/);
+  assert.match(workflow, /scripts\/prepare-native-failure-handoff\.js[\s\S]*--candidate/);
+  assert.match(workflow, /docs\/native-latest-failures\/\$\{VERSION\}\.md/);
+  assert.match(workflow, /Create native candidate failure handoff PR/);
+  assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
+  assert.match(workflow, /codex\/native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
+  assert.match(workflow, /draft:\s*true/);
+  assert.match(workflow, /follow up macOS native \$\{\{\s*steps\.version\.outputs\.version\s*\}\} candidate failure/);
+  assert.match(workflow, /steps\.failure_handoff\.outputs\.report_path != ''/);
+});
