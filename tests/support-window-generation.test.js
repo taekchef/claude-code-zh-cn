@@ -6,6 +6,7 @@ const { execFileSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const generator = path.join(repoRoot, "scripts", "generate-plugin-support-window.js");
+const compatConfig = require(path.join(repoRoot, "scripts", "upstream-compat.config.json"));
 
 function generate(args = []) {
   return execFileSync("node", [generator, ...args], {
@@ -27,33 +28,10 @@ test("plugin support window is generated from compat config", () => {
     "2.1.110",
     "2.1.112",
   ]);
-  assert.deepEqual(parsed.macosNativeExperimental.versions, [
-    "2.1.113",
-    "2.1.114",
-    "2.1.116",
-    "2.1.117",
-    "2.1.118",
-    "2.1.119",
-    "2.1.120",
-    "2.1.121",
-    "2.1.122",
-    "2.1.123",
-    "2.1.124",
-    "2.1.126",
-    "2.1.128",
-    "2.1.129",
-    "2.1.131",
-    "2.1.132",
-    "2.1.133",
-    "2.1.136",
-    "2.1.137",
-    "2.1.138",
-    "2.1.139",
-    "2.1.140",
-    "2.1.141",
-    "2.1.142",
-    "2.1.143",
-  ]);
+  assert.deepEqual(
+    parsed.macosNativeExperimental.versions,
+    compatConfig.support.macosNativeExperimental.representatives
+  );
   assert.deepEqual(parsed.macosNativeExperimental.excluded, [
     "2.1.115",
     "2.1.125",

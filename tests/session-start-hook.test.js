@@ -8,6 +8,13 @@ const { execFileSync, spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const hookPath = path.join(repoRoot, "plugin", "hooks", "session-start");
+const nativeSupport = require(path.join(repoRoot, "scripts", "upstream-compat.config.json")).support
+  .macosNativeExperimental;
+
+function bumpPatch(version, amount) {
+  const parts = String(version).split(".").map((part) => Number.parseInt(part, 10));
+  return `${parts[0]}.${parts[1]}.${parts[2] + amount}`;
+}
 
 function copyTree(src, dst) {
   const stat = fs.statSync(src);
@@ -955,7 +962,7 @@ printf '1'
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.144\nLATEST\n");
+  fs.writeFileSync(fakeBinary, `// Version: ${bumpPatch(nativeSupport.ceiling, 1)}\nLATEST\n`);
   fs.chmodSync(fakeBinary, 0o755);
   fs.writeFileSync(markerFile, "2.1.112|stale-revision\n");
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));

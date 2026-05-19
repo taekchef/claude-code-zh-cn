@@ -8,6 +8,7 @@ const { spawnSync } = require("node:child_process");
 const repoRoot = path.resolve(__dirname, "..");
 const compatConfig = require(path.join(repoRoot, "scripts", "upstream-compat.config.json"));
 const stableNpmVersions = compatConfig.support.npm.stable.representatives;
+const nativeSupport = compatConfig.support.macosNativeExperimental;
 const unixShellRequired = process.platform === "win32" ? "covered by Unix CI" : false;
 const windowsPowerShellRequired = process.platform !== "win32"
   ? "requires Windows PowerShell on Windows"
@@ -15,6 +16,11 @@ const windowsPowerShellRequired = process.platform !== "win32"
 
 function escapeRegex(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function bumpPatch(version, amount) {
+  const parts = String(version).split(".").map((part) => Number.parseInt(part, 10));
+  return `${parts[0]}.${parts[1]}.${parts[2] + amount}`;
 }
 
 function englishCliFixture(version) {
@@ -164,11 +170,12 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   const fakeClaude = path.join(fakeBin, "claude");
   const invokedFile = path.join(tmp, "patch-invoked");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
-  const sourceRepo = createInstallSource(tmp, invokedFile, "2.1.144");
+  const unsupportedNativeVersion = bumpPatch(nativeSupport.ceiling, 1);
+  const sourceRepo = createInstallSource(tmp, invokedFile, unsupportedNativeVersion);
   const profileFile = path.join(home, ".zshrc");
 
   fs.mkdirSync(fakeBin, { recursive: true });
-  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\necho '2.1.144 (Claude Code)'\n");
+  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${unsupportedNativeVersion} (Claude Code)'\n`);
   fs.chmodSync(fakeClaude, 0o755);
 
   const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
@@ -187,10 +194,18 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
 
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /2\.1\.144/, "the user-facing message should include the unsupported version");
+  assert.match(
+    output,
+    new RegExp(escapeRegex(unsupportedNativeVersion)),
+    "the user-facing message should include the unsupported version"
+  );
   assert.match(output, /暂不支持 CLI Patch/, "the install path should clearly say CLI Patch is unsupported");
   assert.match(output, /已跳过 CLI Patch/, "the install path should safely skip CLI Patch");
-  assert.match(output, /2\.1\.113 - 2\.1\.143/, "the message should show the verified native window");
+  assert.match(
+    output,
+    new RegExp(escapeRegex(`${nativeSupport.floor} - ${nativeSupport.ceiling}`)),
+    "the message should show the verified native window"
+  );
   assert.match(output, /不含 2\.1\.115.*2\.1\.125/, "the message should mention unsupported native gaps");
   assert.match(output, /Claude Code 2\.1\.112/, "the message should point users to the stable pinned version");
   assert.equal(fs.existsSync(invokedFile), false, "unsupported native should not call patch/extract/repack");
