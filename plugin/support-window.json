@@ -26,7 +26,7 @@
   },
   "macosNativeExperimental": {
     "floor": "2.1.113",
-    "ceiling": "2.1.143",
+    "ceiling": "2.1.144",
     "excluded": [
       "2.1.115",
       "2.1.125",
@@ -60,7 +60,8 @@
       "2.1.140",
       "2.1.141",
       "2.1.142",
-      "2.1.143"
+      "2.1.143",
+      "2.1.144"
     ],
     "platform": "darwin-arm64",
     "packageName": "@anthropic-ai/claude-code-darwin-arm64",
