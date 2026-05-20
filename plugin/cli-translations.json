@@ -3628,6 +3628,10 @@
     "zh": "打印详细性能统计"
   },
   {
+    "en": "Print live sessions as a JSON array and exit (for scripting; does not require a TTY)",
+    "zh": "以 JSON 数组打印实时会话并退出（用于脚本；不需要 TTY）"
+  },
+  {
     "en": "Print the version this session is running (not what autoupdate downloaded)",
     "zh": "打印当前会话运行的版本（非自动更新下载的版本）"
   },
