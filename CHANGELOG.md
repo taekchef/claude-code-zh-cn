@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.18] - 2026-05-21
+
+### 修复
+
+- 补齐 Claude Code help 面中 `--mcp-config`、`--permission-mode`、`mcp list` 等半中半英文案，避免短片段翻译后留下 `Load MCP 服务器 from JSON files` 这类混杂显示。
+- 加强 native display audit：现在会抓到含中文行里的英文残留短句，不再因为一行里已经有中文就直接放过。
+
+### 验证
+
+- `node --test tests/upstream-compat.test.js`
+- `node --test tests/translations-quality.test.js`
+- `PATH=/Users/changfenhuang/.nvm/versions/node/v24.13.0/bin:$PATH npm_config_cache=/private/tmp/cczh-npm-cache-latest node scripts/verify-upstream-compat.js --baseline 2.1.145 --skip-latest --native-macos-arm64 --packages-dir /private/tmp/cczh-latest-packages --json`
+
 ## [2.4.17] - 2026-05-20
 
 ### 改进

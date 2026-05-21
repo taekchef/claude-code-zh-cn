@@ -680,7 +680,7 @@ function removeAllowedEnglishTerms(text, audit) {
 
 function isLikelyUntranslatedLine(line, audit, allowedLineRegexes) {
   const trimmed = stripAnsi(line).trim();
-  if (!trimmed || hasCjk(trimmed)) {
+  if (!trimmed) {
     return false;
   }
 
@@ -688,20 +688,50 @@ function isLikelyUntranslatedLine(line, audit, allowedLineRegexes) {
     return false;
   }
 
-  const scrubbed = removeAllowedEnglishTerms(trimmed, audit)
+  const hasChineseText = hasCjk(trimmed);
+  const userText = trimmed.replace(/^\s*(?:[-\w|,]+(?:\s+(?:<[^>]+>|\[[^\]]+\]|\S+))*\s{2,})/, " ");
+  const scrubbed = removeAllowedEnglishTerms(userText, audit)
     .replace(/`[^`]*`/g, " ")
     .replace(/"[^"]*"/g, " ")
     .replace(/'[^']*'/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
     .replace(/--?[A-Za-z0-9][A-Za-z0-9-]*/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/\b[A-Z][A-Z0-9_]{1,}\b/g, " ")
     .replace(/\b[A-Za-z]:[\\/][^\s]+/g, " ")
     .replace(/[~./][^\s]*/g, " ")
+    .replace(/[\u3400-\u9fff]+/g, " ")
     .replace(/[{}[\]():,|=+*#$\\]/g, " ");
 
   const words = scrubbed.match(/[A-Za-z][A-Za-z']{2,}/g) || [];
   const naturalWords = words.filter((word) => word !== word.toUpperCase());
-  return naturalWords.length >= audit.minEnglishWords;
+  if (naturalWords.length < audit.minEnglishWords) {
+    return false;
+  }
+
+  if (!hasChineseText) {
+    return true;
+  }
+
+  const mixedPhraseIndicators = new Set([
+    "are",
+    "from",
+    "ignored",
+    "import",
+    "include",
+    "includes",
+    "in",
+    "is",
+    "list",
+    "load",
+    "only",
+    "or",
+    "shown",
+    "that",
+    "to",
+    "use",
+  ]);
+  return naturalWords.some((word) => mixedPhraseIndicators.has(word.toLowerCase()));
 }
 
 function auditDisplayText(output, audit, commandId) {

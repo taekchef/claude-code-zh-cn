@@ -330,6 +330,12 @@ test("verify-upstream-compat fails when audited display output leaves user-visib
       command: "top_help",
       match: "--future                                          Future display-only untranslated sentence",
     },
+    {
+      kind: "display-untranslated-line",
+      id: "top_help_line_5",
+      command: "top_help",
+      match: "--mixed                                           Load MCP 服务器 from JSON files or strings",
+    },
   ]);
 });
 

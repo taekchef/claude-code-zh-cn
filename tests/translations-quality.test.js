@@ -117,6 +117,20 @@ test("high-visibility translations use the curated wording", () => {
       "Fetch a plugin .zip from a URL for this session only (repeatable: --plugin-url A --plugin-url B) (default: [])",
       "仅为当前会话从 URL 获取插件 .zip（可重复：--plugin-url A --plugin-url B）（默认：[]）",
     ],
+    ["Beta headers to include in API requests (API key users only)", "要包含在 API 请求中的 Beta header（仅 API 密钥用户）"],
+    ["Load MCP servers from JSON files or strings (space-separated)", "从 JSON 文件或字符串加载 MCP 服务器（空格分隔）"],
+    ["Only use MCP servers from --mcp-config, ignoring all other MCP configurations", "仅使用 --mcp-config 中的 MCP 服务器，忽略其他所有 MCP 配置"],
+    ["Permission mode to use for the session", "当前会话使用的权限模式"],
+    ["System prompt to use for the session", "当前会话使用的系统提示词"],
+    [
+      "Settings files that fail validation are silently ignored in this mode (no error dialog is shown).",
+      "在此模式下，校验失败的 settings 文件会被静默忽略（不会显示错误对话框）。",
+    ],
+    ["Import MCP servers from Claude Desktop (Mac and WSL only)", "从 Claude Desktop 导入 MCP 服务器（仅 Mac 和 WSL）"],
+    [
+      "List configured MCP servers. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.",
+      "列出已配置的 MCP 服务器。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。",
+    ],
     [
       "Print the default auto mode environment, allow, soft_deny, and hard_deny rules as JSON",
       "以 JSON 打印默认 auto mode 环境、allow、soft_deny 和 hard_deny 规则",

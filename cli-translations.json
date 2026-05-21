@@ -2790,6 +2790,14 @@
     "zh": "MCP 服务器"
   },
   {
+    "en": "Import MCP servers from Claude Desktop (Mac and WSL only)",
+    "zh": "从 Claude Desktop 导入 MCP 服务器（仅 Mac 和 WSL）"
+  },
+  {
+    "en": "List configured MCP servers. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.",
+    "zh": "列出已配置的 MCP 服务器。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。"
+  },
+  {
     "en": "MCP tools",
     "zh": "MCP 工具"
   },
@@ -4637,6 +4645,10 @@
     "zh": "系统提示词"
   },
   {
+    "en": "System prompt to use for the session",
+    "zh": "当前会话使用的系统提示词"
+  },
+  {
     "en": "Tab ID to identify which tab group this operation applies to",
     "zh": "标识此操作应用于哪个标签组的标签 ID"
   },
@@ -5155,6 +5167,10 @@
   {
     "en": "Use this MCP server",
     "zh": "使用此 MCP 服务器"
+  },
+  {
+    "en": "Settings files that fail validation are silently ignored in this mode (no error dialog is shown).",
+    "zh": "在此模式下，校验失败的 settings 文件会被静默忽略（不会显示错误对话框）。"
   },
   {
     "en": "Use this skill to configure the Claude Code harness via settings.json.",
@@ -6346,6 +6362,18 @@
     "zh": "命令："
   },
   {
+    "en": "Examples:",
+    "zh": "示例："
+  },
+  {
+    "en": "choices:",
+    "zh": "可选："
+  },
+  {
+    "en": "default:",
+    "zh": "默认："
+  },
+  {
     "en": "Your prompt",
     "zh": "你的提示词"
   },
@@ -6510,12 +6538,24 @@
     "zh": "应用到分派会话的 MCP 服务器配置（可重复）"
   },
   {
+    "en": "Load MCP servers from JSON files or strings (space-separated)",
+    "zh": "从 JSON 文件或字符串加载 MCP 服务器（空格分隔）"
+  },
+  {
     "en": "Only use MCP servers from --mcp-config in dispatched sessions",
     "zh": "分派会话仅使用 --mcp-config 中的 MCP 服务器"
   },
   {
+    "en": "Only use MCP servers from --mcp-config, ignoring all other MCP configurations",
+    "zh": "仅使用 --mcp-config 中的 MCP 服务器，忽略其他所有 MCP 配置"
+  },
+  {
     "en": "Default permission mode for sessions dispatched from agent view",
     "zh": "从 Agent 视图分派会话时使用的默认权限模式"
+  },
+  {
+    "en": "Permission mode to use for the session",
+    "zh": "当前会话使用的权限模式"
   },
   {
     "en": "Alias for --permission-mode bypassPermissions",
@@ -6536,6 +6576,10 @@
   {
     "en": "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-sonnet-4-6').",
     "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-sonnet-4-6'）。"
+  },
+  {
+    "en": "Beta headers to include in API requests (API key users only)",
+    "zh": "要包含在 API 请求中的 Beta header（仅 API 密钥用户）"
   },
   {
     "en": "Output format (only works with --print): \"text\" (default), \"json\" (single result), or \"stream-json\" (realtime streaming) (choices: \"text\", \"json\", \"stream-json\")",
