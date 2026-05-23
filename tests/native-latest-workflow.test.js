@@ -130,6 +130,11 @@ test("native latest candidate workflow summarizes the failure handoff PR result"
   assert.match(workflow, /steps\.failure_handoff_pr\.outputs\.pull-request-url/);
   assert.match(workflow, /steps\.failure_handoff_pr\.outputs\.pull-request-branch/);
   assert.match(workflow, /steps\.failure_handoff_pr\.outputs\.pull-request-operation/);
+  assert.match(workflow, /if \[ -z "\$PR_OPERATION" \]; then\s+PR_OPERATION="not reported"/);
   assert.match(workflow, /codex\/native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
+  assert.match(workflow, /echo "- Pull request:/);
+  assert.match(workflow, /echo "- Branch: \\`\$\{PR_BRANCH\}\\`"/);
+  assert.match(workflow, /echo "- Operation: \\`\$\{PR_OPERATION\}\\`"/);
+  assert.match(workflow, /echo "- Report: \\`\$\{\{\s*steps\.failure_handoff\.outputs\.report_path\s*\}\}\\`"/);
   assert.match(workflow, /GITHUB_STEP_SUMMARY/);
 });
