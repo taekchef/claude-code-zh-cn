@@ -14,6 +14,54 @@ function escapeRegex(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function versionParts(version) {
+  return String(version).split(".").map((part) => Number.parseInt(part, 10));
+}
+
+function compareVersions(left, right) {
+  const a = versionParts(left);
+  const b = versionParts(right);
+  for (let index = 0; index < 3; index += 1) {
+    const diff = (a[index] || 0) - (b[index] || 0);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+  return 0;
+}
+
+function compactVersions(versions) {
+  const sorted = [...versions].map(String).sort(compareVersions);
+  const segments = [];
+  let start = null;
+  let previous = null;
+
+  for (const version of sorted) {
+    if (!start) {
+      start = version;
+      previous = version;
+      continue;
+    }
+
+    const [major, minor, patch] = versionParts(version);
+    const [previousMajor, previousMinor, previousPatch] = versionParts(previous);
+    if (major === previousMajor && minor === previousMinor && patch === previousPatch + 1) {
+      previous = version;
+      continue;
+    }
+
+    segments.push(start === previous ? start : `${start} - ${previous}`);
+    start = version;
+    previous = version;
+  }
+
+  if (start) {
+    segments.push(start === previous ? start : `${start} - ${previous}`);
+  }
+
+  return segments;
+}
+
 function runSync(args) {
   return spawnSync("node", [syncScript, ...args], {
     cwd: repoRoot,
@@ -141,7 +189,9 @@ test("doc-derived count sync rewrites README native support facts from config an
   assert.match(text, new RegExp(escapeRegex(`${nativeSupport.floor} - ${nativeSupport.ceiling}`)));
   assert.match(text, /不含未纳入本轮支持的 `2\.1\.115`、`2\.1\.125`/);
   assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.124`/);
-  assert.match(text, new RegExp(escapeRegex(`2.1.136 - ${nativeSupport.ceiling}`)));
+  for (const segment of compactVersions(nativeSupport.representatives)) {
+    assert.match(text, new RegExp(escapeRegex(`\`${segment}\``)));
+  }
   assert.match(text, /1320-1358 处/);
   assert.match(text, /显示审计 11\/11 PASS/);
   assert.match(text, /11 个稳定显示面/);
