@@ -132,6 +132,16 @@ read_source_repo() {
     tr -d '\r' < "$SOURCE_REPO_FILE"
 }
 
+is_local_source_repo() {
+    local source_repo="$1"
+    [ -d "$source_repo/.git" ]
+}
+
+is_github_repo_slug() {
+    local source_repo="$1"
+    printf '%s' "$source_repo" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+}
+
 touch_update_check_timestamp() {
     date +%s > "$LAST_UPDATE_CHECK_FILE" 2>/dev/null || true
 }
@@ -142,7 +152,9 @@ should_check_for_update() {
 
     [ "${ZH_CN_DISABLE_AUTO_UPDATE:-0}" = "1" ] && return 1
     [ -n "$source_repo" ] || return 1
-    [ -d "$source_repo/.git" ] || return 1
+    if ! is_local_source_repo "$source_repo" && ! is_github_repo_slug "$source_repo"; then
+        return 1
+    fi
 
     interval="$UPDATE_CHECK_INTERVAL_SECONDS"
     case "$interval" in
@@ -168,7 +180,7 @@ should_check_for_update() {
     [ $((now - last)) -ge "$interval" ]
 }
 
-fetch_latest_release_tag() {
+fetch_latest_local_release_tag() {
     local source_repo="$1"
 
     if command -v timeout &>/dev/null; then
@@ -196,6 +208,110 @@ fetch_latest_release_tag() {
     git -C "$source_repo" tag -l 'v*' --sort=-version:refname | head -1
 }
 
+github_api_get() {
+    local repo_slug="$1"
+    local path="$2"
+    local url="https://api.github.com/repos/${repo_slug}${path}"
+
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$url"
+    else
+        curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$url"
+    fi
+}
+
+github_download() {
+    local url="$1"
+    local output="$2"
+
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$url" -o "$output"
+    else
+        curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$url" -o "$output"
+    fi
+}
+
+json_string_field() {
+    local field="$1"
+
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c 'import json,sys; data=json.load(sys.stdin); value=data.get(sys.argv[1], ""); print("" if value is None else value)' "$field"
+        return
+    fi
+
+    if command -v node >/dev/null 2>&1; then
+        node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); const value=data[process.argv[1]] ?? ""; process.stdout.write(String(value));' "$field"
+        return
+    fi
+
+    sed -nE "s/^[[:space:]]*\"${field}\"[[:space:]]*:[[:space:]]*\"([^\"]*)\".*/\1/p" | head -n 1
+}
+
+urlencode_ref() {
+    local value="$1"
+
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$value"
+        return
+    fi
+
+    if command -v node >/dev/null 2>&1; then
+        node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$value"
+        return
+    fi
+
+    printf '%s' "$value" | sed 's/%/%25/g; s#/#%2F#g; s/ /%20/g'
+}
+
+fetch_latest_remote_release_tag() {
+    local repo_slug="$1"
+    local release_json latest_tag
+
+    release_json="$(github_api_get "$repo_slug" "/releases/latest")" || return 1
+    latest_tag="$(printf '%s' "$release_json" | json_string_field tag_name)"
+    [ -n "$latest_tag" ] || return 1
+    printf '%s' "$latest_tag"
+}
+
+resolve_remote_commit_sha() {
+    local repo_slug="$1"
+    local ref="$2"
+    local encoded_ref commit_json sha
+
+    encoded_ref="$(urlencode_ref "$ref")"
+    commit_json="$(github_api_get "$repo_slug" "/commits/${encoded_ref}")" || return 1
+    sha="$(printf '%s' "$commit_json" | json_string_field sha)"
+    [ -n "$sha" ] || return 1
+    printf '%s' "$sha"
+}
+
+fetch_latest_release_tag() {
+    local source_repo="$1"
+
+    if is_local_source_repo "$source_repo"; then
+        fetch_latest_local_release_tag "$source_repo"
+        return
+    fi
+
+    if is_github_repo_slug "$source_repo"; then
+        fetch_latest_remote_release_tag "$source_repo"
+    fi
+}
+
 release_contains_path() {
     local source_repo="$1"
     local latest_tag="$2"
@@ -214,7 +330,7 @@ archive_release_paths() {
         | tar -xf - -C "$staging_dir" 2>/dev/null
 }
 
-export_release_to_staging() {
+export_local_release_to_staging() {
     local source_repo="$1"
     local latest_tag="$2"
     local staging_dir="$3"
@@ -225,6 +341,77 @@ export_release_to_staging() {
     if release_contains_path "$source_repo" "$latest_tag" "scripts/install-json-helper.js"; then
         archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" scripts/install-json-helper.js || true
     fi
+}
+
+remote_archive_top_dir() {
+    local unpack_dir="$1"
+    local count top_dir
+
+    count="$(find "$unpack_dir" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d '[:space:]')"
+    [ "$count" = "1" ] || return 1
+
+    top_dir="$(find "$unpack_dir" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+    [ -n "$top_dir" ] || return 1
+    printf '%s' "$top_dir"
+}
+
+copy_remote_release_path() {
+    local top_dir="$1"
+    local staging_dir="$2"
+    local release_path="$3"
+
+    [ -e "$top_dir/$release_path" ] || return 1
+    cp -R "$top_dir/$release_path" "$staging_dir/"
+}
+
+export_remote_release_to_staging() {
+    local repo_slug="$1"
+    local latest_tag="$2"
+    local staging_dir="$3"
+    local source_sha archive_file unpack_dir top_dir
+
+    mkdir -p "$staging_dir"
+    source_sha="$(resolve_remote_commit_sha "$repo_slug" "$latest_tag")" || return 1
+    archive_file="$staging_dir/.remote-source.tar.gz"
+    unpack_dir="$staging_dir/.remote-unpack"
+    mkdir -p "$unpack_dir"
+
+    github_download "https://api.github.com/repos/${repo_slug}/tarball/${source_sha}" "$archive_file" || return 1
+    tar -xzf "$archive_file" -C "$unpack_dir" || return 1
+    top_dir="$(remote_archive_top_dir "$unpack_dir")" || return 1
+
+    copy_remote_release_path "$top_dir" "$staging_dir" install.sh || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" install.ps1 || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" compute-patch-revision.sh || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" settings-overlay.json || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" verbs || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" tips || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" plugin || return 1
+
+    if [ -f "$top_dir/scripts/install-json-helper.js" ]; then
+        mkdir -p "$staging_dir/scripts"
+        cp "$top_dir/scripts/install-json-helper.js" "$staging_dir/scripts/install-json-helper.js" || true
+    fi
+
+    rm -rf "$archive_file" "$unpack_dir" 2>/dev/null || true
+}
+
+export_release_to_staging() {
+    local source_repo="$1"
+    local latest_tag="$2"
+    local staging_dir="$3"
+
+    if is_local_source_repo "$source_repo"; then
+        export_local_release_to_staging "$source_repo" "$latest_tag" "$staging_dir"
+        return
+    fi
+
+    if is_github_repo_slug "$source_repo"; then
+        export_remote_release_to_staging "$source_repo" "$latest_tag" "$staging_dir"
+        return
+    fi
+
+    return 1
 }
 
 validate_staging_release() {
