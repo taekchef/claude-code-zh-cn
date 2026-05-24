@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.22] - 2026-05-25
+
+### 修复
+
+- 补齐 issue #70 反馈的 native UI 残留英文：权限确认面板标题、`Waiting…` 状态、Yes / No 选项、`don’t ask again` 前缀授权文案，以及紧凑时长单位现在会显示中文。
+
+### 验证
+
+- `node --test tests/patch-cli.test.js`
+- `NODE_PATH=/private/tmp/cczh-node-lief/node_modules node scripts/verify-upstream-compat.js --baseline 2.1.150 --skip-latest --native-macos-arm64 --json`
+
 ## [2.4.21] - 2026-05-24
 
 ### 改进
