@@ -336,3 +336,17 @@ test("template literals with embedded expressions keep expression structure", ()
   assert.equal(patched.includes('const model=`设置 Claude Code 使用的 AI 模型（当前为 ${currentModel()}）`;'), true, patched);
   assert.equal(patched.includes('const fast=`切换快速模式（仅 ${im}）`;'), true, patched);
 });
+
+test("dynamic effort help description is translated while preserving choices expression", () => {
+  const patched = patchFixture([
+    'H.addOption(new H1("--effort <level>",`Effort level for the current session (${QL.join(", ")})`).argParser(parseEffort));',
+    "",
+  ]);
+
+  assert.equal(patched.includes("Effort level for the current session"), false, patched);
+  assert.equal(
+    patched.includes('`当前会话的 effort 级别（${QL.join(", ")}）`'),
+    true,
+    patched
+  );
+});
