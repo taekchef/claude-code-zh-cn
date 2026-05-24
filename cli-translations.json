@@ -6430,6 +6430,10 @@
     "zh": "当前会话的 effort 级别（low、medium、high、xhigh、max）"
   },
   {
+    "en": "Effort level for the current session (${...})",
+    "zh": "当前会话的 effort 级别（${...}）"
+  },
+  {
     "en": "Move per-machine sections (cwd, env info, memory paths, git status) from the system prompt into the first user message. Improves cross-user prompt-cache reuse. Only applies with the default system prompt (ignored with --system-prompt). (default: false)",
     "zh": "将每台机器不同的信息段（cwd、env 信息、memory 路径、git 状态）从系统提示词移到第一条用户消息中。这样可提高跨用户 prompt cache 复用。仅适用于默认系统提示词（使用 --system-prompt 时忽略）。（默认：false）"
   },
