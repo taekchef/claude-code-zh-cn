@@ -1,0 +1,59 @@
+name: Upload remote install assets
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  upload-remote-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Prepare release assets
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          release_commit="$(git rev-parse HEAD)"
+          mkdir -p dist
+
+          RELEASE_COMMIT="$release_commit" python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          commit = os.environ["RELEASE_COMMIT"]
+          scripts = ["install-remote.sh", "uninstall-remote.sh"]
+
+          for script in scripts:
+              source = Path(script)
+              target = Path("dist") / script
+              content = source.read_text(encoding="utf-8")
+              content = content.replace("__CCZH_RELEASE_TAG__", tag)
+              content = content.replace("__CCZH_RELEASE_COMMIT__", commit)
+              if "__CCZH_RELEASE_" in content:
+                  raise SystemExit(f"unreplaced release placeholder remains in {script}")
+              target.write_text(content, encoding="utf-8")
+          PY
+
+          chmod +x dist/install-remote.sh dist/uninstall-remote.sh
+          bash -n dist/install-remote.sh
+          bash -n dist/uninstall-remote.sh
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" \
+            dist/install-remote.sh \
+            dist/uninstall-remote.sh \
+            --clobber
