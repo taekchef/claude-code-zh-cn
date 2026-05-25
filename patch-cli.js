@@ -522,6 +522,15 @@ const specialSplitLiteralTranslations = [
 const specialLiteralTranslations = [
     { en: "Tab to amend", zh: "按 Tab 修改" },
     { en: "ctrl+e to explain", zh: "按 ctrl+e 说明" },
+    { en: "Any Bash command starting with", zh: "任意 Bash 命令以" },
+    { en: "任意 Bash 命令 starting with", zh: "任意 Bash 命令以" },
+    { en: "The Bash command ", zh: "Bash 命令 " },
+    { en: "Requires manual approval", zh: "需要手动批准" },
+    { en: "Waiting\\u2026", zh: "等待中…" },
+    { en: "Waiting for permission\\u2026", zh: "等待权限确认…" },
+    { en: "Working\\u2026", zh: "工作中…" },
+    { en: "Yes, and don\\u2019t ask again for", zh: "是，不再询问" },
+    { en: "Yes, and don’t ask again for", zh: "是，不再询问" },
     { en: " ready · shift+↓ to view", zh: " 已就绪 · 按 shift+↓ 查看" },
     { en: "Failed to save ", zh: "保存失败：" },
 ];
@@ -560,6 +569,50 @@ function installStatuslineCommandPromptPathGuard() {
     );
 }
 
+function installDurationFormatterLocalization() {
+    const signature = /function\s+[A-Za-z0-9_$]+\([^)]*\)\{if\([A-Za-z0-9_$]+<60000\)/g;
+    let match;
+
+    while ((match = signature.exec(s)) !== null) {
+        const fnStart = match.index;
+        const bodyStart = s.indexOf("{", fnStart);
+        if (bodyStart === -1) continue;
+
+        let depth = 0;
+        let fnEnd = -1;
+        for (let i = bodyStart; i < s.length; i++) {
+            if (s[i] === "{") depth++;
+            else if (s[i] === "}") depth--;
+            if (depth === 0) {
+                fnEnd = i;
+                break;
+            }
+        }
+        if (fnEnd === -1) continue;
+
+        let fn = s.slice(fnStart, fnEnd + 1);
+        if (!fn.includes("mostSignificantOnly") || !fn.includes("toFixed(1)") || !fn.includes("Math.floor")) {
+            continue;
+        }
+
+        const localized = fn
+            .replace(/"0s"/g, '"0秒"')
+            .replace(/}d\s+\$\{/g, "}天${")
+            .replace(/}h\s+\$\{/g, "}时${")
+            .replace(/}m\s+\$\{/g, "}分${")
+            .replace(/}d/g, "}天")
+            .replace(/}h/g, "}时")
+            .replace(/}m/g, "}分")
+            .replace(/}s/g, "}秒");
+
+        if (localized !== fn) {
+            s = s.slice(0, fnStart) + localized + s.slice(fnEnd + 1);
+            count++;
+            signature.lastIndex = fnStart + localized.length;
+        }
+    }
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -567,6 +620,7 @@ function installStatuslineCommandPromptPathGuard() {
 // 保持英文，不做中文化；只强化工具路径契约。
 installStatuslinePromptPathGuard();
 installStatuslineCommandPromptPathGuard();
+installDurationFormatterLocalization();
 
 // 1. 过去式动词数组
 tryRegexReplace(
@@ -678,6 +732,20 @@ tryRegexReplace(
     /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),\{marginTop:1\},\1\.createElement\(([^,]+),\{dimColor:!0\},['"]"\/plan open"['"]\),\1\.createElement\(\3,\{dimColor:!0\}," to edit this plan in "\),\1\.createElement\(\3,\{bold:!0,dimColor:!0\},([A-Za-z0-9_$]+)\)\)/g,
     (match, factory, containerComponent, textComponent, terminalName) =>
         `${factory}.createElement(${containerComponent},{marginTop:1},${factory}.createElement(${textComponent},{dimColor:!0},"在 "),${factory}.createElement(${textComponent},{bold:!0,dimColor:!0},${terminalName}),${factory}.createElement(${textComponent},{dimColor:!0},' 中用 "/plan open" 编辑此计划'))`
+);
+
+// 7. 权限确认面板的新 native UI 片段（避免全局翻译 Bash/Yes/No 误伤系统提示）
+tryRegexReplace(
+    /title:([A-Za-z0-9_$]+)&&!([A-Za-z0-9_$]+)\?"Bash command \(unsandboxed\)":"Bash command"/g,
+    (match, sandboxed, visible) =>
+        `title:${sandboxed}&&!${visible}?"Bash 命令（未沙盒隔离）":"Bash 命令"`
+);
+tryRegexReplace(/label:"Yes",value:"yes"/g, () => 'label:"是",value:"yes"');
+tryRegexReplace(/label:"No",value:"no"/g, () => 'label:"否",value:"no"');
+tryRegexReplace(
+    /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),\{dimColor:!0\},"Any use of the ",\1\.createElement\(\2,\{bold:!0\},([^)]*)\)," tool"\)/g,
+    (match, factory, component, toolName) =>
+        `${factory}.createElement(${component},{dimColor:!0},"任意使用 ",${factory}.createElement(${component},{bold:!0},${toolName})," 工具")`
 );
 
 // === 逐条翻译：只替换真实的字符串字面量 ===

@@ -97,6 +97,60 @@ test("approval prompt patch keeps dialog text and key hints in Chinese", () => {
   assert.match(patched, / · 按 ctrl\+e 说明/);
 });
 
+test("native permission dialog status and escaped waiting labels stay translated", () => {
+  const patched = patchFixture([
+    'let subtitle=N3.createElement(V,{dimColor:!0},"Requires manual approval");',
+    'let panel=N3.createElement(K$,{title:g&&!U?"Bash command (unsandboxed)":"Bash command",subtitle:HH});',
+    'let wait=rP.createElement(h6,{height:1},rP.createElement(V,{dimColor:!0},"Waiting\\u2026"));',
+    'let yesOption={label:"Yes",value:"yes",feedbackConfig:{type:"accept"}};',
+    'let noOption={label:"No",value:"no",feedbackConfig:{type:"reject"}};',
+    'let permissionLabel={type:"input",label:"Yes, and don\\u2019t ask again for",value:"yes-prefix-edited"};',
+    'let prefix=mC.createElement(V,{dimColor:!0},"任意 Bash 命令 starting with"," ",mC.createElement(V,{bold:!0},K));',
+    'let exact=mC.createElement(V,{dimColor:!0},"The Bash command ",mC.createElement(V,{bold:!0},q.ruleContent));',
+    'let anyTool=mC.createElement(V,{dimColor:!0},"Any use of the ",mC.createElement(V,{bold:!0},q.toolName)," tool");',
+    "",
+  ]);
+
+  assert.equal(patched.includes("Requires manual approval"), false, patched);
+  assert.equal(patched.includes("Bash command"), false, patched);
+  assert.equal(patched.includes("Waiting\\u2026"), false, patched);
+  assert.equal(patched.includes('label:"Yes",value:"yes"'), false, patched);
+  assert.equal(patched.includes('label:"No",value:"no"'), false, patched);
+  assert.equal(patched.includes("Yes, and don\\u2019t ask again for"), false, patched);
+  assert.equal(patched.includes("starting with"), false, patched);
+  assert.equal(patched.includes("The Bash command"), false, patched);
+  assert.equal(patched.includes("Any use of the "), false, patched);
+  assert.equal(patched.includes('" tool"'), false, patched);
+  assert.match(patched, /"需要手动批准"/);
+  assert.match(patched, /"Bash 命令（未沙盒隔离）":"Bash 命令"/);
+  assert.match(patched, /"等待中…"/);
+  assert.match(patched, /label:"是",value:"yes"/);
+  assert.match(patched, /label:"否",value:"no"/);
+  assert.match(patched, /"是，不再询问"/);
+  assert.match(patched, /"任意 Bash 命令以"," "/);
+  assert.match(patched, /"Bash 命令 "/);
+  assert.match(patched, /"任意使用 ",mC\.createElement/);
+  assert.match(patched, /" 工具"/);
+});
+
+test("duration formatter patch localizes compact time units with renamed variables", () => {
+  const patched = patchFixture([
+    'function H7(H,_){if(H<60000){if(H===0)return"0s";if(H<1)return`${(H/1000).toFixed(1)}s`;return`${Math.floor(H/1000).toString()}s`}let q=Math.floor(H/86400000),K=Math.floor(H%86400000/3600000),O=Math.floor(H%3600000/60000),T=Math.round(H%60000/1000);if(T===60)T=0,O++;if(O===60)O=0,K++;if(K===24)K=0,q++;let z=_?.hideTrailingZeros;if(_?.mostSignificantOnly){if(q>0)return`${q}d`;if(K>0)return`${K}h`;if(O>0)return`${O}m`;return`${T}s`}if(q>0){if(z&&K===0&&O===0)return`${q}d`;if(z&&O===0)return`${q}d ${K}h`;return`${q}d ${K}h ${O}m`}if(K>0){if(z&&O===0&&T===0)return`${K}h`;if(z&&T===0)return`${K}h ${O}m`;return`${K}h ${O}m ${T}s`}if(O>0){if(z&&T===0)return`${O}m`;return`${O}m ${T}s`}return`${T}s`}',
+    "",
+  ]);
+
+  assert.equal(patched.includes('"0s"'), false, patched);
+  assert.equal(patched.includes("}d"), false, patched);
+  assert.equal(patched.includes("}h"), false, patched);
+  assert.equal(patched.includes("}m"), false, patched);
+  assert.equal(patched.includes("}s"), false, patched);
+  assert.match(patched, /return"0秒"/);
+  assert.match(patched, /\$\{q\}天\$\{K\}时\$\{O\}分/);
+  assert.match(patched, /\$\{K\}时\$\{O\}分\$\{T\}秒/);
+  assert.match(patched, /\$\{O\}分\$\{T\}秒/);
+  assert.match(patched, /\$\{T\}秒/);
+});
+
 test("bypass permissions startup warning is translated as a complete safety notice", () => {
   const patched = patchFixture([
     'const title="WARNING: Claude Code running in Bypass Permissions mode";',
