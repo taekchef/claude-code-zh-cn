@@ -214,6 +214,8 @@ test("upstream compat config keeps the required english sentinels", () => {
     "Do you want to proceed?",
     "Tab to amend",
     "ctrl+e to explain",
+    "Bash command (unsandboxed)",
+    "Waiting\\u2026",
   ];
   const sentinels = loadCompatConfig().checks.sentinels.map((entry) => entry.pattern);
   assert.deepEqual(sentinels, expected);

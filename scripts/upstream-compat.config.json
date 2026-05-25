@@ -40,6 +40,14 @@
       {
         "id": "ctrl_e_to_explain",
         "pattern": "ctrl+e to explain"
+      },
+      {
+        "id": "native_permission_title_unsandboxed_residue",
+        "pattern": "Bash command (unsandboxed)"
+      },
+      {
+        "id": "native_permission_waiting_escaped",
+        "pattern": "Waiting\\u2026"
       }
     ],
     "templateResidues": [
@@ -102,6 +110,42 @@
         "rule": "preserve",
         "sourcePattern": "with subagent_type \"statusline-setup\" and the prompt",
         "pattern": "when calling Read, Edit, or Write"
+      },
+      {
+        "id": "native_permission_title",
+        "rule": "translate",
+        "sourcePattern": "\"Bash command (unsandboxed)\":\"Bash command\"",
+        "pattern": "\"Bash 命令（未沙盒隔离）\":\"Bash 命令\""
+      },
+      {
+        "id": "native_permission_yes_option_label",
+        "rule": "translate",
+        "sourcePattern": "label:\"Yes\",value:\"yes\"",
+        "pattern": "label:\"是\",value:\"yes\""
+      },
+      {
+        "id": "native_permission_no_option_label",
+        "rule": "translate",
+        "sourcePattern": "label:\"No\",value:\"no\"",
+        "pattern": "label:\"否\",value:\"no\""
+      },
+      {
+        "id": "native_permission_dont_ask_again_prefix",
+        "rule": "translate",
+        "sourceRegex": "Yes, and don(?:\\\\u2019|[’'])t ask again for",
+        "pattern": "label:\"是，不再询问\""
+      },
+      {
+        "id": "compact_duration_zero_seconds",
+        "rule": "translate",
+        "sourceRegex": "if\\([A-Za-z0-9_$]+<60000\\)\\{if\\([A-Za-z0-9_$]+===0\\)return\"0s\"",
+        "regex": "if\\([A-Za-z0-9_$]+<60000\\)\\{if\\([A-Za-z0-9_$]+===0\\)return\"0秒\""
+      },
+      {
+        "id": "compact_duration_template_units",
+        "rule": "translate",
+        "sourceRegex": "mostSignificantOnly[\\s\\S]*?return`\\$\\{[^}]+\\}d`[\\s\\S]*?return`\\$\\{[^}]+\\}h`[\\s\\S]*?return`\\$\\{[^}]+\\}m`[\\s\\S]*?return`\\$\\{[^}]+\\}s`",
+        "regex": "mostSignificantOnly[\\s\\S]*?return`\\$\\{[^}]+\\}天`[\\s\\S]*?return`\\$\\{[^}]+\\}时`[\\s\\S]*?return`\\$\\{[^}]+\\}分`[\\s\\S]*?return`\\$\\{[^}]+\\}秒`"
       },
       {
         "id": "web_search_exact_terms_contract",

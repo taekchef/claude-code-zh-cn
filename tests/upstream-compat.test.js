@@ -7,6 +7,7 @@ const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const compatScript = path.join(repoRoot, "scripts", "verify-upstream-compat.js");
+const productionConfig = path.join(repoRoot, "scripts", "upstream-compat.config.json");
 const fixtureConfig = path.join(__dirname, "upstream-compat-fixtures", "config.json");
 const fixturesDir = path.join(__dirname, "upstream-compat-fixtures", "packages");
 const translationsFile = path.join(repoRoot, "cli-translations.json");
@@ -391,6 +392,122 @@ test("verify-upstream-compat fails when display audit silently skips expected su
   assert.equal(entry.displayAudit.status, "fail");
   assert.equal(entry.displayAudit.commandCount, 1);
   assert.match(entry.displayAudit.issues[0].match, /expected at least 2 audited surfaces, got 1/);
+});
+
+test("production upstream compat config guards issue #70 native permission UI residues", () => {
+  const config = JSON.parse(fs.readFileSync(productionConfig, "utf8"));
+  const guardIds = new Set([
+    ...(config.checks.sentinels || []).map((entry) => entry.id),
+    ...(config.checks.templateResidues || []).map((entry) => entry.id),
+    ...(config.checks.upstreamTextGuards || []).map((entry) => entry.id),
+  ]);
+
+  assert.deepEqual(
+    [
+      "native_permission_title",
+      "native_permission_title_unsandboxed_residue",
+      "native_permission_waiting_escaped",
+      "native_permission_yes_option_label",
+      "native_permission_no_option_label",
+      "native_permission_dont_ask_again_prefix",
+      "compact_duration_zero_seconds",
+      "compact_duration_template_units",
+    ].filter((id) => !guardIds.has(id)),
+    []
+  );
+});
+
+test("verify-upstream-compat catches unpatched issue #70 native UI source residues", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-ui-guard-config-"));
+  const fixtures = path.join(tmp, "packages");
+  const packageDir = path.join(fixtures, "9.9.70-native-ui", "package");
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "cli.js"),
+    [
+      "#!/usr/bin/env node",
+      "if (process.argv.includes('--help')) {",
+      "  console.log('用法：claude [options]');",
+      "  process.exit(0);",
+      "}",
+      "const permissionTitle = 'Bash command (unsandboxed)';",
+      'function compactZero() { return"0s"; }',
+      "function compactUnits(value) { return`${value}h ${value}m`; }",
+      "console.log(permissionTitle, compactZero(), compactUnits(1));",
+      "",
+    ].join("\n")
+  );
+
+  const configPath = path.join(tmp, "config.json");
+  const config = JSON.parse(fs.readFileSync(productionConfig, "utf8"));
+  config.baseline = {
+    versions: ["9.9.70-native-ui"],
+    includeLatestFromNpm: false,
+  };
+  delete config.checks.displayAudit;
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixtures, "--skip-latest", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+    }
+  );
+
+  assert.equal(result.status, 1, "native UI source residues should block release-quality verification");
+  const payload = JSON.parse(result.stdout);
+  const [entry] = payload.results;
+  const residueIds = entry.residue.map((item) => item.id);
+
+  assert.equal(entry.status, "fail");
+  assert.deepEqual(residueIds, [
+    "native_permission_title_unsandboxed_residue",
+  ]);
+});
+
+test("compact duration guards do not flag unrelated protocol duration abbreviations", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-compact-duration-scope-"));
+  const fixtures = path.join(tmp, "packages");
+  const packageDir = path.join(fixtures, "9.9.71-duration-scope", "package");
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "cli.js"),
+    [
+      "#!/usr/bin/env node",
+      "if (process.argv.includes('--help')) {",
+      "  console.log('用法：claude [options]');",
+      "  process.exit(0);",
+      "}",
+      "function protocolDuration(value) { return`${value.seconds}s`; }",
+      "function relativeDuration(value) { return`${value}d`; }",
+      "console.log(protocolDuration({ seconds: 1 }), relativeDuration(1));",
+      "",
+    ].join("\n")
+  );
+
+  const configPath = path.join(tmp, "config.json");
+  const config = JSON.parse(fs.readFileSync(productionConfig, "utf8"));
+  config.baseline = {
+    versions: ["9.9.71-duration-scope"],
+    includeLatestFromNpm: false,
+  };
+  delete config.checks.displayAudit;
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixtures, "--skip-latest", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
 test("verify-upstream-compat refreshes a corrupt downloaded package cache", () => {
