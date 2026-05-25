@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.23] - 2026-05-25
+
+### 新增
+
+- 新增远程安装与卸载引导脚本，发布后会作为 GitHub Release Asset 提供 `curl | bash` 安装入口。
+- SessionStart 自动更新现在支持 remote 安装记录的 GitHub repo slug，可继续从最新 Release 拉取并更新插件。
+- 新增 Release Asset 上传 workflow，发布 Release 后自动注入 tag / commit 并上传 remote 安装脚本。
+
+### 验证
+
+- `node --test tests/remote-bootstrap.test.js tests/remote-auto-update.test.js`
+- `bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.22] - 2026-05-25
 
 ### 修复
