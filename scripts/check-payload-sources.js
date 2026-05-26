@@ -13,6 +13,7 @@ const payloadPairs = [
   { source: "cli-translations.json", mirror: "plugin/cli-translations.json" },
   { source: "bun-binary-io.js", mirror: "plugin/bun-binary-io.js" },
   { source: "compute-patch-revision.sh", mirror: "plugin/compute-patch-revision.sh" },
+  { source: "diagnose.sh", mirror: "plugin/bin/diagnose" },
 ];
 
 function fail(message) {

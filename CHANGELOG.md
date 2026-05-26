@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.24] - 2026-05-26
+
+### 新增
+
+- 新增 `diagnose.sh` / `plugin/bin/diagnose`，可一键输出插件版本、安装来源、最近更新状态、patch 目标、`claude --version` 和 `which -a claude`，方便 issue #70 这类更新后仍有英文残留的问题排查。
+
+### 验证
+
+- `node --test tests/*.test.js`
+- `npm_config_cache=/private/tmp/cczh-npm-cache-diagnostics bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.23] - 2026-05-25
 
 ### 新增

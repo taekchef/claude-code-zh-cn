@@ -80,11 +80,13 @@ cleanup() {
 trap cleanup EXIT
 
 step "Shell syntax check"
+run bash -n diagnose.sh
 run bash -n install.sh
 run bash -n uninstall.sh
 run bash -n install-remote.sh
 run bash -n uninstall-remote.sh
 run bash -n plugin/bin/claude-launcher
+run bash -n plugin/bin/diagnose
 run bash -n plugin/hooks/session-start
 run bash -n plugin/hooks/notification
 run bash -n plugin/profile/claude-code-zh-cn.sh

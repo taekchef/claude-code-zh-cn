@@ -134,6 +134,14 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 
 远程安装会记录 GitHub Release 来源，插件发布新版本后，`SessionStart` hook 的自动更新仍然生效；不需要保留本地 clone。
 
+如果更新后还看到英文残留，可以先生成一份诊断输出：
+
+```bash
+bash ~/.claude/plugins/claude-code-zh-cn/bin/diagnose
+```
+
+这会一次性输出插件版本、安装来源、最近自动更新状态、patch 目标、`claude --version` 和 `which -a claude`，方便直接贴到 issue 里排查。
+
 如果你要改翻译或调试脚本，再用本地源码安装：
 
 ```bash
@@ -298,6 +306,7 @@ claude-code-zh-cn/
 ├── install.ps1              ← 一键安装 (Windows PowerShell)
 ├── uninstall.sh             ← 一键卸载 (macOS/Linux)
 ├── uninstall.ps1            ← 一键卸载 (Windows PowerShell)
+├── diagnose.sh              ← 一键输出安装 / 更新 / patch 诊断
 ├── _validate.ps1            ← PowerShell 语法验证工具
 ├── patch-cli.sh             ← CLI Patch 入口脚本
 ├── patch-cli.js             ← CLI Patch 核心逻辑（扫描字符串字面量后逐条替换）
@@ -316,7 +325,8 @@ claude-code-zh-cn/
 │   │   ├── notification.ps1 ← 同上 (Windows PowerShell)
 │   │   └── notification.cmd ← CMD 包装器调用 notification.ps1
 │   ├── bin/
-│   │   ├── claude-launcher.sh    ← PATH 注入 launcher (macOS/Linux)
+│   │   ├── diagnose              ← 安装后的诊断命令
+│   │   ├── claude-launcher       ← PATH 注入 launcher (macOS/Linux)
 │   │   ├── claude-launcher.ps1   ← PATH 注入 launcher (Windows PowerShell)
 │   │   └── claude-launcher.cmd   ← PATH 注入 launcher (CMD)
 │   └── output-styles/
