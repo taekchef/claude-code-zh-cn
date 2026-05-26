@@ -496,7 +496,8 @@ function runNativeVerification(config, args, version, packageDir, kind) {
     return nativeSkipResult(version, kind, "node-lief dependency missing");
   }
 
-  if (kind !== "native") {
+  const canVerifyNativePackage = kind === "native" || (args.nativeWindowsX64 && kind === "native-wrapper");
+  if (!canVerifyNativePackage) {
     return nativeSkipResult(version, kind, "native verification requires platform package");
   }
 
@@ -516,7 +517,13 @@ function runNativeVerification(config, args, version, packageDir, kind) {
     }).trim();
 
     if (!detectOutput.startsWith("native-bun:")) {
-      return nativeFailResult(version, kind, `native detect returned ${detectOutput || "empty"}`);
+      return nativeFailResult(version, kind, `native detect returned ${detectOutput || "empty"}`, {
+        nativeVerification: {
+          packageName: resolvePackageName(config, args, version),
+          platform: expectedPlatform,
+          detect: detectOutput || "empty",
+        },
+      });
     }
 
     execFile("node", [binaryIoPath, "extract", binaryPath, extractedJs], {
@@ -589,7 +596,7 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       missingRequired,
       nativeVerification: {
         packageName: resolvePackageName(config, args, version),
-        platform: "darwin-arm64",
+        platform: expectedPlatform,
         detect: detectOutput.split(":")[0],
         extract: "ok",
         repack: "ok",
@@ -602,7 +609,7 @@ function runNativeVerification(config, args, version, packageDir, kind) {
     return nativeFailResult(version, kind, compactError(error), {
       nativeVerification: {
         packageName: resolvePackageName(config, args, version),
-        platform: "darwin-arm64",
+        platform: expectedPlatform,
       },
     });
   }
