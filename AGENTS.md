@@ -34,6 +34,12 @@ Claude Code CLI 中文本地化插件。
 - Hook 等技术术语保留英文（Hook 不是"钩子"，同 API、PR）
 - Windows 兼容：NTFS 上 `fs.renameSync` 先 unlink 再 rename
 
+## 维护流程规则
+
+- 除非用户明确说“直接推 main”或“绕过 PR”，否则所有代码改动默认走新分支、推分支、开 PR，不直接 push `main`。
+- PR 合并或关闭后要做收尾清理：先 `git fetch origin --prune`，再检查 `git worktree list`、`git branch -vv` 和 PR 状态；确认无用且工作区干净的 worktree、本地分支、远端残留分支都要清掉。
+- squash merge 后不能只按 `git branch --merged` 判断是否可删；如果本地分支仍显示有独立提交，要结合 GitHub PR 已合并/已关闭状态和 worktree 干净状态再决定。
+
 ## 版本发布流程
 
 每完成一批有意义的改动后，按以下步骤发布新版本：

@@ -56,6 +56,27 @@ test("runDoctor reports missing plugin and recommends install", () => {
   assert.equal(result.ok, false);
 });
 
+test("runDoctor reports invalid plugin manifest instead of crashing", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.writeFileSync(path.join(pluginRoot, "manifest.json"), "{broken json\n");
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    json: true,
+    color: false,
+  });
+
+  const plugin = result.checks.find((item) => item.id === "plugin");
+  assert.equal(plugin.status, "fail");
+  assert.match(plugin.detail, /manifest\.json/);
+  assert.equal(result.ok, false);
+});
+
 test("runDoctor detects unpatched npm cli and stable version guidance", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -88,6 +109,46 @@ test("runDoctor detects unpatched npm cli and stable version guidance", () => {
   assert.equal(layer4.status, "fail");
   assert.ok(result.recommendations.some((line) => line.includes("./install.sh")));
   assert.equal(result.cliVersion, "2.1.112");
+  assert.equal(result.ok, false);
+});
+
+test("runDoctor checks all known npm residue probes before reporting Layer 4 ok", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const { claudeBin } = createFakeNpmClaudeLayout(home, [
+    "#!/usr/bin/env node",
+    "// Version: 2.1.112",
+    'const safety="快速安全检查";',
+    'const approval="This command requires approval";',
+    'const btw="Use /btw to ask a quick side question without interrupting Claude\'s current work";',
+    "",
+  ]);
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  fs.cpSync(path.join(repoRoot, "plugin", "support-window.json"), path.join(pluginRoot, "support-window.json"));
+  fs.cpSync(path.join(repoRoot, "bun-binary-io.js"), path.join(pluginRoot, "bun-binary-io.js"));
+  fs.writeFileSync(path.join(pluginRoot, ".patched-version"), "2.1.112|deadbeef\n");
+
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: Object.fromEntries(
+      Array.from({ length: 120 }, (_, index) => [`Verb${index}`, `动词${index}`])
+    ),
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: claudeBin,
+    json: true,
+    color: false,
+  });
+
+  const layer4 = result.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "fail");
+  assert.match(layer4.detail, /This command requires approval/);
+  assert.match(layer4.detail, /Use \/btw/);
   assert.equal(result.ok, false);
 });
 

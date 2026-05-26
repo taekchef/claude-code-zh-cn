@@ -85,6 +85,7 @@ run bash -n uninstall.sh
 run bash -n doctor.sh
 run bash -n install-remote.sh
 run bash -n uninstall-remote.sh
+run bash -n plugin/bin/doctor
 run bash -n plugin/bin/claude-launcher
 run bash -n plugin/hooks/session-start
 run bash -n plugin/hooks/notification
@@ -94,6 +95,7 @@ step "JavaScript syntax check"
 run node --check bun-binary-io.js
 run node --check plugin/bun-binary-io.js
 run node --check plugin/patch-cli.js
+run node --check plugin/scripts/zh-cn-doctor.js
 run node --check scripts/check-payload-sources.js
 run node --check scripts/check-support-boundary.js
 run node --check scripts/check-translation-sentinels.js

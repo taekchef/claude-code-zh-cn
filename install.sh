@@ -371,7 +371,7 @@ sync_plugin_payload() {
     cp -R "$PLUGIN_SRC"/. "$PLUGIN_DST"/
     chmod +x "$PLUGIN_DST/patch-cli.sh" "$PLUGIN_DST/compute-patch-revision.sh" 2>/dev/null || true
     chmod +x "$PLUGIN_DST/hooks/session-start" "$PLUGIN_DST/hooks/notification" 2>/dev/null || true
-    chmod +x "$PLUGIN_DST/bin/claude-launcher" 2>/dev/null || true
+    chmod +x "$PLUGIN_DST/bin/claude-launcher" "$PLUGIN_DST/bin/doctor" 2>/dev/null || true
 
     if [ "$SKIP_BANNER" != "1" ]; then
         echo -e "${GREEN}已安装插件 → ${PLUGIN_DST}${NC}"

@@ -43,7 +43,7 @@ test("payload source guard passes when payload mirrors are changed with their so
 });
 
 test("payload source guard fails when source files change without synced payload mirrors", () => {
-  const result = runGuard(["cli-translations.json", "patch-cli.js"]);
+  const result = runGuard(["cli-translations.json", "patch-cli.js", "scripts/zh-cn-doctor.js"]);
 
   assert.equal(result.status, 1, result.stderr || result.stdout);
   assert.match(result.stdout, /payload-source-guard: FAIL/);
@@ -51,5 +51,7 @@ test("payload source guard fails when source files change without synced payload
   assert.match(result.stdout, /sync plugin\/cli-translations\.json/);
   assert.match(result.stdout, /patch-cli\.js/);
   assert.match(result.stdout, /sync plugin\/patch-cli\.js/);
+  assert.match(result.stdout, /scripts\/zh-cn-doctor\.js/);
+  assert.match(result.stdout, /sync plugin\/scripts\/zh-cn-doctor\.js/);
   assert.match(result.stdout, /bash scripts\/sync-payload\.sh/);
 });

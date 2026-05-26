@@ -26,6 +26,8 @@ test("preflight script is the local entrypoint for repo checks", () => {
   for (const snippet of [
     "bash -n install.sh",
     "bash -n uninstall.sh",
+    "bash -n doctor.sh",
+    "bash -n plugin/bin/doctor",
     "bash -n plugin/bin/claude-launcher",
     "bash -n plugin/hooks/session-start",
     "bash -n plugin/hooks/notification",
@@ -33,6 +35,7 @@ test("preflight script is the local entrypoint for repo checks", () => {
     "node --check bun-binary-io.js",
     "node --check plugin/bun-binary-io.js",
     "node --check plugin/patch-cli.js",
+    "node --check plugin/scripts/zh-cn-doctor.js",
     "node --check scripts/check-payload-sources.js",
     "node --check scripts/check-support-boundary.js",
     "node --check scripts/check-translation-sentinels.js",

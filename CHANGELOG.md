@@ -6,6 +6,22 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.24] - 2026-05-26
+
+### 新增
+
+- 新增 `./doctor.sh` 和安装后的 `~/.claude/plugins/claude-code-zh-cn/bin/doctor` 诊断入口，可检查插件目录、settings、Claude 安装形态、CLI 版本、patch 记录和 Layer 4 状态，并给出下一步命令。
+- 诊断脚本支持 `--json`，方便 issue 反馈或脚本化收集安装状态。
+
+### 修复
+
+- 诊断脚本遇到损坏的插件 `manifest.json` 时不再直接崩溃，会输出可读的 fail 检查。
+- npm CLI Patch 状态现在会检查 folder trust、approval、`/btw` 三个高风险英文探针，避免只看一个 sentinel 导致误报已 patch。
+
+### 验证
+
+- `node --test tests/doctor.test.js tests/plugin-payload.test.js tests/payload-source-guard.test.js tests/preflight.test.js`
+
 ## [2.4.23] - 2026-05-25
 
 ### 新增
