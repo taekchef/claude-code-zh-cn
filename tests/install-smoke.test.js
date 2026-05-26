@@ -326,7 +326,7 @@ test(
     const output = `${result.stdout}\n${result.stderr}`;
     assert.equal(result.status, 0, output);
     assert.match(output, /原生二进制/, output);
-    assert.match(output, /暂不支持 patch/, output);
+    assert.match(output, /暂不支持 (?:CLI )?Patch/i, output);
     assert.equal(fs.existsSync(path.join(launcherBin, "claude.cmd")), false, "unsupported native exe must not install launcher");
     assert.equal(fs.existsSync(path.join(launcherBin, "claude.ps1")), false, "unsupported native exe must not install launcher");
     assert.equal(fs.existsSync(markerFile), false, "unsupported native exe must not write a success marker");

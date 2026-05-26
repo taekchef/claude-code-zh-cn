@@ -281,6 +281,58 @@ test("verify-upstream-compat resolves new native macOS candidates to the platfor
   assert.match(native.skipReason, /requires macOS arm64/);
 });
 
+test("verify-upstream-compat uses Windows native representatives as the default native baseline", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-windows-native-baseline-"));
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: ["1.0.0"],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.support = {
+    windowsNativeExperimental: {
+      platform: "win32-x64",
+      packageName: "@anthropic-ai/claude-code-win32-x64",
+      floor: "2.1.113",
+      representatives: ["2.1.123-native-fixture"],
+    },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [
+      compatScript,
+      "--config",
+      configPath,
+      "--fixtures-dir",
+      fixturesDir,
+      "--skip-latest",
+      "--native-windows-x64",
+      "--json",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CCZH_NATIVE_VERIFY_PLATFORM: "linux-x64",
+      },
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  assert.deepEqual(
+    payload.results.map((entry) => entry.version),
+    ["2.1.123-native-fixture"]
+  );
+  const [native] = payload.results;
+  assert.equal(native.kind, "native");
+  assert.equal(native.status, "skip");
+  assert.match(native.skipReason, /requires Windows x64/);
+});
+
 test("verify-upstream-compat fails when audited display output leaves user-visible English", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-config-"));
   const configPath = path.join(tmp, "config.json");

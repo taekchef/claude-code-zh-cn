@@ -260,8 +260,23 @@ function compareSemver(a, b) {
   return 0;
 }
 
+function nativeSupportConfig(config, args) {
+  if (args.nativeWindowsX64) {
+    return config.support?.windowsNativeExperimental || null;
+  }
+  if (args.nativeMacosArm64) {
+    return config.support?.macosNativeExperimental || null;
+  }
+  return null;
+}
+
 function resolveVersions(config, args) {
-  const baseline = parseBaselineOverride(args.baseline) || config.baseline.versions;
+  const nativeConfig = nativeSupportConfig(config, args);
+  const nativeBaseline =
+    nativeConfig && nativeConfig.unsupported !== true && Array.isArray(nativeConfig.representatives)
+      ? nativeConfig.representatives
+      : null;
+  const baseline = parseBaselineOverride(args.baseline) || nativeBaseline || config.baseline.versions;
   const versions = uniqueVersions(baseline);
 
   if (args.skipLatest) {
@@ -355,9 +370,7 @@ function downloadPackage(packageName, version, packagesDir) {
 }
 
 function resolvePackageName(config, args, version) {
-  const nativeConfig = args.nativeWindowsX64
-    ? config.support?.windowsNativeExperimental
-    : config.support?.macosNativeExperimental;
+  const nativeConfig = nativeSupportConfig(config, args);
   if ((args.nativeMacosArm64 || args.nativeWindowsX64) && nativeConfig?.packageName) {
     const floorComparison = nativeConfig.floor ? compareSemver(version, nativeConfig.floor) : null;
     const isKnownRepresentative = (nativeConfig.representatives || []).map(String).includes(String(version));
