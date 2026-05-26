@@ -224,6 +224,9 @@ test("Windows PowerShell old-npm install smoke is wired into CI", () => {
     /node --test tests\/install-smoke\.test\.js/,
     "CI should run the install smoke on the Windows runner"
   );
+  assert.match(workflow, /windows-native-compat/, "CI should include a Windows native compat lane");
+  assert.match(workflow, /--native-windows-x64/, "CI should verify Windows native patching");
+  assert.match(workflow, /npm install --no-save node-lief/, "Windows native compat should install node-lief");
 });
 
 test("install.ps1 gates launcher injection to Windows old npm cli.js installs", () => {

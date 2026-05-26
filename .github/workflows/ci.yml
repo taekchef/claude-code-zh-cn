@@ -45,3 +45,20 @@ jobs:
       - name: PowerShell install smoke
         shell: powershell
         run: node --test tests/install-smoke.test.js
+
+  windows-native-compat:
+    name: windows-native-compat
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install native verification dependency
+        run: npm install --no-save node-lief
+
+      - name: Verify Windows native support window
+        shell: powershell
+        run: node scripts/verify-upstream-compat.js --skip-latest --native-windows-x64 --json

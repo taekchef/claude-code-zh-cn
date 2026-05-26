@@ -259,3 +259,49 @@ jobs:
             Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.
 
             After this PR merges, publish the prepared plugin version with tag `v${{ steps.release.outputs.plugin_version }}` and a GitHub Release, then run `bash scripts/preflight.sh --release-state`.
+
+  verify-windows:
+    name: Verify Windows native candidate
+    needs: validate
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: windows-2022
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install native verification dependency
+        run: npm install --no-save node-lief
+
+      - name: Resolve candidate version
+        id: version
+        shell: powershell
+        run: |
+          $InputVersion = "${{ inputs.version || '' }}"
+          if ($InputVersion) {
+            $Version = $InputVersion
+          } else {
+            $Version = npm view @anthropic-ai/claude-code version
+          }
+          "version=$Version" >> $env:GITHUB_OUTPUT
+
+      - name: Verify Windows native candidate
+        id: verify
+        shell: powershell
+        run: |
+          $Version = "${{ steps.version.outputs.version }}"
+          $JsonPath = Join-Path $env:RUNNER_TEMP "windows-native-latest-candidate-$Version.json"
+          node scripts/verify-upstream-compat.js --baseline "$Version" --skip-latest --native-windows-x64 --json > $JsonPath
+          "json_path=$JsonPath" >> $env:GITHUB_OUTPUT
+
+      - name: Upload Windows native candidate JSON
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-native-latest-candidate-${{ steps.version.outputs.version }}
+          path: ${{ steps.verify.outputs.json_path }}
+          if-no-files-found: error

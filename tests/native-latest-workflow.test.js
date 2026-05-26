@@ -39,6 +39,16 @@ test("native latest candidate workflow runs on macOS arm64 with native dependenc
   assert.match(workflow, /\bnpm\s+install\b[^\n]*\bnode-lief\b/);
 });
 
+test("native latest candidate workflow also verifies Windows native candidates", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /^\s*verify-windows:/m);
+  assert.match(workflow, /name:\s*Verify Windows native candidate/);
+  assert.match(workflow, /runs-on:\s*windows-2022\b/);
+  assert.match(workflow, /node\s+scripts\/verify-upstream-compat\.js\s+--baseline\s+"\$Version"\s+--skip-latest\s+--native-windows-x64\s+--json/);
+  assert.match(workflow, /windows-native-latest-candidate-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
+});
+
 test("native latest candidate verification waits for workflow validation", () => {
   const workflow = readWorkflow();
 
