@@ -159,8 +159,7 @@ function downloadPackage(packageName, version, packagesDir) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-  const tarCwd = isWindows ? versionRoot.replace(/\\/g, "/").replace(/^([A-Z]):/, "/$1") : versionRoot;
-  execFile("tar", ["-xzf", tarball, "-C", tarCwd], {
+  execFile("tar", ["-xzf", tarball, "-C", "."], {
     cwd: versionRoot,
     stdio: ["ignore", "ignore", "pipe"],
   });
