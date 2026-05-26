@@ -8,6 +8,14 @@ const { spawnSync } = require("child_process");
 
 const STABLE_PINNED_VERSION = "2.1.112";
 const STABLE_INSTALL_CMD = `npm install -g @anthropic-ai/claude-code@${STABLE_PINNED_VERSION}`;
+const PATCH_REVISION_FILES = [
+  "manifest.json",
+  "patch-cli.sh",
+  "patch-cli.js",
+  "cli-translations.json",
+  "bun-binary-io.js",
+  "compute-patch-revision.sh",
+];
 const NPM_RESIDUE_PROBES = [
   "Quick safety check",
   "This command requires approval",
@@ -160,6 +168,20 @@ function parseMarker(marker) {
   return { kind: "npm", version: version || "", revision: revision || "" };
 }
 
+function computePatchRevision(root) {
+  const crypto = require("crypto");
+  const hash = crypto.createHash("sha256");
+  for (const relative of PATCH_REVISION_FILES) {
+    const file = path.join(root, relative);
+    if (!fs.existsSync(file)) continue;
+    hash.update(relative);
+    hash.update("\0");
+    hash.update(fs.readFileSync(file));
+    hash.update("\0");
+  }
+  return hash.digest("hex").slice(0, 16);
+}
+
 function npmCliResidue(cliFile, probes = NPM_RESIDUE_PROBES) {
   try {
     const sample = fs.readFileSync(cliFile, "utf8").slice(0, 500_000);
@@ -174,6 +196,13 @@ function checkNodeLief(bunBinaryIoPath) {
     encoding: "utf8",
   });
   return String(result.stdout || "").trim() === "ok";
+}
+
+function nativeBinaryHash(bunBinaryIoPath, target) {
+  const result = spawnSync(process.execPath, [bunBinaryIoPath, "hash", target], {
+    encoding: "utf8",
+  });
+  return String(result.stdout || "").trim();
 }
 
 function detectInstallation(bunBinaryIoPath, claudeBin) {
@@ -400,8 +429,20 @@ function runDoctor(options = {}) {
       recommendations.push("运行：npm install -g node-lief");
       recommendations.push("然后重新运行 ./install.sh");
     } else if (marker.kind === "native" && marker.version === cliVersion) {
-      layer4Status = "ok";
-      add("layer4", "Layer 4（UI 硬编码）", "ok", `experimental native ${cliVersion} 已记录 patch`);
+      const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
+      const currentRevision = computePatchRevision(pluginRoot);
+      if (marker.hash && currentHash && marker.hash !== currentHash) {
+        layer4Status = "needed";
+        add("layer4", "Layer 4（UI 硬编码）", "warn", "native 二进制 hash 与 patch 记录不一致");
+        recommendations.push("运行 ./install.sh 重新 patch native 二进制");
+      } else if (marker.revision && currentRevision && marker.revision !== currentRevision) {
+        layer4Status = "needed";
+        add("layer4", "Layer 4（UI 硬编码）", "warn", "patch 规则版本与记录不一致");
+        recommendations.push("运行 ./install.sh 重新 patch native 二进制");
+      } else {
+        layer4Status = "ok";
+        add("layer4", "Layer 4（UI 硬编码）", "ok", `experimental native ${cliVersion} 已记录 patch`);
+      }
     } else {
       layer4Status = "needed";
       add("layer4", "Layer 4（UI 硬编码）", "warn", "支持此版本，但 patch 记录与当前版本不一致");

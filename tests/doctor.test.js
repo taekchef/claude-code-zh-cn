@@ -57,6 +57,7 @@ const cmd = process.argv[2];
 if (cmd === "detect") process.stdout.write("native-bun:" + ${JSON.stringify(targetPath)});
 else if (cmd === "version") process.stdout.write(${JSON.stringify(version)});
 else if (cmd === "check-deps") process.stdout.write(${JSON.stringify(depStatus)});
+else if (cmd === "hash") process.stdout.write("fakehash");
 else process.stdout.write("");
 `
   );
@@ -300,7 +301,7 @@ test("runDoctor reports supported Windows native as needing node-lief or patch",
   createFakeNativeDoctorPlugin(pluginRoot, {
     targetPath,
     depStatus: "ok",
-    marker: "native|2.1.150|hash|revision\n",
+    marker: "native|2.1.150|fakehash|\n",
     supportWindow,
   });
 
@@ -316,6 +317,39 @@ test("runDoctor reports supported Windows native as needing node-lief or patch",
   layer4 = ok.checks.find((item) => item.id === "layer4");
   assert.equal(layer4.status, "ok");
   assert.equal(ok.layer4Status, "ok");
+});
+
+test("runDoctor requires native marker hash to match current binary", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude.exe");
+
+  fs.writeFileSync(targetPath, "fake exe");
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    targetPath,
+    depStatus: "ok",
+    marker: "native|2.1.150|stalehash|\n",
+    supportWindow: {
+      windowsNativeExperimental: {
+        platform: "win32-x64",
+        versions: ["2.1.150"],
+      },
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  const layer4 = result.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "warn");
+  assert.match(layer4.detail, /hash/);
+  assert.equal(result.layer4Status, "needed");
 });
 
 test("doctor.sh --json surfaces env overrides", () => {

@@ -521,6 +521,7 @@ function patch-native-bun {
         $patchScript = Join-Path $PluginDst "patch-cli.js"
         $translationsFile = Join-Path $PluginDst "cli-translations.json"
         $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
+        if ($LASTEXITCODE -ne 0) { throw "patch-cli failed" }
         if (-not $patchCount) { $patchCount = "0" }
 
         if ([int]$patchCount -gt 0) {
