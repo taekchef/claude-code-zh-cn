@@ -3,12 +3,12 @@
  * bun-binary-io.js — Bun 原生二进制 I/O 工具
  *
  * 从 tweakcc (Piebald-AI/tweakcc) 的 nativeInstallation.ts 精简移植。
- * 仅支持 macOS (Mach-O)，v1 标记为实验性功能。
+ * 支持 macOS (Mach-O) 与 Windows (PE)，仍按平台版本窗口开放。
  *
  * CLI 子命令：
  *   detect <claude-cmd>     → 输出 "npm:<path>" 或 "native-bun:<path>" 或 "unknown"
  *   extract <binary> <out>  → 提取内嵌 JS 到 <out>
- *   repack <binary> <js>    → 将修改后的 JS 写回二进制（含 codesign）
+ *   repack <binary> <js>    → 将修改后的 JS 写回二进制（macOS 含 codesign）
  *   version <binary>        → 输出二进制内嵌的版本号
  *   resolve <path>          → 输出 realpath（跨平台 symlink 解析）
  *   check-deps              → 检查 node-lief 是否可用
@@ -291,6 +291,47 @@ function extractFromMachO(LIEF, binaryPath) {
   return extractBunDataFromSection(bunSection.content);
 }
 
+function extractFromPE(LIEF, binaryPath) {
+  LIEF.logging.disable();
+  const binary = LIEF.parse(binaryPath);
+
+  for (const section of binary.sections()) {
+    try {
+      const parsed = extractBunDataFromSection(section.content);
+      return { ...parsed, section, binary };
+    } catch {}
+  }
+
+  throw new Error("Bun section not found in PE binary");
+}
+
+function extractNativeBun(LIEF, binaryPath) {
+  LIEF.logging.disable();
+  const binary = LIEF.parse(binaryPath);
+
+  switch (binary.format) {
+    case "MachO": {
+      const bunSegment = binary.getSegment("__BUN");
+      if (!bunSegment) throw new Error("__BUN segment not found");
+      const section = bunSegment.getSection("__bun");
+      if (!section) throw new Error("__bun section not found");
+      const parsed = extractBunDataFromSection(section.content);
+      return { ...parsed, format: "MachO", binary, section, segment: bunSegment };
+    }
+    case "PE": {
+      for (const section of binary.sections()) {
+        try {
+          const parsed = extractBunDataFromSection(section.content);
+          return { ...parsed, format: "PE", binary, section };
+        } catch {}
+      }
+      throw new Error("Bun section not found in PE binary");
+    }
+    default:
+      throw new Error(`Unsupported native binary format: ${binary.format || "unknown"}`);
+  }
+}
+
 function findClaudeModule(bunData, bunOffsets, moduleStructSize) {
   const modulesListBytes = getStringPointerContent(bunData, bunOffsets.modulesPtr);
   const count = Math.floor(modulesListBytes.length / moduleStructSize);
@@ -466,6 +507,13 @@ function signAndVerifyMachO(outputPath) {
   runCodesign(["--verify", "--strict", "--verbose=4", outputPath], "verify");
 }
 
+function verifyPERepack(LIEF, outputPath, expectedBunBuffer) {
+  const { bunData } = extractNativeBun(LIEF, outputPath);
+  if (!bunData.equals(expectedBunBuffer)) {
+    throw new Error("PE repack verification failed: embedded Bun data did not round-trip");
+  }
+}
+
 function repackMachO(LIEF, machoBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize) {
   // 移除旧签名
   if (machoBinary.hasCodeSignature) {
@@ -497,6 +545,18 @@ function repackMachO(LIEF, machoBinary, binPath, newBunBuffer, outputPath, secti
   signAndVerifyMachO(outputPath);
 }
 
+function repackPE(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section) {
+  const newSectionData = buildSectionData(newBunBuffer, sectionHeaderSize);
+  section.content = newSectionData;
+  section.size = BigInt(newSectionData.length);
+  if ("virtualSize" in section) {
+    section.virtualSize = BigInt(newSectionData.length);
+  }
+
+  atomicWriteBinary(LIEF, peBinary, outputPath, binPath);
+  verifyPERepack(LIEF, outputPath, newBunBuffer);
+}
+
 // ============================================================================
 // CLI 子命令实现
 // ============================================================================
@@ -522,7 +582,7 @@ function cmdExtract() {
     process.exit(1);
   }
 
-  const { bunData, bunOffsets, moduleStructSize } = extractFromMachO(LIEF, binaryPath);
+  const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
   const found = findClaudeModule(bunData, bunOffsets, moduleStructSize);
   if (!found || found.contents.length === 0) {
     process.stderr.write("Error: claude module not found in binary\n");
@@ -549,17 +609,20 @@ function cmdRepack() {
 
   LIEF.logging.disable();
   const modifiedJs = fs.readFileSync(jsPath);
-  const binary = LIEF.parse(binaryPath);
-
-  const { bunOffsets, bunData, sectionHeaderSize, moduleStructSize } = extractFromMachO(LIEF, binaryPath);
+  const { format, binary, section, segment, bunOffsets, bunData, sectionHeaderSize, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
   const newBuffer = rebuildBunData(bunData, bunOffsets, modifiedJs, moduleStructSize);
 
-  if (binary.format !== "MachO") {
-    process.stderr.write("Error: only Mach-O (macOS) is supported in this version\n");
-    process.exit(1);
+  switch (format) {
+    case "MachO":
+      repackMachO(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, segment);
+      break;
+    case "PE":
+      repackPE(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
+      break;
+    default:
+      process.stderr.write(`Error: unsupported native binary format ${format || "unknown"}\n`);
+      process.exit(1);
   }
-
-  repackMachO(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize);
   process.stdout.write("ok");
 }
 
@@ -577,7 +640,7 @@ function cmdVersion() {
   }
 
   try {
-    const { bunData, bunOffsets, moduleStructSize } = extractFromMachO(LIEF, binaryPath);
+    const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
     const found = findClaudeModule(bunData, bunOffsets, moduleStructSize);
     if (found && found.contents.length > 0) {
       // 从 JS 内容头部提取版本号（匹配 "// Version: X.Y.Z" 格式）
