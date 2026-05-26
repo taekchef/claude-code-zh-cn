@@ -40,6 +40,31 @@ function createFakeNpmClaudeLayout(home, cliBodyLines) {
   return { cliFile, claudeBin };
 }
 
+function createFakeNativeDoctorPlugin(pluginRoot, {
+  version = "2.1.150",
+  depStatus = "ok",
+  targetPath = "C:\\\\fake\\\\claude.exe",
+  marker = "",
+  supportWindow = {},
+} = {}) {
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  writeJson(path.join(pluginRoot, "support-window.json"), supportWindow);
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    `#!/usr/bin/env node
+const cmd = process.argv[2];
+if (cmd === "detect") process.stdout.write("native-bun:" + ${JSON.stringify(targetPath)});
+else if (cmd === "version") process.stdout.write(${JSON.stringify(version)});
+else if (cmd === "check-deps") process.stdout.write(${JSON.stringify(depStatus)});
+else process.stdout.write("");
+`
+  );
+  if (marker) {
+    fs.writeFileSync(path.join(pluginRoot, ".patched-version"), marker);
+  }
+}
+
 test("runDoctor reports missing plugin and recommends install", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
 
@@ -187,6 +212,110 @@ test("runDoctor passes when npm cli sentinel is translated", () => {
   assert.equal(layer4.status, "ok");
   assert.equal(result.ok, true);
   assert.equal(result.checks.some((item) => item.status === "fail"), false);
+});
+
+test("runDoctor does not treat macOS native support as Windows native support", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude.exe");
+
+  fs.writeFileSync(targetPath, "fake exe");
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    targetPath,
+    supportWindow: {
+      macosNativeExperimental: {
+        platform: "darwin-arm64",
+        versions: ["2.1.150"],
+      },
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  const layer4 = result.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "warn");
+  assert.match(layer4.detail, /不在已验证支持窗口/);
+  assert.equal(result.layer4Status, "unsupported");
+});
+
+test("runDoctor reports supported Windows native as needing node-lief or patch", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude.exe");
+  const supportWindow = {
+    windowsNativeExperimental: {
+      platform: "win32-x64",
+      versions: ["2.1.150"],
+    },
+  };
+
+  fs.writeFileSync(targetPath, "fake exe");
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    targetPath,
+    depStatus: "missing",
+    supportWindow,
+  });
+
+  const missingDeps = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  let layer4 = missingDeps.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "fail");
+  assert.equal(missingDeps.layer4Status, "needs-deps");
+  assert.ok(missingDeps.recommendations.some((line) => line.includes("node-lief")));
+
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    targetPath,
+    depStatus: "ok",
+    supportWindow,
+  });
+
+  const needsPatch = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  layer4 = needsPatch.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "warn");
+  assert.equal(needsPatch.layer4Status, "needed");
+  assert.ok(needsPatch.recommendations.some((line) => line.includes("install.sh")));
+
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    targetPath,
+    depStatus: "ok",
+    marker: "native|2.1.150|hash|revision\n",
+    supportWindow,
+  });
+
+  const ok = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  layer4 = ok.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "ok");
+  assert.equal(ok.layer4Status, "ok");
 });
 
 test("doctor.sh --json surfaces env overrides", () => {

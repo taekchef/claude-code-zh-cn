@@ -427,6 +427,133 @@ function patch-npm-cli {
     }
 }
 
+function get-support-window {
+    $supportFile = "$PluginDst\support-window.json"
+    if (-not (Test-Path $supportFile)) {
+        $supportFile = "$PluginSrc\support-window.json"
+    }
+    if (-not (Test-Path $supportFile)) { return $null }
+    try {
+        return Get-Content $supportFile -Raw | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+}
+
+function test-version-in-entry {
+    param($Entry, [string]$Version)
+    if (-not $Entry -or -not $Version) { return $false }
+    if ($Entry.versions) {
+        foreach ($item in @($Entry.versions)) {
+            if ([string]$item -eq $Version) { return $true }
+        }
+    }
+    return $false
+}
+
+function is-supported-windows-native-version {
+    param([string]$Version)
+    $support = get-support-window
+    if (-not $support -or -not $support.windowsNativeExperimental) { return $false }
+    return test-version-in-entry $support.windowsNativeExperimental $Version
+}
+
+function patch-native-bun {
+    param([string]$BinaryPath)
+    $helper = "$PluginDst\bun-binary-io.js"
+    if (-not (Test-Path $helper)) {
+        $helper = "$PluginSrc\bun-binary-io.js"
+    }
+    if (-not (Test-Path $helper)) {
+        Write-CN "原生二进制 patch helper 缺失，已跳过 CLI Patch" Yellow
+        $script:CliPatchStatusSummary = "已跳过（原生二进制 helper 缺失）"
+        return
+    }
+
+    Write-Host ""
+    Write-CN "检测到 Windows 原生二进制安装" Blue
+    Write-Host "  二进制路径: $BinaryPath"
+
+    $currentVersion = (node $helper version $BinaryPath 2>$null)
+    if ($currentVersion) { $currentVersion = $currentVersion.Trim() }
+
+    if (-not (is-supported-windows-native-version $currentVersion)) {
+        $displayVersion = $currentVersion
+        if (-not $displayVersion) { $displayVersion = "unknown" }
+        Write-CN "当前 Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）" Yellow
+        $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch）"
+        return
+    }
+
+    Write-Host "  版本: $currentVersion（experimental）"
+
+    $depStatus = (node $helper check-deps 2>$null)
+    if (-not $depStatus -or $depStatus.Trim() -ne "ok") {
+        Write-CN "需要安装 node-lief 来支持 Windows native patch" Yellow
+        Write-Host "  运行: npm install -g node-lief"
+        Write-Host "  然后重新运行 install.ps1"
+        $script:CliPatchStatusSummary = "已跳过（Windows native CLI Patch 需要 node-lief）"
+        return
+    }
+
+    $tmpJs = Join-Path $TmpDir "claude-zh-cn-extract-$PID.js"
+    $backupFile = "$BinaryPath.zh-cn-backup"
+    New-Item -Force -ItemType Directory -Path $TmpDir | Out-Null
+
+    $backupVersion = ""
+    if (Test-Path $backupFile) {
+        $backupVersion = (node $helper version $backupFile 2>$null)
+        if ($backupVersion) { $backupVersion = $backupVersion.Trim() }
+    }
+
+    if ((Test-Path $backupFile) -and $currentVersion -and $backupVersion -eq $currentVersion) {
+        Copy-Item $backupFile $BinaryPath -Force
+        Write-CN "已从备份恢复原始原生二进制（版本一致: $currentVersion）" Green
+    } else {
+        Copy-Item $BinaryPath $backupFile -Force
+        Write-CN "已备份原生二进制（版本: $currentVersion）" Green
+    }
+
+    try {
+        node $helper extract $BinaryPath $tmpJs | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "extract failed" }
+
+        $patchScript = Join-Path $PluginDst "patch-cli.js"
+        $translationsFile = Join-Path $PluginDst "cli-translations.json"
+        $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
+        if (-not $patchCount) { $patchCount = "0" }
+
+        if ([int]$patchCount -gt 0) {
+            node $helper repack $BinaryPath $tmpJs | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "repack failed" }
+            Write-CN "已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
+            $script:CliPatchStatusSummary = "Windows native 中文化（${patchCount} 处硬编码文字）"
+            $script:CliPatchStatusOk = $true
+        } else {
+            Write-CN "Windows 原生二进制无新增改动（可能已是最新状态）" Yellow
+            $script:CliPatchStatusSummary = "Windows native 无新增改动（可能已是最新状态）"
+            $script:CliPatchStatusOk = $true
+        }
+    } catch {
+        Write-CN "Windows 原生二进制 patch 失败，正在从备份恢复..." Red
+        if (Test-Path $backupFile) {
+            Copy-Item $backupFile $BinaryPath -Force -ErrorAction SilentlyContinue
+        }
+        $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制 patch 失败）"
+        return
+    } finally {
+        Remove-Item $tmpJs -Force -ErrorAction SilentlyContinue
+    }
+
+    $patchRevision = get-patch-revision $PluginDst
+    $finalHash = (node $helper hash $BinaryPath 2>$null)
+    if ($finalHash) { $finalHash = $finalHash.Trim() }
+    if ($patchRevision -and $currentVersion) {
+        if (-not $finalHash) { $finalHash = "unknown" }
+        "native|${currentVersion}|${finalHash}|${patchRevision}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+    }
+}
+
 function initial-patch {
     $realClaude = find-real-claude
     if (-not $realClaude) {
@@ -448,8 +575,9 @@ function initial-patch {
             }
         }
         "native-bun" {
-            Write-CN "检测到原生二进制安装；Windows PE 二进制暂不支持 patch，仅 macOS 支持" Yellow
-            $script:CliPatchStatusSummary = "已跳过（Windows PE 二进制 patch 暂未支持）"
+            if ($target -and (Test-Path $target)) {
+                patch-native-bun $target
+            }
         }
         "unknown" {
             Write-CN "当前安装方式暂不支持 CLI Patch，已跳过此步骤" Yellow

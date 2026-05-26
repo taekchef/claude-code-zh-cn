@@ -242,6 +242,19 @@ test("install.ps1 gates launcher injection to Windows old npm cli.js installs", 
   assert.doesNotMatch(launcherDetector, /npm root -g/, "launcher gating must not use global npm fallback");
 });
 
+test("install.ps1 gates Windows native patch through support window and node-lief", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+
+  assert.match(script, /function patch-native-bun/);
+  assert.match(script, /windowsNativeExperimental/);
+  assert.match(script, /is-supported-windows-native-version/);
+  assert.match(script, /node \$helper check-deps/);
+  assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
+  assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
+  assert.match(script, /\.patched-version/);
+  assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);
+});
+
 test(
   "install.ps1 patches Windows old npm cli.js representatives without touching the real user install",
   { skip: windowsPowerShellRequired },

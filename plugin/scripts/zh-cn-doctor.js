@@ -45,11 +45,12 @@ function versionInRange(version, floor, ceiling) {
   return compareVersion(version, floor) >= 0 && compareVersion(version, ceiling) <= 0;
 }
 
-function loadSupportWindow(repoRoot) {
+function loadSupportWindow(repoRoot, pluginRoot = "") {
   const candidates = [
+    pluginRoot ? path.join(pluginRoot, "support-window.json") : "",
     path.join(repoRoot, "plugin", "support-window.json"),
     path.join(repoRoot, "support-window.json"),
-  ];
+  ].filter(Boolean);
   for (const file of candidates) {
     if (fs.existsSync(file)) {
       return readJson(file);
@@ -74,11 +75,13 @@ function nativeSupportLists(support) {
   for (const key of [
     "macosNativeOfficialInstallerExperimental",
     "macosNativeExperimental",
+    "windowsNativeExperimental",
   ]) {
     const entry = support?.[key];
     if (!entry) continue;
     lists.push({
       key,
+      platform: entry.platform || "",
       versions: Array.isArray(entry.versions) ? entry.versions : [],
       floor: entry.floor,
       ceiling: entry.ceiling,
@@ -88,10 +91,21 @@ function nativeSupportLists(support) {
   return lists;
 }
 
-function isSupportedNativeVersion(version, support) {
+function nativePlatformForTarget(target) {
+  if (process.platform === "win32" || /\.exe$/i.test(String(target || ""))) {
+    return "win32-x64";
+  }
+  if (process.platform === "darwin") {
+    return "darwin-arm64";
+  }
+  return process.platform || "";
+}
+
+function isSupportedNativeVersion(version, support, platform = "") {
   if (!version) return false;
   const versions = [];
   for (const entry of nativeSupportLists(support)) {
+    if (platform && entry.platform && entry.platform !== platform) continue;
     versions.push(...entry.versions);
   }
   return versions.includes(version);
@@ -201,7 +215,7 @@ function runDoctor(options = {}) {
   const markerFile = path.join(pluginRoot, ".patched-version");
   const sourceRepoFile = path.join(pluginRoot, ".source-repo");
   const useColor = options.color !== false && !process.env.NO_COLOR;
-  const support = loadSupportWindow(repoRoot);
+  const support = loadSupportWindow(repoRoot, pluginRoot);
   const bunBinaryIoPath = path.join(
     fs.existsSync(path.join(pluginRoot, "bun-binary-io.js"))
       ? pluginRoot
@@ -370,7 +384,8 @@ function runDoctor(options = {}) {
       add("launcher", "npm 启动前自修复", "ok", "launcher 已在 PATH 最前");
     }
   } else if (kind === "native-bun" && target) {
-    const supported = isSupportedNativeVersion(cliVersion, support);
+    const nativePlatform = nativePlatformForTarget(target);
+    const supported = isSupportedNativeVersion(cliVersion, support, nativePlatform);
     const liefOk = checkNodeLief(bunBinaryIoPath);
     if (!supported) {
       layer4Status = "unsupported";
