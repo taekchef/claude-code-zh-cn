@@ -469,6 +469,59 @@
     "windowsNativeExe": {
       "unsupported": true,
       "notes": "Windows native .exe（官方安装器或 2.1.113+ npm 原生 wrapper）会明确跳过 CLI Patch，仅启用 Layer 1~3；硬编码 UI 文字不会被完整翻译。"
+    },
+    "windowsNativeExperimental": {
+      "floor": "2.1.113",
+      "ceiling": "2.1.150",
+      "platform": "win32-x64",
+      "packageName": "@anthropic-ai/claude-code-win32-x64",
+      "representatives": [
+        "2.1.113",
+        "2.1.114",
+        "2.1.116",
+        "2.1.117",
+        "2.1.118",
+        "2.1.119",
+        "2.1.120",
+        "2.1.121",
+        "2.1.122",
+        "2.1.123",
+        "2.1.124",
+        "2.1.126",
+        "2.1.128",
+        "2.1.129",
+        "2.1.131",
+        "2.1.132",
+        "2.1.133",
+        "2.1.136",
+        "2.1.137",
+        "2.1.138",
+        "2.1.139",
+        "2.1.140",
+        "2.1.141",
+        "2.1.142",
+        "2.1.143",
+        "2.1.144",
+        "2.1.145",
+        "2.1.146",
+        "2.1.148",
+        "2.1.150"
+      ],
+      "excluded": [
+        "2.1.115",
+        "2.1.125",
+        "2.1.127",
+        "2.1.130",
+        "2.1.134",
+        "2.1.135",
+        "2.1.147",
+        "2.1.149"
+      ],
+      "verification": "Windows native verification runs on pinned Windows runners with PE extract / patch / repack / --version / display audit",
+      "requires": [
+        "node-lief"
+      ],
+      "notes": "Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本，不代表 future latest 自动稳定。"
     }
   }
 }

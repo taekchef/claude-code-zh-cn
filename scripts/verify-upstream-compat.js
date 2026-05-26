@@ -44,6 +44,7 @@ function parseArgs(argv) {
     json: false,
     skipLatest: false,
     nativeMacosArm64: false,
+    nativeWindowsX64: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -72,6 +73,9 @@ function parseArgs(argv) {
         break;
       case "--native-macos-arm64":
         args.nativeMacosArm64 = true;
+        break;
+      case "--native-windows-x64":
+        args.nativeWindowsX64 = true;
         break;
       case "--json":
         args.json = true;
@@ -351,8 +355,10 @@ function downloadPackage(packageName, version, packagesDir) {
 }
 
 function resolvePackageName(config, args, version) {
-  const nativeConfig = config.support?.macosNativeExperimental;
-  if (args.nativeMacosArm64 && nativeConfig?.packageName) {
+  const nativeConfig = args.nativeWindowsX64
+    ? config.support?.windowsNativeExperimental
+    : config.support?.macosNativeExperimental;
+  if ((args.nativeMacosArm64 || args.nativeWindowsX64) && nativeConfig?.packageName) {
     const floorComparison = nativeConfig.floor ? compareSemver(version, nativeConfig.floor) : null;
     const isKnownRepresentative = (nativeConfig.representatives || []).map(String).includes(String(version));
     if ((floorComparison !== null && floorComparison >= 0) || isKnownRepresentative) {
@@ -447,11 +453,15 @@ function checkNativeDeps() {
 }
 
 function runNativeVerification(config, args, version, packageDir, kind) {
-  if (!args.nativeMacosArm64) {
+  if (!args.nativeMacosArm64 && !args.nativeWindowsX64) {
     return nativeSkipResult(version, kind, "native verification not enabled");
   }
 
-  if (currentNativePlatform() !== "darwin-arm64") {
+  const expectedPlatform = args.nativeWindowsX64 ? "win32-x64" : "darwin-arm64";
+  if (currentNativePlatform() !== expectedPlatform) {
+    if (args.nativeWindowsX64) {
+      return nativeSkipResult(version, kind, "native verification requires Windows x64");
+    }
     return nativeSkipResult(version, kind, "native verification requires macOS arm64");
   }
 
@@ -467,13 +477,15 @@ function runNativeVerification(config, args, version, packageDir, kind) {
   }
 
   if (kind !== "native") {
-    return nativeSkipResult(version, kind, "native verification requires platform package with package/claude");
+    return nativeSkipResult(version, kind, "native verification requires platform package");
   }
 
-  const binaryPath = path.join(packageDir, "claude");
+  const binaryPath = args.nativeWindowsX64
+    ? path.join(packageDir, "bin", "claude.exe")
+    : path.join(packageDir, "claude");
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-compat-"));
   const extractedJs = path.join(tmpDir, "extracted.js");
-  const patchedBinary = path.join(tmpDir, "claude-patched");
+  const patchedBinary = path.join(tmpDir, args.nativeWindowsX64 ? "claude-patched.exe" : "claude-patched");
 
   try {
     const detectOutput = execFile("node", [binaryIoPath, "detect", binaryPath], {
@@ -508,10 +520,12 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       cwd: repoRoot,
       stdio: ["ignore", "ignore", "pipe"],
     });
-    execFile("codesign", ["--verify", "--strict", "--verbose=4", patchedBinary], {
-      cwd: repoRoot,
-      stdio: ["ignore", "ignore", "pipe"],
-    });
+    if (!args.nativeWindowsX64) {
+      execFile("codesign", ["--verify", "--strict", "--verbose=4", patchedBinary], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "pipe"],
+      });
+    }
 
     const tempHome = path.join(tmpDir, "home");
     fs.mkdirSync(tempHome, { recursive: true });

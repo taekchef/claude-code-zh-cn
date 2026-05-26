@@ -11,7 +11,7 @@
 | macOS native binary | 2.1.113 - 2.1.150 (不含未纳入本轮支持的 2.1.115, 2.1.125, 2.1.127, 2.1.130, 2.1.134, 2.1.135, 2.1.147, 2.1.149) | experimental | native + 显示审计已验证 | 只用已验证版本 |
 | Linux official installer | - | unsupported | 不承诺完整汉化 | 不建议 |
 | Windows / npm global install (PowerShell) | 2.1.92 - 2.1.112 | stable | 完整链路已验证 | 推荐 |
-| Windows / native .exe / latest | - | unsupported | 不承诺完整汉化 | 不建议 |
+| Windows / native .exe | 2.1.113 - 2.1.150 (不含未纳入本轮支持的 2.1.115, 2.1.125, 2.1.127, 2.1.130, 2.1.134, 2.1.135, 2.1.147, 2.1.149) | experimental | native + 显示审计已验证 | 只用已验证版本 |
 
 ## Tier Definition
 
@@ -28,7 +28,7 @@
 | macOS native binary | experimental | 2.1.113 - 2.1.150 (不含未纳入本轮支持的 2.1.115, 2.1.125, 2.1.127, 2.1.130, 2.1.134, 2.1.135, 2.1.147, 2.1.149) | 2.1.113 PASS(native 1358, display 11/11) · 2.1.114 PASS(native 1358, display 11/11) · 2.1.116 PASS(native 1351, display 11/11) · 2.1.117 PASS(native 1334, display 11/11) · 2.1.118 PASS(native 1323, display 11/11) · 2.1.119 PASS(native 1328, display 11/11) · 2.1.120 PASS(native 1331, display 11/11) · 2.1.121 PASS(native 1334, display 11/11) · 2.1.122 PASS(native 1334, display 11/11) · 2.1.123 PASS(native 1334, display 11/11) · 2.1.124 PASS(native 1331, display 11/11) · 2.1.126 PASS(native 1331, display 11/11) · 2.1.128 PASS(native 1331, display 11/11) · 2.1.129 PASS(native 1333, display 11/11) · 2.1.131 PASS(native 1333, display 11/11) · 2.1.132 PASS(native 1323, display 11/11) · 2.1.133 PASS(native 1323, display 11/11) · 2.1.136 PASS(native 1322, display 11/11) · 2.1.137 PASS(native 1322, display 11/11) · 2.1.138 PASS(native 1322, display 11/11) · 2.1.139 PASS(native 1324, display 11/11) · 2.1.140 PASS(native 1324, display 11/11) · 2.1.141 PASS(native 1324, display 11/11) · 2.1.142 PASS(native 1320, display 11/11) · 2.1.143 PASS(native 1326, display 11/11) · 2.1.144 PASS(native 1324, display 11/11) · 2.1.145 PASS(native 1324, display 11/11) · 2.1.146 PASS(native 1335, display 11/11) · 2.1.148 PASS(native 1333, display 11/11) · 2.1.150 PASS(native 1333, display 11/11) | macOS arm64 native binary experimental；需要 node-lief；已验证 2.1.113 - 2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128 - 2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.146、2.1.148、2.1.150 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135、2.1.147、2.1.149 未发布或未纳入支持；不代表未来 latest 自动稳定。 |
 | Linux official installer | unsupported | - | - | 当前不支持 Linux 官方安装器；请改用 npm 路径。 |
 | Windows / npm global install (PowerShell) | stable | 2.1.92 - 2.1.112 | - | 新增 PowerShell 安装脚本（install.ps1）；适用于旧 npm cli.js 形态，CLI Patch 可用；Windows 上 session-start 二层兜底（launcher 暂不实现启动前自修复）。 |
-| Windows / native .exe / latest | unsupported | - | - | Windows native .exe（官方安装器或 2.1.113+ npm 原生 wrapper）会明确跳过 CLI Patch，仅启用 Layer 1~3；硬编码 UI 文字不会被完整翻译。 |
+| Windows / native .exe | experimental | 2.1.113 - 2.1.150 (不含未纳入本轮支持的 2.1.115, 2.1.125, 2.1.127, 2.1.130, 2.1.134, 2.1.135, 2.1.147, 2.1.149) | Windows native verification runs on pinned Windows runners with PE extract / patch / repack / --version / display audit | Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本，不代表 future latest 自动稳定。 |
 
 ## Compatibility Matrix
 

@@ -55,6 +55,7 @@ function buildSupportWindow(config) {
   const npmStable = requireEntry(config.support?.npm?.stable, "support.npm.stable");
   const macosOfficial = config.support?.macosOfficialInstaller?.experimental || null;
   const macosNative = config.support?.macosNativeExperimental || null;
+  const windowsNative = config.support?.windowsNativeExperimental || null;
 
   const payload = {
     legacyNpmStable: {
@@ -83,6 +84,18 @@ function buildSupportWindow(config) {
       platform: macosNative.platform || "darwin-arm64",
       packageName: macosNative.packageName || "@anthropic-ai/claude-code-darwin-arm64",
       requires: macosNative.requires || ["node-lief"],
+    };
+  }
+
+  if (windowsNative && windowsNative.unsupported !== true) {
+    payload.windowsNativeExperimental = {
+      floor: windowsNative.floor,
+      ceiling: windowsNative.ceiling,
+      excluded: windowsNative.excluded || [],
+      versions: versionsFrom(windowsNative),
+      platform: windowsNative.platform || "win32-x64",
+      packageName: windowsNative.packageName || "@anthropic-ai/claude-code-win32-x64",
+      requires: windowsNative.requires || ["node-lief"],
     };
   }
 

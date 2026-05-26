@@ -117,6 +117,7 @@ function buildMarkdown(config, compat) {
   const windowsNpmTier = windowsNpm.unsupported ? "unsupported" : "stable";
   const windowsNpmWindow = windowsNpm.unsupported ? windowsNpm : windowsNpmStable;
   const windowsNativeUnsupported = config.support?.windowsNativeExe || {};
+  const windowsNativeExperimental = config.support?.windowsNativeExperimental || null;
   const lines = [
     "# Support Matrix",
     "",
@@ -152,12 +153,23 @@ function buildMarkdown(config, compat) {
       windowsNpmTier,
       windowsNpmWindow.notes
     )} |`,
-    `| Windows / native .exe / latest | ${renderRange(
-      windowsNativeUnsupported
-    )} | unsupported | ${renderCoverageForChannel("unsupported")} | ${renderAction(
-      "unsupported",
-      windowsNativeUnsupported.notes
-    )} |`,
+    ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
+      ? [
+          `| Windows / native .exe | ${renderRange(
+            windowsNativeExperimental
+          )} | experimental | ${renderCoverageForChannel(
+            "experimental",
+            windowsNativeExperimental.verification
+          )} | ${renderAction("experimental", windowsNativeExperimental.notes)} |`,
+        ]
+      : [
+          `| Windows / native .exe / latest | ${renderRange(
+            windowsNativeUnsupported
+          )} | unsupported | ${renderCoverageForChannel("unsupported")} | ${renderAction(
+            "unsupported",
+            windowsNativeUnsupported.notes
+          )} |`,
+        ]),
     "",
     "## Tier Definition",
     "",
@@ -190,9 +202,20 @@ function buildMarkdown(config, compat) {
     `| Windows / npm global install (PowerShell) | ${windowsNpmTier} | ${renderRange(
       windowsNpmWindow
     )} | - | ${windowsNpmWindow.notes || "-"} |`,
-    `| Windows / native .exe / latest | unsupported | ${renderRange(
-      windowsNativeUnsupported
-    )} | - | ${windowsNativeUnsupported.notes || "-"} |`,
+    ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
+      ? [
+          `| Windows / native .exe | experimental | ${renderRange(
+            windowsNativeExperimental
+          )} | ${windowsNativeExperimental.verification || renderRepresentativeStatus(
+            windowsNativeExperimental.representatives,
+            resultMap
+          )} | ${windowsNativeExperimental.notes || "-"} |`,
+        ]
+      : [
+          `| Windows / native .exe / latest | unsupported | ${renderRange(
+            windowsNativeUnsupported
+          )} | - | ${windowsNativeUnsupported.notes || "-"} |`,
+        ]),
     "",
     "## Compatibility Matrix",
     "",

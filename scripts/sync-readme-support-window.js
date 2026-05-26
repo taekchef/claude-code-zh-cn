@@ -88,6 +88,7 @@ function supportEntries(config) {
       "support.windowsNpmPowerShell"
     ),
     windowsNative: requireEntry(support.windowsNativeExe, "support.windowsNativeExe"),
+    windowsNativeExperimental: support.windowsNativeExperimental || null,
   };
 }
 
@@ -213,6 +214,7 @@ function renderSupportSystems(config) {
     linuxInstaller,
     windowsNpm,
     windowsNative,
+    windowsNativeExperimental,
   } = supportEntries(config);
   const stablePinned = npmStable.ceiling || npmStable.representatives?.at(-1) || npmStable.floor;
   const macosNativeRange = macosNative && macosNative.unsupported !== true
@@ -227,7 +229,7 @@ function renderSupportSystems(config) {
     : "";
   const nativeBoundary = nextMajorBoundary(npmStable);
   const nativeLatestNote = macosNative && macosNative.unsupported !== true
-    ? `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS arm64 native binary 现在有独立 experimental 通道，已验证 ${macosVerified} 的二进制改写链路和 ${macosNativeAudit.total} 个稳定显示面。${macosExcluded}\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`
+    ? `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS arm64 native binary 现在有独立 experimental 通道，已验证 ${macosVerified} 的二进制改写链路和 ${macosNativeAudit.total} 个稳定显示面。${windowsNativeExperimental && windowsNativeExperimental.unsupported !== true ? `Windows x64 native 也有独立 experimental 通道，已验证 ${compactVersions(windowsNativeExperimental.representatives)}。` : ""}${macosExcluded}\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`
     : `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`;
 
   return [
@@ -243,14 +245,26 @@ function renderSupportSystems(config) {
     `| Linux / npm 全局安装 | \`stable\` | ${renderRangeWithExcluded(npmStable)} | 与 npm stable 同口径 |`,
     `| Linux / 官方安装器 | \`unsupported\` | ${renderRangeWithExcluded(linuxInstaller)} | 当前不承诺支持 |`,
     `| Windows / npm 全局安装 (PowerShell) | \`stable\` | ${renderRangeWithExcluded(windowsNpm)} | 新增 PowerShell 安装脚本（install.ps1）；适用于旧 npm cli.js 形态，CLI Patch 可用；需 PowerShell 5.1+ |`,
-    `| Windows / native .exe / latest | \`unsupported\` | ${renderRangeWithExcluded(windowsNative)} | 检测到 Windows native .exe 或 \`${nativeBoundary}+\` 时会跳过 CLI Patch，仅启用 Layer 1~3（设置 + Hook + 插件） |`,
+    ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
+      ? [
+          `| Windows / native .exe | \`experimental\` | ${renderRangeWithExcluded(windowsNativeExperimental)} | 当前 Windows x64 native 已验证 extract / patch / repack / \`--version\`；需要 \`node-lief\`；未验证新版本会安全跳过 CLI Patch |`,
+        ]
+      : [
+          `| Windows / native .exe / latest | \`unsupported\` | ${renderRangeWithExcluded(windowsNative)} | 检测到 Windows native .exe 或 \`${nativeBoundary}+\` 时会跳过 CLI Patch，仅启用 Layer 1~3（设置 + Hook + 插件） |`,
+        ]),
     `| Windows / WSL + npm 全局安装 | 跟随 npm \`stable\` | ${renderRangeWithExcluded(npmStable)} | **必须在 WSL 终端内运行**，使用 install.sh |`,
     "",
     `> **Windows 用户（原生 PowerShell）**：现已新增 PowerShell 安装脚本（install.ps1），可在 Windows 10/11 上原生安装**旧 npm cli.js 形态**的 Claude Code（${renderRangeWithExcluded(windowsNpm)}），无需 WSL。见下方「Windows 原生安装」章节。`,
     ">",
     "> **Windows 用户（WSL）**：也可先安装 [WSL](https://learn.microsoft.com/zh-cn/windows/wsl/install)，然后在 WSL 中安装 Claude Code 和本插件。",
     ">",
-    `> **Windows native .exe / latest 不支持 CLI Patch**：${windowsNative.notes || "Windows native .exe 目前会明确跳过 CLI Patch，仅启用 Layer 1~3。"}如需完整中文化，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` 安装旧 npm 版本。`,
+    ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
+      ? [
+          `> **Windows native .exe experimental**：${windowsNativeExperimental.notes || "Windows native .exe 仅支持已验证版本。"}未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
+        ]
+      : [
+          `> **Windows native .exe / latest 不支持 CLI Patch**：${windowsNative.notes || "Windows native .exe 目前会明确跳过 CLI Patch，仅启用 Layer 1~3。"}如需完整中文化，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` 安装旧 npm 版本。`,
+        ]),
     ">",
     "> **支持边界单一来源**：当前口径以 [docs/support-matrix.md](./docs/support-matrix.md) 为准。该文档由 `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` 通过 `node scripts/generate-support-matrix.js` 生成。",
     ">",
