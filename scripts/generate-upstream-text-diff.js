@@ -126,6 +126,7 @@ function packageShapeError(packageDir) {
   if (!fs.existsSync(packageDir)) return "missing package/";
   if (fs.existsSync(path.join(packageDir, "cli.js"))) return null;
   if (fs.existsSync(path.join(packageDir, "claude"))) return null;
+  if (fs.existsSync(path.join(packageDir, "claude.exe"))) return null;
   if (fs.existsSync(path.join(packageDir, "bin", "claude.exe"))) return null;
   return "missing cli.js or native executable";
 }

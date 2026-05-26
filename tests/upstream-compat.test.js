@@ -333,6 +333,87 @@ test("verify-upstream-compat uses Windows native representatives as the default 
   assert.match(native.skipReason, /requires Windows x64/);
 });
 
+test("verify-upstream-compat accepts root-level Windows platform claude.exe packages", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-windows-root-exe-"));
+  const packagesDir = path.join(tmp, "cache");
+  const requestsPath = path.join(tmp, "npm-requests.txt");
+  const binDir = path.join(tmp, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  const fakeNpm = path.join(binDir, "npm");
+  fs.writeFileSync(
+    fakeNpm,
+    [
+      "#!/usr/bin/env node",
+      "const fs = require('node:fs');",
+      "const path = require('node:path');",
+      "const { execFileSync } = require('node:child_process');",
+      "const spec = process.argv[3];",
+      "fs.appendFileSync(process.env.CCZH_NPM_REQUESTS, `${spec}\\n`);",
+      "const root = process.cwd();",
+      "const staging = path.join(root, 'pack-staging');",
+      "fs.rmSync(staging, { recursive: true, force: true });",
+      "const packageDir = path.join(staging, 'package');",
+      "fs.mkdirSync(packageDir, { recursive: true });",
+      "fs.writeFileSync(path.join(packageDir, 'package.json'), JSON.stringify({ name: '@anthropic-ai/claude-code-win32-x64', version: '2.1.113' }));",
+      "fs.writeFileSync(path.join(packageDir, 'claude.exe'), 'MZ fake pe\\n');",
+      "execFileSync('tar', ['-czf', 'claude-code-win32-x64-2.1.113.tgz', '-C', staging, 'package'], { cwd: root });",
+      "process.stdout.write('claude-code-win32-x64-2.1.113.tgz\\n');",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(fakeNpm, 0o755);
+
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.baseline = {
+    versions: ["1.0.0"],
+    includeLatestFromNpm: false,
+  };
+  fixtureConfigJson.support = {
+    windowsNativeExperimental: {
+      platform: "win32-x64",
+      packageName: "@anthropic-ai/claude-code-win32-x64",
+      floor: "2.1.113",
+      representatives: ["2.1.113"],
+    },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [
+      compatScript,
+      "--config",
+      configPath,
+      "--packages-dir",
+      packagesDir,
+      "--skip-latest",
+      "--native-windows-x64",
+      "--json",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+        CCZH_NATIVE_VERIFY_PLATFORM: "linux-x64",
+        CCZH_NPM_REQUESTS: requestsPath,
+      },
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(fs.readFileSync(requestsPath, "utf8").trim().split(/\r?\n/), [
+    "@anthropic-ai/claude-code-win32-x64@2.1.113",
+  ]);
+  const payload = JSON.parse(result.stdout);
+  const [native] = payload.results;
+  assert.equal(native.kind, "native");
+  assert.equal(native.status, "skip");
+  assert.match(native.skipReason, /requires Windows x64/);
+});
+
 test("verify-upstream-compat fails when audited display output leaves user-visible English", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-config-"));
   const configPath = path.join(tmp, "config.json");

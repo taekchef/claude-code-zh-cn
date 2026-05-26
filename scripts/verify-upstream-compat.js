@@ -325,6 +325,10 @@ function downloadedPackageShapeError(packageDir) {
     return null;
   }
 
+  if (fs.existsSync(path.join(packageDir, "claude.exe"))) {
+    return null;
+  }
+
   if (fs.existsSync(path.join(packageDir, "bin", "claude.exe"))) {
     return null;
   }
@@ -415,6 +419,10 @@ function classifyPackage(packageDir) {
     return "native";
   }
 
+  if (fs.existsSync(path.join(packageDir, "claude.exe"))) {
+    return "native";
+  }
+
   if (fs.existsSync(path.join(packageDir, "bin", "claude.exe"))) {
     return "native-wrapper";
   }
@@ -492,8 +500,9 @@ function runNativeVerification(config, args, version, packageDir, kind) {
     return nativeSkipResult(version, kind, "native verification requires platform package");
   }
 
+  const windowsRootBinary = path.join(packageDir, "claude.exe");
   const binaryPath = args.nativeWindowsX64
-    ? path.join(packageDir, "bin", "claude.exe")
+    ? (fs.existsSync(windowsRootBinary) ? windowsRootBinary : path.join(packageDir, "bin", "claude.exe"))
     : path.join(packageDir, "claude");
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-compat-"));
   const extractedJs = path.join(tmpDir, "extracted.js");
