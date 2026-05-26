@@ -260,7 +260,7 @@ function renderSupportSystems(config) {
     ">",
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
-          `> **Windows native .exe experimental**：${windowsNativeExperimental.notes || "Windows native .exe 仅支持已验证版本。"}未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
+          `> **Windows native .exe experimental**：Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 ${renderRangeWithExcluded(windowsNativeExperimental)}，不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
         ]
       : [
           `> **Windows native .exe / latest 不支持 CLI Patch**：${windowsNative.notes || "Windows native .exe 目前会明确跳过 CLI Patch，仅启用 Layer 1~3。"}如需完整中文化，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` 安装旧 npm 版本。`,
@@ -281,7 +281,7 @@ function nextMajorBoundary(entry) {
 }
 
 function renderInstallAdvice(config) {
-  const { npmStable, macosInstaller, macosNative } = supportEntries(config);
+  const { npmStable, macosInstaller, macosNative, windowsNativeExperimental } = supportEntries(config);
   const stablePinned = npmStable.ceiling || npmStable.representatives?.at(-1) || npmStable.floor;
   const macosInstallerPinned = macosInstaller.ceiling || stablePinned;
   const macosNativeRange = macosNative && macosNative.unsupported !== true
@@ -300,7 +300,7 @@ function renderInstallAdvice(config) {
     `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 推荐安装的旧 \`cli.js\` 版本；${renderRangeWithExcluded(
       npmStable
     )} 范围内也可用 | \`stable\` |`,
-    "| `npm install -g @anthropic-ai/claude-code` | npm 全局安装最新版；macOS arm64 若版本正好在已验证 native 窗口内可走 experimental | `experimental / skipped`（未验证 native 版本会跳过 CLI Patch） |",
+    "| `npm install -g @anthropic-ai/claude-code` | npm 全局安装最新版；macOS arm64 / Windows x64 若版本正好在已验证 native 窗口内可走 experimental | `experimental / skipped`（未验证 native 版本会跳过 CLI Patch） |",
     `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定旧版本 | \`experimental\`（macOS arm64 已验证；插件会用 native patch 处理，需要 \`node-lief\`） |`,
     ...(macosNative && macosNative.unsupported !== true
       ? [
@@ -310,7 +310,13 @@ function renderInstallAdvice(config) {
         ]
       : []),
     "| `curl -fsSL https://claude.ai/install.sh \\| sh` | 官方安装器 latest | `experimental / skipped`（只有明确验证版本会启用 CLI Patch） |",
-    "| `powershell -File install.ps1` | Windows PowerShell 安装（仅适用于旧 npm cli.js 形态；检测到 native .exe 时会跳过 CLI Patch） | `stable`（需 PowerShell 5.1+；CLI Patch 仅 npm 路径） |",
+    ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
+      ? [
+          `| \`powershell -File install.ps1\` | Windows PowerShell 安装（旧 npm cli.js 为 stable；Windows x64 native \`${renderRange(windowsNativeExperimental)}\` 为 experimental，需要 \`node-lief\`） | \`stable / experimental\`（需 PowerShell 5.1+） |`,
+        ]
+      : [
+          "| `powershell -File install.ps1` | Windows PowerShell 安装（仅适用于旧 npm cli.js 形态；检测到 native .exe 时会跳过 CLI Patch） | `stable`（需 PowerShell 5.1+；CLI Patch 仅 npm 路径） |",
+        ]),
     "",
     "安装脚本会自动检测安装方式，无需手动选择。",
     "",

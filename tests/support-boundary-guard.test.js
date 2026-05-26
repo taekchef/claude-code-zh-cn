@@ -254,5 +254,5 @@ test("support boundary guard fails on PR #11 style broad Windows native support 
   assert.match(result.stdout, /Windows native/);
   assert.match(result.stdout, /docs\/support-matrix\.md:1/);
   assert.match(result.stdout, /install\.ps1:1/);
-  assert.match(result.stdout, /Windows 只能写成 WSL \+ npm stable/);
+  assert.match(result.stdout, /Windows native 只能写成 explicit experimental/);
 });

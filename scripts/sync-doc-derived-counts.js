@@ -69,8 +69,8 @@ function usage() {
     "- tips/zh-CN.json tips length",
     "- scripts/upstream-compat.config.json stable representative",
     "- docs/support-matrix.md generated patch count",
-    "- scripts/upstream-compat.config.json macOS native experimental window",
-    "- macOS native patch/display counts from upstream compat verification",
+    "- scripts/upstream-compat.config.json macOS / Windows native experimental windows",
+    "- native patch/display counts from upstream compat verification where available",
     "",
   ].join("\n");
 }
@@ -192,13 +192,13 @@ function formatBacktickedList(segments) {
   return segments.map((segment) => `\`${segment}\``).join("、");
 }
 
-function parseNativeVerification(entry) {
+function parseNativeVerification(entry, label) {
   const verification = entry.verification || "";
   const patchCounts = [...verification.matchAll(/native\s+(\d+)/g)].map((match) =>
     Number.parseInt(match[1], 10)
   );
   if (patchCounts.length === 0) {
-    fail("macOS native experimental verification must include native patch counts");
+    fail(`${label} verification must include native patch counts`);
   }
 
   const displayPairs = [...verification.matchAll(/display\s+(\d+)\/(\d+)/g)].map((match) => [
@@ -206,12 +206,12 @@ function parseNativeVerification(entry) {
     Number.parseInt(match[2], 10),
   ]);
   if (displayPairs.length === 0) {
-    fail("macOS native experimental verification must include display audit counts");
+    fail(`${label} verification must include display audit counts`);
   }
 
   const uniqueDisplayPairs = new Set(displayPairs.map((pair) => pair.join("/")));
   if (uniqueDisplayPairs.size !== 1) {
-    fail("macOS native experimental display audit counts must be consistent before syncing README");
+    fail(`${label} display audit counts must be consistent before syncing README`);
   }
 
   const [displayPassed, displayTotal] = displayPairs[0];
@@ -223,19 +223,19 @@ function parseNativeVerification(entry) {
   };
 }
 
-function readNativeFacts(config) {
-  const entry = config.support?.macosNativeExperimental;
+function readNativeFacts(config, key, label, options = {}) {
+  const entry = config.support?.[key];
   if (!entry || entry.unsupported) {
     return null;
   }
   if (!entry.floor || !entry.ceiling) {
-    fail("macOS native experimental config must define floor and ceiling");
+    fail(`${label} config must define floor and ceiling`);
   }
   if (!Array.isArray(entry.representatives) || entry.representatives.length === 0) {
-    fail("macOS native experimental config must define representatives");
+    fail(`${label} config must define representatives`);
   }
 
-  const verification = parseNativeVerification(entry);
+  const verification = options.parseVerification === false ? null : parseNativeVerification(entry, label);
   const excluded = Array.isArray(entry.excluded) ? entry.excluded.map(String) : [];
   const compactSegments = compactVersions(entry.representatives);
   return {
@@ -249,9 +249,9 @@ function readNativeFacts(config) {
     englishExcludedBackticked: excluded.map((version) => `\`${version}\``).join(", "),
     compactSegments,
     compactBackticked: formatBacktickedList(compactSegments),
-    patchRange: `${verification.patchMin}-${verification.patchMax}`,
-    displayPassed: verification.displayPassed,
-    displayTotal: verification.displayTotal,
+    patchRange: verification ? `${verification.patchMin}-${verification.patchMax}` : "",
+    displayPassed: verification ? verification.displayPassed : null,
+    displayTotal: verification ? verification.displayTotal : null,
   };
 }
 
@@ -266,7 +266,10 @@ function loadDerivedCounts() {
     stableRepresentative,
     stablePatchCount: readPatchCount(stableRepresentative),
     stableDisplayAudit: readDisplayAudit(stableRepresentative),
-    macosNative: readNativeFacts(config),
+    macosNative: readNativeFacts(config, "macosNativeExperimental", "macOS native experimental"),
+    windowsNative: readNativeFacts(config, "windowsNativeExperimental", "Windows native experimental", {
+      parseVerification: false,
+    }),
   };
 }
 
@@ -350,10 +353,27 @@ function rulesForDoc(file, counts) {
           `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedBackticked}${excludedAfter}${counts.macosNative.displayTotal}${auditSuffix}`
       ),
       rule(
+        "Windows native support table facts",
+        /(\| Windows \/ native \.exe \| `experimental` \| `)[^`]+(`（不含未纳入本轮支持的 ).+?(） \| 当前 Windows x64 native 已验证 extract \/ patch \/ repack \/ `--version`；需要 `node-lief`；未验证新版本会安全跳过 CLI Patch \|)/g,
+        (_, before, excludedBefore, suffix) =>
+          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${suffix}`
+      ),
+      rule(
         "macOS native latest note facts",
-        /(已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。).+?( 未纳入本轮支持)/g,
-        (_, before, middle, auditSuffix) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${auditSuffix}${counts.macosNative.excludedBackticked} 未纳入本轮支持`
+        /(已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。)(.*?)(`[^`]+`(?:、`[^`]+`)* 未纳入本轮支持)/g,
+        (_, before, middle, auditSuffix, between) =>
+          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${auditSuffix}${between}${counts.macosNative.excludedBackticked} 未纳入本轮支持`
+      ),
+      rule(
+        "Windows native latest note facts",
+        /(Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 `)[^`]+(`（不含(?:未纳入本轮支持的 )?).+?(），不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 `npm install -g @anthropic-ai\/claude-code@2\.1\.112`。)/g,
+        (_, before, excludedBefore, suffix) =>
+          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${suffix}`
+      ),
+      rule(
+        "Windows native latest note compact versions",
+        /(Windows x64 native 也有独立 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*(。)/g,
+        (_, before, suffix) => `${before}${counts.windowsNative.compactBackticked}${suffix}`
       ),
       rule(
         "macOS native install option facts",
@@ -362,10 +382,21 @@ function rulesForDoc(file, counts) {
           `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedBackticked}${excludedAfter}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
       ),
       rule(
+        "Windows PowerShell install option facts",
+        /(\| `powershell -File install\.ps1` \| Windows PowerShell 安装（旧 npm cli\.js 为 stable；Windows x64 native `)[^`]+(` 为 experimental，需要 `node-lief`） \| `stable \/ experimental`（需 PowerShell 5\.1\+） \|)/g,
+        (_, before, suffix) => `${before}${counts.windowsNative.range}${suffix}`
+      ),
+      rule(
         "native binary note audit facts",
         /(；)`[^`]+`(?:、`[^`]+`)*( 额外通过 )\d+( 个稳定显示面审计。)/g,
         (_, before, middle, after) =>
           `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${after}`
+      ),
+      rule(
+        "Windows CLI patch support scope facts",
+        /(\*\*CLI Patch 支持范围\*\*：install\.ps1 可 patch 旧 npm cli\.js 形态（`2\.1\.92 - 2\.1\.112`），也可在安装了 `node-lief` 时 experimental patch Windows x64 native `)[^`]+(`（不含 ).+?(）。检测到未验证 Windows native \.exe 或缺少 `node-lief` 时，会明确跳过 CLI Patch，只启用 Layer 1~3（设置 \+ Hook \+ 插件）。如需最稳，请使用 `npm install -g @anthropic-ai\/claude-code@2\.1\.112` 安装旧 npm 版本。)/g,
+        (_, before, excludedBefore, suffix) =>
+          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${suffix}`
       ),
       rule(
         "FAQ native support facts",
@@ -378,6 +409,12 @@ function rulesForDoc(file, counts) {
         /(from `)[^`]+(` through `)[^`]+(` except (?:unsupported|unpublished) ).+?(, now guarded)/g,
         (_, before, middle, _excludedBefore, after) =>
           `${before}${counts.macosNative.floor}${middle}${counts.macosNative.ceiling}\` except unsupported ${counts.macosNative.englishExcludedBackticked}${after}`
+      ),
+      rule(
+        "English Windows native summary range",
+        /(Windows native `\.exe` is experimental for explicitly verified versions from `)[^`]+(` through `)[^`]+(` except unsupported ).+?(; unverified latest builds are skipped for CLI Patch \(Layers 1–3 still active\))/g,
+        (_, before, middle, _excludedBefore, suffix) =>
+          `${before}${counts.windowsNative.floor}${middle}${counts.windowsNative.ceiling}\` except unsupported ${counts.windowsNative.englishExcludedBackticked}${suffix}`
       ),
       rule(
         "project tree UI translation count",

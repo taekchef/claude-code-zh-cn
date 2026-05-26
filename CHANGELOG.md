@@ -6,6 +6,23 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.25] - 2026-05-26
+
+### 新增
+
+- Windows x64 native `.exe` 纳入 experimental CLI Patch 支持窗口，已验证版本与 macOS native 窗口对齐；未验证 latest 仍会安全跳过。
+- `install.ps1` 支持按 `windowsNativeExperimental` 支持窗口执行 PE/Bun extract / patch / repack，并写入 native patch marker。
+- CI 新增 Windows native compat lane，native latest candidate workflow 也会产出 Windows native 验证 artifact。
+
+### 修复
+
+- doctor 诊断不再把 macOS native 支持窗口误用于 Windows `.exe`，并会校验 native marker 的版本、二进制 hash 与 patch 规则 revision。
+
+### 验证
+
+- `node --test tests/bun-binary-io.test.js tests/install-smoke.test.js tests/doctor.test.js tests/upstream-compat.test.js tests/support-boundary-guard.test.js tests/support-matrix-generation.test.js tests/readme-support-window-sync.test.js tests/native-latest-workflow.test.js tests/plugin-payload.test.js tests/payload-source-guard.test.js tests/preflight.test.js`
+- `bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.24] - 2026-05-26
 
 ### 新增

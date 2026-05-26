@@ -94,6 +94,14 @@ function isAllowedNativeExperimentalLine(line) {
   return mentionsPlatform && mentionsNative && experimental && !stableClaim && !latestClaim;
 }
 
+function isAllowedMixedStableExperimentalLine(line) {
+  const mentionsWindows = /Windows|win32/i.test(line);
+  const mentionsOldCliStable = /(旧\s*npm|old\s+npm|cli\.js).*\bstable\b|\bstable\b.*(旧\s*npm|old\s+npm|cli\.js)/i.test(line);
+  const mentionsNativeExperimental = /(native|原生|\.exe|二进制|binary).*?(experimental|实验)|(experimental|实验).*?(native|原生|\.exe|二进制|binary)/i.test(line);
+
+  return mentionsWindows && mentionsOldCliStable && mentionsNativeExperimental;
+}
+
 function findSupportClaim(line, boundary) {
   const versions = line.match(/\b\d+\.\d+\.\d+\+?/g) || [];
   const hasFutureVersion =
@@ -109,7 +117,8 @@ function findSupportClaim(line, boundary) {
     hasFutureVersion &&
     hasSupportVerb &&
     !isNegatedBoundaryLine(line) &&
-    !isAllowedNativeExperimentalLine(line)
+    !isAllowedNativeExperimentalLine(line) &&
+    !isAllowedMixedStableExperimentalLine(line)
   ) {
     return `${boundary.nativeBoundary}+ / latest 不能写成 stable 支持`;
   }
@@ -298,15 +307,15 @@ function buildFindings(repoRoot) {
 function printOk(boundary) {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`native CLI Patch: only explicitly verified macOS experimental versions; no latest stable claim`);
+  console.log(`native CLI Patch: only explicitly verified macOS / Windows experimental versions; no latest stable claim`);
 }
 
 function printFail(findings, boundary) {
   console.log("support-boundary-guard: FAIL");
   console.log("当前官方边界:");
   console.log(`- stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；macOS native 只能写已验证 experimental 窗口`);
-  console.log("- Windows 只能写成 WSL + npm stable，不能写成 Windows native stable");
+  console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；native 只能写已验证 experimental 窗口`);
+  console.log("- Windows native 只能写成 explicit experimental，不能写成 stable");
   console.log("");
 
   for (const finding of findings) {
