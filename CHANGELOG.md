@@ -12,6 +12,7 @@
 
 - 修复 `install.ps1` 的 CC Switch 提示文案在 Windows PowerShell 中因中文弯引号被当作字符串分隔符，导致 `Write-Host -ForegroundColor` 参数绑定失败的问题。
 - 新增 `install.ps1` 弯引号守门测试，避免后续 PowerShell 文案再次触发同类解析问题。
+- 新增 PR 自动关闭关键词守门，避免 PR 描述里的 `Fixes #...` / `Closes #...` 在 reporter 复测前误关 issue。
 
 ### 验证
 
