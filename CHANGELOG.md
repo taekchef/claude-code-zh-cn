@@ -6,6 +6,20 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.29] - 2026-05-28
+
+### 修复
+
+- Windows x64 native `.exe` experimental 支持窗口扩展到 Claude Code `2.1.152`，用于解决 issue #80 中 Windows 用户安装后 CLI Patch 被跳过、主界面仍为英文的问题；`2.1.151` 仍保留在未纳入支持列表中。
+- macOS arm64 native experimental 支持窗口同步推进到 Claude Code `2.1.152`，吸收本轮 native latest 自动验证结果，避免 `v2.4.29` 被拆成重复 release。
+- README、support matrix 和插件支持窗口同步更新 native `2.1.152` 支持边界，并新增回归测试防止 issue #80 的版本再次从生成窗口中丢失。
+
+### 验证
+
+- `node --test tests/support-window-generation.test.js tests/readme-support-window-sync.test.js tests/native-candidate-promotion.test.js`
+- `NODE_PATH=/private/tmp/cczh-node-lief/node_modules npm_config_cache=/private/tmp/cczh-npm-cache node scripts/verify-upstream-compat.js --baseline 2.1.152 --skip-latest --native-macos-arm64 --json`
+- GitHub Actions native candidate run `26530183703`：Windows native candidate 和 macOS native candidate 均通过。
+
 ## [2.4.28] - 2026-05-27
 
 ### 修复
