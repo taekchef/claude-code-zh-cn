@@ -97,6 +97,7 @@ run node --check plugin/bun-binary-io.js
 run node --check plugin/patch-cli.js
 run node --check plugin/scripts/zh-cn-doctor.js
 run node --check scripts/check-payload-sources.js
+run node --check scripts/check-pr-autoclose-keywords.js
 run node --check scripts/check-support-boundary.js
 run node --check scripts/check-translation-sentinels.js
 run node --check scripts/generate-plugin-support-window.js
@@ -119,6 +120,9 @@ else
   step "Check payload source edits"
   run node scripts/check-payload-sources.js --base "$PAYLOAD_BASE"
 fi
+
+step "Check PR auto-close keywords"
+run node scripts/check-pr-autoclose-keywords.js
 
 step "Check support boundary"
 run node scripts/check-support-boundary.js
