@@ -444,6 +444,44 @@ test("runDoctor reports supported Windows native as needing node-lief or patch",
   assert.equal(ok.layer4Status, "ok");
 });
 
+test("runDoctor reports provisional native marker without treating it as published support", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude.exe");
+
+  fs.writeFileSync(targetPath, "fake exe");
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    version: "2.1.153",
+    targetPath,
+    depStatus: "ok",
+    marker: "native|2.1.153|fakehash||provisional|win32-x64|sourcehash\n",
+    supportWindow: {
+      windowsNativeExperimental: {
+        platform: "win32-x64",
+        versions: ["2.1.152"],
+        ceiling: "2.1.152",
+      },
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  const marker = result.checks.find((item) => item.id === "patch-marker");
+  const layer4 = result.checks.find((item) => item.id === "layer4");
+  assert.match(marker.detail, /provisional/);
+  assert.equal(layer4.status, "warn");
+  assert.match(layer4.detail, /本机自验证/);
+  assert.match(layer4.detail, /尚未纳入已发布支持窗口/);
+  assert.equal(result.layer4Status, "provisional");
+});
+
 test("runDoctor requires native marker hash to match current binary", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");

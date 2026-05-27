@@ -597,6 +597,33 @@ function get-support-window {
     }
 }
 
+function compare-version {
+    param([string]$Left, [string]$Right)
+    $leftParts = @($Left -split '\.' | ForEach-Object {
+        $n = 0
+        if ([int]::TryParse($_, [ref]$n)) { $n } else { 0 }
+    })
+    $rightParts = @($Right -split '\.' | ForEach-Object {
+        $n = 0
+        if ([int]::TryParse($_, [ref]$n)) { $n } else { 0 }
+    })
+    $max = [Math]::Max($leftParts.Count, $rightParts.Count)
+    for ($i = 0; $i -lt $max; $i++) {
+        $l = if ($i -lt $leftParts.Count) { $leftParts[$i] } else { 0 }
+        $r = if ($i -lt $rightParts.Count) { $rightParts[$i] } else { 0 }
+        if ($l -gt $r) { return 1 }
+        if ($l -lt $r) { return -1 }
+    }
+    return 0
+}
+
+function test-same-minor {
+    param([string]$Left, [string]$Right)
+    $leftParts = @($Left -split '\.')
+    $rightParts = @($Right -split '\.')
+    return $leftParts.Count -ge 2 -and $rightParts.Count -ge 2 -and $leftParts[0] -eq $rightParts[0] -and $leftParts[1] -eq $rightParts[1]
+}
+
 function test-version-in-entry {
     param($Entry, [string]$Version)
     if (-not $Entry -or -not $Version) { return $false }
@@ -613,6 +640,43 @@ function is-supported-windows-native-version {
     $support = get-support-window
     if (-not $support -or -not $support.windowsNativeExperimental) { return $false }
     return test-version-in-entry $support.windowsNativeExperimental $Version
+}
+
+function can-try-provisional-windows-native-version {
+    param([string]$Version)
+    if (-not $Version) { return $false }
+    $support = get-support-window
+    $entry = $support.windowsNativeExperimental
+    if (-not $entry -or -not $entry.ceiling) { return $false }
+    if ($entry.platform -and [string]$entry.platform -ne "win32-x64") { return $false }
+    return (test-same-minor $Version ([string]$entry.ceiling)) -and ((compare-version $Version ([string]$entry.ceiling)) -gt 0)
+}
+
+function get-native-version-from-execution {
+    param([string]$BinaryPath)
+    $versionHome = Join-Path $TmpDir "cczh-version-home-$PID"
+    $oldUserProfile = $env:USERPROFILE
+    $oldAppData = $env:APPDATA
+    $oldLocalAppData = $env:LOCALAPPDATA
+    try {
+        New-Item -Force -ItemType Directory -Path $versionHome | Out-Null
+        $env:USERPROFILE = $versionHome
+        $env:APPDATA = Join-Path $versionHome "AppData\Roaming"
+        $env:LOCALAPPDATA = Join-Path $versionHome "AppData\Local"
+        New-Item -Force -ItemType Directory -Path $env:APPDATA, $env:LOCALAPPDATA | Out-Null
+        $output = & $BinaryPath --version 2>$null
+        $text = [string]($output -join "`n")
+        $match = [regex]::Match($text, '[0-9]+\.[0-9]+\.[0-9]+')
+        if ($match.Success) { return $match.Value }
+        return ""
+    } catch {
+        return ""
+    } finally {
+        $env:USERPROFILE = $oldUserProfile
+        $env:APPDATA = $oldAppData
+        $env:LOCALAPPDATA = $oldLocalAppData
+        Remove-Item $versionHome -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function patch-native-bun {
@@ -634,7 +698,12 @@ function patch-native-bun {
     $currentVersion = (node $helper version $BinaryPath 2>$null)
     if ($currentVersion) { $currentVersion = $currentVersion.Trim() }
 
-    if (-not (is-supported-windows-native-version $currentVersion)) {
+    $patchMode = "verified"
+    if (is-supported-windows-native-version $currentVersion) {
+        $patchMode = "verified"
+    } elseif (can-try-provisional-windows-native-version $currentVersion) {
+        $patchMode = "provisional"
+    } else {
         $displayVersion = $currentVersion
         if (-not $displayVersion) { $displayVersion = "unknown" }
         Write-CN "当前 Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）" Yellow
@@ -642,7 +711,11 @@ function patch-native-bun {
         return
     }
 
-    Write-Host "  版本: $currentVersion（experimental）"
+    if ($patchMode -eq "provisional") {
+        Write-Host "  版本: $currentVersion（未纳入已发布支持窗口，安装时本机自验证）"
+    } else {
+        Write-Host "  版本: $currentVersion（experimental）"
+    }
 
     $depStatus = (node $helper check-deps 2>$null)
     if (-not $depStatus -or $depStatus.Trim() -ne "ok") {
@@ -671,6 +744,10 @@ function patch-native-bun {
         Write-CN "已备份原生二进制（版本: $currentVersion）" Green
     }
 
+    $sourceHash = (node $helper hash $BinaryPath 2>$null)
+    if ($sourceHash) { $sourceHash = $sourceHash.Trim() }
+    if (-not $sourceHash) { $sourceHash = "unknown" }
+
     try {
         node $helper extract $BinaryPath $tmpJs | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "extract failed" }
@@ -684,13 +761,26 @@ function patch-native-bun {
         if ([int]$patchCount -gt 0) {
             node $helper repack $BinaryPath $tmpJs | Out-Null
             if ($LASTEXITCODE -ne 0) { throw "repack failed" }
-            Write-CN "已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
-            $script:CliPatchStatusSummary = "Windows native 中文化（${patchCount} 处硬编码文字）"
+            if ($patchMode -eq "provisional") {
+                Write-Host "  正在运行 --version 做本机自验证..."
+                $verifiedVersion = get-native-version-from-execution $BinaryPath
+                if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }
+                Write-CN "本机自验证通过，已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
+                $script:CliPatchStatusSummary = "Windows native patch experimental 本机自验证中文化（${patchCount} 处硬编码文字，未纳入已发布支持窗口）"
+            } else {
+                Write-CN "已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
+                $script:CliPatchStatusSummary = "Windows native 中文化（${patchCount} 处硬编码文字）"
+            }
             $script:CliPatchStatusOk = $true
         } else {
             Write-CN "Windows 原生二进制无新增改动（可能已是最新状态）" Yellow
-            $script:CliPatchStatusSummary = "Windows native 无新增改动（可能已是最新状态）"
-            $script:CliPatchStatusOk = $true
+            if ($patchMode -eq "provisional") {
+                $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制本机自验证未找到可 patch 内容）"
+                return
+            } else {
+                $script:CliPatchStatusSummary = "Windows native 无新增改动（可能已是最新状态）"
+                $script:CliPatchStatusOk = $true
+            }
         }
     } catch {
         Write-CN "Windows 原生二进制 patch 失败，正在从备份恢复..." Red
@@ -708,7 +798,11 @@ function patch-native-bun {
     if ($finalHash) { $finalHash = $finalHash.Trim() }
     if ($patchRevision -and $currentVersion) {
         if (-not $finalHash) { $finalHash = "unknown" }
-        "native|${currentVersion}|${finalHash}|${patchRevision}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+        if ($patchMode -eq "provisional") {
+            "native|${currentVersion}|${finalHash}|${patchRevision}|provisional|win32-x64|${sourceHash}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+        } else {
+            "native|${currentVersion}|${finalHash}|${patchRevision}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+        }
     }
 }
 

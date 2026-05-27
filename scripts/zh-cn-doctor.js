@@ -162,6 +162,9 @@ function parseMarker(marker) {
       version: parts[1] || "",
       hash: parts[2] || "",
       revision: parts[3] || "",
+      provisional: parts[4] === "provisional",
+      platform: parts[5] || "",
+      sourceHash: parts[6] || "",
     };
   }
   const [version, revision] = marker.split("|");
@@ -474,7 +477,7 @@ function runDoctor(options = {}) {
       "CLI Patch 记录",
       "ok",
       marker.kind === "native"
-        ? `native ${marker.version} (revision ${marker.revision || "?"})`
+        ? `native ${marker.version} (revision ${marker.revision || "?"}${marker.provisional ? ", provisional" : ""})`
         : `${marker.version} (revision ${marker.revision || "?"})`
     );
   } else if (fs.existsSync(pluginRoot)) {
@@ -516,7 +519,24 @@ function runDoctor(options = {}) {
     const nativePlatform = nativePlatformForTarget(target);
     const supported = isSupportedNativeVersion(cliVersion, support, nativePlatform);
     const liefOk = checkNodeLief(bunBinaryIoPath);
-    if (!supported) {
+    if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
+      const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
+      const currentRevision = computePatchRevision(pluginRoot);
+      if (marker.hash && currentHash && marker.hash !== currentHash) {
+        layer4Status = "needed";
+        add("layer4", "Layer 4（UI 硬编码）", "warn", "provisional native 二进制 hash 与 patch 记录不一致");
+        recommendations.push("运行 ./install.sh 重新做本机自验证 patch");
+      } else if (marker.revision && currentRevision && marker.revision !== currentRevision) {
+        layer4Status = "needed";
+        add("layer4", "Layer 4（UI 硬编码）", "warn", "provisional patch 规则版本与记录不一致");
+        recommendations.push("运行 ./install.sh 重新做本机自验证 patch");
+      } else {
+        layer4Status = "provisional";
+        layer4Detail = `native ${cliVersion || "unknown"} 已本机自验证 patch，但尚未纳入已发布支持窗口`;
+        add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
+        recommendations.push("这是本机通过的临时 patch；等插件发布支持窗口后可重新运行 ./install.sh 转为已验证记录");
+      }
+    } else if (!supported) {
       layer4Status = "unsupported";
       layer4Detail = `native ${cliVersion || "unknown"} 不在已验证支持窗口内`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);

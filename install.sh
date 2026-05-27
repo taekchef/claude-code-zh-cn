@@ -93,7 +93,7 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 属于 experimental，只对已验证旧版本开放"
+        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 属于 experimental；新同版本线会在安装时本机自验证"
     fi
 
     echo ""
@@ -145,6 +145,13 @@ check_dependencies() {
             else
                 echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将使用 experimental native patch${NC}"
             fi
+        elif can_try_provisional_native_version "$native_version"; then
+            if [ "$dep_status" != "ok" ]; then
+                echo -e "${YELLOW}检测到新原生二进制版本 ${native_version:-unknown}，同版本线可在安装时本机自验证；需要 node-lief${NC}"
+                echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+            else
+                echo -e "${YELLOW}检测到新原生二进制版本 ${native_version}，将尝试本机自验证；通过才启用 CLI Patch${NC}"
+            fi
         else
             echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
             echo -e "  macOS native 已验证窗口：$(native_support_summary)"
@@ -174,8 +181,40 @@ native_binary_version() {
     printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
 }
 
+native_binary_version_from_execution() {
+    local binary_path="$1"
+    local output temp_home
+
+    temp_home="$(mktemp -d "${TMPDIR:-/tmp}/cczh-version-home.XXXXXX" 2>/dev/null || true)"
+    if [ -n "${temp_home:-}" ]; then
+        output="$(HOME="$temp_home" XDG_CONFIG_HOME="$temp_home/.config" XDG_CACHE_HOME="$temp_home/.cache" XDG_DATA_HOME="$temp_home/.local/share" "$binary_path" --version 2>/dev/null || true)"
+        rm -rf "$temp_home" 2>/dev/null || true
+    else
+        output="$("$binary_path" --version 2>/dev/null || true)"
+    fi
+
+    printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
+}
+
+native_platform() {
+    if [ -n "${ZH_CN_NATIVE_PLATFORM:-}" ]; then
+        printf '%s' "$ZH_CN_NATIVE_PLATFORM"
+        return
+    fi
+
+    case "$(uname -s 2>/dev/null)-$(uname -m 2>/dev/null)" in
+        Darwin-arm64|Darwin-aarch64)
+            printf 'darwin-arm64'
+            ;;
+        *)
+            printf ''
+            ;;
+    esac
+}
+
 is_supported_native_version() {
     local version="$1"
+    local platform="${2:-$(native_platform)}"
     local support_file="$PLUGIN_SRC/support-window.json"
 
     if [ ! -f "$support_file" ]; then
@@ -189,16 +228,74 @@ is_supported_native_version() {
         esac
     fi
 
-    node - "$support_file" "$version" <<'NODE'
+node - "$support_file" "$version" "$platform" <<'NODE'
 const fs = require("fs");
 const file = process.argv[2];
 const version = process.argv[3];
+const platform = process.argv[4] || "";
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
-const versions = [
-  ...(data.macosNativeOfficialInstallerExperimental?.versions || []),
-  ...(data.macosNativeExperimental?.versions || []),
-];
+const versions = [];
+for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+  const entry = data[key];
+  if (!entry) continue;
+  if (platform && entry.platform && entry.platform !== platform) continue;
+  versions.push(...(entry.versions || []));
+}
 process.exit(versions.includes(version) ? 0 : 1);
+NODE
+}
+
+can_try_provisional_native_version() {
+    local version="$1"
+    local platform="${2:-$(native_platform)}"
+    local support_file="$PLUGIN_SRC/support-window.json"
+
+    if [ -z "${version:-}" ] || [ -z "${platform:-}" ] || [ ! -f "$support_file" ]; then
+        return 1
+    fi
+
+    node - "$support_file" "$version" "$platform" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+const version = process.argv[3];
+const platform = process.argv[4];
+const data = JSON.parse(fs.readFileSync(file, "utf8"));
+
+function parse(v) {
+  return String(v || "").split(".").map((part) => {
+    const n = Number.parseInt(part, 10);
+    return Number.isFinite(n) ? n : 0;
+  });
+}
+
+function compare(a, b) {
+  const left = parse(a);
+  const right = parse(b);
+  const max = Math.max(left.length, right.length);
+  for (let i = 0; i < max; i += 1) {
+    const l = left[i] || 0;
+    const r = right[i] || 0;
+    if (l > r) return 1;
+    if (l < r) return -1;
+  }
+  return 0;
+}
+
+function sameMinor(a, b) {
+  const left = parse(a);
+  const right = parse(b);
+  return left[0] === right[0] && left[1] === right[1];
+}
+
+const keys = ["macosNativeExperimental"];
+for (const key of keys) {
+  const entry = data[key];
+  if (!entry || entry.platform !== platform || !entry.ceiling) continue;
+  if (sameMinor(version, entry.ceiling) && compare(version, entry.ceiling) > 0) {
+    process.exit(0);
+  }
+}
+process.exit(1);
 NODE
 }
 
@@ -957,14 +1054,20 @@ patch_native_binary() {
     local binary_path="$1"
     local tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-extract.$$.js"
     local backup_path="${binary_path}.zh-cn-backup"
-    local current_version backup_version
+    local current_version backup_version patch_mode platform
 
     echo ""
     echo -e "${BLUE}检测到官方安装器（原生二进制）${NC}"
     echo -e "  二进制路径: ${binary_path}"
 
     current_version="$(native_binary_version "$binary_path")"
-    if ! is_supported_native_version "$current_version"; then
+    platform="$(native_platform)"
+    patch_mode="verified"
+    if is_supported_native_version "$current_version" "$platform"; then
+        patch_mode="verified"
+    elif can_try_provisional_native_version "$current_version" "$platform"; then
+        patch_mode="provisional"
+    else
         echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
         echo -e "  macOS native 已验证窗口：$(native_support_summary)"
         echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
@@ -972,7 +1075,11 @@ patch_native_binary() {
         return
     fi
 
-    echo -e "  版本: ${current_version}（experimental）"
+    if [ "$patch_mode" = "provisional" ]; then
+        echo -e "  版本: ${current_version}（未纳入已发布支持窗口，安装时本机自验证）"
+    else
+        echo -e "  版本: ${current_version}（experimental）"
+    fi
 
     local dep_status
     dep_status="$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null || echo "missing")"
@@ -1004,6 +1111,9 @@ patch_native_binary() {
         }
     fi
 
+    local source_hash
+    source_hash="$(native_binary_hash "$binary_path")"
+
     node "$PLUGIN_SRC/bun-binary-io.js" extract "$binary_path" "$tmp_js" || {
         echo -e "${RED}提取 JS 失败${NC}"
         CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制提取失败）"
@@ -1022,13 +1132,34 @@ patch_native_binary() {
             rm -f "$tmp_js"
             return
         }
-        echo -e "${GREEN}已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
-        CLI_PATCH_STATUS_SUMMARY="官方安装器 native 中文化（${patch_count} 处硬编码文字）"
+        if [ "$patch_mode" = "provisional" ]; then
+            local verified_version
+            echo -e "  正在运行 --version 做本机自验证..."
+            verified_version="$(native_binary_version_from_execution "$binary_path")"
+            if [ "${verified_version:-}" != "${current_version:-}" ]; then
+                echo -e "${RED}本机自验证失败，正在从备份恢复...${NC}"
+                cp "$backup_path" "$binary_path" 2>/dev/null || true
+                CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机自验证失败）"
+                rm -f "$tmp_js"
+                return
+            fi
+            echo -e "${GREEN}本机自验证通过，已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="官方安装器 native 本机自验证中文化（${patch_count} 处硬编码文字，未纳入已发布支持窗口）"
+        else
+            echo -e "${GREEN}已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="官方安装器 native 中文化（${patch_count} 处硬编码文字）"
+        fi
         CLI_PATCH_STATUS_OK=true
     else
         echo -e "${YELLOW}未找到需要 patch 的内容${NC}"
-        CLI_PATCH_STATUS_SUMMARY="原生二进制无新增改动（可能已是最新状态）"
-        CLI_PATCH_STATUS_OK=true
+        if [ "$patch_mode" = "provisional" ]; then
+            CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机自验证未找到可 patch 内容）"
+            rm -f "$tmp_js"
+            return
+        else
+            CLI_PATCH_STATUS_SUMMARY="原生二进制无新增改动（可能已是最新状态）"
+            CLI_PATCH_STATUS_OK=true
+        fi
     fi
 
     rm -f "$tmp_js"
@@ -1038,7 +1169,11 @@ patch_native_binary() {
     final_hash="$(native_binary_hash "$binary_path")"
     patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
-        echo "native|${current_version}|${final_hash:-unknown}|${patch_revision}" > "$MARKER_FILE"
+        if [ "$patch_mode" = "provisional" ]; then
+            echo "native|${current_version}|${final_hash:-unknown}|${patch_revision}|provisional|${platform:-unknown}|${source_hash:-unknown}" > "$MARKER_FILE"
+        else
+            echo "native|${current_version}|${final_hash:-unknown}|${patch_revision}" > "$MARKER_FILE"
+        fi
     fi
 }
 

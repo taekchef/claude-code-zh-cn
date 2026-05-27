@@ -6,6 +6,25 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.30] - 2026-05-28
+
+### 新增
+
+- native 安装器新增“软门禁 + 本机自验证”：当 macOS / Windows native 版本高于当前已发布支持窗口、但仍在同一 minor 版本线内时，安装时可尝试 extract / patch / repack / `--version` 自验证，通过才启用 CLI Patch。
+- provisional native patch marker 会明确写入 `provisional`、平台和原始二进制 hash；doctor 会把它显示为“本机自验证，尚未纳入已发布支持窗口”，避免把本机临时通过误报成公开支持。
+
+### 修复
+
+- 已明确排除的 native 版本仍保持跳过，不会因为同 minor 软门禁被拿去 provisional patch。
+
+### 验证
+
+- `node --test tests/install-smoke.test.js tests/doctor.test.js tests/session-start-hook.test.js tests/plugin-payload.test.js tests/payload-source-guard.test.js`
+- `bash -n install.sh plugin/hooks/session-start`
+- `node --check scripts/zh-cn-doctor.js`
+- `node --check plugin/scripts/zh-cn-doctor.js`
+- `git diff --check`
+
 ## [2.4.29] - 2026-05-28
 
 ### 修复

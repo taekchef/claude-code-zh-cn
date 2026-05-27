@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -132,6 +133,7 @@ function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116") {
     path.join(sourceRepo, "plugin", "bun-binary-io.js"),
     `#!/usr/bin/env node
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const cmd = process.argv[2];
 if (cmd === "detect") {
   process.stdout.write("native-bun:" + fs.realpathSync(process.argv[3]));
@@ -141,6 +143,8 @@ if (cmd === "detect") {
   process.stdout.write(${JSON.stringify(nativeVersion)});
 } else if (cmd === "extract" || cmd === "repack") {
   fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
+} else if (cmd === "hash") {
+  process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
 } else if (cmd === "resolve") {
   process.stdout.write(fs.realpathSync(process.argv[3]));
 } else {
@@ -170,7 +174,7 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   const fakeClaude = path.join(fakeBin, "claude");
   const invokedFile = path.join(tmp, "patch-invoked");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
-  const unsupportedNativeVersion = bumpPatch(nativeSupport.ceiling, 1);
+  const unsupportedNativeVersion = "2.2.0";
   const sourceRepo = createInstallSource(tmp, invokedFile, unsupportedNativeVersion);
   const profileFile = path.join(home, ".zshrc");
 
@@ -212,6 +216,94 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "unsupported native should not write success marker");
 });
 
+test("install smoke can provisionally self-verify newer same-minor native binaries", { skip: unixShellRequired }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-provisional-"));
+  const home = path.join(tmp, "home");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeClaude = path.join(fakeBin, "claude");
+  const invokedFile = path.join(tmp, "patch-invoked");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const provisionalNativeVersion = bumpPatch(nativeSupport.ceiling, 1);
+  const sourceRepo = createInstallSource(tmp, invokedFile, provisionalNativeVersion);
+  const profileFile = path.join(home, ".zshrc");
+
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${provisionalNativeVersion} (Claude Code)'\n`);
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const sourceHash = crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(fakeClaude))
+    .digest("hex");
+
+  const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
+    cwd: sourceRepo,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
+      ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
+      ZH_CN_PROFILE_FILES: profileFile,
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    encoding: "utf8",
+  });
+
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
+  assert.match(output, new RegExp(escapeRegex(provisionalNativeVersion)));
+  assert.match(output, /本机自验证/, "new same-minor native versions should be locally self-verified");
+  assert.match(output, /未纳入已发布支持窗口/, "provisional patch must not look like published support");
+  assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "provisional path should extract, patch, and repack");
+  assert.match(
+    fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
+    new RegExp(
+      `^native\\|${escapeRegex(provisionalNativeVersion)}\\|[a-f0-9]+\\|[a-f0-9]{16}\\|provisional\\|darwin-arm64\\|${sourceHash}$`
+    ),
+    "provisional native patch should write an explicit non-verified marker"
+  );
+});
+
+test("install smoke does not provisionally self-verify excluded in-window native binaries", { skip: unixShellRequired }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-excluded-"));
+  const home = path.join(tmp, "home");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeClaude = path.join(fakeBin, "claude");
+  const invokedFile = path.join(tmp, "patch-invoked");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const excludedNativeVersion = nativeSupport.excluded[0];
+  const sourceRepo = createInstallSource(tmp, invokedFile, excludedNativeVersion);
+  const profileFile = path.join(home, ".zshrc");
+
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${excludedNativeVersion} (Claude Code)'\n`);
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
+    cwd: sourceRepo,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
+      ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
+      ZH_CN_PROFILE_FILES: profileFile,
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    encoding: "utf8",
+  });
+
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
+  assert.match(output, /暂不支持 CLI Patch/, "excluded native versions should still be skipped");
+  assert.doesNotMatch(output, /正在运行 --version|本机自验证通过|未纳入已发布支持窗口/, "excluded native versions must not enter provisional patching");
+  assert.equal(fs.existsSync(invokedFile), false, "excluded native should not extract or repack");
+  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "excluded native should not write marker");
+});
+
 test("Windows PowerShell old-npm install smoke is wired into CI", () => {
   const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
 
@@ -251,9 +343,12 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /function patch-native-bun/);
   assert.match(script, /windowsNativeExperimental/);
   assert.match(script, /is-supported-windows-native-version/);
+  assert.match(script, /can-try-provisional-windows-native-version/);
   assert.match(script, /node \$helper check-deps/);
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
+  assert.match(script, /--version/);
+  assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
   assert.match(script, /\.patched-version/);
   assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);
 });
