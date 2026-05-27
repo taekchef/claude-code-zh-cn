@@ -6446,6 +6446,10 @@
     "zh": "默认模型过载时自动回退到指定模型（仅 --print 有效）"
   },
   {
+    "en": "Enable automatic fallback to specified model when the default model is overloaded or not available (only works with --print)",
+    "zh": "默认模型过载或不可用时自动回退到指定模型（仅 --print 有效）"
+  },
+  {
     "en": "File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)",
     "zh": "启动时要下载的文件资源。格式：file_id:relative_path（例如 --file file_abc:doc.txt file_def:img.png）"
   },
