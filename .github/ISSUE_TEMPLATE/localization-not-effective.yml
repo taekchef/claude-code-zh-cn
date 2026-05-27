@@ -1,0 +1,101 @@
+name: 没汉化 / 没生效
+description: 安装后仍是英文、更新后失效、只有部分 UI 汉化时使用
+title: "[没汉化] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先运行诊断并填写下面几项。截图可以补充现象，但不能替代诊断信息；只有截图时，维护者通常还要再追问版本、安装方式和路径。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 现象
+      description: 说清楚哪里没汉化、是刚安装就没生效，还是更新 / 切换后失效。
+      placeholder: 例如：安装后权限确认面板还是英文；或 CC Switch 切换模型后 spinner 又变回英文。
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor-json
+    attributes:
+      label: ./doctor.sh --json 输出
+      description: |
+        在仓库目录运行 `./doctor.sh --json`；如果只保留了已安装插件，可运行 `bash ~/.claude/plugins/claude-code-zh-cn/bin/doctor --json`。如果命令运行失败，也请粘贴完整报错。
+      render: json
+      placeholder: |
+        {
+          "summary": "...",
+          "checks": []
+        }
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: 安装方式
+      description: 选择最接近的一项；不确定时选“其他 / 不确定”，但请在补充信息里说明你执行过的命令。
+      options:
+        - npm 全局安装旧版 cli.js（2.1.92 - 2.1.112）
+        - npm 全局安装 latest / native binary
+        - 官方安装器指定版本
+        - 官方安装器 latest
+        - Windows PowerShell install.ps1
+        - WSL 内 install.sh
+        - 其他 / 不确定
+    validations:
+      required: true
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code 版本
+      description: 粘贴 `claude --version` 的输出。
+      placeholder: 2.1.150 (Claude Code)
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: 中文插件版本
+      description: 优先从 doctor 输出里复制；本地源码安装也可以填 `git rev-parse --short HEAD` 或最新 release 版本。
+      placeholder: v2.4.27 / commit sha / 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: paths
+    attributes:
+      label: 关键路径
+      description: |
+        macOS / Linux / WSL 请粘贴 `which -a claude`；Windows PowerShell 请粘贴 `where.exe claude`。如果有 `.last-update-status` 或安装脚本里的 CLI Patch 摘要，也一起粘贴。
+      placeholder: |
+        which -a claude:
+        /usr/local/bin/claude
+
+        .last-update-status / CLI Patch 输出:
+        ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 系统环境
+      options:
+        - macOS
+        - Linux
+        - Windows PowerShell
+        - Windows WSL
+        - 其他 / 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或录屏
+      description: 可选。截图请尽量包含命令输出、终端环境和没汉化的位置。
+      placeholder: 拖入截图，或粘贴相关日志。
