@@ -258,6 +258,16 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);
 });
 
+test("install.ps1 avoids PowerShell smart quotes in script strings", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+
+  assert.doesNotMatch(
+    script,
+    /[“”‘’]/,
+    "PowerShell treats smart quotes as quote delimiters, which can break Write-CN argument parsing"
+  );
+});
+
 test(
   "install.ps1 patches Windows old npm cli.js representatives without touching the real user install",
   { skip: windowsPowerShellRequired },
