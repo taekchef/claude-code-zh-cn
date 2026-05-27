@@ -257,7 +257,7 @@ function merge-settings {
 
 function write-ccswitch-manual-steps {
     if ($SkipBanner) { return }
-    Write-CN "你也可以在 CC Switch 中手动处理：编辑 Claude 供应商 -> 编辑通用配置 -> 从编辑内容提取 -> 保存，并确认要切换的供应商勾选“写入通用配置”。" Yellow
+    Write-CN "你也可以在 CC Switch 中手动处理：编辑 Claude 供应商 -> 编辑通用配置 -> 从编辑内容提取 -> 保存，并确认要切换的供应商勾选写入通用配置。" Yellow
 }
 
 function get-ccswitch-consent {
@@ -283,7 +283,7 @@ function ask-ccswitch-consent {
 
     Write-Host ""
     Write-CN "检测到你在使用 CC Switch。它切换供应商时会重写 Claude 的 settings.json，可能覆盖中文插件设置。" Yellow
-    Write-Host "要不要现在把中文插件设置同步到 CC Switch 的“通用配置”？"
+    Write-Host "要不要现在把中文插件设置同步到 CC Switch 的通用配置？"
     Write-Host "同意后，之后切换供应商也会保留中文；不会修改 API Key、模型或供应商配置。"
     $answer = Read-Host "输入 Y 帮我同步，或 n 自己处理 [Y/n]"
 

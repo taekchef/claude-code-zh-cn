@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.28] - 2026-05-27
+
+### 修复
+
+- 修复 `install.ps1` 的 CC Switch 提示文案在 Windows PowerShell 中因中文弯引号被当作字符串分隔符，导致 `Write-Host -ForegroundColor` 参数绑定失败的问题。
+- 新增 `install.ps1` 弯引号守门测试，避免后续 PowerShell 文案再次触发同类解析问题。
+
+### 验证
+
+- `node --test tests/install-smoke.test.js`
+- `env NPM_CONFIG_CACHE=/private/tmp/cczh-npm-cache bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.27] - 2026-05-27
 
 ### 新增
