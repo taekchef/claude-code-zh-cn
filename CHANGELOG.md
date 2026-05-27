@@ -6,6 +6,23 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.27] - 2026-05-27
+
+### 新增
+
+- 安装器检测到 CC Switch 的 Claude 通用配置缺少中文设置时，会先询问用户是否同意同步；同意后才会备份并写入 CC Switch 本地数据库，拒绝则保留手动处理路径。
+- `doctor` 新增 CC Switch 通用配置只读检查，可提示用户重新运行安装器并授权同步，或在 CC Switch 中手动重新提取通用配置。
+
+### 修复
+
+- `doctor` 兼容当前 `spinnerVerbs: { mode, verbs }` 结构，不再把 187 个 spinner 动词误判为 2 个字段。
+
+### 验证
+
+- `node --test tests/doctor.test.js tests/node-only-runtime.test.js`
+- `node --test tests/plugin-payload.test.js tests/payload-source-guard.test.js tests/install-json-helper.test.js`
+- `env NPM_CONFIG_CACHE=/private/tmp/cczh-npm-cache bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.26] - 2026-05-27
 
 ### 修复

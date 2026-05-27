@@ -19,8 +19,10 @@ INSTALL_JSON_HELPER="$SCRIPT_DIR/scripts/install-json-helper.js"
 MARKER_FILE="$PLUGIN_DST/.patched-version"
 SOURCE_REPO_FILE="$PLUGIN_DST/.source-repo"
 LAST_UPDATE_CHECK_FILE="$PLUGIN_DST/.last-update-check"
+CCSWITCH_CONSENT_FILE="$PLUGIN_DST/.ccswitch-sync-consent"
 SOURCE_REPO_OVERRIDE="${ZH_CN_SOURCE_REPO:-}"
 SKIP_BANNER="${ZH_CN_SKIP_BANNER:-0}"
+CCSWITCH_SYNC_CHOICE="${ZH_CN_CCSWITCH_SYNC:-}"
 LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
 LAUNCHER_FILE="$LAUNCHER_BIN_DIR/claude"
 PROFILE_FILES_OVERRIDE="${ZH_CN_PROFILE_FILES:-}"
@@ -288,6 +290,273 @@ process.stdout.write(JSON.stringify(base));
 "
 }
 
+ccswitch_manual_steps() {
+    if [ "$SKIP_BANNER" = "1" ]; then
+        return
+    fi
+
+    echo -e "${YELLOW}你也可以在 CC Switch 中手动处理：编辑 Claude 供应商 → 编辑通用配置 → 从编辑内容提取 → 保存，并确认要切换的供应商勾选“写入通用配置”。${NC}"
+}
+
+ccswitch_read_consent() {
+    if [ -f "$CCSWITCH_CONSENT_FILE" ]; then
+        tr -d '\r\n' < "$CCSWITCH_CONSENT_FILE"
+    fi
+}
+
+ccswitch_write_consent() {
+    local value="$1"
+    mkdir -p "$(dirname "$CCSWITCH_CONSENT_FILE")" 2>/dev/null || return 0
+    printf "%s\n" "$value" > "$CCSWITCH_CONSENT_FILE" 2>/dev/null || true
+}
+
+ccswitch_prompt_for_consent() {
+    local answer
+
+    if [ "$UPDATE_ONLY" = true ] || [ "$SKIP_BANNER" = "1" ]; then
+        return 2
+    fi
+    if [ ! -r /dev/tty ] || [ ! -w /dev/tty ]; then
+        return 2
+    fi
+
+    {
+        echo ""
+        echo -e "${YELLOW}检测到你在使用 CC Switch。它切换供应商时会重写 Claude 的 settings.json，可能覆盖中文插件设置。${NC}"
+        echo "要不要现在把中文插件设置同步到 CC Switch 的“通用配置”？"
+        echo "同意后，之后切换供应商也会保留中文；不会修改 API Key、模型或供应商配置。"
+        printf "输入 Y 帮我同步，或 n 自己处理 [Y/n]: "
+    } > /dev/tty
+
+    read -r answer < /dev/tty || answer=""
+    case "$answer" in
+        ""|[Yy]|[Yy][Ee][Ss]|是|好|同意)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+ccswitch_config_status() {
+    local current_file="$1"
+    local overlay_file="$2"
+
+    ZH_CN_CCSWITCH_CURRENT_FILE="$current_file" \
+    ZH_CN_CCSWITCH_OVERLAY_FILE="$overlay_file" \
+    node <<'NODE' 2>/dev/null || printf "invalid"
+const fs = require("fs");
+
+function readJson(file, fallback) {
+  const raw = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
+  if (!raw.trim()) return fallback;
+  return JSON.parse(raw);
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function spinnerVerbCount(value) {
+  if (Array.isArray(value)) return value.length;
+  if (!isPlainObject(value)) return 0;
+  if (Array.isArray(value.verbs)) return value.verbs.length;
+  return Object.keys(value).length;
+}
+
+function spinnerTipCount(value) {
+  if (Array.isArray(value)) return value.length;
+  if (!isPlainObject(value)) return 0;
+  if (Array.isArray(value.tips)) return value.tips.length;
+  return 0;
+}
+
+const current = readJson(process.env.ZH_CN_CCSWITCH_CURRENT_FILE, {});
+readJson(process.env.ZH_CN_CCSWITCH_OVERLAY_FILE, {});
+
+if (!isPlainObject(current)) {
+  process.stdout.write("invalid");
+  process.exit(0);
+}
+
+const complete =
+  current.language === "Chinese" &&
+  current.spinnerTipsEnabled === true &&
+  spinnerVerbCount(current.spinnerVerbs) >= 100 &&
+  spinnerTipCount(current.spinnerTipsOverride) >= 40;
+
+process.stdout.write(complete ? "ok" : "needs-sync");
+NODE
+}
+
+ccswitch_build_merged_config() {
+    local current_file="$1"
+    local overlay_file="$2"
+    local output_file="$3"
+
+    ZH_CN_CCSWITCH_CURRENT_FILE="$current_file" \
+    ZH_CN_CCSWITCH_OVERLAY_FILE="$overlay_file" \
+    ZH_CN_CCSWITCH_OUTPUT_FILE="$output_file" \
+    node <<'NODE'
+const fs = require("fs");
+
+function readJson(file, fallback) {
+  const raw = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
+  if (!raw.trim()) return fallback;
+  return JSON.parse(raw);
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (isPlainObject(result[key]) && isPlainObject(value)) {
+      result[key] = deepMerge(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+const current = readJson(process.env.ZH_CN_CCSWITCH_CURRENT_FILE, {});
+const overlay = readJson(process.env.ZH_CN_CCSWITCH_OVERLAY_FILE, {});
+
+if (!isPlainObject(current) || !isPlainObject(overlay)) {
+  process.exit(2);
+}
+
+fs.writeFileSync(
+  process.env.ZH_CN_CCSWITCH_OUTPUT_FILE,
+  `${JSON.stringify(deepMerge(current, overlay), null, 2)}\n`
+);
+NODE
+}
+
+sync_ccswitch_common_config() {
+    local overlay_content="$1"
+    local db_file="$HOME/.cc-switch/cc-switch.db"
+    local consent status answer consent_source
+    local current_file overlay_file merged_file backup_file escaped_merged
+
+    [ -f "$db_file" ] || return 0
+
+    if ! command -v sqlite3 >/dev/null 2>&1; then
+        if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}检测到 CC Switch，但未找到 sqlite3，无法自动检查/同步通用配置。${NC}"
+            ccswitch_manual_steps
+        fi
+        return 0
+    fi
+
+    current_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-current.XXXXXX")"
+    overlay_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-overlay.XXXXXX")"
+    merged_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-merged.XXXXXX")"
+    printf "%s" "$overlay_content" > "$overlay_file"
+
+    if ! sqlite3 "$db_file" "select value from settings where key='common_config_claude';" > "$current_file" 2>/dev/null; then
+        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}检测到 CC Switch，但无法读取通用配置表，已跳过自动同步。${NC}"
+        fi
+        return 0
+    fi
+
+    status="$(ccswitch_config_status "$current_file" "$overlay_file")"
+    if [ "$status" = "ok" ]; then
+        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        return 0
+    fi
+    if [ "$status" != "needs-sync" ]; then
+        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}检测到 CC Switch，但 common_config_claude 不是有效 JSON，已跳过自动同步。${NC}"
+            ccswitch_manual_steps
+        fi
+        return 0
+    fi
+
+    case "$CCSWITCH_SYNC_CHOICE" in
+        1|true|TRUE|yes|YES|y|Y)
+            consent="allow"
+            consent_source="env"
+            ;;
+        0|false|FALSE|no|NO|n|N)
+            consent="manual"
+            consent_source="env"
+            ;;
+        *)
+            consent="$(ccswitch_read_consent)"
+            [ -n "$consent" ] && consent_source="stored"
+            ;;
+    esac
+
+    if [ "$consent" != "allow" ] && [ "$consent" != "manual" ]; then
+        set +e
+        ccswitch_prompt_for_consent
+        answer="$?"
+        set -e
+        if [ "$answer" = "0" ]; then
+            consent="allow"
+            consent_source="prompt"
+            ccswitch_write_consent "allow"
+        elif [ "$answer" = "1" ]; then
+            consent="manual"
+            consent_source="prompt"
+            ccswitch_write_consent "manual"
+        else
+            rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+            if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
+                echo -e "${YELLOW}检测到 CC Switch 通用配置缺少中文设置；当前不是交互式安装，未自动修改。${NC}"
+                echo -e "${YELLOW}如需授权自动同步，可运行：ZH_CN_CCSWITCH_SYNC=1 ./install.sh${NC}"
+                ccswitch_manual_steps
+            fi
+            return 0
+        fi
+    fi
+
+    if [ "$consent" != "allow" ]; then
+        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        if [ "$consent_source" = "prompt" ] && [ "$SKIP_BANNER" != "1" ]; then
+            ccswitch_manual_steps
+        fi
+        return 0
+    fi
+
+    ccswitch_write_consent "allow"
+    if ! ccswitch_build_merged_config "$current_file" "$overlay_file" "$merged_file" >/dev/null 2>&1; then
+        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        if [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}CC Switch 通用配置合并失败，已跳过自动同步。${NC}"
+            ccswitch_manual_steps
+        fi
+        return 0
+    fi
+
+    backup_file="${db_file}.zh-cn-backup.$(date +%Y%m%d%H%M%S)"
+    cp "$db_file" "$backup_file" 2>/dev/null || backup_file=""
+
+    escaped_merged="${merged_file//\'/\'\'}"
+    if sqlite3 "$db_file" "begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('$escaped_merged') AS TEXT)); delete from settings where key='common_config_claude_cleared'; commit;" >/dev/null 2>&1; then
+        if [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${GREEN}已在用户同意后同步 CC Switch 通用配置${NC}"
+            [ -n "$backup_file" ] && echo -e "${GREEN}已备份 CC Switch 数据库 → ${backup_file}${NC}"
+        fi
+    else
+        if [ "$SKIP_BANNER" != "1" ]; then
+            echo -e "${YELLOW}CC Switch 数据库当前无法写入，已跳过自动同步。${NC}"
+            [ -n "$backup_file" ] && echo -e "${YELLOW}同步前备份已保留：${backup_file}${NC}"
+            ccswitch_manual_steps
+        fi
+    fi
+
+    rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+}
+
 merge_settings() {
     local overlay_content merged
 
@@ -358,6 +627,8 @@ fs.writeFileSync(process.env.ZH_CN_SETTINGS, JSON.stringify(merged, null, 2) + '
     if [ -n "${PLUGIN_DST:-}" ] && [ -d "$PLUGIN_DST" ]; then
         echo "$overlay_content" > "$PLUGIN_DST/.settings-overlay-cache.json"
     fi
+
+    sync_ccswitch_common_config "$overlay_content"
 }
 
 sync_plugin_payload() {

@@ -13,6 +13,35 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function hasSqlite3() {
+  return !spawnSync("sqlite3", ["--version"], { encoding: "utf8" }).error;
+}
+
+function sqlString(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function createCcSwitchDb(home, commonConfig) {
+  const dbFile = path.join(home, ".cc-switch", "cc-switch.db");
+  const configFile = path.join(home, "common_config_claude.json");
+  fs.mkdirSync(path.dirname(dbFile), { recursive: true });
+  writeJson(configFile, commonConfig);
+
+  const result = spawnSync(
+    "sqlite3",
+    [
+      dbFile,
+      [
+        "create table settings (key text primary key, value text);",
+        `insert into settings(key,value) values('common_config_claude', CAST(readfile(${sqlString(configFile)}) AS TEXT));`,
+      ].join(" ")
+    ],
+    { encoding: "utf8" }
+  );
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return dbFile;
+}
+
 function createFakeNpmClaudeLayout(home, cliBodyLines) {
   const cliFile = path.join(
     home,
@@ -213,6 +242,102 @@ test("runDoctor passes when npm cli sentinel is translated", () => {
   assert.equal(layer4.status, "ok");
   assert.equal(result.ok, true);
   assert.equal(result.checks.some((item) => item.status === "fail"), false);
+});
+
+test("runDoctor counts current spinnerVerbs object shape", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 187 }, (_, index) => `动词${index}`),
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: "",
+    json: true,
+    color: false,
+  });
+
+  const settings = result.checks.find((item) => item.id === "settings");
+  assert.equal(settings.status, "ok");
+  assert.match(settings.detail, /187/);
+});
+
+test("runDoctor warns when CC Switch common Claude config is missing zh-cn overlay", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-ccswitch-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 187 }, (_, index) => `动词${index}`),
+    },
+  });
+  createCcSwitchDb(home, { env: { ANTHROPIC_BASE_URL: "https://example.test" } });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: "",
+    json: true,
+    color: false,
+  });
+
+  const ccSwitch = result.checks.find((item) => item.id === "cc-switch");
+  assert.equal(ccSwitch.status, "warn");
+  assert.match(ccSwitch.detail, /未包含完整中文设置/);
+  assert.ok(result.recommendations.some((line) => line.includes("同意同步 CC Switch 通用配置")));
+});
+
+test("runDoctor accepts complete CC Switch common Claude config", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-ccswitch-ok-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 187 }, (_, index) => `动词${index}`),
+    },
+  });
+  createCcSwitchDb(home, {
+    language: "Chinese",
+    spinnerTipsEnabled: true,
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 187 }, (_, index) => `动词${index}`),
+    },
+    spinnerTipsOverride: {
+      excludeDefault: true,
+      tips: Array.from({ length: 41 }, (_, index) => `提示${index}`),
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: "",
+    json: true,
+    color: false,
+  });
+
+  const ccSwitch = result.checks.find((item) => item.id === "cc-switch");
+  assert.equal(ccSwitch.status, "ok");
+  assert.match(ccSwitch.detail, /187/);
+  assert.match(ccSwitch.detail, /41/);
 });
 
 test("runDoctor does not treat macOS native support as Windows native support", () => {
