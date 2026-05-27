@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.26] - 2026-05-27
+
+### 修复
+
+- Windows native `.exe` 版本检测新增回退：当二进制内嵌 JS 头部读不到 `// Version:` 时，会继续读取 npm 包 `package.json`，必要时再执行 `claude.exe --version`。这可以避免 issue #70 里 Windows + `claude 2.1.150` 被误判为 `unknown`，导致已验证版本仍跳过 CLI Patch。
+- README 的 `node-lief` 依赖说明改为明确区分 native experimental 与旧版 npm `cli.js` 路径，避免支持边界守门误报。
+
+### 验证
+
+- `node --test tests/bun-binary-io.test.js tests/plugin-payload.test.js`
+- `node --test tests/support-boundary-guard.test.js`
+- `npm_config_cache=/private/tmp/cczh-npm-cache bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.25] - 2026-05-26
 
 ### 新增

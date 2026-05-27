@@ -202,6 +202,26 @@ test("detect treats PE binaries with Bun trailer as native-bun", () => {
   assert.equal(output, `native-bun:${fs.realpathSync(pePath)}`);
 });
 
+test("version falls back to package.json for npm-installed Windows native exe", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-version-package-"));
+  const packageRoot = path.join(tmp, "node_modules", "@anthropic-ai", "claude-code");
+  const pePath = path.join(packageRoot, "bin", "claude.exe");
+
+  fs.mkdirSync(path.dirname(pePath), { recursive: true });
+  fs.writeFileSync(
+    path.join(packageRoot, "package.json"),
+    JSON.stringify({ name: "@anthropic-ai/claude-code", version: "2.1.150" })
+  );
+  createFakePeBinary(pePath);
+
+  const output = runHelper(["version", pePath], {
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  });
+
+  assert.equal(output, "2.1.150");
+});
+
 test("detect returns npm cli.js path for npm-style installation layout", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-detect-npm-"));
   const binDir = path.join(tmp, "prefix", "bin");

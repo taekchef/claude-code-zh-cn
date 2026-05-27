@@ -19,6 +19,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const os = require("os");
 const { execSync, execFileSync } = require("child_process");
 
 // ============================================================================
@@ -626,6 +627,68 @@ function cmdRepack() {
   process.stdout.write("ok");
 }
 
+function isClaudePackageName(name) {
+  return name === "@anthropic-ai/claude-code" ||
+    name === "@anthropic-ai/claude-code-darwin-arm64" ||
+    name === "@anthropic-ai/claude-code-win32-x64";
+}
+
+function normalizeSemver(value) {
+  const match = String(value || "").match(/\b\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/);
+  return match ? match[0] : "";
+}
+
+function readPackageVersionNearBinary(binaryPath) {
+  let dir;
+  try {
+    dir = path.dirname(fs.realpathSync(binaryPath));
+  } catch {
+    dir = path.dirname(path.resolve(binaryPath));
+  }
+
+  for (let depth = 0; depth < 6; depth++) {
+    const packageJson = path.join(dir, "package.json");
+    try {
+      const pkg = JSON.parse(fs.readFileSync(packageJson, "utf8"));
+      const version = normalizeSemver(pkg.version);
+      if (version && isClaudePackageName(pkg.name)) return version;
+    } catch {}
+
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  return "";
+}
+
+function readExecutableVersion(binaryPath) {
+  let tempHome = "";
+  try {
+    tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-version-home-"));
+    const output = execFileSync(binaryPath, ["--version"], {
+      encoding: "utf8",
+      timeout: 10000,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        HOME: tempHome,
+        USERPROFILE: tempHome,
+        XDG_CONFIG_HOME: path.join(tempHome, ".config"),
+        XDG_CACHE_HOME: path.join(tempHome, ".cache"),
+        XDG_DATA_HOME: path.join(tempHome, ".local", "share"),
+      },
+    });
+    return normalizeSemver(output);
+  } catch {
+    return "";
+  } finally {
+    if (tempHome) {
+      try { fs.rmSync(tempHome, { recursive: true, force: true }); } catch {}
+    }
+  }
+}
+
 function cmdVersion() {
   const binaryPath = process.argv[3];
   if (!binaryPath) {
@@ -634,27 +697,26 @@ function cmdVersion() {
   }
 
   const LIEF = loadNodeLief();
-  if (!LIEF) {
-    process.stdout.write("");
-    return;
-  }
 
   try {
-    const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
-    const found = findClaudeModule(bunData, bunOffsets, moduleStructSize);
-    if (found && found.contents.length > 0) {
-      // 从 JS 内容头部提取版本号（匹配 "// Version: X.Y.Z" 格式）
-      const header = found.contents.subarray(0, 200).toString("utf-8");
-      const match = header.match(/\/\/ Version: (\S+)/);
-      if (match) {
-        process.stdout.write(match[1]);
-        return;
+    if (LIEF) {
+      const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
+      const found = findClaudeModule(bunData, bunOffsets, moduleStructSize);
+      if (found && found.contents.length > 0) {
+        // 从 JS 内容头部提取版本号（匹配 "// Version: X.Y.Z" 格式）
+        const header = found.contents.subarray(0, 200).toString("utf-8");
+        const match = header.match(/\/\/ Version: (\S+)/);
+        if (match) {
+          process.stdout.write(match[1]);
+          return;
+        }
       }
     }
-    process.stdout.write("");
   } catch {
-    process.stdout.write("");
+    // 继续走下面的安装包/可执行文件回退识别。
   }
+
+  process.stdout.write(readPackageVersionNearBinary(binaryPath) || readExecutableVersion(binaryPath) || "");
 }
 
 function cmdResolve() {
