@@ -145,6 +145,7 @@ cd claude-code-zh-cn
 安装脚本会自动：
 - ✅ 备份现有 `~/.claude/settings.json` 和 `cli.js`（或原生二进制）
 - ✅ 合并中文设置到 settings.json
+- ✅ 检测到 CC Switch 通用配置缺少中文设置时，先询问用户；同意后才同步，拒绝则给出手动处理步骤
 - ✅ 安装插件到 `~/.claude/plugins/claude-code-zh-cn/`
 - ✅ 在 stable 安装方式上 patch 硬编码文字（1698 条翻译；当前 stable 代表版本 `2.1.112` 实测 1535 处有效 patch，显示审计 11/11 PASS）
 - ✅ 在 macOS native experimental 已验证版本上 patch 硬编码文字（`2.1.113 - 2.1.114`、`2.1.116 - 2.1.124`、`2.1.126`、`2.1.128 - 2.1.129`、`2.1.131 - 2.1.133`、`2.1.136 - 2.1.146`、`2.1.148`、`2.1.150` 实测 1320-1358 处，显示审计 11/11 PASS）
@@ -188,6 +189,8 @@ bash ~/.claude/plugins/claude-code-zh-cn/bin/doctor
 ```
 
 机器可读输出：`./doctor.sh --json` 或 `bash ~/.claude/plugins/claude-code-zh-cn/bin/doctor --json`（退出码 `0` = 无阻塞项，`1` = 需要处理）。
+
+如果你使用 CC Switch，`doctor` 也会只读检查它的 Claude 通用配置是否包含中文设置。缺失时，重新运行 `./install.sh` 并同意同步即可；如果你不想让安装器修改 CC Switch，也可以按 FAQ 里的手动步骤处理。
 
 ### 更新
 
@@ -377,6 +380,32 @@ Layer 1~3（设置、Hook、插件）完全不受影响。Layer 4（CLI Patch）
 - 自动更新只跟随已发布的 Release tag
 - 不会跟随 `main` 上未发布的开发中 commit
 - 远程安装不需要保留本地 clone；本地源码安装需要保留安装时使用的源码仓库，否则插件仍可继续使用，只是不会自动更新
+</details>
+
+<details>
+<summary><b>用 CC Switch 切换供应商后，中文设置又变回去了怎么办？</b></summary>
+
+这是 CC Switch 切换供应商时重写了 `~/.claude/settings.json`。新版安装器检测到 CC Switch 的 Claude 通用配置缺少中文设置时，会先询问是否帮你同步；只有你同意后才会修改 CC Switch 的本地数据库，并且会先备份。
+
+你可以直接重新运行：
+
+```bash
+./install.sh
+```
+
+看到提示后选择“帮我同步”。如果是非交互环境，可以显式授权：
+
+```bash
+ZH_CN_CCSWITCH_SYNC=1 ./install.sh
+```
+
+Windows PowerShell：
+
+```powershell
+$env:ZH_CN_CCSWITCH_SYNC = "1"; .\install.ps1
+```
+
+如果选择自己处理，在 CC Switch 中编辑 Claude 供应商，打开“编辑通用配置”，点击“从编辑内容提取”并保存；之后确认要切换的供应商勾选了“写入通用配置”。
 </details>
 
 <details>

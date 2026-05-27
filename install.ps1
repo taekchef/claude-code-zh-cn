@@ -23,9 +23,11 @@ if ($env:CLAUDE_PLUGIN_ROOT) { $PluginDst = $env:CLAUDE_PLUGIN_ROOT }
 $MarkerFile = "$PluginDst\.patched-version"
 $SourceRepoFile = "$PluginDst\.source-repo"
 $LastUpdateCheckFile = "$PluginDst\.last-update-check"
+$CcSwitchConsentFile = "$PluginDst\.ccswitch-sync-consent"
 $LauncherBinDir = "$env:USERPROFILE\.claude\bin"
 if ($env:ZH_CN_LAUNCHER_BIN_DIR) { $LauncherBinDir = $env:ZH_CN_LAUNCHER_BIN_DIR }
 $SourceRepoOverride = $env:ZH_CN_SOURCE_REPO
+$CcSwitchSyncChoice = $env:ZH_CN_CCSWITCH_SYNC
 $TmpDir = "$env:TEMP\claude-zh-cn"
 
 $CliPatchStatusSummary = "已跳过（未执行 CLI Patch）"
@@ -79,6 +81,8 @@ $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.en
 $JS_BUILD_OVERLAY_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var base=r(process.argv[2]);var verbs=r(process.argv[3]);var tips=r(process.argv[4]);base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:(tips.tips||[]).map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
 $JS_DEEP_MERGE_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var sf=process.argv[2];var of=process.argv[3];function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={};var k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}fs.writeFileSync(sf,JSON.stringify(dm(r(sf),r(of)),null,2)+'\n');process.stdout.write('ok')"
 $JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['manifest.json','patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
+$JS_CCSWITCH_STATUS = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function vc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.verbs))return v.verbs.length;return Object.keys(v).length}function tc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.tips))return v.tips.length;return 0}try{var c=r(process.argv[2],{});r(process.argv[3],{});if(!po(c)){process.stdout.write('invalid');process.exit(0)}var ok=c.language==='Chinese'&&c.spinnerTipsEnabled===true&&vc(c.spinnerVerbs)>=100&&tc(c.spinnerTipsOverride)>=40;process.stdout.write(ok?'ok':'needs-sync')}catch(e){process.stdout.write('invalid')}"
+$JS_CCSWITCH_MERGE = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={},k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}var c=r(process.argv[2],{}),o=r(process.argv[3],{});if(!po(c)||!po(o))process.exit(2);fs.writeFileSync(process.argv[4],JSON.stringify(dm(c,o),null,2)+'\n')"
 
 # ======== 输出函数 ========
 function completion {
@@ -247,6 +251,159 @@ function merge-settings {
     }
     if ($PluginDst -and (Test-Path $PluginDst)) {
         $overlayContent | Out-File -FilePath "$PluginDst\.settings-overlay-cache.json" -Encoding utf8 -NoNewline
+    }
+    sync-ccswitch-common-config $overlayContent
+}
+
+function write-ccswitch-manual-steps {
+    if ($SkipBanner) { return }
+    Write-CN "你也可以在 CC Switch 中手动处理：编辑 Claude 供应商 -> 编辑通用配置 -> 从编辑内容提取 -> 保存，并确认要切换的供应商勾选“写入通用配置”。" Yellow
+}
+
+function get-ccswitch-consent {
+    if (Test-Path $CcSwitchConsentFile) {
+        return ([System.IO.File]::ReadAllText($CcSwitchConsentFile, [System.Text.Encoding]::UTF8)).Trim()
+    }
+    return ""
+}
+
+function set-ccswitch-consent {
+    param([string]$Value)
+    try {
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $CcSwitchConsentFile) | Out-Null
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($CcSwitchConsentFile, "$Value`n", $utf8NoBom)
+    } catch {}
+}
+
+function ask-ccswitch-consent {
+    if ($UpdateOnly -or $SkipBanner -or -not [Environment]::UserInteractive) {
+        return "unavailable"
+    }
+
+    Write-Host ""
+    Write-CN "检测到你在使用 CC Switch。它切换供应商时会重写 Claude 的 settings.json，可能覆盖中文插件设置。" Yellow
+    Write-Host "要不要现在把中文插件设置同步到 CC Switch 的“通用配置”？"
+    Write-Host "同意后，之后切换供应商也会保留中文；不会修改 API Key、模型或供应商配置。"
+    $answer = Read-Host "输入 Y 帮我同步，或 n 自己处理 [Y/n]"
+
+    if (-not $answer -or $answer -match '^(y|yes|Y|YES|是|好|同意)$') {
+        return "allow"
+    }
+    return "manual"
+}
+
+function sync-ccswitch-common-config {
+    param([string]$OverlayContent)
+
+    $dbFile = "$env:USERPROFILE\.cc-switch\cc-switch.db"
+    if (-not (Test-Path $dbFile)) { return }
+
+    if (-not (Get-Command sqlite3 -ErrorAction SilentlyContinue)) {
+        if (-not $UpdateOnly -and -not $SkipBanner) {
+            Write-CN "检测到 CC Switch，但未找到 sqlite3，无法自动检查/同步通用配置。" Yellow
+            write-ccswitch-manual-steps
+        }
+        return
+    }
+
+    New-Item -Force -ItemType Directory -Path $TmpDir | Out-Null
+    $currentFile = Join-Path $TmpDir "ccswitch-current-$PID.json"
+    $overlayFile = Join-Path $TmpDir "ccswitch-overlay-$PID.json"
+    $mergedFile = Join-Path $TmpDir "ccswitch-merged-$PID.json"
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+
+    try {
+        $currentValue = sqlite3 $dbFile "select value from settings where key='common_config_claude';" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            if (-not $UpdateOnly -and -not $SkipBanner) {
+                Write-CN "检测到 CC Switch，但无法读取通用配置表，已跳过自动同步。" Yellow
+            }
+            return
+        }
+
+        [System.IO.File]::WriteAllText($currentFile, (($currentValue -join "`n")), $utf8NoBom)
+        [System.IO.File]::WriteAllText($overlayFile, $OverlayContent, $utf8NoBom)
+
+        $status = (run-js $JS_CCSWITCH_STATUS @($currentFile, $overlayFile))
+        if ($status) { $status = $status.Trim() }
+
+        if ($status -eq "ok") { return }
+        if ($status -ne "needs-sync") {
+            if (-not $UpdateOnly -and -not $SkipBanner) {
+                Write-CN "检测到 CC Switch，但 common_config_claude 不是有效 JSON，已跳过自动同步。" Yellow
+                write-ccswitch-manual-steps
+            }
+            return
+        }
+
+        $consent = get-ccswitch-consent
+        $consentSource = ""
+        if ($consent) { $consentSource = "stored" }
+        if ($CcSwitchSyncChoice -match '^(1|true|TRUE|yes|YES|y|Y)$') {
+            $consent = "allow"
+            $consentSource = "env"
+        } elseif ($CcSwitchSyncChoice -match '^(0|false|FALSE|no|NO|n|N)$') {
+            $consent = "manual"
+            $consentSource = "env"
+        }
+
+        if ($consent -ne "allow" -and $consent -ne "manual") {
+            $consent = ask-ccswitch-consent
+            if ($consent -eq "allow") {
+                $consentSource = "prompt"
+                set-ccswitch-consent "allow"
+            } elseif ($consent -eq "manual") {
+                $consentSource = "prompt"
+                set-ccswitch-consent "manual"
+            } else {
+                if (-not $UpdateOnly -and -not $SkipBanner) {
+                    Write-CN "检测到 CC Switch 通用配置缺少中文设置；当前不是交互式安装，未自动修改。" Yellow
+                    Write-CN "如需授权自动同步，可运行：`$env:ZH_CN_CCSWITCH_SYNC='1'; .\install.ps1" Yellow
+                    write-ccswitch-manual-steps
+                }
+                return
+            }
+        }
+
+        if ($consent -ne "allow") {
+            if ($consentSource -eq "prompt" -and -not $SkipBanner) {
+                write-ccswitch-manual-steps
+            }
+            return
+        }
+
+        set-ccswitch-consent "allow"
+        run-js $JS_CCSWITCH_MERGE @($currentFile, $overlayFile, $mergedFile) | Out-Null
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $mergedFile)) {
+            if (-not $SkipBanner) {
+                Write-CN "CC Switch 通用配置合并失败，已跳过自动同步。" Yellow
+                write-ccswitch-manual-steps
+            }
+            return
+        }
+
+        $timestamp = Get-Date -Format "yyyyMMddHHmmss"
+        $backupFile = "$dbFile.zh-cn-backup.$timestamp"
+        try { Copy-Item $dbFile $backupFile -Force } catch { $backupFile = "" }
+
+        $sqlPath = $mergedFile.Replace('\', '/').Replace("'", "''")
+        $sql = "begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('$sqlPath') AS TEXT)); delete from settings where key='common_config_claude_cleared'; commit;"
+        sqlite3 $dbFile $sql | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            if (-not $SkipBanner) {
+                Write-CN "已在用户同意后同步 CC Switch 通用配置" Green
+                if ($backupFile) { Write-CN "已备份 CC Switch 数据库 -> $backupFile" Green }
+            }
+        } else {
+            if (-not $SkipBanner) {
+                Write-CN "CC Switch 数据库当前无法写入，已跳过自动同步。" Yellow
+                if ($backupFile) { Write-CN "同步前备份已保留：$backupFile" Yellow }
+                write-ccswitch-manual-steps
+            }
+        }
+    } finally {
+        Remove-Item $currentFile, $overlayFile, $mergedFile -Force -ErrorAction SilentlyContinue
     }
 }
 
