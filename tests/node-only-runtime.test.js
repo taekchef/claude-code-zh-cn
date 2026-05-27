@@ -18,6 +18,15 @@ function linkCommands(binDir, commands) {
   }
 }
 
+function hasSqlite3() {
+  const result = spawnSync("sqlite3", ["--version"], { encoding: "utf8" });
+  return result.status === 0;
+}
+
+function sqlString(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
 function copyTree(src, dst) {
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
@@ -56,6 +65,80 @@ test("install.sh works without python3 when node is available", () => {
   const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
   assert.equal(settings.language, "Chinese");
   assert.equal(fs.existsSync(path.join(home, ".claude", "plugins", "claude-code-zh-cn", "manifest.json")), true);
+});
+
+test("install.sh mirrors overlay into CC Switch common Claude config", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-ccswitch-"));
+  const home = path.join(tmp, "home");
+  const binDir = path.join(tmp, "bin");
+  const ccSwitchDb = path.join(home, ".cc-switch", "cc-switch.db");
+  const ccSwitchConfig = path.join(tmp, "common_config_claude.json");
+
+  fs.mkdirSync(path.dirname(ccSwitchDb), { recursive: true });
+  linkCommands(binDir, [
+    "node",
+    "cp",
+    "mkdir",
+    "find",
+    "chmod",
+    "cat",
+    "sed",
+    "head",
+    "which",
+    "date",
+    "tr",
+    "dirname",
+    "mktemp",
+    "cmp",
+    "sqlite3",
+    "rm",
+  ]);
+  fs.writeFileSync(
+    ccSwitchConfig,
+    JSON.stringify(
+      {
+        includeCoAuthoredBy: false,
+        enabledPlugins: {
+          "other-plugin@example": true,
+        },
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  execFileSync("sqlite3", [
+    ccSwitchDb,
+    [
+      "create table settings (key TEXT PRIMARY KEY, value TEXT);",
+      `insert into settings(key,value) values('common_config_claude', CAST(readfile(${sqlString(ccSwitchConfig)}) AS TEXT));`,
+    ].join(" "),
+  ], { encoding: "utf8" });
+
+  const result = spawnSync("/bin/bash", [path.join(repoRoot, "install.sh")], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      PATH: binDir,
+      ZH_CN_SKIP_BANNER: "1",
+    },
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const ccSwitch = JSON.parse(
+    execFileSync("sqlite3", [
+      ccSwitchDb,
+      "select value from settings where key='common_config_claude';",
+    ], { encoding: "utf8" })
+  );
+  assert.equal(ccSwitch.language, "Chinese");
+  assert.equal(ccSwitch.spinnerVerbs.mode, "replace");
+  assert.equal(ccSwitch.spinnerVerbs.verbs.length, 187);
+  assert.equal(ccSwitch.spinnerTipsOverride.tips.length, 41);
+  assert.equal(ccSwitch.includeCoAuthoredBy, false);
+  assert.deepEqual(ccSwitch.enabledPlugins, { "other-plugin@example": true });
 });
 
 test("install.sh update-only still works when archived without install-json-helper", () => {

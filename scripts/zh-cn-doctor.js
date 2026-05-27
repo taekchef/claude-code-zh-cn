@@ -191,6 +191,52 @@ function npmCliResidue(cliFile, probes = NPM_RESIDUE_PROBES) {
   }
 }
 
+function spinnerVerbCount(spinnerVerbs) {
+  if (Array.isArray(spinnerVerbs)) {
+    return spinnerVerbs.length;
+  }
+  if (!spinnerVerbs || typeof spinnerVerbs !== "object") {
+    return 0;
+  }
+  if (Array.isArray(spinnerVerbs.verbs)) {
+    return spinnerVerbs.verbs.length;
+  }
+  return Object.keys(spinnerVerbs).length;
+}
+
+function readCcSwitchCommonConfig(homeDir) {
+  const dbFile = path.join(homeDir, ".cc-switch", "cc-switch.db");
+  if (!fs.existsSync(dbFile)) {
+    return { exists: false };
+  }
+
+  const result = spawnSync("sqlite3", [
+    dbFile,
+    "select value from settings where key='common_config_claude';",
+  ], {
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 4,
+  });
+
+  if (result.error) {
+    return { exists: true, error: "未检测到 sqlite3，无法检查 CC Switch 配置源" };
+  }
+  if (result.status !== 0) {
+    return { exists: true, error: String(result.stderr || "无法读取 CC Switch 配置源").trim() };
+  }
+
+  const raw = String(result.stdout || "").trim();
+  if (!raw) {
+    return { exists: true, empty: true };
+  }
+
+  try {
+    return { exists: true, settings: JSON.parse(raw) };
+  } catch (error) {
+    return { exists: true, error: `CC Switch common_config_claude 不是有效 JSON：${error.message}` };
+  }
+}
+
 function checkNodeLief(bunBinaryIoPath) {
   const result = spawnSync(process.execPath, [bunBinaryIoPath, "check-deps"], {
     encoding: "utf8",
@@ -283,8 +329,7 @@ function runDoctor(options = {}) {
   if (fs.existsSync(settingsFile)) {
     try {
       const settings = readJson(settingsFile);
-      const verbs = settings.spinnerVerbs;
-      const verbCount = verbs && typeof verbs === "object" ? Object.keys(verbs).length : 0;
+      const verbCount = spinnerVerbCount(settings.spinnerVerbs);
       const languageOk = settings.language === "Chinese";
       if (languageOk && verbCount >= 100) {
         add("settings", "settings.json (Layer 1)", "ok", `language=Chinese，spinner 动词 ${verbCount} 个`);
@@ -311,6 +356,29 @@ function runDoctor(options = {}) {
   } else {
     add("settings", "settings.json (Layer 1)", "warn", `未找到 ${settingsFile}`);
     recommendations.push("运行 ./install.sh 创建并合并 settings.json");
+  }
+
+  const ccSwitch = readCcSwitchCommonConfig(homeDir);
+  if (ccSwitch.exists) {
+    if (ccSwitch.error) {
+      add("cc-switch", "CC Switch 配置源", "warn", ccSwitch.error);
+    } else if (ccSwitch.empty) {
+      add("cc-switch", "CC Switch 配置源", "warn", "未找到 common_config_claude");
+    } else {
+      const verbCount = spinnerVerbCount(ccSwitch.settings.spinnerVerbs);
+      const languageOk = ccSwitch.settings.language === "Chinese";
+      if (languageOk && verbCount >= 100) {
+        add("cc-switch", "CC Switch 配置源", "ok", `common_config_claude 已包含中文设置，spinner 动词 ${verbCount} 个`);
+      } else {
+        add(
+          "cc-switch",
+          "CC Switch 配置源",
+          "warn",
+          `common_config_claude 未包含完整中文设置（language=${ccSwitch.settings.language || "(未设置)"}，spinner 动词 ${verbCount} 个）`
+        );
+        recommendations.push("重新运行 ./install.sh，同步 CC Switch 配置源，避免切模型后覆盖中文设置");
+      }
+    }
   }
 
   const pathWithoutLauncher = filteredPath(process.env.PATH, launcherBinDir);

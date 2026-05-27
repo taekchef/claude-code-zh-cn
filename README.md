@@ -145,6 +145,7 @@ cd claude-code-zh-cn
 安装脚本会自动：
 - ✅ 备份现有 `~/.claude/settings.json` 和 `cli.js`（或原生二进制）
 - ✅ 合并中文设置到 settings.json
+- ✅ 检测到 CC Switch 时，同步其 `common_config_claude` 配置源，避免切模型后覆盖中文设置
 - ✅ 安装插件到 `~/.claude/plugins/claude-code-zh-cn/`
 - ✅ 在 stable 安装方式上 patch 硬编码文字（1697 条翻译；当前 stable 代表版本 `2.1.112` 实测 1535 处有效 patch，显示审计 11/11 PASS）
 - ✅ 在 macOS native experimental 已验证版本上 patch 硬编码文字（`2.1.113 - 2.1.114`、`2.1.116 - 2.1.124`、`2.1.126`、`2.1.128 - 2.1.129`、`2.1.131 - 2.1.133`、`2.1.136 - 2.1.146`、`2.1.148`、`2.1.150` 实测 1320-1358 处，显示审计 11/11 PASS）
@@ -188,6 +189,8 @@ bash ~/.claude/plugins/claude-code-zh-cn/bin/doctor
 ```
 
 机器可读输出：`./doctor.sh --json` 或 `bash ~/.claude/plugins/claude-code-zh-cn/bin/doctor --json`（退出码 `0` = 无阻塞项，`1` = 需要处理）。
+
+如果使用 CC Switch 切换模型后中文设置被重置，重新运行 `./install.sh`。安装脚本和 SessionStart hook 会把中文 settings overlay 合并到 CC Switch 的 Claude 配置源；`doctor` 也会检查这层是否完整。
 
 ### 更新
 

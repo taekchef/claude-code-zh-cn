@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.27] - 2026-05-27
+
+### 修复
+
+- 安装脚本和 SessionStart hook 现在会在检测到 CC Switch 时，同步其 `common_config_claude` 配置源，避免切换模型后从旧配置源覆盖中文 settings。
+- doctor 诊断修正 spinner 动词计数，兼容当前 `{ mode, verbs }` 数据结构，并新增 CC Switch 配置源检查。
+
+### 验证
+
+- `node --test tests/session-start-hook.test.js tests/doctor.test.js`
+- `node --test tests/install-json-helper.test.js tests/plugin-payload.test.js tests/payload-source-guard.test.js`
+- `node --test tests/node-only-runtime.test.js`
+
 ## [2.4.26] - 2026-05-27
 
 ### 修复

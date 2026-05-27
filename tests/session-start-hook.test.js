@@ -36,6 +36,15 @@ function setManifestVersion(file, version) {
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n");
 }
 
+function hasSqlite3() {
+  const result = spawnSync("sqlite3", ["--version"], { encoding: "utf8" });
+  return result.status === 0;
+}
+
+function sqlString(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
 function copyReleasePayload(sourceRepo, { includeInstallJsonHelper = true } = {}) {
   fs.mkdirSync(sourceRepo, { recursive: true });
 
@@ -241,6 +250,94 @@ test("session-start repairs settings from cached overlay before emitting JSON", 
   assert.deepEqual(repaired.spinnerTipsOverride, overlay.spinnerTipsOverride);
   assert.equal(repaired.theme, "dark");
   assert.deepEqual(repaired.permissions, { allow: ["Bash(git status:*)"] });
+});
+
+test("session-start mirrors cached overlay into CC Switch common Claude config", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-ccswitch-repair-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const settingsFile = path.join(home, ".claude", "settings.json");
+  const ccSwitchDb = path.join(home, ".cc-switch", "cc-switch.db");
+  const currentCcSwitchConfig = path.join(tmp, "current-ccswitch.json");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.mkdirSync(path.dirname(ccSwitchDb), { recursive: true });
+
+  fs.writeFileSync(
+    path.join(pluginRoot, "compute-patch-revision.sh"),
+    "#!/usr/bin/env bash\ncompute_patch_revision(){ printf 'test-revision'; }\n"
+  );
+  fs.chmodSync(path.join(pluginRoot, "compute-patch-revision.sh"), 0o755);
+  fs.writeFileSync(path.join(fakeBin, "claude"), "#!/usr/bin/env bash\n");
+  fs.chmodSync(path.join(fakeBin, "claude"), 0o755);
+
+  const overlay = {
+    language: "Chinese",
+    spinnerTipsEnabled: true,
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: ["读", "写"],
+    },
+    spinnerTipsOverride: {
+      excludeDefault: true,
+      tips: ["保持简洁"],
+    },
+  };
+  fs.writeFileSync(path.join(pluginRoot, ".settings-overlay-cache.json"), JSON.stringify(overlay, null, 2) + "\n");
+  fs.writeFileSync(settingsFile, "{}\n");
+  fs.writeFileSync(
+    currentCcSwitchConfig,
+    JSON.stringify(
+      {
+        includeCoAuthoredBy: false,
+        enabledPlugins: {
+          "other-plugin@example": true,
+        },
+      },
+      null,
+      2
+    ) + "\n"
+  );
+
+  execFileSync("sqlite3", [
+    ccSwitchDb,
+    [
+      "create table settings (key TEXT PRIMARY KEY, value TEXT);",
+      `insert into settings(key,value) values('common_config_claude', CAST(readfile(${sqlString(currentCcSwitchConfig)}) AS TEXT));`,
+    ].join(" "),
+  ], { encoding: "utf8" });
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.doesNotThrow(() => JSON.parse(result.stdout), "hook output must remain valid JSON");
+
+  const ccSwitchConfig = JSON.parse(
+    execFileSync("sqlite3", [
+      ccSwitchDb,
+      "select value from settings where key='common_config_claude';",
+    ], { encoding: "utf8" })
+  );
+  assert.equal(ccSwitchConfig.language, "Chinese");
+  assert.deepEqual(ccSwitchConfig.spinnerVerbs, overlay.spinnerVerbs);
+  assert.deepEqual(ccSwitchConfig.spinnerTipsOverride, overlay.spinnerTipsOverride);
+  assert.equal(ccSwitchConfig.includeCoAuthoredBy, false);
+  assert.deepEqual(ccSwitchConfig.enabledPlugins, { "other-plugin@example": true });
 });
 
 test("Windows session-start hook repairs settings from cached overlay", () => {

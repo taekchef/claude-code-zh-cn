@@ -288,6 +288,89 @@ process.stdout.write(JSON.stringify(base));
 "
 }
 
+sync_ccswitch_common_config() {
+    local overlay_content="$1"
+    local db_file="$HOME/.cc-switch/cc-switch.db"
+
+    [ "${ZH_CN_DISABLE_CCSWITCH_SYNC:-0}" = "1" ] && return 0
+    [ -n "${overlay_content:-}" ] || return 0
+    [ -f "$db_file" ] || return 0
+    command -v sqlite3 >/dev/null 2>&1 || return 0
+
+    local tmp_dir current_file overlay_file merged_file escaped_merged
+    tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/cczh-ccswitch.XXXXXX" 2>/dev/null || true)"
+    [ -n "${tmp_dir:-}" ] || return 0
+
+    current_file="$tmp_dir/current.json"
+    overlay_file="$tmp_dir/overlay.json"
+    merged_file="$tmp_dir/merged.json"
+    printf '%s' "$overlay_content" > "$overlay_file"
+
+    if ! sqlite3 "$db_file" "select value from settings where key='common_config_claude';" > "$current_file" 2>/dev/null; then
+        rm -rf "$tmp_dir" 2>/dev/null || true
+        return 0
+    fi
+
+    if [ ! -s "$current_file" ]; then
+        rm -rf "$tmp_dir" 2>/dev/null || true
+        return 0
+    fi
+
+    if ! ZH_CN_CCSWITCH_CURRENT="$current_file" \
+        ZH_CN_CCSWITCH_OVERLAY="$overlay_file" \
+        ZH_CN_CCSWITCH_MERGED="$merged_file" \
+        node >/dev/null 2>&1 <<'NODE'
+const fs = require('fs');
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (isPlainObject(result[key]) && isPlainObject(value)) {
+      result[key] = deepMerge(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+const current = readJson(process.env.ZH_CN_CCSWITCH_CURRENT);
+const overlay = readJson(process.env.ZH_CN_CCSWITCH_OVERLAY);
+if (!isPlainObject(current) || !isPlainObject(overlay)) {
+  process.exit(0);
+}
+
+const merged = deepMerge(current, overlay);
+fs.writeFileSync(process.env.ZH_CN_CCSWITCH_MERGED, JSON.stringify(merged, null, 2) + '\n');
+NODE
+    then
+        rm -rf "$tmp_dir" 2>/dev/null || true
+        return 0
+    fi
+
+    if [ ! -s "$merged_file" ] || cmp -s "$current_file" "$merged_file"; then
+        rm -rf "$tmp_dir" 2>/dev/null || true
+        return 0
+    fi
+
+    escaped_merged="$(printf '%s' "$merged_file" | sed "s/'/''/g")"
+    sqlite3 "$db_file" "update settings set value=CAST(readfile('$escaped_merged') AS TEXT) where key='common_config_claude';" >/dev/null 2>&1 || true
+
+    if [ "$SKIP_BANNER" != "1" ]; then
+        echo -e "${GREEN}已同步 CC Switch Claude 配置源${NC}"
+    fi
+
+    rm -rf "$tmp_dir" 2>/dev/null || true
+}
+
 merge_settings() {
     local overlay_content merged
 
@@ -358,6 +441,8 @@ fs.writeFileSync(process.env.ZH_CN_SETTINGS, JSON.stringify(merged, null, 2) + '
     if [ -n "${PLUGIN_DST:-}" ] && [ -d "$PLUGIN_DST" ]; then
         echo "$overlay_content" > "$PLUGIN_DST/.settings-overlay-cache.json"
     fi
+
+    sync_ccswitch_common_config "$overlay_content"
 }
 
 sync_plugin_payload() {

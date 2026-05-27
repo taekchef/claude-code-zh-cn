@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const { runDoctor, STABLE_INSTALL_CMD } = require(path.join(repoRoot, "scripts", "zh-cn-doctor.js"));
@@ -11,6 +11,15 @@ const { runDoctor, STABLE_INSTALL_CMD } = require(path.join(repoRoot, "scripts",
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function hasSqlite3() {
+  const result = spawnSync("sqlite3", ["--version"], { encoding: "utf8" });
+  return result.status === 0;
+}
+
+function sqlString(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
 }
 
 function createFakeNpmClaudeLayout(home, cliBodyLines) {
@@ -157,9 +166,10 @@ test("runDoctor checks all known npm residue probes before reporting Layer 4 ok"
 
   writeJson(path.join(home, ".claude", "settings.json"), {
     language: "Chinese",
-    spinnerVerbs: Object.fromEntries(
-      Array.from({ length: 120 }, (_, index) => [`Verb${index}`, `动词${index}`])
-    ),
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 120 }, (_, index) => `动词${index}`),
+    },
   });
 
   const result = runDoctor({
@@ -210,9 +220,53 @@ test("runDoctor passes when npm cli sentinel is translated", () => {
   });
 
   const layer4 = result.checks.find((item) => item.id === "layer4");
+  const settings = result.checks.find((item) => item.id === "settings");
+  assert.match(settings.detail, /spinner 动词 120 个/);
   assert.equal(layer4.status, "ok");
   assert.equal(result.ok, true);
   assert.equal(result.checks.some((item) => item.status === "fail"), false);
+});
+
+test("runDoctor warns when CC Switch common Claude config is missing zh-cn overlay", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-ccswitch-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const ccSwitchDb = path.join(home, ".cc-switch", "cc-switch.db");
+  const ccSwitchConfig = path.join(home, "common_config_claude.json");
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 120 }, (_, index) => `动词${index}`),
+    },
+  });
+  writeJson(ccSwitchConfig, {
+    includeCoAuthoredBy: false,
+  });
+
+  fs.mkdirSync(path.dirname(ccSwitchDb), { recursive: true });
+  execFileSync("sqlite3", [
+    ccSwitchDb,
+    [
+      "create table settings (key TEXT PRIMARY KEY, value TEXT);",
+      `insert into settings(key,value) values('common_config_claude', CAST(readfile(${sqlString(ccSwitchConfig)}) AS TEXT));`,
+    ].join(" "),
+  ], { encoding: "utf8" });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: "",
+    json: true,
+    color: false,
+  });
+
+  const ccSwitch = result.checks.find((item) => item.id === "cc-switch");
+  assert.equal(ccSwitch.status, "warn");
+  assert.match(ccSwitch.detail, /common_config_claude 未包含完整中文设置/);
+  assert.ok(result.recommendations.some((line) => line.includes("同步 CC Switch 配置源")));
 });
 
 test("runDoctor does not treat macOS native support as Windows native support", () => {
