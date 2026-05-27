@@ -21,7 +21,6 @@ bash scripts/preflight.sh
 | --- | --- |
 | shell / JavaScript 语法 | `bash -n`、`node --check` |
 | payload/source guard | `node scripts/check-payload-sources.js --base origin/main` |
-| PR auto-close guard | PR 描述使用 `Related to #123`，不要让 GitHub 在合并 PR 时自动关 issue |
 | support-boundary | `node scripts/check-support-boundary.js` |
 | 全量 tests | `node --test tests/*.test.js` |
 | upstream compat | `node scripts/verify-upstream-compat.js` |

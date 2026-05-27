@@ -37,7 +37,6 @@ test("preflight script is the local entrypoint for repo checks", () => {
     "node --check plugin/patch-cli.js",
     "node --check plugin/scripts/zh-cn-doctor.js",
     "node --check scripts/check-payload-sources.js",
-    "node --check scripts/check-pr-autoclose-keywords.js",
     "node --check scripts/check-support-boundary.js",
     "node --check scripts/check-translation-sentinels.js",
     "node --check scripts/generate-support-matrix.js",
@@ -53,7 +52,6 @@ test("preflight script is the local entrypoint for repo checks", () => {
     "--release-state",
     "--skip-release-state",
     "node scripts/check-payload-sources.js --base",
-    "node scripts/check-pr-autoclose-keywords.js",
     "node scripts/check-support-boundary.js",
     "node scripts/sync-readme-support-window.js --check",
     "node scripts/sync-doc-derived-counts.js --check",
@@ -82,9 +80,6 @@ test("release-state is an explicit maintainer gate, not default contributor pref
 test("CI uses preflight as the Ubuntu job entrypoint", () => {
   const workflow = read(ciWorkflow);
 
-  assert.match(workflow, /Check PR body auto-close keywords/);
-  assert.match(workflow, /PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}/);
-  assert.match(workflow, /node scripts\/check-pr-autoclose-keywords\.js --body-env PR_BODY/);
   assert.match(workflow, /bash scripts\/preflight\.sh --base "\$\{\{ github\.event\.pull_request\.base\.sha \}\}" --skip-release-state/);
   assert.match(workflow, /bash scripts\/preflight\.sh --skip-payload-source --skip-release-state/);
   assert.match(workflow, /windows-install-smoke:/);
