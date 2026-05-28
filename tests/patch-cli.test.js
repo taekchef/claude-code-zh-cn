@@ -200,6 +200,31 @@ test("fragment migrations use targeted structural patches instead of broad engli
   assert.match(patched, /" 已就绪 · 按 shift\+↓ 查看"/);
 });
 
+test("issue 80 native dynamic residues use targeted structural patches", () => {
+  const patched = patchFixture([
+    'let ideNotice=L7.createElement(k,null,"Install the ",L7.createElement(k,{color:"ide"},q)," plugin from the JetBrains Marketplace:"," ",L7.createElement(k,{bold:!0},"https://docs.claude.com/s/claude-code-jetbrains"));',
+    'function rHK(H,q,K,$){let f=`Set model to ${P8.bold(US(H))}${$?" and saved as your default for new sessions":" for this session only"}`,A=void 0;return f}',
+    'let N4=true,pickerStatus=`Model set to ${bb(v8)}${gW.current?" and saved as your default for new sessions":" for this session only"}`;',
+    'let remoteStatus=$(`Set model to ${P8.bold(US(P))}`);',
+    'function BNf(){return`Review the current diff for correctness bugs and reuse/simplification/efficiency cleanups at the given effort level (low/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings${iB()?"; ultra: deep multi-agent review in the cloud":""}). Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review.`}',
+    "",
+  ]);
+
+  assert.equal(patched.includes("Install the "), false, patched);
+  assert.equal(patched.includes(" plugin from the JetBrains Marketplace:"), false, patched);
+  assert.equal(patched.includes("Set model to "), false, patched);
+  assert.equal(patched.includes("Model set to "), false, patched);
+  assert.equal(patched.includes(" and saved as your default for new sessions"), false, patched);
+  assert.equal(patched.includes("Review the current diff for correctness bugs"), false, patched);
+  assert.match(patched, /"从 JetBrains Marketplace 安装 ",L7\.createElement\(k,\{color:"ide"\},q\)," 插件："/);
+  assert.match(patched, /`已切换模型为 \$\{P8\.bold\(US\(H\)\)\}\$\{\$\?"，并已保存为新会话默认模型":"（仅本次会话）"\}`/);
+  assert.match(patched, /`已切换模型为 \$\{bb\(v8\)\}\$\{gW\.current\?"，并已保存为新会话默认模型":"（仅本次会话）"\}`/);
+  assert.match(patched, /\$\(`已切换模型为 \$\{P8\.bold\(US\(P\)\)\}`\)/);
+  assert.match(patched, /审查当前 diff 的正确性问题/);
+  assert.match(patched, /high→max：覆盖更广/);
+  assert.match(patched, /ultra：云端深度多 Agent review/);
+});
+
 test("string translation must not rewrite identifiers or object keys across code boundaries", () => {
   const patched = patchFixture([
     'const modes={external:"acceptEdits"},bypassPermissions:{title:"Bypass Permissions",shortTitle:"Bypass"};',

@@ -6800,5 +6800,33 @@
   {
     "en": "Run a cloud-hosted multi-agent code review of the current branch (or a PR number / base branch) and print the findings",
     "zh": "在云端运行多 Agent 代码审查，目标可为当前分支、PR 编号或基准分支，并打印结果"
+  },
+  {
+    "en": "Fast mode ON",
+    "zh": "快速模式 开"
+  },
+  {
+    "en": "Draws from usage credits",
+    "zh": "会消耗用量额度"
+  },
+  {
+    "en": " for this session only. Selecting a model will undo this.",
+    "zh": "（仅本次会话）。选择模型将取消此设置。"
+  },
+  {
+    "en": "Review the current diff and apply the fixes \\u2014 equivalent to /code-review --fix.",
+    "zh": "审查当前 diff 并应用修复，相当于 /code-review --fix。"
+  },
+  {
+    "en": "Configure the Advisor Tool to consult a stronger model for guidance at key moments during a task",
+    "zh": "配置 Advisor Tool，在任务关键节点咨询更强模型获取建议"
+  },
+  {
+    "en": "Send this session to the background and free the terminal",
+    "zh": "将本会话放到后台并释放终端"
+  },
+  {
+    "en": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
+    "zh": "用空上下文开始新会话；之前的会话会保留在磁盘上（可用 /resume 恢复）"
   }
 ]

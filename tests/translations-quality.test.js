@@ -104,6 +104,28 @@ test("high-visibility translations use the curated wording", () => {
       "Run a cloud-hosted multi-agent code review of the current branch (or a PR number / base branch) and print the findings",
       "在云端运行多 Agent 代码审查，目标可为当前分支、PR 编号或基准分支，并打印结果",
     ],
+    ["Fast mode ON", "快速模式 开"],
+    ["Draws from usage credits", "会消耗用量额度"],
+    [
+      " for this session only. Selecting a model will undo this.",
+      "（仅本次会话）。选择模型将取消此设置。",
+    ],
+    [
+      "Review the current diff and apply the fixes \\u2014 equivalent to /code-review --fix.",
+      "审查当前 diff 并应用修复，相当于 /code-review --fix。",
+    ],
+    [
+      "Configure the Advisor Tool to consult a stronger model for guidance at key moments during a task",
+      "配置 Advisor Tool，在任务关键节点咨询更强模型获取建议",
+    ],
+    [
+      "Send this session to the background and free the terminal",
+      "将本会话放到后台并释放终端",
+    ],
+    [
+      "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
+      "用空上下文开始新会话；之前的会话会保留在磁盘上（可用 /resume 恢复）",
+    ],
     [
       "Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)",
       "安装 Claude Code 原生构建。使用 [target] 指定版本（stable、latest 或具体版本）",

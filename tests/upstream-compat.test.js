@@ -639,6 +639,29 @@ test("production upstream compat config guards issue #70 native permission UI re
   );
 });
 
+test("production upstream compat config guards issue #80 visible native residues", () => {
+  const config = JSON.parse(fs.readFileSync(productionConfig, "utf8"));
+  const guardIds = new Set([
+    ...(config.checks.sentinels || []).map((entry) => entry.id),
+    ...(config.checks.templateResidues || []).map((entry) => entry.id),
+    ...(config.checks.upstreamTextGuards || []).map((entry) => entry.id),
+  ]);
+
+  assert.deepEqual(
+    [
+      "issue80_jetbrains_install_notice",
+      "issue80_model_switch_notice",
+      "issue80_model_session_scope_notice",
+      "issue80_code_review_command_description",
+      "issue80_simplify_command_description",
+      "issue80_advisor_command_description",
+      "issue80_background_command_description",
+      "issue80_clear_command_description",
+    ].filter((id) => !guardIds.has(id)),
+    []
+  );
+});
+
 test("verify-upstream-compat catches unpatched issue #70 native UI source residues", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-ui-guard-config-"));
   const fixtures = path.join(tmp, "packages");
