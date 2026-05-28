@@ -21,11 +21,20 @@ function sqlString(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-function createCcSwitchDb(home, commonConfig) {
+function createCcSwitchDb(home, commonConfig, providers = []) {
   const dbFile = path.join(home, ".cc-switch", "cc-switch.db");
   const configFile = path.join(home, "common_config_claude.json");
   fs.mkdirSync(path.dirname(dbFile), { recursive: true });
   writeJson(configFile, commonConfig);
+
+  const providerSql = providers.length > 0
+    ? [
+        "create table providers (id text not null, app_type text not null, name text not null, settings_config text not null, meta text not null default '{}', is_current boolean not null default 0, sort_index integer, primary key(id, app_type));",
+        ...providers.map((provider, index) => (
+          `insert into providers(id,app_type,name,settings_config,meta,is_current,sort_index) values(${sqlString(provider.id)},${sqlString(provider.appType || "claude")},${sqlString(provider.name)},'{}',${sqlString(JSON.stringify(provider.meta || {}))},${provider.isCurrent ? 1 : 0},${index});`
+        )),
+      ]
+    : [];
 
   const result = spawnSync(
     "sqlite3",
@@ -34,6 +43,7 @@ function createCcSwitchDb(home, commonConfig) {
       [
         "create table settings (key text primary key, value text);",
         `insert into settings(key,value) values('common_config_claude', CAST(readfile(${sqlString(configFile)}) AS TEXT));`,
+        ...providerSql,
       ].join(" ")
     ],
     { encoding: "utf8" }
@@ -338,6 +348,53 @@ test("runDoctor accepts complete CC Switch common Claude config", { skip: hasSql
   assert.equal(ccSwitch.status, "ok");
   assert.match(ccSwitch.detail, /187/);
   assert.match(ccSwitch.detail, /41/);
+});
+
+test("runDoctor warns when CC Switch Claude providers do not write common config", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-ccswitch-providers-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: {
+      mode: "replace",
+      verbs: Array.from({ length: 187 }, (_, index) => `动词${index}`),
+    },
+  });
+  createCcSwitchDb(
+    home,
+    {
+      language: "Chinese",
+      spinnerTipsEnabled: true,
+      spinnerVerbs: {
+        mode: "replace",
+        verbs: Array.from({ length: 187 }, (_, index) => `动词${index}`),
+      },
+      spinnerTipsOverride: {
+        excludeDefault: true,
+        tips: Array.from({ length: 41 }, (_, index) => `提示${index}`),
+      },
+    },
+    [
+      { id: "deepseek", name: "DeepSeek", meta: { apiFormat: "anthropic" } },
+      { id: "zhipu", name: "Zhipu GLM", meta: { apiFormat: "anthropic", commonConfigEnabled: true } },
+    ]
+  );
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: "",
+    json: true,
+    color: false,
+  });
+
+  const ccSwitch = result.checks.find((item) => item.id === "cc-switch");
+  assert.equal(ccSwitch.status, "warn");
+  assert.match(ccSwitch.detail, /DeepSeek/);
+  assert.ok(result.recommendations.some((line) => line.includes("勾选写入通用配置")));
 });
 
 test("runDoctor does not treat macOS native support as Windows native support", () => {

@@ -83,6 +83,31 @@ $JS_DEEP_MERGE_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.
 $JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['manifest.json','patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
 $JS_CCSWITCH_STATUS = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function vc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.verbs))return v.verbs.length;return Object.keys(v).length}function tc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.tips))return v.tips.length;return 0}try{var c=r(process.argv[2],{});r(process.argv[3],{});if(!po(c)){process.stdout.write('invalid');process.exit(0)}var ok=c.language==='Chinese'&&c.spinnerTipsEnabled===true&&vc(c.spinnerVerbs)>=100&&tc(c.spinnerTipsOverride)>=40;process.stdout.write(ok?'ok':'needs-sync')}catch(e){process.stdout.write('invalid')}"
 $JS_CCSWITCH_MERGE = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={},k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}var c=r(process.argv[2],{}),o=r(process.argv[3],{});if(!po(c)||!po(o))process.exit(2);fs.writeFileSync(process.argv[4],JSON.stringify(dm(c,o),null,2)+'\n')"
+$JS_CCSWITCH_PROVIDER_SQL = @'
+var fs=require("fs");
+function fh(h){return Buffer.from(h||"","hex").toString("utf8")}
+function ss(v){return "'" + String(v).replace(/'/g,"''") + "'"}
+var raw=fs.readFileSync(process.argv[2],"utf8").replace(/\r/g,"");
+var lines=raw.split("\n").filter(Boolean);
+var updates=[];
+var changed=0;
+var skipped=0;
+for(var i=0;i<lines.length;i++){
+  var line=lines[i];
+  var tab=line.indexOf("\t");
+  if(tab<0){skipped++;continue}
+  var id=fh(line.slice(0,tab));
+  var metaText=fh(line.slice(tab+1).trim());
+  var meta;
+  try{meta=metaText.trim()?JSON.parse(metaText):{}}catch(e){skipped++;continue}
+  if(!meta||typeof meta!=="object"||Array.isArray(meta)){skipped++;continue}
+  if(meta.commonConfigEnabled!==true){changed++}
+  meta.commonConfigEnabled=true;
+  updates.push("update providers set meta="+ss(JSON.stringify(meta))+" where id="+ss(id)+" and app_type='claude';");
+}
+fs.writeFileSync(process.argv[3],updates.join("\n")+(updates.length?"\n":""));
+process.stdout.write(String(changed)+" "+String(lines.length)+" "+String(skipped));
+'@
 
 # ======== 输出函数 ========
 function completion {
@@ -283,7 +308,7 @@ function ask-ccswitch-consent {
 
     Write-Host ""
     Write-CN "检测到你在使用 CC Switch。它切换供应商时会重写 Claude 的 settings.json，可能覆盖中文插件设置。" Yellow
-    Write-Host "要不要现在把中文插件设置同步到 CC Switch 的通用配置？"
+    Write-Host "要不要现在把中文插件设置同步到 CC Switch 的通用配置，并让 Claude 供应商切换时写入通用配置？"
     Write-Host "同意后，之后切换供应商也会保留中文；不会修改 API Key、模型或供应商配置。"
     $answer = Read-Host "输入 Y 帮我同步，或 n 自己处理 [Y/n]"
 
@@ -291,6 +316,27 @@ function ask-ccswitch-consent {
         return "allow"
     }
     return "manual"
+}
+
+function build-ccswitch-provider-update-sql {
+    param(
+        [string]$DbFile,
+        [string]$ProvidersFile,
+        [string]$ProviderSqlFile,
+        [System.Text.Encoding]$Utf8NoBom
+    )
+
+    $hasProviders = sqlite3 $DbFile "select count(*) from sqlite_master where type='table' and name='providers';" 2>$null
+    if ($LASTEXITCODE -ne 0 -or (($hasProviders -join "").Trim()) -ne "1") { return "" }
+
+    $providerRows = sqlite3 $DbFile "select hex(id) || char(9) || hex(meta) from providers where app_type='claude';" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $providerRows) { return "" }
+
+    [System.IO.File]::WriteAllText($ProvidersFile, (($providerRows -join "`n")), $Utf8NoBom)
+    $summary = (run-js $JS_CCSWITCH_PROVIDER_SQL @($ProvidersFile, $ProviderSqlFile))
+    if ($LASTEXITCODE -ne 0) { return "" }
+    if ($summary) { return $summary.Trim() }
+    return ""
 }
 
 function sync-ccswitch-common-config {
@@ -311,6 +357,8 @@ function sync-ccswitch-common-config {
     $currentFile = Join-Path $TmpDir "ccswitch-current-$PID.json"
     $overlayFile = Join-Path $TmpDir "ccswitch-overlay-$PID.json"
     $mergedFile = Join-Path $TmpDir "ccswitch-merged-$PID.json"
+    $providersFile = Join-Path $TmpDir "ccswitch-providers-$PID.tsv"
+    $providerSqlFile = Join-Path $TmpDir "ccswitch-providers-$PID.sql"
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
     try {
@@ -328,7 +376,13 @@ function sync-ccswitch-common-config {
         $status = (run-js $JS_CCSWITCH_STATUS @($currentFile, $overlayFile))
         if ($status) { $status = $status.Trim() }
 
-        if ($status -eq "ok") { return }
+        if ($status -eq "ok") {
+            $providerStatusSummary = build-ccswitch-provider-update-sql $dbFile $providersFile $providerSqlFile $utf8NoBom
+            if (-not $providerStatusSummary) { return }
+            $providerStatusParts = $providerStatusSummary -split ' '
+            if ($providerStatusParts.Count -lt 1 -or $providerStatusParts[0] -eq "0") { return }
+            $status = "needs-sync"
+        }
         if ($status -ne "needs-sync") {
             if (-not $UpdateOnly -and -not $SkipBanner) {
                 Write-CN "检测到 CC Switch，但 common_config_claude 不是有效 JSON，已跳过自动同步。" Yellow
@@ -387,12 +441,27 @@ function sync-ccswitch-common-config {
         $backupFile = "$dbFile.zh-cn-backup.$timestamp"
         try { Copy-Item $dbFile $backupFile -Force } catch { $backupFile = "" }
 
+        $providerUpdateSql = ""
+        $providerSyncSummary = build-ccswitch-provider-update-sql $dbFile $providersFile $providerSqlFile $utf8NoBom
+        if ($providerSyncSummary -and (Test-Path $providerSqlFile)) {
+            $providerUpdateSql = [System.IO.File]::ReadAllText($providerSqlFile, [System.Text.Encoding]::UTF8)
+        }
+
         $sqlPath = $mergedFile.Replace('\', '/').Replace("'", "''")
-        $sql = "begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('$sqlPath') AS TEXT)); delete from settings where key='common_config_claude_cleared'; commit;"
+        $sql = "begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('$sqlPath') AS TEXT)); delete from settings where key='common_config_claude_cleared'; $providerUpdateSql commit;"
         sqlite3 $dbFile $sql | Out-Null
         if ($LASTEXITCODE -eq 0) {
             if (-not $SkipBanner) {
                 Write-CN "已在用户同意后同步 CC Switch 通用配置" Green
+                if ($providerSyncSummary) {
+                    $providerParts = $providerSyncSummary -split ' '
+                    if ($providerParts.Count -ge 3 -and $providerParts[1] -ne "0") {
+                        Write-CN "已让 CC Switch 的 Claude 供应商切换时写入通用配置（$($providerParts[0])/$($providerParts[1]) 个需要更新）" Green
+                    }
+                    if ($providerParts.Count -ge 3 -and $providerParts[2] -ne "0") {
+                        Write-CN "有 $($providerParts[2]) 个 Claude 供应商 meta 不是有效 JSON，已跳过。" Yellow
+                    }
+                }
                 if ($backupFile) { Write-CN "已备份 CC Switch 数据库 -> $backupFile" Green }
             }
         } else {
@@ -403,7 +472,7 @@ function sync-ccswitch-common-config {
             }
         }
     } finally {
-        Remove-Item $currentFile, $overlayFile, $mergedFile -Force -ErrorAction SilentlyContinue
+        Remove-Item $currentFile, $overlayFile, $mergedFile, $providersFile, $providerSqlFile -Force -ErrorAction SilentlyContinue
     }
 }
 
