@@ -475,3 +475,13 @@ See full documentation above (in Chinese). PRs and issues welcome!
 ---
 
 *本项目不是 Anthropic 官方产品。Claude Code 是 Anthropic Inc. 的商标。*
+
+## Star History
+
+<a href="https://star-history.com/#taekchef/claude-code-zh-cn&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=taekchef/claude-code-zh-cn&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=taekchef/claude-code-zh-cn&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=taekchef/claude-code-zh-cn&type=Date" />
+  </picture>
+</a>
