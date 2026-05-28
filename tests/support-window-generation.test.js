@@ -47,12 +47,13 @@ test("checked-in plugin support window has no generator drift", () => {
 
 test("native support includes issue 80 reporter version", () => {
   const generated = JSON.parse(generate());
+  const issue80ReporterVersion = "2.1.153";
 
   assert.equal(
     generated.macosNativeExperimental.ceiling,
     compatConfig.support.macosNativeExperimental.ceiling
   );
-  assert.ok(generated.macosNativeExperimental.versions.includes("2.1.152"));
-  assert.equal(generated.windowsNativeExperimental.ceiling, "2.1.152");
-  assert.ok(generated.windowsNativeExperimental.versions.includes("2.1.152"));
+  assert.ok(generated.macosNativeExperimental.versions.includes(issue80ReporterVersion));
+  assert.equal(generated.windowsNativeExperimental.ceiling, issue80ReporterVersion);
+  assert.ok(generated.windowsNativeExperimental.versions.includes(issue80ReporterVersion));
 });

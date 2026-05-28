@@ -169,6 +169,54 @@
         "rule": "template",
         "sourceRegex": "text:`\\$\\{[^}]+\\}Ultrareview launched for \\$\\{[^}]+\\} \\(\\$\\{[^}]+\\}, runs in the cloud\\)\\. Track: \\$\\{[^}]+\\}\\$\\{[^}]+\\}`",
         "regex": "text:`\\$\\{[^}]+\\}Ultrareview 已为 \\$\\{[^}]+\\} 启动（\\$\\{[^}]+\\}，云端运行）。跟踪：\\$\\{[^}]+\\}\\$\\{[^}]+\\}`"
+      },
+      {
+        "id": "issue80_jetbrains_install_notice",
+        "rule": "translate",
+        "sourcePattern": " plugin from the JetBrains Marketplace:",
+        "pattern": "从 JetBrains Marketplace 安装 "
+      },
+      {
+        "id": "issue80_model_switch_notice",
+        "rule": "template",
+        "sourcePattern": " and saved as your default for new sessions",
+        "pattern": "已切换模型为 "
+      },
+      {
+        "id": "issue80_model_session_scope_notice",
+        "rule": "translate",
+        "sourcePattern": " for this session only. Selecting a model will undo this.",
+        "pattern": "（仅本次会话）。选择模型将取消此设置。"
+      },
+      {
+        "id": "issue80_code_review_command_description",
+        "rule": "template",
+        "sourcePattern": "Review the current diff for correctness bugs and reuse/simplification/efficiency cleanups at the given effort level",
+        "pattern": "审查当前 diff 的正确性问题"
+      },
+      {
+        "id": "issue80_simplify_command_description",
+        "rule": "translate",
+        "sourcePattern": "Review the current diff and apply the fixes \\u2014 equivalent to /code-review --fix.",
+        "pattern": "审查当前 diff 并应用修复，相当于 /code-review --fix。"
+      },
+      {
+        "id": "issue80_advisor_command_description",
+        "rule": "translate",
+        "sourcePattern": "Configure the Advisor Tool to consult a stronger model for guidance at key moments during a task",
+        "pattern": "配置 Advisor Tool，在任务关键节点咨询更强模型获取建议"
+      },
+      {
+        "id": "issue80_background_command_description",
+        "rule": "translate",
+        "sourcePattern": "Send this session to the background and free the terminal",
+        "pattern": "将本会话放到后台并释放终端"
+      },
+      {
+        "id": "issue80_clear_command_description",
+        "rule": "translate",
+        "sourcePattern": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
+        "pattern": "用空上下文开始新会话；之前的会话会保留在磁盘上（可用 /resume 恢复）"
       }
     ],
     "displayAudit": {
@@ -482,7 +530,7 @@
     },
     "windowsNativeExperimental": {
       "floor": "2.1.113",
-      "ceiling": "2.1.152",
+      "ceiling": "2.1.153",
       "platform": "win32-x64",
       "packageName": "@anthropic-ai/claude-code-win32-x64",
       "representatives": [
@@ -516,7 +564,8 @@
         "2.1.146",
         "2.1.148",
         "2.1.150",
-        "2.1.152"
+        "2.1.152",
+        "2.1.153"
       ],
       "excluded": [
         "2.1.115",

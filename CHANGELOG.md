@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.33] - 2026-05-28
+
+### 修复
+
+- Windows x64 native `.exe` experimental 支持窗口扩展到 Claude Code `2.1.153`，跟进 issue #80 reporter 在 `v2.4.32` 下仍落在本机自验证路径的问题。
+- 补齐 issue #80 截图里暴露的 2.1.153 可见英文残留：model 切换提示、JetBrains 插件提示、`/simplify`、`/advisor`、`/background` 和 `/clear` 描述，并加入 upstream guard 防止 native 验证只看版本窗口、漏看新文案。
+
+### 验证
+
+- Native Latest Candidate workflow `26559956813` 的 Windows native candidate job 通过，artifact 为 `windows-native-latest-candidate-2.1.153`。
+- `node --test tests/patch-cli.test.js tests/translations-quality.test.js tests/upstream-compat.test.js`
+
 ## [2.4.32] - 2026-05-28
 
 ### 改进

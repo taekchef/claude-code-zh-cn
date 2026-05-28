@@ -613,6 +613,41 @@ function installDurationFormatterLocalization() {
     }
 }
 
+function installIssue80VisibleResidueLocalization() {
+    // Dynamic UI fragments from Claude Code 2.1.153: keep these structural so
+    // broad shards like "Install the " and "Set model to " do not leak into prompts.
+    tryRegexReplace(
+        /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([^,]+),null,"Install the ",\1\.createElement\(\2,\{color:"ide"\},([A-Za-z0-9_$]+)\)," plugin from the JetBrains Marketplace:"," ",\1\.createElement\(\2,\{bold:!0\},"https:\/\/docs\.claude\.com\/s\/claude-code-jetbrains"\)\)/g,
+        (match, factory, component, ideName) =>
+            `${factory}.createElement(${component},null,"从 JetBrains Marketplace 安装 ",${factory}.createElement(${component},{color:"ide"},${ideName})," 插件："," ",${factory}.createElement(${component},{bold:!0},"https://docs.claude.com/s/claude-code-jetbrains"))`
+    );
+
+    tryRegexReplace(
+        /let ([A-Za-z0-9_$]+)=`Set model to \$\{([^}]+)\}\$\{([^}]+)\?" and saved as your default for new sessions":" for this session only"\}`/g,
+        (match, messageVar, modelExpr, defaultExpr) =>
+            `let ${messageVar}=\`已切换模型为 \${${modelExpr}}\${${defaultExpr}?"，并已保存为新会话默认模型":"（仅本次会话）"}\``
+    );
+
+    tryRegexReplace(
+        /(\blet\s+|,)([A-Za-z0-9_$]+)=`Model set to \$\{([^}]+)\}\$\{([^}]+)\?" and saved as your default for new sessions":" for this session only"\}`/g,
+        (match, prefix, messageVar, modelExpr, defaultExpr) =>
+            `${prefix}${messageVar}=\`已切换模型为 \${${modelExpr}}\${${defaultExpr}?"，并已保存为新会话默认模型":"（仅本次会话）"}\``
+    );
+
+    tryRegexReplace(
+        /([A-Za-z0-9_$]+)\(`Set model to \$\{([^}]+)\}`\)/g,
+        (match, notifyFn, modelExpr) => `${notifyFn}(\`已切换模型为 \${${modelExpr}}\`)`
+    );
+
+    tryRegexReplace(
+        /return`Review the current diff for correctness bugs and reuse\/simplification\/efficiency cleanups at the given effort level \(low\/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings\$\{([^}]+)\}\)\. Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review\.`/g,
+        (match, ultraExpr) => {
+            const ultraCondition = ultraExpr.match(/^([^?]+)\?/)?.[1] || "false";
+            return `return\`审查当前 diff 的正确性问题，以及复用性、简化和效率改进；按指定 effort 级别执行（low/medium：只报更少、更高置信的问题；high→max：覆盖更广，可能包含不确定问题\${${ultraCondition}?"；ultra：云端深度多 Agent review":""}）。传 --comment 可将发现发布为 PR 行内评论，传 --fix 可在 review 后把发现应用到工作区。\``;
+        }
+    );
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -621,6 +656,7 @@ function installDurationFormatterLocalization() {
 installStatuslinePromptPathGuard();
 installStatuslineCommandPromptPathGuard();
 installDurationFormatterLocalization();
+installIssue80VisibleResidueLocalization();
 
 // 1. 过去式动词数组
 tryRegexReplace(
