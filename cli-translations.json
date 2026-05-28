@@ -6387,7 +6387,7 @@
   },
   {
     "en": "JSON object defining custom agents (e.g. '{\"reviewer\": {\"description\": \"Reviews code\", \"prompt\": \"You are a code reviewer\"}}')",
-    "zh": "定义自定义 Agent 的 JSON 对象（例如 '{\"reviewer\": {\"description\": \"Reviews code\", \"prompt\": \"You are a code reviewer\"}}'）"
+    "zh": "定义自定义 Agent 的 JSON 对象（例如 '{\"reviewer\": {\"description\": \"审查代码\", \"prompt\": \"你是代码审查员\"}}'）"
   },
   {
     "en": "Enable bypassing all permission checks as an option, without it being enabled by default. Recommended only for sandboxes with no internet access.",
@@ -6451,7 +6451,7 @@
   },
   {
     "en": "File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)",
-    "zh": "启动时要下载的文件资源。格式：file_id:relative_path（例如 --file file_abc:doc.txt file_def:img.png）"
+    "zh": "启动时下载文件资源。格式：file_id:relative_path（例如 --file file_abc:doc.txt file_def:img.png）"
   },
   {
     "en": "When resuming, create a new session ID instead of reusing the original (use with --resume or --continue)",
@@ -6475,7 +6475,7 @@
   },
   {
     "en": "JSON Schema for structured output validation. Example: {\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}",
-    "zh": "用于结构化输出校验的 JSON Schema。示例：{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}"
+    "zh": "结构化输出校验用 JSON Schema。示例：{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}"
   },
   {
     "en": "[DEPRECATED. Use --debug instead] Enable MCP debug mode (shows MCP server errors)",

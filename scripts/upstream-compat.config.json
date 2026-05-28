@@ -308,7 +308,7 @@
         {
           "id": "top_json_schema_term",
           "command": "top_help",
-          "pattern": "JSON Schema"
+          "regex": "JSON\\s+Schema"
         },
         {
           "id": "top_anthropic_api_key",
@@ -358,11 +358,18 @@
         "npm",
         "stable",
         "latest",
-        "stream-json"
+        "stream-json",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
       ],
       "allowedEnglishLineRegexes": [
         "^\\s*[a-z][a-z0-9-]*(\\|[a-z][a-z0-9-]*)?(\\s+\\[[^\\]]+\\])?$",
-        "^\\s*claude\\s+.*$"
+        "^\\s*claude\\s+.*$",
+        "^\\s*--file\\s+file_[a-z]+:[A-Za-z0-9_.-]+(?:\\s+file_[a-z]+:[A-Za-z0-9_.-]+)?[）)]?$",
+        "^\\s*file_[a-z]+:[A-Za-z0-9_.-]+[）)]?$"
       ],
       "minEnglishWords": 2,
       "maxUntranslatedLines": 0
