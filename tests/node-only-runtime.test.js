@@ -109,7 +109,11 @@ test("install.sh syncs CC Switch common config only with consent", { skip: hasSq
     dbFile,
     [
       "create table settings (key text primary key, value text);",
+      "create table providers (id text not null, app_type text not null, name text not null, settings_config text not null, meta text not null default '{}', is_current boolean not null default 0, primary key(id, app_type));",
       `insert into settings(key,value) values('common_config_claude', CAST(readfile(${sqlString(seedFile)}) AS TEXT));`,
+      `insert into providers(id,app_type,name,settings_config,meta,is_current) values('deepseek','claude','DeepSeek','{}',${sqlString(JSON.stringify({ apiFormat: "anthropic" }))},0);`,
+      `insert into providers(id,app_type,name,settings_config,meta,is_current) values('xavier','claude','Xavier','{}',${sqlString(JSON.stringify({ apiFormat: "anthropic", commonConfigEnabled: false }))},0);`,
+      `insert into providers(id,app_type,name,settings_config,meta,is_current) values('codex','codex','Codex','{}',${sqlString(JSON.stringify({ apiFormat: "openai" }))},0);`,
     ].join(" ")
   ]);
 
@@ -133,6 +137,12 @@ test("install.sh syncs CC Switch common config only with consent", { skip: hasSq
     })
   );
   assert.equal(ccSwitch.language, undefined);
+  let providerMeta = JSON.parse(
+    execFileSync("sqlite3", [dbFile, "select meta from providers where id='deepseek' and app_type='claude';"], {
+      encoding: "utf8",
+    })
+  );
+  assert.equal(providerMeta.commonConfigEnabled, undefined);
 
   const quietUpdate = spawnSync("/bin/bash", [path.join(repoRoot, "install.sh"), "--update-only"], {
     cwd: repoRoot,
@@ -170,6 +180,25 @@ test("install.sh syncs CC Switch common config only with consent", { skip: hasSq
   assert.equal(ccSwitch.spinnerVerbs.verbs.length, 187);
   assert.equal(ccSwitch.spinnerTipsOverride.tips.length, 41);
   assert.equal(ccSwitch.env.ANTHROPIC_BASE_URL, "https://example.test");
+
+  const providerMetaById = Object.fromEntries(
+    execFileSync("sqlite3", [
+      dbFile,
+      "select id || char(9) || meta from providers order by app_type, id;",
+    ], { encoding: "utf8" })
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => {
+        const [id, meta] = line.split("\t");
+        return [id, JSON.parse(meta)];
+      })
+  );
+  assert.equal(providerMetaById.deepseek.commonConfigEnabled, true);
+  assert.equal(providerMetaById.deepseek.apiFormat, "anthropic");
+  assert.equal(providerMetaById.xavier.commonConfigEnabled, true);
+  assert.equal(providerMetaById.xavier.apiFormat, "anthropic");
+  assert.equal(providerMetaById.codex.commonConfigEnabled, undefined);
+
   assert.equal(
     fs.readFileSync(path.join(home, ".claude", "plugins", "claude-code-zh-cn", ".ccswitch-sync-consent"), "utf8").trim(),
     "allow"
@@ -178,7 +207,10 @@ test("install.sh syncs CC Switch common config only with consent", { skip: hasSq
   fs.writeFileSync(seedFile, "{}\n");
   execFileSync("sqlite3", [
     dbFile,
-    `update settings set value=CAST(readfile(${sqlString(seedFile)}) AS TEXT) where key='common_config_claude';`
+    [
+      `update settings set value=CAST(readfile(${sqlString(seedFile)}) AS TEXT) where key='common_config_claude';`,
+      `update providers set meta=${sqlString(JSON.stringify({ apiFormat: "anthropic", commonConfigEnabled: false }))} where id='deepseek' and app_type='claude';`,
+    ].join(" ")
   ]);
 
   const remembered = spawnSync("/bin/bash", [path.join(repoRoot, "install.sh"), "--update-only"], {
@@ -200,6 +232,12 @@ test("install.sh syncs CC Switch common config only with consent", { skip: hasSq
   );
   assert.equal(ccSwitch.language, "Chinese");
   assert.equal(ccSwitch.spinnerVerbs.verbs.length, 187);
+  providerMeta = JSON.parse(
+    execFileSync("sqlite3", [dbFile, "select meta from providers where id='deepseek' and app_type='claude';"], {
+      encoding: "utf8",
+    })
+  );
+  assert.equal(providerMeta.commonConfigEnabled, true);
   assert.ok(fs.readdirSync(path.dirname(dbFile)).some((name) => name.startsWith("cc-switch.db.zh-cn-backup.")));
 });
 

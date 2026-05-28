@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.31] - 2026-05-28
+
+### 修复
+
+- CC Switch 同步逻辑在写入 `common_config_claude` 的同时，会为 Claude 供应商启用通用配置写入，避免切换到其他模型/供应商后中文设置再次被覆盖。
+- `doctor` 会检查 Claude 供应商是否启用了通用配置写入；当通用配置已包含中文设置但 provider 未启用时，会明确提示需要重新运行安装器或在 CC Switch 中勾选写入通用配置。
+
+### 验证
+
+- `node --test tests/node-only-runtime.test.js tests/doctor.test.js tests/install-smoke.test.js`
+- `node --test tests/*.test.js`
+- `bash scripts/preflight.sh`
+
 ## [2.4.30] - 2026-05-28
 
 ### 新增

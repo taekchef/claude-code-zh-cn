@@ -253,6 +253,67 @@ function spinnerTipCount(spinnerTipsOverride) {
   return 0;
 }
 
+function decodeHex(value) {
+  return Buffer.from(String(value || ""), "hex").toString("utf8");
+}
+
+function readCcSwitchClaudeProviders(dbFile) {
+  const tableResult = spawnSync(
+    "sqlite3",
+    [dbFile, "select count(*) from sqlite_master where type='table' and name='providers';"],
+    { encoding: "utf8" }
+  );
+
+  if (tableResult.status !== 0 || String(tableResult.stdout || "").trim() !== "1") {
+    return null;
+  }
+
+  const result = spawnSync(
+    "sqlite3",
+    [
+      dbFile,
+      "select hex(id), hex(name), hex(meta) from providers where app_type='claude' order by is_current desc, sort_index, name;",
+    ],
+    { encoding: "utf8" }
+  );
+
+  if (result.status !== 0) {
+    return null;
+  }
+
+  const providers = [];
+  for (const line of String(result.stdout || "").split(/\r?\n/).filter(Boolean)) {
+    const [idHex, nameHex, metaHex] = line.split("|");
+    const id = decodeHex(idHex);
+    const name = decodeHex(nameHex) || id || "(未命名)";
+    const metaText = decodeHex(metaHex);
+
+    try {
+      const meta = metaText.trim() ? JSON.parse(metaText) : {};
+      providers.push({
+        name,
+        commonConfigEnabled: meta && typeof meta === "object" && !Array.isArray(meta)
+          ? meta.commonConfigEnabled === true || meta.commonConfigEnabled === 1
+          : false,
+        invalidMeta: false,
+      });
+    } catch (_) {
+      providers.push({ name, commonConfigEnabled: false, invalidMeta: true });
+    }
+  }
+
+  return {
+    total: providers.length,
+    enabled: providers.filter((provider) => provider.commonConfigEnabled).length,
+    disabled: providers
+      .filter((provider) => !provider.commonConfigEnabled && !provider.invalidMeta)
+      .map((provider) => provider.name),
+    invalidMeta: providers
+      .filter((provider) => provider.invalidMeta)
+      .map((provider) => provider.name),
+  };
+}
+
 function readCcSwitchCommonConfig(homeDir) {
   const dbFile = path.join(homeDir, ".cc-switch", "cc-switch.db");
   if (!fs.existsSync(dbFile)) {
@@ -282,7 +343,11 @@ function readCcSwitchCommonConfig(homeDir) {
   }
 
   try {
-    return { exists: true, settings: JSON.parse(raw) };
+    return {
+      exists: true,
+      settings: JSON.parse(raw),
+      claudeProviders: readCcSwitchClaudeProviders(dbFile),
+    };
   } catch (error) {
     return {
       exists: true,
@@ -398,12 +463,29 @@ function runDoctor(options = {}) {
         tipCount >= 40;
 
       if (complete) {
-        add(
-          "cc-switch",
-          "CC Switch 通用配置",
-          "ok",
-          `common_config_claude 已包含中文设置，spinner 动词 ${verbCount} 个，提示 ${tipCount} 条`
-        );
+        const providerStatus = ccSwitch.claudeProviders;
+        const providerProblems = providerStatus
+          ? [...providerStatus.disabled, ...providerStatus.invalidMeta]
+          : [];
+
+        if (providerProblems.length > 0) {
+          const preview = providerProblems.slice(0, 3).join("、");
+          const more = providerProblems.length > 3 ? ` 等 ${providerProblems.length} 个` : "";
+          add(
+            "cc-switch",
+            "CC Switch 通用配置",
+            "warn",
+            `common_config_claude 已包含中文设置，但 ${providerProblems.length} 个 Claude 供应商未启用通用配置：${preview}${more}`
+          );
+          recommendations.push("重新运行 ./install.sh 并同意同步；或在 CC Switch 中为这些 Claude 供应商勾选写入通用配置");
+        } else {
+          add(
+            "cc-switch",
+            "CC Switch 通用配置",
+            "ok",
+            `common_config_claude 已包含中文设置，spinner 动词 ${verbCount} 个，提示 ${tipCount} 条`
+          );
+        }
       } else {
         add(
           "cc-switch",

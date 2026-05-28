@@ -420,7 +420,7 @@ ccswitch_prompt_for_consent() {
     {
         echo ""
         echo -e "${YELLOW}检测到你在使用 CC Switch。它切换供应商时会重写 Claude 的 settings.json，可能覆盖中文插件设置。${NC}"
-        echo "要不要现在把中文插件设置同步到 CC Switch 的“通用配置”？"
+        echo "要不要现在把中文插件设置同步到 CC Switch 的“通用配置”，并让 Claude 供应商切换时写入通用配置？"
         echo "同意后，之后切换供应商也会保留中文；不会修改 API Key、模型或供应商配置。"
         printf "输入 Y 帮我同步，或 n 自己处理 [Y/n]: "
     } > /dev/tty
@@ -534,11 +534,74 @@ fs.writeFileSync(
 NODE
 }
 
+ccswitch_build_provider_meta_updates() {
+    local providers_file="$1"
+    local output_file="$2"
+
+    ZH_CN_CCSWITCH_PROVIDERS_FILE="$providers_file" \
+    ZH_CN_CCSWITCH_PROVIDER_SQL_FILE="$output_file" \
+    node <<'NODE'
+const fs = require("fs");
+
+function fromHex(hex) {
+  return Buffer.from(hex || "", "hex").toString("utf8");
+}
+
+function sqlString(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+const raw = fs.readFileSync(process.env.ZH_CN_CCSWITCH_PROVIDERS_FILE, "utf8").replace(/\r/g, "");
+const lines = raw.split("\n").filter(Boolean);
+const updates = [];
+let changed = 0;
+let skipped = 0;
+
+for (const line of lines) {
+  const tab = line.indexOf("\t");
+  if (tab < 0) {
+    skipped += 1;
+    continue;
+  }
+
+  const id = fromHex(line.slice(0, tab));
+  const metaText = fromHex(line.slice(tab + 1).trim());
+  let meta;
+
+  try {
+    meta = metaText.trim() ? JSON.parse(metaText) : {};
+  } catch (_) {
+    skipped += 1;
+    continue;
+  }
+
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    skipped += 1;
+    continue;
+  }
+
+  if (meta.commonConfigEnabled !== true) {
+    changed += 1;
+  }
+  meta.commonConfigEnabled = true;
+
+  updates.push(
+    `update providers set meta=${sqlString(JSON.stringify(meta))} where id=${sqlString(id)} and app_type='claude';`
+  );
+}
+
+fs.writeFileSync(process.env.ZH_CN_CCSWITCH_PROVIDER_SQL_FILE, updates.join("\n") + (updates.length ? "\n" : ""));
+process.stdout.write(`${changed} ${lines.length} ${skipped}`);
+NODE
+}
+
 sync_ccswitch_common_config() {
     local overlay_content="$1"
     local db_file="$HOME/.cc-switch/cc-switch.db"
     local consent status answer consent_source
-    local current_file overlay_file merged_file backup_file escaped_merged
+    local current_file overlay_file merged_file providers_file provider_sql_file
+    local backup_file escaped_merged provider_update_sql provider_sync_summary
+    local provider_sync_changed provider_sync_total provider_sync_skipped provider_sync_rest
 
     [ -f "$db_file" ] || return 0
 
@@ -553,10 +616,12 @@ sync_ccswitch_common_config() {
     current_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-current.XXXXXX")"
     overlay_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-overlay.XXXXXX")"
     merged_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-merged.XXXXXX")"
+    providers_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-providers.XXXXXX")"
+    provider_sql_file="$(mktemp "${TMPDIR:-/tmp}/cczh-ccswitch-providers-sql.XXXXXX")"
     printf "%s" "$overlay_content" > "$overlay_file"
 
     if ! sqlite3 "$db_file" "select value from settings where key='common_config_claude';" > "$current_file" 2>/dev/null; then
-        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
         if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${YELLOW}检测到 CC Switch，但无法读取通用配置表，已跳过自动同步。${NC}"
         fi
@@ -565,11 +630,22 @@ sync_ccswitch_common_config() {
 
     status="$(ccswitch_config_status "$current_file" "$overlay_file")"
     if [ "$status" = "ok" ]; then
-        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
-        return 0
+        if [ "$(sqlite3 "$db_file" "select count(*) from sqlite_master where type='table' and name='providers';" 2>/dev/null)" != "1" ] || \
+            ! sqlite3 "$db_file" "select hex(id) || char(9) || hex(meta) from providers where app_type='claude';" > "$providers_file" 2>/dev/null || \
+            [ ! -s "$providers_file" ]; then
+            rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
+            return 0
+        fi
+        provider_sync_summary="$(ccswitch_build_provider_meta_updates "$providers_file" "$provider_sql_file" 2>/dev/null || true)"
+        provider_sync_changed="${provider_sync_summary%% *}"
+        if [ "${provider_sync_changed:-0}" = "0" ]; then
+            rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
+            return 0
+        fi
+        status="needs-sync"
     fi
     if [ "$status" != "needs-sync" ]; then
-        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
         if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${YELLOW}检测到 CC Switch，但 common_config_claude 不是有效 JSON，已跳过自动同步。${NC}"
             ccswitch_manual_steps
@@ -606,7 +682,7 @@ sync_ccswitch_common_config() {
             consent_source="prompt"
             ccswitch_write_consent "manual"
         else
-            rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+            rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
             if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
                 echo -e "${YELLOW}检测到 CC Switch 通用配置缺少中文设置；当前不是交互式安装，未自动修改。${NC}"
                 echo -e "${YELLOW}如需授权自动同步，可运行：ZH_CN_CCSWITCH_SYNC=1 ./install.sh${NC}"
@@ -617,7 +693,7 @@ sync_ccswitch_common_config() {
     fi
 
     if [ "$consent" != "allow" ]; then
-        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
         if [ "$consent_source" = "prompt" ] && [ "$SKIP_BANNER" != "1" ]; then
             ccswitch_manual_steps
         fi
@@ -626,7 +702,7 @@ sync_ccswitch_common_config() {
 
     ccswitch_write_consent "allow"
     if ! ccswitch_build_merged_config "$current_file" "$overlay_file" "$merged_file" >/dev/null 2>&1; then
-        rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+        rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
         if [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${YELLOW}CC Switch 通用配置合并失败，已跳过自动同步。${NC}"
             ccswitch_manual_steps
@@ -634,13 +710,36 @@ sync_ccswitch_common_config() {
         return 0
     fi
 
+    provider_update_sql=""
+    provider_sync_summary=""
+    if [ "$(sqlite3 "$db_file" "select count(*) from sqlite_master where type='table' and name='providers';" 2>/dev/null)" = "1" ]; then
+        if sqlite3 "$db_file" "select hex(id) || char(9) || hex(meta) from providers where app_type='claude';" > "$providers_file" 2>/dev/null; then
+            provider_sync_summary="$(ccswitch_build_provider_meta_updates "$providers_file" "$provider_sql_file" 2>/dev/null || true)"
+            if [ -s "$provider_sql_file" ]; then
+                provider_update_sql="$(cat "$provider_sql_file")"
+            fi
+        fi
+    fi
+
     backup_file="${db_file}.zh-cn-backup.$(date +%Y%m%d%H%M%S)"
     cp "$db_file" "$backup_file" 2>/dev/null || backup_file=""
 
     escaped_merged="${merged_file//\'/\'\'}"
-    if sqlite3 "$db_file" "begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('$escaped_merged') AS TEXT)); delete from settings where key='common_config_claude_cleared'; commit;" >/dev/null 2>&1; then
+    if sqlite3 "$db_file" "begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('$escaped_merged') AS TEXT)); delete from settings where key='common_config_claude_cleared'; ${provider_update_sql} commit;" >/dev/null 2>&1; then
         if [ "$SKIP_BANNER" != "1" ]; then
             echo -e "${GREEN}已在用户同意后同步 CC Switch 通用配置${NC}"
+            if [ -n "$provider_sync_summary" ]; then
+                provider_sync_changed="${provider_sync_summary%% *}"
+                provider_sync_rest="${provider_sync_summary#* }"
+                provider_sync_total="${provider_sync_rest%% *}"
+                provider_sync_skipped="${provider_sync_rest#* }"
+                if [ "${provider_sync_total:-0}" != "0" ]; then
+                    echo -e "${GREEN}已让 CC Switch 的 Claude 供应商切换时写入通用配置（${provider_sync_changed}/${provider_sync_total} 个需要更新）${NC}"
+                fi
+                if [ "${provider_sync_skipped:-0}" != "0" ]; then
+                    echo -e "${YELLOW}有 ${provider_sync_skipped} 个 Claude 供应商 meta 不是有效 JSON，已跳过。${NC}"
+                fi
+            fi
             [ -n "$backup_file" ] && echo -e "${GREEN}已备份 CC Switch 数据库 → ${backup_file}${NC}"
         fi
     else
@@ -651,7 +750,7 @@ sync_ccswitch_common_config() {
         fi
     fi
 
-    rm -f "$current_file" "$overlay_file" "$merged_file" 2>/dev/null || true
+    rm -f "$current_file" "$overlay_file" "$merged_file" "$providers_file" "$provider_sql_file" 2>/dev/null || true
 }
 
 merge_settings() {
