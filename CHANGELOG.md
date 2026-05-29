@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.34] - 2026-05-29
+
+### 修复
+
+- 补齐 `/exit`、`/feedback`、`/focus`、`/goal` 等 slash command 菜单描述的中文翻译，覆盖 issue #80 后续截图里仍残留的英文。
+- 新增 `/fast` 动态模板翻译规则，支持 `Opus 4.6`、`Opus 4.8` 等不同上游模型名，避免只命中特定旧版本文案。
+- 扩展 upstream guard，把这些 slash 菜单描述纳入跨版本兼容检查，避免后续版本再次漏掉。
+
+### 验证
+
+- `node --test tests/patch-cli.test.js tests/translations-quality.test.js tests/translations-schema.test.js tests/upstream-compat.test.js`
+- `bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.33] - 2026-05-28
 
 ### 修复
