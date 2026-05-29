@@ -457,6 +457,7 @@ test("issue 80 slash command menu residues are translated", () => {
     'const feedback={name:"feedback",description:"Submit feedback, report a bug, or share your conversation"};',
     'const focus={name:"focus",description:"Toggle focus view (show only your prompt, a tool summary, and the final response)"};',
     'const goal={name:"goal",description:"Set a goal \\u2014 keep working until the condition is met"};',
+    "const singleQuotedGoal={name:'goal',description:'Set a goal \\u2014 keep working until the condition is met'};",
     'const usage={name:"usage",description:"Show session cost, plan usage, and activity stats"};',
     'const stop={name:"stop",description:"Stop this background session; transcript and worktree are kept"};',
     "",
@@ -472,6 +473,7 @@ test("issue 80 slash command menu residues are translated", () => {
   assert.match(patched, /提交反馈、报告问题或分享你的对话/);
   assert.match(patched, /切换专注视图/);
   assert.match(patched, /设置目标：持续工作直到条件满足/);
+  assert.match(patched, /description:'设置目标：持续工作直到条件满足'/);
   assert.match(patched, /显示会话成本、计划用量和活动统计/);
   assert.match(patched, /停止这个后台会话；保留 transcript 和 worktree/);
 });

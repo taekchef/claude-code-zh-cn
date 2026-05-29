@@ -88,6 +88,16 @@ function escapeSingleQuotedLiteralContent(text) {
         .replace(/'/g, "\\'");
 }
 
+function escapeSingleQuotedLiteralNeedleContent(text) {
+    return text
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n")
+        .replace(/\t/g, "\\t")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029")
+        .replace(/'/g, "\\'");
+}
+
 function replaceTemplateLiteralTextParts(parts, en, zh) {
     let hit = false;
     for (const part of parts) {
@@ -872,7 +882,7 @@ if (translationsFile && fs.existsSync(translationsFile)) {
                 continue;
             }
 
-            const needle = literal.quote === "'" ? escapeSingleQuotedLiteralContent(en) : en;
+            const needle = literal.quote === "'" ? escapeSingleQuotedLiteralNeedleContent(en) : en;
             const replacementText = literal.quote === "'" ? escapeSingleQuotedLiteralContent(zh) : zh;
             if (!literal.text.includes(needle)) {
                 continue;
