@@ -62,6 +62,16 @@ function compactVersions(versions) {
   return segments;
 }
 
+function nativePatchRange() {
+  const patchCounts = [...String(nativeSupport.verification || "").matchAll(/native (\d+), display/g)].map(
+    (match) => Number.parseInt(match[1], 10)
+  );
+  assert.notEqual(patchCounts.length, 0, "native support verification should include patch counts");
+  return `${Math.min(...patchCounts)}-${Math.max(...patchCounts)}`;
+}
+
+const expectedNativePatchRange = nativePatchRange();
+
 function runSync(args) {
   return spawnSync("node", [syncScript, ...args], {
     cwd: repoRoot,
@@ -115,7 +125,7 @@ function makeNativeStale(filePath) {
     [/2\.1\.116 - 2\.1\.123/g, "9.9.116 - 9.9.123"],
     [new RegExp(escapeRegex(ceiling), "g"), "9.9.143"],
     [/2\.1\.115/g, "9.9.115"],
-    [/1320-1358/g, "1-2"],
+    [new RegExp(escapeRegex(expectedNativePatchRange), "g"), "1-2"],
     [/11\/11/g, "3/4"],
     [/11 个稳定显示面/g, "4 个稳定显示面"],
     [new RegExp(`${escapeRegex(englishRange)} except unsupported ${escapeRegex("`2.1.115`")}`, "g"), "9.9.113` through `9.9.143` except unsupported `9.9.115`"],
@@ -192,7 +202,7 @@ test("doc-derived count sync rewrites README native support facts from config an
   for (const segment of compactVersions(nativeSupport.representatives)) {
     assert.match(text, new RegExp(escapeRegex(`\`${segment}\``)));
   }
-  assert.match(text, /1320-1358 处/);
+  assert.match(text, new RegExp(`${escapeRegex(expectedNativePatchRange)} 处`));
   assert.match(text, /显示审计 11\/11 PASS/);
   assert.match(text, /11 个稳定显示面/);
   assert.match(
