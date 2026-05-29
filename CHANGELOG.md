@@ -11,7 +11,7 @@
 ### 修复
 
 - 修复单引号字符串里的 `/goal` 描述匹配：`Set a goal \u2014 keep working until the condition is met` 这类 escaped Unicode 文案现在会被正确汉化，覆盖 PR #99 Codex review 指出的漏网路径。
-- 补齐同一批 slash / prompt command 菜单里的后续英文描述：`/batch`、`/claude-in-chrome`、`/fewer-permission-prompts`、`/simplify`、`/schedule`，并加入 upstream guard 防止回归。
+- 补齐同一批 slash / prompt command 菜单里的后续英文描述：`/batch`、`/claude-in-chrome`、`/fewer-permission-prompts`、`/simplify`、`/schedule`、`/run`、`/run-skill-generator`，并加入 upstream guard 防止回归。
 
 ### 验证
 

@@ -662,6 +662,8 @@ test("production upstream compat config guards issue #80 visible native residues
       "issue80_fewer_permission_prompts_command_description",
       "issue80_prompt_simplify_command_description",
       "issue80_schedule_command_description",
+      "issue80_run_command_description",
+      "issue80_run_skill_generator_command_description",
     ].filter((id) => !guardIds.has(id)),
     []
   );

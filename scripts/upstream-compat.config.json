@@ -295,6 +295,18 @@
         "rule": "translate",
         "sourcePattern": "Create, update, list, or run scheduled remote agents (routines) that execute on a cron schedule.",
         "pattern": "按 cron 定时执行"
+      },
+      {
+        "id": "issue80_run_command_description",
+        "rule": "translate",
+        "sourcePattern": "Launch and drive this project's app to see a change working.",
+        "pattern": "确认改动实际生效"
+      },
+      {
+        "id": "issue80_run_skill_generator_command_description",
+        "rule": "translate",
+        "sourcePattern": "Author or improve the run-<unit> skill for this project.",
+        "pattern": "编写或改进 run-<unit> skill"
       }
     ],
     "displayAudit": {

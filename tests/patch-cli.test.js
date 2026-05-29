@@ -463,6 +463,8 @@ test("issue 80 slash command menu residues are translated", () => {
     'const fewer={name:"fewer-permission-prompts",description:"Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts."};',
     'const simplify={name:"simplify",description:"Review the changed code for reuse, simplification, efficiency, and altitude cleanups, then apply the fixes. Quality only \\u2014 it does not hunt for bugs; use /code-review for that."};',
     'const schedule={name:"schedule",description:"Create, update, list, or run scheduled remote agents (routines) that execute on a cron schedule."};',
+    "const run={name:\"run\",description:\"Launch and drive this project's app to see a change working.\"};",
+    'const runSkillGenerator={name:"run-skill-generator",description:"Author or improve the run-<unit> skill for this project."};',
     'const usage={name:"usage",description:"Show session cost, plan usage, and activity stats"};',
     'const stop={name:"stop",description:"Stop this background session; transcript and worktree are kept"};',
     "",
@@ -484,6 +486,8 @@ test("issue 80 slash command menu residues are translated", () => {
   assert.match(patched, /减少权限确认/);
   assert.match(patched, /只做质量清理，不查 bug/);
   assert.match(patched, /按 cron 定时执行/);
+  assert.match(patched, /确认改动实际生效/);
+  assert.match(patched, /编写或改进 run-<unit> skill/);
   assert.match(patched, /显示会话成本、计划用量和活动统计/);
   assert.match(patched, /停止这个后台会话；保留 transcript 和 worktree/);
 });

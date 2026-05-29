@@ -6862,6 +6862,10 @@
     "zh": "自动操作你的 Chrome 浏览器与网页交互：点击元素、填写表单、截图、读取 console 日志并浏览网站。会在现有 Chrome 会话中打开新标签页，执行前需要站点级权限（在扩展中配置）。"
   },
   {
+    "en": "Author or improve the run-<unit> skill for this project.",
+    "zh": "为这个项目编写或改进 run-<unit> skill。"
+  },
+  {
     "en": "Browse dynamic workflow history (running and completed)",
     "zh": "浏览动态 workflow 历史（运行中和已完成）"
   },
@@ -6900,6 +6904,10 @@
   {
     "en": "Install the Claude Slack app",
     "zh": "安装 Claude Slack 应用"
+  },
+  {
+    "en": "Launch and drive this project's app to see a change working.",
+    "zh": "启动并操作这个项目的应用，确认改动实际生效。"
   },
   {
     "en": "List, create, and delete recurring loops and stop-hooks",
