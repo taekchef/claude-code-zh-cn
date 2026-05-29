@@ -535,6 +535,34 @@ const specialLiteralTranslations = [
     { en: "Failed to save ", zh: "保存失败：" },
 ];
 
+function translateFastModeTemplateLiteral(literal) {
+    const exprParts = literal.parts?.filter((part) => part.type === "expr") ?? [];
+    const textParts = literal.parts?.filter((part) => part.type === "text") ?? [];
+    if (exprParts.length !== 1 || textParts.length !== 2) {
+        return false;
+    }
+
+    if (textParts[0].value !== "Toggle fast mode (") {
+        return false;
+    }
+
+    const hasOnlySuffix = textParts[1].value === " only)";
+    if (textParts[1].value !== ")" && !hasOnlySuffix) {
+        return false;
+    }
+
+    textParts[0].value = hasOnlySuffix ? "切换快速模式（仅 " : "切换快速模式（";
+    textParts[1].value = "）";
+    literal.text = literal.parts.map((part) => part.value).join("");
+    return true;
+}
+
+function applyDynamicLiteralTranslations(text) {
+    return text.replace(/Toggle fast mode \((Opus [^)]+?)( only)?\)/g, (_match, model, only) => {
+        return only ? `切换快速模式（仅 ${model}）` : `切换快速模式（${model}）`;
+    });
+}
+
 function shouldSkipTranslationRule(rule) {
     return rule && (rule.skipPatch === true || rule.skipPatch === "model-prompt-contract");
 }
@@ -809,6 +837,23 @@ if (translationsFile && fs.existsSync(translationsFile)) {
 
     const literals = scanStringLiterals(s);
     let literalsChanged = false;
+
+    for (const literal of literals) {
+        if (literal.quote === "`") {
+            if (translateFastModeTemplateLiteral(literal)) {
+                literalsChanged = true;
+                count++;
+            }
+            continue;
+        }
+
+        const replaced = applyDynamicLiteralTranslations(literal.text);
+        if (replaced !== literal.text) {
+            literal.text = replaced;
+            literalsChanged = true;
+            count++;
+        }
+    }
 
     for (const { en, zh } of translationRules) {
         if (en === zh) continue;

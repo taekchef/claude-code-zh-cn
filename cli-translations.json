@@ -6828,5 +6828,137 @@
   {
     "en": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
     "zh": "用空上下文开始新会话；之前的会话会保留在磁盘上（可用 /resume 恢复）"
+  },
+  {
+    "en": "Adjust mouse wheel scroll speed",
+    "zh": "调整鼠标滚轮滚动速度"
+  },
+  {
+    "en": "Browse dynamic workflow history (running and completed)",
+    "zh": "浏览动态 workflow 历史（运行中和已完成）"
+  },
+  {
+    "en": "Claude in Chrome (beta) settings",
+    "zh": "Claude in Chrome（beta）设置"
+  },
+  {
+    "en": "Configure optional break reminders and quiet-hours nudges",
+    "zh": "配置可选的休息提醒和安静时段提示"
+  },
+  {
+    "en": "Configure usage credits to keep working when you hit a limit",
+    "zh": "配置用量额度，达到限制后继续工作"
+  },
+  {
+    "en": "Detach from this background session (it keeps running)",
+    "zh": "从这个后台会话断开（会话会继续运行）"
+  },
+  {
+    "en": "Dump the JS heap to ~/Desktop",
+    "zh": "将 JS heap dump 到 ~/Desktop"
+  },
+  {
+    "en": "Exit the CLI",
+    "zh": "退出 CLI"
+  },
+  {
+    "en": "Free up context by summarizing the conversation so far",
+    "zh": "通过总结当前对话释放上下文空间"
+  },
+  {
+    "en": "Install the Claude Slack app",
+    "zh": "安装 Claude Slack 应用"
+  },
+  {
+    "en": "List, create, and delete recurring loops and stop-hooks",
+    "zh": "列出、创建和删除循环任务与 stop-hook"
+  },
+  {
+    "en": "Listen to Claude FM lo-fi radio",
+    "zh": "收听 Claude FM lo-fi radio"
+  },
+  {
+    "en": "Manage background services: assistants, scheduled tasks, and remote control",
+    "zh": "管理后台服务：助手、计划任务和远程控制"
+  },
+  {
+    "en": "Monitor and autofix any issues with the current PR",
+    "zh": "监控并自动修复当前 PR 的问题"
+  },
+  {
+    "en": "Options shown when the Pro plan Claude Code trial has ended",
+    "zh": "Pro 计划 Claude Code 试用结束时显示的选项"
+  },
+  {
+    "en": "Pick up skills added or changed on disk during this session",
+    "zh": "加载本会话期间磁盘上新增或修改的 skills"
+  },
+  {
+    "en": "Reconfigure Amazon Bedrock authentication, region, or model pins",
+    "zh": "重新配置 Amazon Bedrock 认证、区域或模型固定"
+  },
+  {
+    "en": "Reconfigure Google Vertex AI authentication, project, region, or model pins",
+    "zh": "重新配置 Google Vertex AI 认证、项目、区域或模型固定"
+  },
+  {
+    "en": "Renamed to /usage-credits",
+    "zh": "已重命名为 /usage-credits"
+  },
+  {
+    "en": "Session keeps running. Use /stop to end it.",
+    "zh": "会话会继续运行。用 /stop 结束它。"
+  },
+  {
+    "en": "Set a goal \\u2014 keep working until the condition is met",
+    "zh": "设置目标：持续工作直到条件满足"
+  },
+  {
+    "en": "Set the AI model for Claude Code",
+    "zh": "设置 Claude Code 使用的 AI 模型"
+  },
+  {
+    "en": "Set the terminal UI renderer (default | fullscreen)",
+    "zh": "设置终端 UI 渲染器（default | fullscreen）"
+  },
+  {
+    "en": "Show current context usage",
+    "zh": "显示当前上下文用量"
+  },
+  {
+    "en": "Show session cost, plan usage, and activity stats",
+    "zh": "显示会话成本、计划用量和活动统计"
+  },
+  {
+    "en": "Spawn a background agent that inherits the full conversation",
+    "zh": "启动继承完整对话的后台 Agent"
+  },
+  {
+    "en": "Stop this background session; transcript and worktree are kept",
+    "zh": "停止这个后台会话；保留 transcript 和 worktree"
+  },
+  {
+    "en": "Submit feedback, report a bug, or share your conversation",
+    "zh": "提交反馈、报告问题或分享你的对话"
+  },
+  {
+    "en": "Switch to the latest version (conversation continues)",
+    "zh": "切换到最新版本（对话继续）"
+  },
+  {
+    "en": "Toggle automemory off/on for this session",
+    "zh": "切换本会话的 automemory 开/关"
+  },
+  {
+    "en": "Toggle brief-only mode",
+    "zh": "切换 brief-only 模式"
+  },
+  {
+    "en": "Toggle focus view (show only your prompt, a tool summary, and the final response)",
+    "zh": "切换专注视图（只显示你的提示词、工具摘要和最终回复）"
+  },
+  {
+    "en": "Toggle voice mode",
+    "zh": "切换语音模式"
   }
 ]

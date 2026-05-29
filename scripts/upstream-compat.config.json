@@ -217,6 +217,54 @@
         "rule": "translate",
         "sourcePattern": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
         "pattern": "用空上下文开始新会话；之前的会话会保留在磁盘上（可用 /resume 恢复）"
+      },
+      {
+        "id": "issue80_exit_cli_description",
+        "rule": "translate",
+        "sourcePattern": "Exit the CLI",
+        "pattern": "退出 CLI"
+      },
+      {
+        "id": "issue80_exit_background_description",
+        "rule": "translate",
+        "sourcePattern": "Detach from this background session (it keeps running)",
+        "pattern": "从这个后台会话断开（会话会继续运行）"
+      },
+      {
+        "id": "issue80_fast_dynamic_description",
+        "rule": "template",
+        "sourceRegex": "Toggle fast mode \\(\\$\\{[^}]+\\}\\)",
+        "regex": "切换快速模式（\\$\\{[^}]+\\}）"
+      },
+      {
+        "id": "issue80_fast_dynamic_only_description",
+        "rule": "template",
+        "sourceRegex": "Toggle fast mode \\(\\$\\{[^}]+\\} only\\)",
+        "regex": "切换快速模式（仅 \\$\\{[^}]+\\}）"
+      },
+      {
+        "id": "issue80_fast_concrete_description",
+        "rule": "template",
+        "sourceRegex": "Toggle fast mode \\(Opus [^)]+\\)",
+        "regex": "切换快速模式（(?:仅 )?Opus [^)]+）"
+      },
+      {
+        "id": "issue80_feedback_command_description_v2",
+        "rule": "translate",
+        "sourcePattern": "Submit feedback, report a bug, or share your conversation",
+        "pattern": "提交反馈、报告问题或分享你的对话"
+      },
+      {
+        "id": "issue80_focus_command_description",
+        "rule": "translate",
+        "sourcePattern": "Toggle focus view (show only your prompt, a tool summary, and the final response)",
+        "pattern": "切换专注视图（只显示你的提示词、工具摘要和最终回复）"
+      },
+      {
+        "id": "issue80_goal_command_description",
+        "rule": "translate",
+        "sourcePattern": "Set a goal \\u2014 keep working until the condition is met",
+        "pattern": "设置目标：持续工作直到条件满足"
       }
     ],
     "displayAudit": {
