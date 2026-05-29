@@ -2798,6 +2798,10 @@
     "zh": "列出已配置的 MCP 服务器。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。"
   },
   {
+    "en": "List configured MCP servers. Unapproved .mcp.json servers are shown as \\u23F8 Pending approval and not connected to; approved servers are health-checked.",
+    "zh": "列出已配置的 MCP 服务器。未批准的 .mcp.json 服务器会显示为 ⏸ 待批准且不会连接；已批准的服务器会做健康检查。"
+  },
+  {
     "en": "MCP tools",
     "zh": "MCP 工具"
   },
@@ -3682,6 +3686,10 @@
   {
     "en": "Prompt suggestions",
     "zh": "提示建议"
+  },
+  {
+    "en": "Enable prompt suggestions. In print/SDK mode, emits a prompt_suggestion message after each turn with a predicted next user prompt",
+    "zh": "启用提示建议。在非交互模式下，每轮结束后输出一条预测的下一步提示。"
   },
   {
     "en": "Provide an explanation of a shell command",
@@ -6586,6 +6594,10 @@
     "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-sonnet-4-6'）。"
   },
   {
+    "en": "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-opus-4-8').",
+    "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-opus-4-8'）。"
+  },
+  {
     "en": "Beta headers to include in API requests (API key users only)",
     "zh": "要包含在 API 请求中的 Beta header（仅 API 密钥用户）"
   },
@@ -6724,6 +6736,10 @@
   {
     "en": "Get details about an MCP server. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.",
     "zh": "获取 MCP 服务器详情。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。"
+  },
+  {
+    "en": "Get details about an MCP server. Unapproved .mcp.json servers are shown as \\u23F8 Pending approval and not connected to; approved servers are health-checked.",
+    "zh": "获取 MCP 服务器详情。未批准的 .mcp.json 服务器会显示为 ⏸ 待批准且不会连接；已批准的服务器会做健康检查。"
   },
   {
     "en": "Remove an MCP server",

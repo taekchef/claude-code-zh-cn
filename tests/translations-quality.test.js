@@ -143,7 +143,15 @@ test("high-visibility translations use the curated wording", () => {
     ["Load MCP servers from JSON files or strings (space-separated)", "从 JSON 文件或字符串加载 MCP 服务器（空格分隔）"],
     ["Only use MCP servers from --mcp-config, ignoring all other MCP configurations", "仅使用 --mcp-config 中的 MCP 服务器，忽略其他所有 MCP 配置"],
     ["Permission mode to use for the session", "当前会话使用的权限模式"],
+    [
+      "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-opus-4-8').",
+      "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-opus-4-8'）。",
+    ],
     ["System prompt to use for the session", "当前会话使用的系统提示词"],
+    [
+      "Enable prompt suggestions. In print/SDK mode, emits a prompt_suggestion message after each turn with a predicted next user prompt",
+      "启用提示建议。在非交互模式下，每轮结束后输出一条预测的下一步提示。",
+    ],
     [
       "Settings files that fail validation are silently ignored in this mode (no error dialog is shown).",
       "在此模式下，校验失败的 settings 文件会被静默忽略（不会显示错误对话框）。",
@@ -152,6 +160,14 @@ test("high-visibility translations use the curated wording", () => {
     [
       "List configured MCP servers. Note: The workspace trust dialog is skipped and stdio servers from .mcp.json are spawned for health checks. Only use this command in directories you trust.",
       "列出已配置的 MCP 服务器。注意：此命令会跳过工作区信任对话框，并启动 .mcp.json 中的 stdio 服务器进行健康检查。只在你信任的目录中使用此命令。",
+    ],
+    [
+      "List configured MCP servers. Unapproved .mcp.json servers are shown as \\u23F8 Pending approval and not connected to; approved servers are health-checked.",
+      "列出已配置的 MCP 服务器。未批准的 .mcp.json 服务器会显示为 ⏸ 待批准且不会连接；已批准的服务器会做健康检查。",
+    ],
+    [
+      "Get details about an MCP server. Unapproved .mcp.json servers are shown as \\u23F8 Pending approval and not connected to; approved servers are health-checked.",
+      "获取 MCP 服务器详情。未批准的 .mcp.json 服务器会显示为 ⏸ 待批准且不会连接；已批准的服务器会做健康检查。",
     ],
     [
       "Print the default auto mode environment, allow, soft_deny, and hard_deny rules as JSON",
