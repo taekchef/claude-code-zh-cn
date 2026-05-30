@@ -89,7 +89,7 @@ if (Test-Path $SettingsFile) {
         $env:ZH_CN_SETTINGS = $SettingsFile
         node -e @"
 const fs=require('fs');
-const s=JSON.parse(fs.readFileSync(process.env.ZH_CN_SETTINGS,'utf8'));
+const s=JSON.parse(fs.readFileSync(process.env.ZH_CN_SETTINGS,'utf8').replace(/^$([char]0x5C)uFEFF/,''));
 for(const k of ['language','spinnerTipsEnabled','spinnerTipsOverride','spinnerVerbs']){delete s[k]}
 fs.writeFileSync(process.env.ZH_CN_SETTINGS,JSON.stringify(s,null,2)+'\n');
 "@
@@ -104,21 +104,55 @@ fs.writeFileSync(process.env.ZH_CN_SETTINGS,JSON.stringify(s,null,2)+'\n');
     }
 }
 
-# 4. 还原 cli.js（从备份恢复）
+# 4. 还原 cli.js / clawgod / native（从备份恢复）
 $RESTORED = $false
+$claudeBin = ""
 
-# 试 npm 全局 claude
-$claudeBin = (Get-Command claude -ErrorAction SilentlyContinue).Source
-if ($claudeBin) {
-    # 试原生二进制备份
-    if (Test-Path "${claudeBin}.zh-cn-backup") {
-        Copy-Item "${claudeBin}.zh-cn-backup" $claudeBin -Force
-        Remove-Item "${claudeBin}.zh-cn-backup" -Force
-        Write-Host "已还原二进制" -ForegroundColor Green
-        $RESTORED = $true
+# 找到 claude 二进制路径（launcher 可能已被 step 1 移除）
+try { $claudeBin = (Get-Command claude -ErrorAction SilentlyContinue).Source } catch {}
+if (-not $claudeBin) {
+    try { $claudeBin = (Get-Command where.exe -ErrorAction SilentlyContinue) ? (& where claude 2>$null).Trim() : "" } catch {}
+}
+
+# 先通过 bun-binary-io.js detect 找实际安装路径（与 install 一致）
+$helperFile = Join-Path $PluginDst "bun-binary-io.js"
+if (-not (Test-Path $helperFile)) {
+    # fallback: 从脚本所在目录加载（可能在 repo 中直接运行）
+    $helperFile = Join-Path $PSScriptRoot "plugin\bun-binary-io.js"
+}
+if (Test-Path $helperFile) {
+    $installInfo = node $helperFile detect "$claudeBin" 2>$null
+    if ($installInfo) {
+        $kind, $target = $installInfo -split ':', 2
+        if ($kind -eq "npm" -and $target -and (Test-Path "${target}.zh-cn-backup")) {
+            Copy-Item "${target}.zh-cn-backup" $target -Force
+            Remove-Item "${target}.zh-cn-backup" -Force
+            Write-Host "已还原 cli.js" -ForegroundColor Green
+            $RESTORED = $true
+            # 还原同目录 clawgod
+            $cgFile = Join-Path (Split-Path -Parent $target) "cli.original.cjs"
+            if (Test-Path "${cgFile}.zh-cn-backup") {
+                Copy-Item "${cgFile}.zh-cn-backup" $cgFile -Force
+                Remove-Item "${cgFile}.zh-cn-backup" -Force
+                Write-Host "已还原 clawgod cli.original.cjs" -ForegroundColor Green
+            }
+        } elseif ($kind -eq "native-bun" -and $target -and (Test-Path "${target}.zh-cn-backup")) {
+            Copy-Item "${target}.zh-cn-backup" $target -Force
+            Remove-Item "${target}.zh-cn-backup" -Force
+            Write-Host "已还原原生二进制" -ForegroundColor Green
+            $RESTORED = $true
+            # 还原 clawgod（clawgod 默认输出目录）
+            $cgFile = Join-Path $env:USERPROFILE ".clawgod\cli.original.cjs"
+            if (Test-Path "${cgFile}.zh-cn-backup") {
+                Copy-Item "${cgFile}.zh-cn-backup" $cgFile -Force
+                Remove-Item "${cgFile}.zh-cn-backup" -Force
+                Write-Host "已还原 clawgod cli.original.cjs" -ForegroundColor Green
+            }
+        }
     }
 }
 
+# fallback: 尝试 npm root -g 找 cli.js
 if (-not $RESTORED) {
     $cliFile = ""
     try {
@@ -138,10 +172,46 @@ if (-not $RESTORED) {
         Copy-Item "${cliFile}.zh-cn-backup" $cliFile -Force
         Remove-Item "${cliFile}.zh-cn-backup" -Force
         Write-Host "已还原 cli.js" -ForegroundColor Green
+        $RESTORED = $true
     } elseif ($cliFile -and (Test-Path $cliFile)) {
         Write-Host "cli.js 没有备份文件，建议运行以下命令还原：" -ForegroundColor Yellow
         Write-Host "  npm install -g @anthropic-ai/claude-code"
     }
+
+    # 还原 clawgod cli.original.cjs（如果存在）
+    if ($cliFile) {
+        $clawgodFile = Join-Path (Split-Path -Parent $cliFile) "cli.original.cjs"
+        if (Test-Path "${clawgodFile}.zh-cn-backup") {
+            Copy-Item "${clawgodFile}.zh-cn-backup" $clawgodFile -Force
+            Remove-Item "${clawgodFile}.zh-cn-backup" -Force
+            Write-Host "已还原 clawgod cli.original.cjs" -ForegroundColor Green
+        }
+    }
+}
+if (-not $RESTORED) {
+    # 最后尝试：直接检查 .zh-cn-backup 文件
+    $possible = @(
+        "$env:USERPROFILE\AppData\Local\claude\cli.js",
+        "$env:LOCALAPPDATA\Programs\claude\resources\app\cli.js",
+        "$env:ProgramFiles\claude\resources\app\cli.js"
+    )
+    foreach ($p in $possible) {
+        if (Test-Path "${p}.zh-cn-backup") {
+            Copy-Item "${p}.zh-cn-backup" $p -Force
+            Remove-Item "${p}.zh-cn-backup" -Force
+            Write-Host "已还原 cli.js ($p)" -ForegroundColor Green
+            $RESTORED = $true
+            break
+        }
+    }
+}
+
+# 最后尝试：还原 clawgod（~/.clawgod/ 目录）
+$cgDefault = Join-Path $env:USERPROFILE ".clawgod\cli.original.cjs"
+if (Test-Path "${cgDefault}.zh-cn-backup") {
+    Copy-Item "${cgDefault}.zh-cn-backup" $cgDefault -Force
+    Remove-Item "${cgDefault}.zh-cn-backup" -Force
+    Write-Host "已还原 clawgod cli.original.cjs" -ForegroundColor Green
 }
 
 # 5. 移除插件目录
@@ -149,6 +219,30 @@ if (Test-Path $PluginDst) {
     Remove-Item -Recurse -Force $PluginDst
     Write-Host "已移除插件目录" -ForegroundColor Green
 }
+
+# 清理插件注册信息
+$env:ZH_CN_SETTINGS_FILE = $SettingsFile
+node -e @"
+const fs=require('fs');
+const file=process.env.ZH_CN_SETTINGS_FILE;
+let s=JSON.parse(fs.readFileSync(file,'utf8').replace(/^$([char]0x5C)uFEFF/,''));
+let changed=false;
+for(const event of ['SessionStart','Notification']){
+  if(s.hooks&&s.hooks[event]){
+    const before=s.hooks[event].length;
+    s.hooks[event]=s.hooks[event].filter(h=>
+      !h.hooks||!h.hooks[0]||!h.hooks[0].command||
+      !h.hooks[0].command.includes('claude-code-zh-cn')&&
+      !h.hooks[0].command.includes('local-zh-cn')
+    );
+    if(s.hooks[event].length!==before) changed=true;
+    if(s.hooks[event].length===0) delete s.hooks[event];
+  }
+}
+if(changed) fs.writeFileSync(file,JSON.stringify(s,null,2)+'\n');
+"@ 2>$null
+Remove-Item Env:\ZH_CN_SETTINGS_FILE -ErrorAction SilentlyContinue
+if ($LASTEXITCODE -eq 0) { Write-Host "已清理插件注册信息" -ForegroundColor Green }
 
 # 6. 清理 settings.json 备份
 $backupPattern = "$env:USERPROFILE\.claude\settings.json.zh-cn-backup.*"

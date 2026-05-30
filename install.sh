@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # claude-code-zh-cn 安装脚本
 # 将中文本地化设置合并到 Claude Code 的 settings.json
 
@@ -6,8 +6,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UPDATE_ONLY=false
+SKIP_PATCH=false
 if [ "${1:-}" = "--update-only" ]; then
     UPDATE_ONLY=true
+fi
+if [ "${1:-}" = "--skip-patch" ] || [ "${2:-}" = "--skip-patch" ]; then
+    SKIP_PATCH=true
 fi
 
 SETTINGS_FILE="$HOME/.claude/settings.json"
@@ -825,6 +829,19 @@ fs.writeFileSync(process.env.ZH_CN_SETTINGS, JSON.stringify(merged, null, 2) + '
     fi
 
     sync_ccswitch_common_config "$overlay_content"
+
+    # hooks 写入 settings.json（2.1.157 不支持本地 vendored 插件，直接写 hooks）
+    local hook_dir="$PLUGIN_DST/hooks-handlers/"
+    node - "$SETTINGS_FILE" "$hook_dir" <<'NODE' 2>/dev/null || true
+const fs=require("fs"),f=process.argv[2],hd=process.argv[3].replace(/\\/g,"/");
+let s=JSON.parse(fs.readFileSync(f,"utf8").replace(/^\uFEFF/,"")),c=0;
+if(!s.hooks)s.hooks={};
+if(!s.hooks.SessionStart)s.hooks.SessionStart=[];
+if(!s.hooks.SessionStart.some(function(h){return h.hooks&&h.hooks[0]&&h.hooks[0].command==="node "+hd+"session-start.js"})){s.hooks.SessionStart.push({matcher:"startup|resume|clear|compact",hooks:[{type:"command",command:"node "+hd+"session-start.js",async:false}]});c=1}
+if(!s.hooks.Notification)s.hooks.Notification=[];
+if(!s.hooks.Notification.some(function(h){return h.hooks&&h.hooks[0]&&h.hooks[0].command==="node "+hd+"notification.js"})){s.hooks.Notification.push({matcher:"",hooks:[{type:"command",command:"node "+hd+"notification.js",async:false,timeout:10}]});c=1}
+if(c)fs.writeFileSync(f,JSON.stringify(s,null,2)+"\n");
+NODE
 }
 
 sync_plugin_payload() {
@@ -837,7 +854,6 @@ sync_plugin_payload() {
     find "$PLUGIN_DST" -mindepth 1 -maxdepth 1 ! -name '.*' -exec rm -rf {} +
     cp -R "$PLUGIN_SRC"/. "$PLUGIN_DST"/
     chmod +x "$PLUGIN_DST/patch-cli.sh" "$PLUGIN_DST/compute-patch-revision.sh" 2>/dev/null || true
-    chmod +x "$PLUGIN_DST/hooks/session-start" "$PLUGIN_DST/hooks/notification" 2>/dev/null || true
     chmod +x "$PLUGIN_DST/bin/claude-launcher" "$PLUGIN_DST/bin/doctor" 2>/dev/null || true
 
     if [ "$SKIP_BANNER" != "1" ]; then
@@ -1086,6 +1102,33 @@ detect_installation() {
     printf ""
 }
 
+# clawgod 检测：查找 clawgod patch 后的 cli.original.cjs
+detect_clawgod_original() {
+    local install_info cli_dir clawgod_file
+
+    # 常见路径 1：与 cli.js 同级目录（npm 安装）
+    install_info="$(detect_installation)"
+    local kind="${install_info%%:*}"
+    local target="${install_info#*:}"
+    if [ "$kind" = "npm" ] && [ -n "$target" ]; then
+        cli_dir="$(dirname "$target")"
+        clawgod_file="$cli_dir/cli.original.cjs"
+        if [ -f "$clawgod_file" ]; then
+            printf "clawgod:%s" "$clawgod_file"
+            return 0
+        fi
+    fi
+
+    # 常见路径 2：~/.clawgod/ 目录（clawgod 默认输出目录）
+    clawgod_file="$HOME/.clawgod/cli.original.cjs"
+    if [ -f "$clawgod_file" ]; then
+        printf "clawgod:%s" "$clawgod_file"
+        return 0
+    fi
+
+    return 1
+}
+
 resolve_source_repo() {
     if [ -n "${SOURCE_REPO_OVERRIDE:-}" ]; then
         printf "%s" "$SOURCE_REPO_OVERRIDE"
@@ -1135,17 +1178,54 @@ patch_npm_cli() {
     fi
 
     patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$cli_file" 2>/dev/null || echo "0")
-    echo -e "${GREEN}已 patch cli.js（${patch_count:-0} 处硬编码文字）${NC}"
-    if [ "${patch_count:-0}" = "0" ]; then
-        CLI_PATCH_STATUS_SUMMARY="cli.js 无新增改动（可能已是最新状态）"
-    else
+    if [ "${patch_count:-0}" != "0" ]; then
+        echo -e "${GREEN}已 patch cli.js（${patch_count:-0} 处硬编码文字）${NC}"
         CLI_PATCH_STATUS_SUMMARY="cli.js 中文化（${patch_count:-0} 处硬编码文字）"
+        CLI_PATCH_STATUS_OK=true
+    else
+        echo -e "${YELLOW}cli.js 无新增改动（可能已是最新状态）${NC}"
+        CLI_PATCH_STATUS_SUMMARY="cli.js 无新增改动（可能已是最新状态）"
+        CLI_PATCH_STATUS_OK=true
     fi
-    CLI_PATCH_STATUS_OK=true
 
     patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
         echo "${current_version}|${patch_revision}" > "$MARKER_FILE"
+    fi
+}
+
+patch_clawgod_original() {
+    local cli_original="$1"
+    local current_version patch_count patch_revision backup_version
+
+    echo ""
+    echo -e "${BLUE}正在 patch clawgod cli.original.cjs 硬编码文字...${NC}"
+
+    current_version=$(sed -n 's/^\/\/ Version: //p' "$cli_original" | head -1) || current_version=""
+    backup_version=""
+    if [ -f "${cli_original}.zh-cn-backup" ]; then
+        backup_version=$(sed -n 's/^\/\/ Version: //p' "${cli_original}.zh-cn-backup" | head -1) || backup_version=""
+    fi
+
+    if [ "${current_version:-}" = "${backup_version:-}" ] && [ -n "${backup_version:-}" ] && [ -f "${cli_original}.zh-cn-backup" ]; then
+        cp "${cli_original}.zh-cn-backup" "$cli_original"
+        echo -e "${GREEN}已从备份恢复原始 cli.original.cjs（版本一致: ${current_version:-unknown}）${NC}"
+    else
+        cp "$cli_original" "${cli_original}.zh-cn-backup"
+        echo -e "${GREEN}已备份 cli.original.cjs（版本: ${current_version:-unknown}）${NC}"
+    fi
+
+    patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$cli_original" 2>/dev/null || echo "0")
+    if [ "${patch_count:-0}" != "0" ]; then
+        echo -e "${GREEN}已 patch cli.original.cjs（${patch_count:-0} 处硬编码文字）${NC}"
+        CLI_PATCH_STATUS_OK=true
+    else
+        echo -e "${YELLOW}cli.original.cjs 无新增改动（可能已是最新状态）${NC}"
+    fi
+
+    patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
+    if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ] && [ -x "$PLUGIN_SRC/patch-cli.sh" ]; then
+        echo "${current_version}|${patch_revision}" > "$PLUGIN_DST/.clawgod-patched-version"
     fi
 }
 
@@ -1277,7 +1357,7 @@ patch_native_binary() {
 }
 
 initial_patch_cli() {
-    local install_info
+    local install_info clawgod_info
 
     install_info="$(detect_installation)"
     if [ -z "$install_info" ]; then
@@ -1305,6 +1385,12 @@ initial_patch_cli() {
             CLI_PATCH_STATUS_SUMMARY="已跳过（未识别的安装类型: $kind）"
             ;;
     esac
+
+    # 无论哪种安装类型，都检测并 patch clawgod cli.original.cjs
+    if clawgod_info="$(detect_clawgod_original)"; then
+        local clawgod_target="${clawgod_info#*:}"
+        patch_clawgod_original "$clawgod_target"
+    fi
 }
 
 main() {
@@ -1316,7 +1402,7 @@ main() {
     merge_settings
     write_install_metadata
 
-    if [ "$UPDATE_ONLY" != true ]; then
+    if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_PATCH" != true ]; then
         initial_patch_cli
     fi
 

@@ -93,7 +93,7 @@ if [ -f "$SETTINGS_FILE" ]; then
         ZH_CN_SETTINGS="$SETTINGS_FILE" node -e "
 const fs = require('fs');
 const settingsFile = process.env.ZH_CN_SETTINGS;
-const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+	const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8').replace(/^\uFEFF/, ''));
 for (const key of ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spinnerVerbs']) {
   delete settings[key];
 }
@@ -116,6 +116,23 @@ resolve_real_path() {
         || printf "%s" "$1"
 }
 
+RESOLVED_CLI_FILE=""
+RESOLVED_KIND=""
+
+# 优先通过 bun-binary-io.js detect 找实际安装路径（与 install 一致）
+BUN_IO="$PLUGIN_DST/bun-binary-io.js"
+# fallback: 从脚本所在目录加载（可能在 repo 中直接运行）
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+[ ! -f "$BUN_IO" ] && BUN_IO="$SCRIPT_DIR/plugin/bun-binary-io.js"
+if [ -f "$BUN_IO" ]; then
+    local detected
+    detected="$(node "$BUN_IO" detect "$(which claude 2>/dev/null || true)" 2>/dev/null || true)"
+    if [ -n "$detected" ]; then
+        RESOLVED_KIND="${detected%%:*}"
+        RESOLVED_CLI_FILE="${detected#*:}"
+    fi
+fi
+
 RESTORED=false
 claude_bin="$(which claude 2>/dev/null || true)"
 
@@ -128,10 +145,34 @@ if [ -n "$claude_bin" ]; then
         rm "${real_bin}.zh-cn-backup"
         echo -e "${GREEN}已还原原生二进制${NC}"
         RESTORED=true
+        # 还原 clawgod（clawgod 默认输出目录）
+        if [ -f "$HOME/.clawgod/cli.original.cjs.zh-cn-backup" ]; then
+            cp "$HOME/.clawgod/cli.original.cjs.zh-cn-backup" "$HOME/.clawgod/cli.original.cjs"
+            rm "$HOME/.clawgod/cli.original.cjs.zh-cn-backup"
+            echo -e "${GREEN}已还原 clawgod cli.original.cjs${NC}"
+        fi
     fi
 fi
 
 # 如果没有还原原生二进制，尝试还原 npm cli.js
+if [ "$RESTORED" = false ]; then
+    # 优先用 bun-binary-io 检测到的路径
+    if [ "$RESOLVED_KIND" = "npm" ] && [ -n "$RESOLVED_CLI_FILE" ] && [ -f "${RESOLVED_CLI_FILE}.zh-cn-backup" ]; then
+        cp "${RESOLVED_CLI_FILE}.zh-cn-backup" "$RESOLVED_CLI_FILE"
+        rm "${RESOLVED_CLI_FILE}.zh-cn-backup"
+        echo -e "${GREEN}已还原 cli.js${NC}"
+        RESTORED=true
+        # 还原 clawgod
+        local cg_file
+        cg_file="$(dirname "$RESOLVED_CLI_FILE")/cli.original.cjs"
+        if [ -f "${cg_file}.zh-cn-backup" ]; then
+            cp "${cg_file}.zh-cn-backup" "$cg_file"
+            rm "${cg_file}.zh-cn-backup"
+            echo -e "${GREEN}已还原 clawgod cli.original.cjs${NC}"
+        fi
+    fi
+fi
+
 if [ "$RESTORED" = false ]; then
     CLI_FILE="$(dirname "$(which claude 2>/dev/null || true)")/../lib/node_modules/@anthropic-ai/claude-code/cli.js" 2>/dev/null || true
     if [ -z "$CLI_FILE" ] || [ ! -f "$CLI_FILE" ]; then
@@ -146,6 +187,14 @@ if [ "$RESTORED" = false ]; then
         echo -e "${YELLOW}cli.js 没有备份文件，建议运行以下命令还原：${NC}"
         echo "  npm install -g @anthropic-ai/claude-code"
     fi
+
+    # 还原 clawgod cli.original.cjs（如果存在）
+    clawgod_file="$(dirname "$CLI_FILE")/cli.original.cjs"
+    if [ -n "$CLI_FILE" ] && [ -f "${clawgod_file}.zh-cn-backup" ]; then
+        cp "${clawgod_file}.zh-cn-backup" "$clawgod_file"
+        rm "${clawgod_file}.zh-cn-backup"
+        echo -e "${GREEN}已还原 clawgod cli.original.cjs${NC}"
+    fi
 fi
 
 # 移除插件
@@ -153,6 +202,38 @@ if [ -d "$PLUGIN_DST" ]; then
     rm -rf "$PLUGIN_DST"
     echo -e "${GREEN}已移除插件目录${NC}"
 fi
+
+# 清除插件注册信息
+node - "$SETTINGS_FILE" <<'NODE' 2>/dev/null || true
+const fs = require("fs");
+const file = process.argv[2];
+let s = JSON.parse(fs.readFileSync(file, "utf8").replace(/^\uFEFF/, ""));
+let changed = false;
+if (s.enabledPlugins && s.enabledPlugins["claude-code-zh-cn@local-zh-cn"]) {
+  delete s.enabledPlugins["claude-code-zh-cn@local-zh-cn"];
+  if (Object.keys(s.enabledPlugins).length === 0) delete s.enabledPlugins;
+  changed = true;
+}
+if (s.extraKnownMarketplaces && s.extraKnownMarketplaces["local-zh-cn"]) {
+  delete s.extraKnownMarketplaces["local-zh-cn"];
+  if (Object.keys(s.extraKnownMarketplaces).length === 0) delete s.extraKnownMarketplaces;
+  changed = true;
+}
+// 清理 settings.json 中写入的 hooks
+for (const event of ["SessionStart", "Notification"]) {
+  if (s.hooks && s.hooks[event]) {
+    const before = s.hooks[event].length;
+    s.hooks[event] = s.hooks[event].filter(h =>
+      !h.hooks || !h.hooks[0] || !h.hooks[0].command ||
+      !h.hooks[0].command.includes("claude-code-zh-cn") &&
+      !h.hooks[0].command.includes("local-zh-cn")
+    );
+    if (s.hooks[event].length !== before) changed = true;
+    if (s.hooks[event].length === 0) delete s.hooks[event];
+  }
+}
+if (changed) fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
+NODE
 
 # 清理备份文件
 rm -f "$HOME/.claude/settings.json.zh-cn-backup."* 2>/dev/null && echo -e "${GREEN}已清理 settings.json 备份${NC}"

@@ -6,7 +6,8 @@
 
 param(
     [switch]$UpdateOnly = $false,
-    [switch]$SkipBanner = $false
+    [switch]$SkipBanner = $false,
+    [switch]$SkipPatch = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -189,6 +190,28 @@ function detect-install {
     return $null
 }
 
+# 检测 clawgod patch 后的 cli.original.cjs
+function detect-clawgod-original {
+    $installInfo = detect-install (find-real-claude)
+    if ($installInfo) {
+        $kind, $target = $installInfo -split ':', 2
+        if ($kind -eq "npm" -and $target) {
+            # 常见路径 1：与 cli.js 同级目录（npm 安装）
+            $cliDir = Split-Path -Parent $target
+            $clawgodFile = Join-Path $cliDir "cli.original.cjs"
+            if (Test-Path $clawgodFile) {
+                return "clawgod:$clawgodFile"
+            }
+        }
+    }
+    # 常见路径 2：~/.clawgod/ 目录（clawgod 默认输出目录）
+    $clawgodFile = Join-Path $env:USERPROFILE ".clawgod\cli.original.cjs"
+    if (Test-Path $clawgodFile) {
+        return "clawgod:$clawgodFile"
+    }
+    return $null
+}
+
 function detect-launcher-install {
     param([string]$ClaudeBin)
     if (-not $ClaudeBin) { return $null }
@@ -278,6 +301,10 @@ function merge-settings {
         $overlayContent | Out-File -FilePath "$PluginDst\.settings-overlay-cache.json" -Encoding utf8 -NoNewline
     }
     sync-ccswitch-common-config $overlayContent
+
+    # hooks 写入 settings.json（2.1.157 不支持本地 vendored 插件，直接写 hooks）
+    $ph = "$($PluginDst -replace '\\','/')/hooks-handlers/"
+    run-js -Code "var fs=require('fs'),s=JSON.parse(fs.readFileSync(process.argv[2],'utf8').replace(/^\uFEFF/,'')),p=process.argv[3],c=0;if(!s.hooks)s.hooks={};if(!s.hooks.SessionStart)s.hooks.SessionStart=[];if(!s.hooks.SessionStart.some(function(h){return h.hooks&&h.hooks[0]&&h.hooks[0].command==='node '+p+'session-start.js'})){s.hooks.SessionStart.push({matcher:'startup|resume|clear|compact',hooks:[{type:'command',command:'node '+p+'session-start.js',async:false}]});c=1}if(!s.hooks.Notification)s.hooks.Notification=[];if(!s.hooks.Notification.some(function(h){return h.hooks&&h.hooks[0]&&h.hooks[0].command==='node '+p+'notification.js'})){s.hooks.Notification.push({matcher:'',hooks:[{type:'command',command:'node '+p+'notification.js',async:false,timeout:10}]});c=1}if(c)fs.writeFileSync(process.argv[2],JSON.stringify(s,null,2)+'\n');" -JsArgs @($SettingsFile, $ph) 2>$null
 }
 
 function write-ccswitch-manual-steps {
@@ -490,13 +517,6 @@ function sync-plugin {
     New-Item -ItemType Directory -Force -Path $PluginDst | Out-Null
     Copy-Item "$PluginSrc\*" -Destination $PluginDst -Recurse -Force
 
-    $dstHooksJson = "$PluginDst\hooks.json"
-    if (Test-Path $dstHooksJson) {
-        $hooksContent = [System.IO.File]::ReadAllText($dstHooksJson, [System.Text.Encoding]::UTF8)
-        $hooksContent = $hooksContent -replace "/hooks/session-start'", "/hooks/session-start.cmd'"
-        $hooksContent = $hooksContent -replace "/hooks/notification'", "/hooks/notification.cmd'"
-        $hooksContent | Out-File -FilePath $dstHooksJson -Encoding ascii -NoNewline
-    }
     if (-not $SkipBanner) {
         Write-CN "已安装插件 -> $PluginDst" Green
     }
@@ -643,13 +663,50 @@ function patch-npm-cli {
             $script:CliPatchStatusSummary = "cli.js 中文化（${patchCount} 处硬编码文字）"
             $script:CliPatchStatusOk = $true
         } else {
-            Write-CN "已 patch cli.js（${patchCount} 处硬编码文字）" Green
+            Write-CN "cli.js 无新增改动（可能已是最新状态）" Green
             $script:CliPatchStatusSummary = "cli.js 无新增改动（可能已是最新状态）"
+            $script:CliPatchStatusOk = $true
         }
     }
     $patchRevision = get-patch-revision $PluginDst
     if ($patchRevision -and $currentVersion) {
         "${currentVersion}|${patchRevision}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+    }
+}
+
+function patch-clawgod-original {
+    param([string]$CliOriginal)
+    Write-Host ""
+    Write-CN "正在 patch clawgod cli.original.cjs 硬编码文字..." Blue
+    $currentVersion = read-cli-version $CliOriginal
+    $backupFile = "$CliOriginal.zh-cn-backup"
+    $backupVersion = ""
+    if (Test-Path $backupFile) {
+        $backupVersion = read-cli-version $backupFile
+    }
+    if ($currentVersion -and $backupVersion -and $currentVersion -eq $backupVersion -and (Test-Path $backupFile)) {
+        Copy-Item $backupFile $CliOriginal -Force
+        Write-CN "已从备份恢复原始 cli.original.cjs（版本一致: $currentVersion）" Green
+    } else {
+        Copy-Item $CliOriginal $backupFile -Force
+        Write-CN "已备份 cli.original.cjs（版本: $currentVersion）" Green
+    }
+    $patchScript = Join-Path $PluginSrc "patch-cli.js"
+    $translationsFile = Join-Path $PluginSrc "cli-translations.json"
+    if (Test-Path $patchScript) {
+        $patchCount = node $patchScript $CliOriginal $translationsFile 2>$null
+        if ($patchCount -and [int]$patchCount -gt 0) {
+            Write-CN "已 patch cli.original.cjs（${patchCount} 处硬编码文字）" Green
+            $script:CliPatchStatusSummary = "clawgod cli.original.cjs 中文化（${patchCount} 处硬编码文字）"
+            $script:CliPatchStatusOk = $true
+        } else {
+            Write-CN "cli.original.cjs 无新增改动（可能已是最新状态）" Green
+            $script:CliPatchStatusSummary = "clawgod cli.original.cjs 无新增改动"
+        }
+        $patchRevision = get-patch-revision $PluginDst
+        if ($patchRevision -and $currentVersion -and (Test-Path $patchScript)) {
+            "${currentVersion}|${patchRevision}" | Out-File -FilePath "$PluginDst\.clawgod-patched-version" -Encoding ascii -NoNewline
+        }
     }
 }
 
@@ -909,6 +966,15 @@ function initial-patch {
             $script:CliPatchStatusSummary = "已跳过（未识别的安装类型: $kind）"
         }
     }
+
+    # 无论哪种安装类型，都检测并 patch clawgod cli.original.cjs
+    $clawgodInfo = detect-clawgod-original
+    if ($clawgodInfo) {
+        $_kind, $_target = $clawgodInfo -split ':', 2
+        if ($_target -and (Test-Path $_target)) {
+            patch-clawgod-original $_target
+        }
+    }
 }
 
 # ======== 元数据写入 ========
@@ -922,7 +988,7 @@ function write-metadata {
         $sourceRepo = $ScriptDir
     }
     if ($sourceRepo) {
-        "$sourceRepo" | Out-File -FilePath $SourceRepoFile -Encoding ascii -NoNewline
+        "$sourceRepo" | Out-File -FilePath $SourceRepoFile -Encoding utf8 -NoNewline
     }
     $timestamp = [int][double]::Parse((Get-Date (Get-Date).ToUniversalTime() -UFormat %s))
     "$timestamp" | Out-File -FilePath $LastUpdateCheckFile -Encoding ascii -NoNewline
@@ -936,7 +1002,7 @@ function Main {
     install-launcher
     merge-settings
     write-metadata
-    if (-not $UpdateOnly) {
+    if (-not $UpdateOnly -and -not $SkipPatch) {
         initial-patch
     }
     completion
