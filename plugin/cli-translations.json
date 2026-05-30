@@ -6590,6 +6590,10 @@
     "zh": "从 Agent 视图分派会话时使用的默认 effort 级别"
   },
   {
+    "en": "Default agent for sessions dispatched from agent view. Overrides the 'agent' setting.",
+    "zh": "从 Agent 视图分派会话时使用的默认 Agent。会覆盖 'agent' 设置。"
+  },
+  {
     "en": "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-sonnet-4-6').",
     "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-sonnet-4-6'）。"
   },
@@ -6756,6 +6760,10 @@
   {
     "en": "Manage Claude Code plugins",
     "zh": "管理 Claude Code 插件"
+  },
+  {
+    "en": "Scaffold a new plugin at ~/.claude/skills/<name>/ (auto-loads next session as <name>@skills-dir)",
+    "zh": "在 ~/.claude/skills/<name>/ 初始化新插件（下次会话自动按 <name>@skills-dir 加载）"
   },
   {
     "en": "Manage Claude Code project state",
