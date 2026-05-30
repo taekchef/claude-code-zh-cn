@@ -49,6 +49,27 @@ if (process.platform === "win32") {
     "- 面向 Windows PowerShell 5.1 且含非ASCII字符的 .ps1 脚本，UTF-8 with BOM 更安全",
     "- 运行 PowerShell 前先设置 UTF-8：chcp 65001；[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)；$OutputEncoding = ..."
   );
+  contextLines.splice(contextLines.length - 5, 0,
+    "## 工具选择",
+    "- Windows 下 PowerShell 7（pwsh）和 Bash（Git Bash / MSYS2 / WSL）同时可用，但语法完全不相通",
+    "- **Bash 工具**执行 Bash 语法：ls/cat/grep/sed/awk、管道 |、&&/||、$(命令替换)、> 重定向",
+    "- **PowerShell 工具**执行 PowerShell 语法：Get-ChildItem、Select-String、管道 |（传对象）、ForEach-Object、变量",
+    "- 最常见的错误：在 Bash 里写 PowerShell 命令，或在 PowerShell 里写 Bash 命令",
+    "- 如果命令执行报错（command not found、语法错误、非法参数），优先怀疑是不是工具用反了",
+    "- 确认方法：看当前在用哪个工具——Bash 语法用 Bash 工具，PS 语法用 PowerShell 工具",
+    "",
+    "### 路径映射",
+    "- Windows 原生路径：C:\\Users\\xxx 或 C:/Users/xxx",
+    "- MSYS2/Git Bash 路径：/c/Users/xxx（自动映射到 C:\\Users\\xxx）",
+    "- Bash 中访问 Windows 文件用 /c/... 格式，PowerShell 中用 C:\\... 或 C:/... 格式",
+    "",
+    "### 常用等价替代",
+    "- ls → Get-ChildItem  |  cat → Get-Content  |  grep → Select-String",
+    "- which → Get-Command  |  mkdir -p → New-Item -ItemType Directory -Force",
+    "- rm -rf → Remove-Item -Recurse -Force  |  head/tail → Select-Object -First/-Last",
+    "- wc -l → (Get-Content file | Measure-Object -Line).Lines  |  sed → ForEach-Object { $_ -replace }",
+    ""
+  );
 }
 
 process.stdout.write(JSON.stringify({
