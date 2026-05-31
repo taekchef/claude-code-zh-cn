@@ -5,5 +5,6 @@
 
 ## 提交前检查
 
-- [ ] 已在仓库根目录运行 `bash scripts/preflight.sh`
-- [ ] 如果没跑，原因：
+> CI will automatically run `bash scripts/preflight.sh`. You do not need to run it manually.
+> 
+> If this is a PR from a forked repository, the maintainer will trigger the required CI checks after review.
