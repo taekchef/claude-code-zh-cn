@@ -265,6 +265,48 @@
         "rule": "translate",
         "sourcePattern": "Set a goal \\u2014 keep working until the condition is met",
         "pattern": "设置目标：持续工作直到条件满足"
+      },
+      {
+        "id": "issue80_batch_command_description",
+        "rule": "translate",
+        "sourcePattern": "Research and plan a large-scale change, then execute it in parallel across 5\\u201330 isolated worktree agents that each open a PR.",
+        "pattern": "调研并规划大规模改动"
+      },
+      {
+        "id": "issue80_claude_in_chrome_command_description",
+        "rule": "translate",
+        "sourcePattern": "Automates your Chrome browser to interact with web pages - clicking elements, filling forms, capturing screenshots, reading console logs, and navigating sites. Opens pages in new tabs within your existing Chrome session. Requires site-level permissions before executing (configured in the extension).",
+        "pattern": "自动操作你的 Chrome 浏览器与网页交互"
+      },
+      {
+        "id": "issue80_fewer_permission_prompts_command_description",
+        "rule": "translate",
+        "sourcePattern": "Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts.",
+        "pattern": "减少权限确认"
+      },
+      {
+        "id": "issue80_prompt_simplify_command_description",
+        "rule": "translate",
+        "sourcePattern": "Review the changed code for reuse, simplification, efficiency, and altitude cleanups, then apply the fixes. Quality only \\u2014 it does not hunt for bugs; use /code-review for that.",
+        "pattern": "只做质量清理，不查 bug"
+      },
+      {
+        "id": "issue80_schedule_command_description",
+        "rule": "translate",
+        "sourcePattern": "Create, update, list, or run scheduled remote agents (routines) that execute on a cron schedule.",
+        "pattern": "按 cron 定时执行"
+      },
+      {
+        "id": "issue80_run_command_description",
+        "rule": "translate",
+        "sourcePattern": "Launch and drive this project's app to see a change working.",
+        "pattern": "确认改动实际生效"
+      },
+      {
+        "id": "issue80_run_skill_generator_command_description",
+        "rule": "translate",
+        "sourcePattern": "Author or improve the run-<unit> skill for this project.",
+        "pattern": "编写或改进 run-<unit> skill"
       }
     ],
     "displayAudit": {

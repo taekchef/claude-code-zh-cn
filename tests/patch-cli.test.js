@@ -457,6 +457,14 @@ test("issue 80 slash command menu residues are translated", () => {
     'const feedback={name:"feedback",description:"Submit feedback, report a bug, or share your conversation"};',
     'const focus={name:"focus",description:"Toggle focus view (show only your prompt, a tool summary, and the final response)"};',
     'const goal={name:"goal",description:"Set a goal \\u2014 keep working until the condition is met"};',
+    "const singleQuotedGoal={name:'goal',description:'Set a goal \\u2014 keep working until the condition is met'};",
+    'const batch={name:"batch",description:"Research and plan a large-scale change, then execute it in parallel across 5\\u201330 isolated worktree agents that each open a PR."};',
+    'const chrome={name:"claude-in-chrome",description:"Automates your Chrome browser to interact with web pages - clicking elements, filling forms, capturing screenshots, reading console logs, and navigating sites. Opens pages in new tabs within your existing Chrome session. Requires site-level permissions before executing (configured in the extension)."};',
+    'const fewer={name:"fewer-permission-prompts",description:"Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts."};',
+    'const simplify={name:"simplify",description:"Review the changed code for reuse, simplification, efficiency, and altitude cleanups, then apply the fixes. Quality only \\u2014 it does not hunt for bugs; use /code-review for that."};',
+    'const schedule={name:"schedule",description:"Create, update, list, or run scheduled remote agents (routines) that execute on a cron schedule."};',
+    "const run={name:\"run\",description:\"Launch and drive this project's app to see a change working.\"};",
+    'const runSkillGenerator={name:"run-skill-generator",description:"Author or improve the run-<unit> skill for this project."};',
     'const usage={name:"usage",description:"Show session cost, plan usage, and activity stats"};',
     'const stop={name:"stop",description:"Stop this background session; transcript and worktree are kept"};',
     "",
@@ -472,6 +480,14 @@ test("issue 80 slash command menu residues are translated", () => {
   assert.match(patched, /提交反馈、报告问题或分享你的对话/);
   assert.match(patched, /切换专注视图/);
   assert.match(patched, /设置目标：持续工作直到条件满足/);
+  assert.match(patched, /description:'设置目标：持续工作直到条件满足'/);
+  assert.match(patched, /调研并规划大规模改动/);
+  assert.match(patched, /自动操作你的 Chrome 浏览器与网页交互/);
+  assert.match(patched, /减少权限确认/);
+  assert.match(patched, /只做质量清理，不查 bug/);
+  assert.match(patched, /按 cron 定时执行/);
+  assert.match(patched, /确认改动实际生效/);
+  assert.match(patched, /编写或改进 run-<unit> skill/);
   assert.match(patched, /显示会话成本、计划用量和活动统计/);
   assert.match(patched, /停止这个后台会话；保留 transcript 和 worktree/);
 });

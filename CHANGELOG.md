@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.37] - 2026-06-01
+
+### 修复
+
+- 修复单引号字符串里的 `/goal` 描述匹配：`Set a goal \u2014 keep working until the condition is met` 这类 escaped Unicode 文案现在会被正确汉化，覆盖 PR #99 Codex review 指出的漏网路径。
+- 补齐同一批 slash / prompt command 菜单里的后续英文描述：`/batch`、`/claude-in-chrome`、`/fewer-permission-prompts`、`/simplify`、`/schedule`、`/run`、`/run-skill-generator`，并加入 upstream guard 防止回归。
+
+### 验证
+
+- `node --test tests/patch-cli.test.js`
+- `bash scripts/preflight.sh --skip-release-state`
+
 ## [2.4.36] - 2026-05-31
 
 ### 改进
