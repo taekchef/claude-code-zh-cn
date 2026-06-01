@@ -678,7 +678,7 @@
       "requires": [
         "node-lief"
       ],
-      "notes": "Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本，不代表 future latest 自动稳定。"
+      "notes": "Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本，不代表 future latest 自动稳定。高于该窗口但仍在同一 minor 线的版本，install.ps1 可在安装时做本机自验证并以 provisional 方式启用；这不等于已发布支持窗口，升级窗口需要 pinned Windows runner 的 PE extract / patch / repack / --version / display audit 证据。"
     }
   }
 }

@@ -29,6 +29,7 @@ if ($env:ZH_CN_LAUNCHER_BIN_DIR) { $LauncherBinDir = $env:ZH_CN_LAUNCHER_BIN_DIR
 $SourceRepoOverride = $env:ZH_CN_SOURCE_REPO
 $CcSwitchSyncChoice = $env:ZH_CN_CCSWITCH_SYNC
 $TmpDir = "$env:TEMP\claude-zh-cn"
+$SupportMatrixUrl = "https://github.com/taekchef/claude-code-zh-cn/blob/main/docs/support-matrix.md"
 
 $CliPatchStatusSummary = "已跳过（未执行 CLI Patch）"
 $CliPatchStatusOk = $false
@@ -37,6 +38,10 @@ $CliPatchStatusOk = $false
 function Write-CN {
     param([string]$Msg, [string]$Color = "White")
     Write-Host $Msg -ForegroundColor $Color
+}
+
+function write-support-window-link {
+    Write-Host "  支持窗口: $SupportMatrixUrl"
 }
 
 function banner {
@@ -129,6 +134,7 @@ function completion {
     } else {
         Write-CN "  ! CLI Patch → $CliPatchStatusSummary" Yellow
     }
+    write-support-window-link
     Write-Host ""
     Write-Host "重启 Claude Code 即可生效。如需卸载，运行：" -NoNewline
     Write-CN ".\uninstall.ps1" Yellow
@@ -776,12 +782,14 @@ function patch-native-bun {
         $displayVersion = $currentVersion
         if (-not $displayVersion) { $displayVersion = "unknown" }
         Write-CN "当前 Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）" Yellow
+        write-support-window-link
         $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch）"
         return
     }
 
     if ($patchMode -eq "provisional") {
         Write-Host "  版本: $currentVersion（未纳入已发布支持窗口，安装时本机自验证）"
+        write-support-window-link
     } else {
         Write-Host "  版本: $currentVersion（experimental）"
     }
@@ -791,6 +799,7 @@ function patch-native-bun {
         Write-CN "需要安装 node-lief 来支持 Windows native patch" Yellow
         Write-Host "  运行: npm install -g node-lief"
         Write-Host "  然后重新运行 install.ps1"
+        write-support-window-link
         $script:CliPatchStatusSummary = "已跳过（Windows native CLI Patch 需要 node-lief）"
         return
     }
