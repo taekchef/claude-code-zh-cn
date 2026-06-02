@@ -6454,6 +6454,10 @@
     "zh": "默认模型过载时自动回退到指定模型（仅 --print 有效）"
   },
   {
+    "en": "Enable automatic fallback to specified model(s) when the default model is overloaded or not available. Accepts a comma-separated list to try each in order. Re-tries the primary at the start of each user turn. (only works with --print)",
+    "zh": "默认模型过载或不可用时，自动回退到指定模型。可用逗号分隔多个模型并按顺序尝试；每轮用户输入开始时会重新尝试主模型（仅 --print 有效）"
+  },
+  {
     "en": "Enable automatic fallback to specified model when the default model is overloaded or not available (only works with --print)",
     "zh": "默认模型过载或不可用时自动回退到指定模型（仅 --print 有效）"
   },
