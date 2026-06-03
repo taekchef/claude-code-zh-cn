@@ -22,6 +22,10 @@ function hasSqlite3() {
   return !spawnSync("sqlite3", ["--version"], { encoding: "utf8" }).error;
 }
 
+function hasCommand(command) {
+  return spawnSync("/usr/bin/which", [command], { encoding: "utf8" }).status === 0;
+}
+
 function sqlString(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
@@ -304,8 +308,47 @@ test("uninstall.sh removes zh-cn settings without python3 or jq", () => {
     spinnerTipsEnabled: true,
     spinnerTipsOverride: { excludeDefault: true, tips: ["a"] },
     spinnerVerbs: ["做"],
+    enabledPlugins: {
+      "claude-code-zh-cn@local-zh-cn": true,
+      "other-plugin@example": true,
+    },
+    extraKnownMarketplaces: {
+      "local-zh-cn": { path: "/tmp/local-zh-cn" },
+      "other-market": { path: "/tmp/other" },
+    },
+    hooks: {
+      SessionStart: [
+        {
+          matcher: "startup|resume",
+          hooks: [
+            { type: "command", command: `node ${path.join(home, ".claude", "plugins", "claude-code-zh-cn", "hooks-handlers", "session-start.js")}` },
+            { type: "command", command: "'${CLAUDE_PLUGIN_ROOT}/hooks/session-start'" },
+            { type: "command", command: "/usr/local/bin/custom-same-matcher" },
+          ],
+        },
+        {
+          matcher: "startup",
+          hooks: [{ type: "command", command: "/usr/local/bin/custom-session-start" }],
+        },
+      ],
+      Notification: [
+        {
+          matcher: "",
+          hooks: [{ type: "command", command: "node /tmp/local-zh-cn/hooks-handlers/notification.js" }],
+        },
+      ],
+      PreToolUse: [
+        {
+          matcher: "Bash",
+          hooks: [{ type: "command", command: "/usr/local/bin/custom-guard" }],
+        },
+      ],
+      PostToolUse: [],
+    },
     theme: "dark",
   }, null, 2));
+  const settingsWithoutBom = fs.readFileSync(settingsPath, "utf8");
+  fs.writeFileSync(settingsPath, `\uFEFF${settingsWithoutBom}`);
 
   const result = spawnSync("/bin/bash", [path.join(repoRoot, "uninstall.sh")], {
     cwd: repoRoot,
@@ -313,6 +356,7 @@ test("uninstall.sh removes zh-cn settings without python3 or jq", () => {
       ...process.env,
       HOME: home,
       PATH: binDir,
+      CLAUDE_PLUGIN_ROOT: path.join(home, ".claude", "plugins", "claude-code-zh-cn"),
     },
     encoding: "utf8",
   });
@@ -324,6 +368,101 @@ test("uninstall.sh removes zh-cn settings without python3 or jq", () => {
   assert.equal("spinnerTipsEnabled" in settings, false);
   assert.equal("spinnerTipsOverride" in settings, false);
   assert.equal("spinnerVerbs" in settings, false);
+  assert.deepEqual(settings.enabledPlugins, { "other-plugin@example": true });
+  assert.deepEqual(settings.extraKnownMarketplaces, { "other-market": { path: "/tmp/other" } });
+  assert.equal(settings.hooks.SessionStart.length, 2);
+  assert.equal(settings.hooks.SessionStart[0].matcher, "startup|resume");
+  assert.deepEqual(settings.hooks.SessionStart[0].hooks, [{ type: "command", command: "/usr/local/bin/custom-same-matcher" }]);
+  assert.equal(settings.hooks.SessionStart[1].hooks[0].command, "/usr/local/bin/custom-session-start");
+  assert.equal("Notification" in settings.hooks, false);
+  assert.equal(settings.hooks.PreToolUse[0].hooks[0].command, "/usr/local/bin/custom-guard");
+  assert.deepEqual(settings.hooks.PostToolUse, []);
+  assert.equal(settings.theme, "dark");
+});
+
+test("uninstall.sh jq fallback removes plugin registrations and hooks", { skip: hasCommand("jq") ? false : "requires jq" }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-jq-uninstall-"));
+  const home = path.join(tmp, "home");
+  const binDir = path.join(tmp, "bin");
+  const settingsPath = path.join(home, ".claude", "settings.json");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  linkCommands(binDir, ["jq", "rm", "mv", "which", "cp", "tr", "rmdir", "dirname", "readlink"]);
+
+  fs.writeFileSync(settingsPath, JSON.stringify({
+    language: "Chinese",
+    spinnerTipsEnabled: true,
+    spinnerTipsOverride: { excludeDefault: true, tips: ["a"] },
+    spinnerVerbs: ["做"],
+    enabledPlugins: {
+      "claude-code-zh-cn@local-zh-cn": true,
+      "other-plugin@example": true,
+    },
+    extraKnownMarketplaces: {
+      "local-zh-cn": { path: "/tmp/local-zh-cn" },
+      "other-market": { path: "/tmp/other" },
+    },
+    hooks: {
+      SessionStart: [
+        {
+          matcher: "startup|resume",
+          hooks: [
+            { type: "command", command: "'${CLAUDE_PLUGIN_ROOT}/hooks/session-start'" },
+            { type: "command", command: "/usr/local/bin/custom-same-matcher" },
+          ],
+        },
+        {
+          matcher: "startup",
+          hooks: [{ type: "command", command: "/usr/local/bin/custom-session-start" }],
+        },
+      ],
+      Notification: [
+        {
+          matcher: "",
+          hooks: [{ type: "command", command: "node /tmp/local-zh-cn/hooks-handlers/notification.js" }],
+        },
+      ],
+      PreToolUse: [
+        {
+          matcher: "Bash",
+          hooks: [{ type: "command", command: "/usr/local/bin/custom-guard" }],
+        },
+      ],
+      PostToolUse: [],
+    },
+    theme: "dark",
+  }, null, 2));
+
+  const result = spawnSync("/bin/bash", [path.join(repoRoot, "uninstall.sh")], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      PATH: binDir,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_PROFILE_FILES: "\n",
+    },
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+  assert.equal("language" in settings, false);
+  assert.equal("spinnerTipsEnabled" in settings, false);
+  assert.equal("spinnerTipsOverride" in settings, false);
+  assert.equal("spinnerVerbs" in settings, false);
+  assert.deepEqual(settings.enabledPlugins, { "other-plugin@example": true });
+  assert.deepEqual(settings.extraKnownMarketplaces, { "other-market": { path: "/tmp/other" } });
+  assert.equal(settings.hooks.SessionStart.length, 2);
+  assert.equal(settings.hooks.SessionStart[0].matcher, "startup|resume");
+  assert.deepEqual(settings.hooks.SessionStart[0].hooks, [{ type: "command", command: "/usr/local/bin/custom-same-matcher" }]);
+  assert.equal(settings.hooks.SessionStart[1].hooks[0].command, "/usr/local/bin/custom-session-start");
+  assert.equal("Notification" in settings.hooks, false);
+  assert.equal(settings.hooks.PreToolUse[0].hooks[0].command, "/usr/local/bin/custom-guard");
+  assert.deepEqual(settings.hooks.PostToolUse, []);
   assert.equal(settings.theme, "dark");
 });
 
