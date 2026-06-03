@@ -166,7 +166,7 @@ function compactVersions(versions) {
   return ranges.join("、");
 }
 
-function parseNativeDisplayAudit(entry) {
+function parseNativeDisplayAudit(entry, label = "native experimental") {
   if (!entry || entry.unsupported) return null;
 
   const displayPairs = [...String(entry.verification || "").matchAll(/display\s+(\d+)\/(\d+)/g)].map((match) => [
@@ -174,12 +174,12 @@ function parseNativeDisplayAudit(entry) {
     Number.parseInt(match[2], 10),
   ]);
   if (displayPairs.length === 0) {
-    fail("macOS native experimental verification must include display audit counts");
+    fail(`${label} verification must include display audit counts`);
   }
 
   const uniquePairs = new Set(displayPairs.map((pair) => pair.join("/")));
   if (uniquePairs.size !== 1) {
-    fail("macOS native experimental display audit counts must be consistent before syncing README");
+    fail(`${label} display audit counts must be consistent before syncing README`);
   }
 
   const [passed, total] = displayPairs[0];
@@ -227,9 +227,12 @@ function renderSupportSystems(config) {
   const macosExcluded = macosNative?.excluded?.length
     ? `${macosNative.excluded.map((version) => `\`${version}\``).join("、")} 未纳入本轮支持；`
     : "";
+  const windowsNativeAudit = windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
+    ? parseNativeDisplayAudit(windowsNativeExperimental, "Windows native experimental")
+    : null;
   const nativeBoundary = nextMajorBoundary(npmStable);
   const nativeLatestNote = macosNative && macosNative.unsupported !== true
-    ? `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS arm64 native binary 现在有独立 experimental 通道，已验证 ${macosVerified} 的二进制改写链路和 ${macosNativeAudit.total} 个稳定显示面。${windowsNativeExperimental && windowsNativeExperimental.unsupported !== true ? `Windows x64 native 也有独立 experimental 通道，已验证 ${compactVersions(windowsNativeExperimental.representatives)}。` : ""}${macosExcluded}\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`
+    ? `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS arm64 native binary 现在有独立 experimental 通道，已验证 ${macosVerified} 的二进制改写链路和 ${macosNativeAudit.total} 个稳定显示面。${windowsNativeExperimental && windowsNativeExperimental.unsupported !== true ? `Windows x64 native 也有独立 experimental 通道，已验证 ${compactVersions(windowsNativeExperimental.representatives)} 的二进制改写链路和 ${windowsNativeAudit.total} 个稳定显示面。` : ""}${macosExcluded}\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`
     : `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`;
 
   return [
@@ -247,7 +250,7 @@ function renderSupportSystems(config) {
     `| Windows / npm 全局安装 (PowerShell) | \`stable\` | ${renderRangeWithExcluded(windowsNpm)} | 新增 PowerShell 安装脚本（install.ps1）；适用于旧 npm cli.js 形态，CLI Patch 可用；需 PowerShell 5.1+ |`,
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
-          `| Windows / native .exe | \`experimental\` | ${renderRangeWithExcluded(windowsNativeExperimental)} | 当前 Windows x64 native 已验证 extract / patch / repack / \`--version\`；需要 \`node-lief\`；未验证新版本会安全跳过 CLI Patch |`,
+          `| Windows / native .exe | \`experimental\` | ${renderRangeWithExcluded(windowsNativeExperimental)} | 当前 Windows x64 native 已验证 extract / patch / repack / \`--version\` + ${windowsNativeAudit.total} 个稳定显示面审计；需要 \`node-lief\`；未验证新版本会安全跳过 CLI Patch |`,
         ]
       : [
           `| Windows / native .exe / latest | \`unsupported\` | ${renderRangeWithExcluded(windowsNative)} | 检测到 Windows native .exe 或 \`${nativeBoundary}+\` 时会跳过 CLI Patch，仅启用 Layer 1~3（设置 + Hook + 插件） |`,
@@ -260,7 +263,7 @@ function renderSupportSystems(config) {
     ">",
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
-          `> **Windows native .exe experimental**：Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 ${renderRangeWithExcluded(windowsNativeExperimental)}，不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
+          `> **Windows native .exe experimental**：Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 ${renderRangeWithExcluded(windowsNativeExperimental)}，已通过 extract / patch / repack / \`--version\` + ${windowsNativeAudit.total} 个稳定显示面审计，不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
         ]
       : [
           `> **Windows native .exe / latest 不支持 CLI Patch**：${windowsNative.notes || "Windows native .exe 目前会明确跳过 CLI Patch，仅启用 Layer 1~3。"}如需完整中文化，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` 安装旧 npm 版本。`,

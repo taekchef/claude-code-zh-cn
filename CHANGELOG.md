@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.41] - 2026-06-03
+
+### 改进
+
+- Windows x64 native published support window 跟进 Claude Code `2.1.159`：基于 pinned Windows runner 的 PE extract / patch / repack / `--version` / display audit 证据，同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.41`。
+
+### 验证
+
+- `Native Latest Candidate workflow 26735357996`
+- `node --test tests/support-window-generation.test.js tests/readme-support-window-sync.test.js tests/doc-derived-counts.test.js tests/support-matrix-generation.test.js`
+- `bash scripts/preflight.sh --base origin/main --skip-release-state`
+
 ## [2.4.40] - 2026-06-03
 
 ### 改进
