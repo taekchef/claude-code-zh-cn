@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.40] - 2026-06-03
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.161`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.40`，合并后可按发布流程创建 `v2.4.40`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
 ## [2.4.39] - 2026-06-02
 
 ### 改进
