@@ -771,6 +771,7 @@ function patch-native-bun {
     }
     if (-not (Test-Path $helper)) {
         Write-CN "原生二进制 patch helper 缺失，已跳过 CLI Patch" Yellow
+        write-support-window-link
         $script:CliPatchStatusSummary = "已跳过（原生二进制 helper 缺失）"
         return
     }
@@ -866,6 +867,7 @@ function patch-native-bun {
             Write-CN "Windows 原生二进制无新增改动（可能已是最新状态）" Yellow
             if ($patchMode -eq "provisional") {
                 $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制本机自验证未找到可 patch 内容）"
+                write-support-window-link
                 return
             } else {
                 $script:CliPatchStatusSummary = "Windows native 无新增改动（可能已是最新状态）"
@@ -877,6 +879,7 @@ function patch-native-bun {
         if (Test-Path $backupFile) {
             Copy-Item $backupFile $BinaryPath -Force -ErrorAction SilentlyContinue
         }
+        write-support-window-link
         $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制 patch 失败）"
         return
     } finally {

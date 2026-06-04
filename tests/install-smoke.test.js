@@ -340,11 +340,25 @@ test("install.ps1 gates launcher injection to Windows old npm cli.js installs", 
 
 test("install.ps1 gates Windows native patch through support window and node-lief", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  const completionStart = script.indexOf("function completion");
+  const completionEnd = script.indexOf("# ======== 依赖检查 ========");
+  const nativePatchStart = script.indexOf("function patch-native-bun");
+  const nativePatchEnd = script.indexOf("function initial-patch");
+  const completion = script.slice(completionStart, completionEnd);
+  const nativePatch = script.slice(nativePatchStart, nativePatchEnd);
 
   assert.match(script, /function patch-native-bun/);
   assert.match(script, /windowsNativeExperimental/);
   assert.match(script, /is-supported-windows-native-version/);
   assert.match(script, /can-try-provisional-windows-native-version/);
+  assert.match(script, /\$SupportMatrixUrl = "https:\/\/github\.com\/taekchef\/claude-code-zh-cn\/blob\/main\/docs\/support-matrix\.md"/);
+  assert.match(script, /function write-support-window-link \{/);
+  assert.match(completion, /write-support-window-link/);
+  assert.match(nativePatch, /原生二进制 patch helper 缺失[\s\S]+write-support-window-link[\s\S]+return/);
+  assert.match(nativePatch, /暂不支持 CLI Patch[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
+  assert.match(nativePatch, /需要安装 node-lief[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
+  assert.match(nativePatch, /本机自验证未找到可 patch 内容[\s\S]+write-support-window-link[\s\S]+return/);
+  assert.match(nativePatch, /Windows 原生二进制 patch 失败[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
   assert.match(script, /node \$helper check-deps/);
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
