@@ -44,6 +44,14 @@ function write-support-window-link {
     Write-Host "  支持窗口: $SupportMatrixUrl"
 }
 
+function write-updater-boundary-note {
+    Write-CN "  ! Claude Code 本体自动升级 → DISABLE_AUTOUPDATER 不归本插件兜底；请以 claude doctor 的 Updates 段为准" Yellow
+}
+
+function write-unpublished-window-note {
+    Write-CN "  提醒：本机自验证是临时 patch，不等于已发布支持；升到未发布窗口时请先看支持窗口，未收录就等插件 Release 或临时退回已验证版本。" Yellow
+}
+
 function banner {
     if ($SkipBanner) { return }
     Write-Host ""
@@ -128,7 +136,8 @@ function completion {
     Write-CN "  √ 通知 Hook → 中文翻译（Windows PowerShell）" Green
     Write-CN "  √ 输出风格 → Chinese" Green
     Write-CN "  √ 自动重 patch → Claude Code 更新后首次会话自动修复（session-start 兜底）" Green
-    Write-CN "  √ 自动更新 → 插件发布新 Release 后自动同步" Green
+    Write-CN "  √ 插件自动更新 → 只跟随本插件已发布 Release，同步中文插件文件" Green
+    write-updater-boundary-note
     if ($CliPatchStatusOk) {
         Write-CN "  √ CLI Patch → $CliPatchStatusSummary" Green
     } else {
@@ -783,6 +792,8 @@ function patch-native-bun {
         if (-not $displayVersion) { $displayVersion = "unknown" }
         Write-CN "当前 Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）" Yellow
         write-support-window-link
+        write-updater-boundary-note
+        Write-CN "  下一步：如果是 Claude Code 自动升到未发布窗口，请等插件发布支持，或临时安装支持窗口内版本。" Yellow
         $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch）"
         return
     }
@@ -790,6 +801,7 @@ function patch-native-bun {
     if ($patchMode -eq "provisional") {
         Write-Host "  版本: $currentVersion（未纳入已发布支持窗口，安装时本机自验证）"
         write-support-window-link
+        write-unpublished-window-note
     } else {
         Write-Host "  版本: $currentVersion（experimental）"
     }

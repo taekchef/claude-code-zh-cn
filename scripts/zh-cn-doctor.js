@@ -8,6 +8,10 @@ const { spawnSync } = require("child_process");
 
 const STABLE_PINNED_VERSION = "2.1.112";
 const STABLE_INSTALL_CMD = `npm install -g @anthropic-ai/claude-code@${STABLE_PINNED_VERSION}`;
+const CLAUDE_UPDATER_BOUNDARY =
+  "DISABLE_AUTOUPDATER 归 Claude Code 本体；本插件只更新中文插件和重 patch，不能保证阻止本体升级。请以 claude doctor 的 Updates 段为准。";
+const UNPUBLISHED_WINDOW_GUIDANCE =
+  "升到未发布支持窗口时，先看 docs/support-matrix.md；未收录就等插件 Release，或临时退回已验证版本";
 const PATCH_REVISION_FILES = [
   "manifest.json",
   "patch-cli.sh",
@@ -616,14 +620,16 @@ function runDoctor(options = {}) {
         layer4Status = "provisional";
         layer4Detail = `native ${cliVersion || "unknown"} 已本机自验证 patch，但尚未纳入已发布支持窗口`;
         add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
-        recommendations.push("这是本机通过的临时 patch；等插件发布支持窗口后可重新运行 ./install.sh 转为已验证记录");
+        recommendations.push("这是本机通过的临时 patch，不等于已发布支持");
+        recommendations.push(UNPUBLISHED_WINDOW_GUIDANCE);
+        recommendations.push("如仍未汉化，请贴本插件 doctor --json 输出和 claude doctor 的 Updates 段");
       }
     } else if (!supported) {
       layer4Status = "unsupported";
       layer4Detail = `native ${cliVersion || "unknown"} 不在已验证支持窗口内`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
       recommendations.push(`稳定方案：${STABLE_INSTALL_CMD}`);
-      recommendations.push("详见 docs/support-matrix.md");
+      recommendations.push(UNPUBLISHED_WINDOW_GUIDANCE);
     } else if (!liefOk) {
       layer4Status = "needs-deps";
       layer4Detail = "已验证版本，但缺少 node-lief";
@@ -670,6 +676,10 @@ function runDoctor(options = {}) {
     }
   } else if (fs.existsSync(pluginRoot)) {
     add("auto-update", "插件自动更新", "warn", "无 .source-repo，Release 自动同步可能不可用");
+  }
+
+  if (fs.existsSync(pluginRoot)) {
+    add("claude-updater", "Claude Code 本体自动升级", "warn", CLAUDE_UPDATER_BOUNDARY);
   }
 
   const hasFail = checks.some((item) => item.status === "fail");

@@ -256,6 +256,7 @@ test("install smoke can provisionally self-verify newer same-minor native binari
   assert.match(output, new RegExp(escapeRegex(provisionalNativeVersion)));
   assert.match(output, /本机自验证/, "new same-minor native versions should be locally self-verified");
   assert.match(output, /未纳入已发布支持窗口/, "provisional patch must not look like published support");
+  assert.match(output, /DISABLE_AUTOUPDATER/, "install output should not imply the plugin controls Claude Code core updates");
   assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "provisional path should extract, patch, and repack");
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
@@ -348,6 +349,7 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
   assert.match(script, /--version/);
+  assert.match(script, /DISABLE_AUTOUPDATER/);
   assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
   assert.match(script, /\.patched-version/);
   assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);

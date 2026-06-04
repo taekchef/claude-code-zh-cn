@@ -423,8 +423,11 @@ test("runDoctor does not treat macOS native support as Windows native support", 
   });
 
   const layer4 = result.checks.find((item) => item.id === "layer4");
+  const updater = result.checks.find((item) => item.id === "claude-updater");
   assert.equal(layer4.status, "warn");
   assert.match(layer4.detail, /不在已验证支持窗口/);
+  assert.match(updater.detail, /DISABLE_AUTOUPDATER/);
+  assert.ok(result.recommendations.some((line) => line.includes("docs/support-matrix.md")));
   assert.equal(result.layer4Status, "unsupported");
 });
 
@@ -532,10 +535,14 @@ test("runDoctor reports provisional native marker without treating it as publish
 
   const marker = result.checks.find((item) => item.id === "patch-marker");
   const layer4 = result.checks.find((item) => item.id === "layer4");
+  const updater = result.checks.find((item) => item.id === "claude-updater");
   assert.match(marker.detail, /provisional/);
   assert.equal(layer4.status, "warn");
   assert.match(layer4.detail, /本机自验证/);
   assert.match(layer4.detail, /尚未纳入已发布支持窗口/);
+  assert.match(updater.detail, /DISABLE_AUTOUPDATER/);
+  assert.ok(result.recommendations.some((line) => line.includes("docs/support-matrix.md")));
+  assert.ok(result.recommendations.some((line) => line.includes("Updates")));
   assert.equal(result.layer4Status, "provisional");
 });
 
