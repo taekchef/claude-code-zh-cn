@@ -11,6 +11,7 @@ const pairs = [
   ["bun-binary-io.js", path.join(repoRoot, "bun-binary-io.js"), path.join(repoRoot, "plugin", "bun-binary-io.js")],
   ["compute-patch-revision.sh", path.join(repoRoot, "compute-patch-revision.sh"), path.join(repoRoot, "plugin", "compute-patch-revision.sh")],
   ["doctor.sh", path.join(repoRoot, "doctor.sh"), path.join(repoRoot, "plugin", "bin", "doctor")],
+  ["doctor.ps1", path.join(repoRoot, "doctor.ps1"), path.join(repoRoot, "plugin", "bin", "doctor.ps1")],
   ["scripts/zh-cn-doctor.js", path.join(repoRoot, "scripts", "zh-cn-doctor.js"), path.join(repoRoot, "plugin", "scripts", "zh-cn-doctor.js")],
 ];
 

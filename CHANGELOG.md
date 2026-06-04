@@ -6,6 +6,19 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.45] - 2026-06-04
+
+### 修复
+
+- 新增 Windows PowerShell 诊断入口 `doctor.ps1`，并随插件 payload 安装到 `plugin/bin/doctor.ps1`，避免 Windows 用户按维护者回复运行诊断时找不到脚本。
+- README 和没汉化 issue 模板补充 Windows 对应的 `doctor.ps1 --json` 命令，减少 Windows 用户只填“无”的情况。
+
+### 验证
+
+- `node --test tests/plugin-payload.test.js tests/payload-source-guard.test.js tests/doctor.test.js`
+- `node --check scripts/zh-cn-doctor.js`
+- `node --check plugin/scripts/zh-cn-doctor.js`
+
 ## [2.4.44] - 2026-06-04
 
 ### 改进

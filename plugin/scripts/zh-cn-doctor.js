@@ -710,7 +710,7 @@ function runDoctor(options = {}) {
     lines.push("");
   }
 
-  lines.push("文档：docs/support-matrix.md · 重新检测：./doctor.sh");
+  lines.push("文档：docs/support-matrix.md · 重新检测：./doctor.sh 或 .\\doctor.ps1");
 
   return { ...summary, output: lines.join("\n") };
 }
