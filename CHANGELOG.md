@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.48] - 2026-06-05
+
+### 修复
+
+- 补齐 Claude Code `2.1.163` 中 `/` slash command 菜单、命令说明和 prompt command 描述的中文翻译；命令名、参数、配置 key、工具名和 model-facing prompt 正文保持原文，避免改变执行语义。
+- 新增 upstream guard 和回归测试，锁定新增 `/` 命令说明不再漏翻。
+
+### 验证
+
+- `node --test tests/translations-quality.test.js tests/patch-cli.test.js tests/upstream-compat.test.js`
+- `node scripts/verify-upstream-compat.js --baseline '["2.1.163"]' --latest-version 2.1.163 --native-macos-arm64 --skip-latest --packages-dir /private/tmp/cczh-compat-packages --json`
+
 ## [2.4.47] - 2026-06-05
 
 ### 改进

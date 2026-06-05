@@ -307,6 +307,234 @@
         "rule": "translate",
         "sourcePattern": "Author or improve the run-<unit> skill for this project.",
         "pattern": "编写或改进 run-<unit> skill"
+      },
+      {
+        "id": "issue122_advisor_short_description",
+        "rule": "translate",
+        "sourcePattern": "Let Claude consult a stronger model at key moments",
+        "pattern": "让 Claude 在关键时刻咨询更强模型"
+      },
+      {
+        "id": "issue122_autocompact_short_description",
+        "rule": "translate",
+        "sourcePattern": "Set how full the context gets before auto-summarizing",
+        "pattern": "设置触发自动总结的上下文占用阈值"
+      },
+      {
+        "id": "issue122_batch_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Plan a large change; background agents each open a PR",
+        "pattern": "规划大型改动；后台 Agent 分别开 PR"
+      },
+      {
+        "id": "issue122_claude_api_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Build and debug apps that use the Claude API",
+        "pattern": "构建并调试使用 Claude API 的应用"
+      },
+      {
+        "id": "issue122_claude_in_chrome_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Let Claude browse and interact with pages in your Chrome",
+        "pattern": "让 Claude 在你的 Chrome 中浏览并操作网页"
+      },
+      {
+        "id": "issue122_config_short_description",
+        "rule": "translate",
+        "sourcePattern": "Open settings",
+        "pattern": "打开设置"
+      },
+      {
+        "id": "issue122_daemon_short_description",
+        "rule": "translate",
+        "sourcePattern": "Manage background services and routines",
+        "pattern": "管理后台服务和计划任务"
+      },
+      {
+        "id": "issue122_debug_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Turn on debug logging and investigate problems",
+        "pattern": "开启调试日志并排查问题"
+      },
+      {
+        "id": "issue122_design_sync_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Push your design system components to claude.ai/design",
+        "pattern": "将你的设计系统组件推送到 claude.ai/design"
+      },
+      {
+        "id": "issue122_fewer_permission_prompts_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Pre-approve safe read-only commands based on your usage",
+        "pattern": "预先批准安全的只读命令"
+      },
+      {
+        "id": "issue122_focus_short_description",
+        "rule": "translate",
+        "sourcePattern": "Toggle focus view: just your prompt, summary, and response",
+        "pattern": "切换专注视图：仅显示你的提示词、摘要和回复"
+      },
+      {
+        "id": "issue122_goal_short_description",
+        "rule": "translate",
+        "sourcePattern": "Set a goal Claude checks before stopping",
+        "pattern": "设置 Claude 停止前检查的目标"
+      },
+      {
+        "id": "issue122_keybindings_short_description",
+        "rule": "translate",
+        "sourcePattern": "Open your keyboard shortcuts file",
+        "pattern": "打开你的键盘快捷键文件"
+      },
+      {
+        "id": "issue122_loops_short_description",
+        "rule": "translate",
+        "sourcePattern": "List, create, and delete loops",
+        "pattern": "列出、创建和删除循环任务"
+      },
+      {
+        "id": "issue122_memory_short_description",
+        "rule": "translate",
+        "sourcePattern": "Open a memory file in your editor",
+        "pattern": "在编辑器中打开 memory 文件"
+      },
+      {
+        "id": "issue122_permissions_short_description",
+        "rule": "translate",
+        "sourcePattern": "Manage allow and deny tool permission rules",
+        "pattern": "管理工具权限的 allow / deny 规则"
+      },
+      {
+        "id": "issue122_remote_control_short_description",
+        "rule": "translate",
+        "sourcePattern": "Control this session from your phone or claude.ai/code",
+        "pattern": "通过手机或 claude.ai/code 控制本会话"
+      },
+      {
+        "id": "issue122_remote_env_short_description",
+        "rule": "translate",
+        "sourcePattern": "Choose the default environment for cloud agents",
+        "pattern": "选择云端 Agent 的默认环境"
+      },
+      {
+        "id": "issue122_schedule_short_description",
+        "rule": "translate",
+        "sourcePattern": "Create and manage scheduled remote Claude Code agents",
+        "pattern": "创建和管理定时运行的远程 Claude Code Agent"
+      },
+      {
+        "id": "issue122_schedule_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Create and manage routines: cloud agents on a schedule",
+        "pattern": "创建和管理 routine：按计划运行的云端 Agent"
+      },
+      {
+        "id": "issue122_run_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Launch this project\\u2019s app to see your change working",
+        "pattern": "启动此项目的应用，确认改动生效"
+      },
+      {
+        "id": "issue122_run_skill_generator_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Create a skill that knows how to run this project\\u2019s app",
+        "pattern": "创建一个知道如何运行此项目应用的 skill"
+      },
+      {
+        "id": "issue122_simplify_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Clean up the changed code without changing behavior",
+        "pattern": "在不改变行为的前提下清理已修改代码"
+      },
+      {
+        "id": "issue122_tasks_short_description",
+        "rule": "translate",
+        "sourcePattern": "View and manage everything running in the background",
+        "pattern": "查看并管理所有后台运行项"
+      },
+      {
+        "id": "issue122_ultraplan_short_description",
+        "rule": "translate",
+        "sourcePattern": "Claude Code on the web drafts a plan you can edit and approve",
+        "pattern": "Claude Code on the web 会起草可编辑、可批准的方案"
+      },
+      {
+        "id": "issue122_ultrareview_short_description",
+        "rule": "translate",
+        "sourcePattern": "Find and verify bugs in your branch using Claude Code on the web",
+        "pattern": "使用 Claude Code on the web 查找并验证当前分支中的 bug"
+      },
+      {
+        "id": "issue122_version_short_description",
+        "rule": "translate",
+        "sourcePattern": "Show this session's version (autoupdate may have a newer one)",
+        "pattern": "显示当前会话版本（自动更新可能已有更新版本）"
+      },
+      {
+        "id": "issue122_web_setup_short_description",
+        "rule": "translate",
+        "sourcePattern": "Set up Claude Code on the web with your GitHub account",
+        "pattern": "用你的 GitHub 账号设置 Claude Code on the web"
+      },
+      {
+        "id": "issue122_workflows_short_description",
+        "rule": "translate",
+        "sourcePattern": "Browse running and completed workflows",
+        "pattern": "浏览运行中和已完成的 workflow"
+      },
+      {
+        "id": "issue122_commit_pr_prompt_description",
+        "rule": "translate",
+        "sourcePattern": "Commit, push, and open a PR",
+        "pattern": "提交 commit、推送分支并打开 PR"
+      },
+      {
+        "id": "issue122_update_config_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Change settings: hooks, permissions, environment variables",
+        "pattern": "更改设置：Hook、权限和环境变量"
+      },
+      {
+        "id": "issue122_loop_menu_description",
+        "rule": "translate",
+        "sourcePattern": "Repeat a prompt or command on an interval (e.g. /loop 5m /foo)",
+        "pattern": "按间隔重复运行提示词或命令"
+      },
+      {
+        "id": "issue122_cowork_plugin_long_description",
+        "rule": "translate",
+        "sourcePattern": "Create a new Cowork plugin from scratch, or customize an installed plugin for a specific organization. Use when: customize plugin, set up plugin, configure plugin, tailor plugin, adjust plugin settings, customize plugin connectors, customize plugin skill, tweak plugin, modify plugin configuration, create a plugin, build a plugin, make a new plugin, develop a plugin, scaffold a plugin.",
+        "pattern": "从零创建 Cowork 插件"
+      },
+      {
+        "id": "issue122_design_sync_long_description",
+        "rule": "translate",
+        "sourcePattern": "Push a React design system to claude.ai/design. This runs a converter that bundles the real component code (from Storybook or a bare package) and uploads it. Use when the user runs /design-sync or says \\\"sync my design system to Claude Design\\\".",
+        "pattern": "将 React 设计系统推送到 claude.ai/design"
+      },
+      {
+        "id": "issue122_claude_api_long_description",
+        "rule": "translate",
+        "sourcePattern": "Reference for the Claude API / Anthropic SDK \\u2014 model ids, pricing, params, streaming, tool use, MCP, agents, caching, token counting, model migration.",
+        "pattern": "Claude API / Anthropic SDK 参考"
+      },
+      {
+        "id": "issue122_run_long_description",
+        "rule": "translate",
+        "sourcePattern": "Launch and drive this project's app to see a change working. Use when asked to run, start, or screenshot the app, or to confirm a change works in the real app (not just tests). First looks for a project skill that already covers launching the app; otherwise falls back to built-in patterns per project type (CLI, server, TUI, Electron, browser-driven, library).",
+        "pattern": "启动并操作此项目的应用，确认改动实际生效"
+      },
+      {
+        "id": "issue122_run_skill_generator_long_description",
+        "rule": "translate",
+        "sourcePattern": "Author or improve the run-<unit> skill \\u2014 a per-project skill that tells agents how to build, launch, and drive this project's app. Use when the user asks to set up the project, get it running, write run instructions, or verify build/run steps work from a clean environment.",
+        "pattern": "编写或改进 run-<unit> skill：这是一个项目级 skill"
+      },
+      {
+        "id": "issue122_verify_skill_description",
+        "rule": "translate",
+        "sourcePattern": "Verify that a code change actually does what it's supposed to by running the app and observing behavior. Use when asked to verify a PR, confirm a fix works, test a change manually, check that a feature works, or validate local changes before pushing.",
+        "pattern": "通过运行应用并观察行为，验证代码改动是否真正达到预期"
       }
     ],
     "displayAudit": {

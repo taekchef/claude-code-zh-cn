@@ -34,12 +34,12 @@
 
 | Version | Package shape | Result | Runtime | 汉化显示审计 | Patch count | Residue |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2.1.92 | legacy | PASS | - | PASS (11 surfaces) | 1615 | - |
-| 2.1.97 | legacy | PASS | - | PASS (11 surfaces) | 1612 | - |
-| 2.1.104 | legacy | PASS | - | PASS (11 surfaces) | 1581 | - |
-| 2.1.107 | legacy | PASS | - | PASS (11 surfaces) | 1555 | - |
-| 2.1.110 | legacy | PASS | - | PASS (11 surfaces) | 1549 | - |
-| 2.1.112 | legacy | PASS | - | PASS (11 surfaces) | 1552 | - |
+| 2.1.92 | legacy | PASS | - | PASS (11 surfaces) | 1618 | - |
+| 2.1.97 | legacy | PASS | - | PASS (11 surfaces) | 1615 | - |
+| 2.1.104 | legacy | PASS | - | PASS (11 surfaces) | 1584 | - |
+| 2.1.107 | legacy | PASS | - | PASS (11 surfaces) | 1558 | - |
+| 2.1.110 | legacy | PASS | - | PASS (11 surfaces) | 1552 | - |
+| 2.1.112 | legacy | PASS | - | PASS (11 surfaces) | 1555 | - |
 
 Summary: 6 pass / 0 fail
 
