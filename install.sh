@@ -33,6 +33,14 @@ CLI_PATCH_STATUS_OK=false
 LAUNCHER_STATUS_SUMMARY="已跳过（未执行 launcher 安装）"
 LAUNCHER_STATUS_OK=false
 
+print_updater_boundary_note() {
+    echo -e "  ${YELLOW}!${NC} Claude Code 本体自动升级 → DISABLE_AUTOUPDATER 不归本插件兜底；请以 claude doctor 的 Updates 段为准"
+}
+
+print_unpublished_window_note() {
+    echo -e "${YELLOW}  提醒：本机自验证是临时 patch，不等于已发布支持；升到未发布窗口时请先看支持窗口，未收录就等插件 Release 或临时退回已验证版本。${NC}"
+}
+
 if [ -f "$INSTALL_JSON_HELPER" ]; then
     compute_patch_revision() {
         node "$INSTALL_JSON_HELPER" patch-revision "$1"
@@ -81,7 +89,8 @@ print_completion() {
     else
         echo -e "  ${YELLOW}!${NC} npm 启动前自修复 → ${LAUNCHER_STATUS_SUMMARY}"
     fi
-    echo -e "  ${GREEN}✓${NC} 自动更新 → 插件发布新 Release 后自动同步"
+    echo -e "  ${GREEN}✓${NC} 插件自动更新 → 只跟随本插件已发布 Release，同步中文插件文件"
+    print_updater_boundary_note
 
     if [ "$CLI_PATCH_STATUS_OK" = true ]; then
         echo -e "  ${GREEN}✓${NC} CLI Patch → ${CLI_PATCH_STATUS_SUMMARY}"
@@ -1170,12 +1179,15 @@ patch_native_binary() {
         echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
         echo -e "  macOS native 已验证窗口：$(native_support_summary)"
         echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
+        print_updater_boundary_note
+        echo -e "${YELLOW}  下一步：如果是 Claude Code 自动升到未发布窗口，请等插件发布支持，或临时安装支持窗口内版本。${NC}"
         CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch）"
         return
     fi
 
     if [ "$patch_mode" = "provisional" ]; then
         echo -e "  版本: ${current_version}（未纳入已发布支持窗口，安装时本机自验证）"
+        print_unpublished_window_note
     else
         echo -e "  版本: ${current_version}（experimental）"
     fi
