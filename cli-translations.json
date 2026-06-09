@@ -6618,6 +6618,10 @@
     "zh": "当前会话使用的模型。可提供最新模型别名（例如 'sonnet' 或 'opus'），也可提供模型完整名称（例如 'claude-opus-4-8'）。"
   },
   {
+    "en": "Model for the current session. Provide an alias for the latest model (e.g. 'fable', 'opus', or 'sonnet') or a model's full name (e.g. 'claude-fable-5').",
+    "zh": "当前会话使用的模型。可提供最新模型别名（例如 'fable'、'opus' 或 'sonnet'），也可提供模型完整名称（例如 'claude-fable-5'）。"
+  },
+  {
     "en": "Beta headers to include in API requests (API key users only)",
     "zh": "要包含在 API 请求中的 Beta header（仅 API 密钥用户）"
   },
