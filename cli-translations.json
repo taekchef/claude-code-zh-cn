@@ -3644,6 +3644,14 @@
     "zh": "以 JSON 数组打印实时会话并退出（用于脚本；不需要 TTY）"
   },
   {
+    "en": "Print active sessions as a JSON array and exit (for scripting; does not require a TTY)",
+    "zh": "以 JSON 数组打印活跃会话并退出（用于脚本；不需要 TTY）"
+  },
+  {
+    "en": "With --json: include completed sessions (the full agent view list)",
+    "zh": "配合 --json：包含已完成会话（完整 Agent 视图列表）"
+  },
+  {
     "en": "Print the version this session is running (not what autoupdate downloaded)",
     "zh": "打印当前会话运行的版本（非自动更新下载的版本）"
   },
@@ -4523,6 +4531,10 @@
   {
     "en": "Start an interactive session with Remote Control enabled (optionally named)",
     "zh": "启动启用远程控制的交互式会话（可指定名称）"
+  },
+  {
+    "en": "Start with all customizations (CLAUDE.md, skills, plugins, hooks, MCP servers, custom commands and agents, output styles, workflows, custom themes, keybindings, and more) disabled \\u2014 useful for troubleshooting a broken configuration. Admin-managed (policy) settings still apply. Auth, model selection, built-in tools, and permissions work normally. Sets CLAUDE_CODE_SAFE_MODE=1.",
+    "zh": "启动时禁用所有自定义内容（CLAUDE.md、skills、plugins、Hooks、MCP servers、自定义命令和 Agent、output styles、workflows、自定义主题、keybindings 等）——用于排查损坏配置。管理员托管（policy）设置仍会生效。认证、模型选择、内置工具和权限正常工作。设置 CLAUDE_CODE_SAFE_MODE=1。"
   },
   {
     "en": "Start fresh: discard the current conversation and context",
