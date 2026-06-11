@@ -678,10 +678,12 @@ function installIssue80VisibleResidueLocalization() {
     );
 
     tryRegexReplace(
-        /return`Review the current diff for correctness bugs and reuse\/simplification\/efficiency cleanups at the given effort level \(low\/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings\$\{([^}]+)\}\)\. Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review\.`/g,
+        /return`Review the current diff for correctness bugs and reuse\/simplification\/efficiency cleanups at the given effort level \(low\/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings\$\{([\s\S]*?)\}\)\. Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review\.`/g,
         (match, ultraExpr) => {
-            const ultraCondition = ultraExpr.match(/^([^?]+)\?/)?.[1] || "false";
-            return `return\`审查当前 diff 的正确性问题，以及复用性、简化和效率改进；按指定 effort 级别执行（low/medium：只报更少、更高置信的问题；high→max：覆盖更广，可能包含不确定问题\${${ultraCondition}?"；ultra：云端深度多 Agent review":""}）。传 --comment 可将发现发布为 PR 行内评论，传 --fix 可在 review 后把发现应用到工作区。\``;
+            const localizedUltraExpr = ultraExpr
+                .replace(/; ultra: deep multi-agent review in the cloud/g, "；ultra：云端深度多 Agent review")
+                .replace(/ \(requires claude\.ai account access\)/g, "（需要 claude.ai 账号权限）");
+            return `return\`审查当前 diff 的正确性问题，以及复用性、简化和效率改进；按指定 effort 级别执行（low/medium：只报更少、更高置信的问题；high→max：覆盖更广，可能包含不确定问题\${${localizedUltraExpr}}）。传 --comment 可将发现发布为 PR 行内评论，传 --fix 可在 review 后把发现应用到工作区。\``;
         }
     );
 }
@@ -769,6 +771,9 @@ tryReplace('${bL} Idle', '${bL} 空闲');
 // 这里按模板形态处理，不再依赖固定变量名。
 tryRegexReplace(/\$\{[^}]+\}\s+Worked for\s+\$\{[^}]+\}/g, (match) =>
     match.replace(" Worked for ", " ")
+);
+tryRegexReplace(/\?`Worked for \$\{([^}]+)\}`:"Idle"/g, (match, durationExpr) =>
+    `?\`忙活了 \${${durationExpr}}\`:"空闲"`
 );
 tryRegexReplace(/\$\{[^}]+\}\s+Idle(?=[`"])/g, (match) =>
     match.replace(" Idle", " 空闲")

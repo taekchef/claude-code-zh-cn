@@ -31,6 +31,7 @@ test("past-tense status verbs are translated when upstream escapes Sautéed", ()
 test("duration patch removes English 'for' from generic Worked/Idle variants", () => {
   const patched = patchFixture([
     "let teammate=`${verb} Worked for ${fmt(Date.now()-task.startTime)}`;",
+    'let finished=allIdle?`Worked for ${fmt(Date.now()-task.startTime)}`:"Idle";',
     "let guarded=H&&`${A} for ${X}`;",
     'let idleA=createElement(T,{dimColor:!0},label," for ",duration);',
     'let idleB=createElement(T,{dimColor:!0},"Idle for ",idleDuration);',
@@ -42,6 +43,7 @@ test("duration patch removes English 'for' from generic Worked/Idle variants", (
   assert.equal(patched.includes("Idle for "), false, patched);
   assert.equal(patched.includes("&&`${A} for ${X}`"), false, patched);
   assert.match(patched, /\$\{verb\}\s+\$\{fmt\(Date\.now\(\)-task\.startTime\)\}/);
+  assert.match(patched, /allIdle\?`忙活了 \$\{fmt\(Date\.now\(\)-task\.startTime\)\}`:"空闲"/);
   assert.match(patched, /&&`\$\{A\} \$\{X\}`/);
   assert.match(patched, /"空闲 "/);
 });
@@ -207,6 +209,7 @@ test("issue 80 native dynamic residues use targeted structural patches", () => {
     'let N4=true,pickerStatus=`Model set to ${bb(v8)}${gW.current?" and saved as your default for new sessions":" for this session only"}`;',
     'let remoteStatus=$(`Set model to ${P8.bold(US(P))}`);',
     'function BNf(){return`Review the current diff for correctness bugs and reuse/simplification/efficiency cleanups at the given effort level (low/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings${iB()?"; ultra: deep multi-agent review in the cloud":""}). Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review.`}',
+    'function NYT(){return`Review the current diff for correctness bugs and reuse/simplification/efficiency cleanups at the given effort level (low/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings${r__()?`; ultra: deep multi-agent review in the cloud${Sg()?"":" (requires claude.ai account access)"}`:""}). Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review.`}',
     "",
   ]);
 
@@ -216,6 +219,7 @@ test("issue 80 native dynamic residues use targeted structural patches", () => {
   assert.equal(patched.includes("Model set to "), false, patched);
   assert.equal(patched.includes(" and saved as your default for new sessions"), false, patched);
   assert.equal(patched.includes("Review the current diff for correctness bugs"), false, patched);
+  assert.equal(patched.includes("requires claude.ai account access"), false, patched);
   assert.match(patched, /"从 JetBrains Marketplace 安装 ",L7\.createElement\(k,\{color:"ide"\},q\)," 插件："/);
   assert.match(patched, /`已切换模型为 \$\{P8\.bold\(US\(H\)\)\}\$\{\$\?"，并已保存为新会话默认模型":"（仅本次会话）"\}`/);
   assert.match(patched, /`已切换模型为 \$\{bb\(v8\)\}\$\{gW\.current\?"，并已保存为新会话默认模型":"（仅本次会话）"\}`/);
@@ -223,6 +227,7 @@ test("issue 80 native dynamic residues use targeted structural patches", () => {
   assert.match(patched, /审查当前 diff 的正确性问题/);
   assert.match(patched, /high→max：覆盖更广/);
   assert.match(patched, /ultra：云端深度多 Agent review/);
+  assert.match(patched, /需要 claude\.ai 账号权限/);
 });
 
 test("string translation must not rewrite identifiers or object keys across code boundaries", () => {
