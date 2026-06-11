@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # notification hook for claude-code-zh-cn
-# Translates common notifications to Chinese (bash 3.x compatible)
+# Translates common notifications using the active locale's translation data
+# 通过 i18n.js 模块加载翻译，无需硬编码
 
 read -r INPUT
 
@@ -12,28 +13,23 @@ try {
 } catch {}
 " 2>/dev/null)
 
-# Match and translate
-TRANSLATED=""
-case "$MESSAGE" in
-    *"Rate limited"*)
-        TRANSLATED="请求频率受限，请稍后再试"
-        ;;
-    *"Token limit reached"*)
-        TRANSLATED="Token 用量已达上限"
-        ;;
-    *"Session expired"*)
-        TRANSLATED="会话已过期"
-        ;;
-    *"Context window"*)
-        TRANSLATED="上下文窗口即将用尽，建议使用 /compact 压缩"
-        ;;
-    *"Usage limit"*)
-        TRANSLATED="使用额度已达上限"
-        ;;
-    *"Auto-compact"*)
-        TRANSLATED="正在自动压缩对话历史..."
-        ;;
-esac
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
+
+# 通过 i18n 模块翻译通知
+TRANSLATED="$(PLUGIN_ROOT="$PLUGIN_ROOT" ZH_CN_MESSAGE="$MESSAGE" node -e "
+const i18n = require(process.env.PLUGIN_ROOT + '/core/i18n.js');
+const locale = i18n.loadActiveLocale();
+const msg = process.env.ZH_CN_MESSAGE || '';
+
+if (locale && locale.notifications) {
+  for (const [key, value] of Object.entries(locale.notifications)) {
+    if (msg.includes(key)) {
+      process.stdout.write(value);
+      break;
+    }
+  }
+}
+" 2>/dev/null)"
 
 # Output translated notification if found
 if [ -n "$TRANSLATED" ]; then

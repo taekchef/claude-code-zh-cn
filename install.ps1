@@ -253,9 +253,9 @@ function remove-old-backups {
 
 function build-overlay {
     if (Test-Path $InstallJsonHelper) {
-        return run-install-json-helper -HelperArgs @("build-overlay", $OverlayFile, "$ScriptDir\verbs\zh-CN.json", "$ScriptDir\tips\zh-CN.json")
+        return run-install-json-helper -HelperArgs @("build-overlay", $OverlayFile, "$ScriptDir\locales\zh-CN\verbs.json", "$ScriptDir\locales\zh-CN\tips.json")
     }
-    return run-js $JS_BUILD_OVERLAY_FILES @($OverlayFile, "$ScriptDir\verbs\zh-CN.json", "$ScriptDir\tips\zh-CN.json")
+    return run-js $JS_BUILD_OVERLAY_FILES @($OverlayFile, "$ScriptDir\locales\zh-CN\verbs.json", "$ScriptDir\locales\zh-CN\tips.json")
 }
 
 function merge-settings {
@@ -504,6 +504,18 @@ function sync-plugin {
     }
     New-Item -ItemType Directory -Force -Path $PluginDst | Out-Null
     Copy-Item "$PluginSrc\*" -Destination $PluginDst -Recurse -Force
+    # 部署语言包
+    $localesSrc = "$ScriptDir\locales"
+    if (Test-Path $localesSrc) {
+        Copy-Item "$localesSrc\*" -Destination "$PluginDst\locales\" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    # 部署 /lang 命令 skill
+    $skillsDir = "$env:USERPROFILE\.claude\skills"
+    $langSkill = "$PluginDst\skills\lang.md"
+    if (Test-Path $langSkill) {
+        New-Item -ItemType Directory -Force -Path $skillsDir | Out-Null
+        Copy-Item $langSkill -Destination "$skillsDir\lang.md" -Force -ErrorAction SilentlyContinue
+    }
 
     $dstHooksJson = "$PluginDst\hooks.json"
     if (Test-Path $dstHooksJson) {

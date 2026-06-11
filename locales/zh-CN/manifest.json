@@ -1,0 +1,18 @@
+{
+  "code": "zh-CN",
+  "name": "简体中文",
+  "nameEn": "Chinese (Simplified)",
+  "dir": "ltr",
+  "fallback": null,
+  "author": "taekchef",
+  "version": "2.4.52",
+  "requiresPlugin": ">=2.0.0",
+  "files": {
+    "translations": "translations.json",
+    "verbs": "verbs.json",
+    "tips": "tips.json",
+    "sessionContext": "session-context.json",
+    "notifications": "notifications.json"
+  },
+  "description": "Claude Code 全界面中文本地化 — 包含 CLI 硬编码文字、Spinner 动词和提示"
+}

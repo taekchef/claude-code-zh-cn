@@ -93,7 +93,7 @@ bash scripts/preflight.sh --release-state
 node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
 ```
 
-该检查会读取 `plugin/manifest.json` 和 `CHANGELOG.md` 顶部版本，确认两者一致，并确认同名 `vX.Y.Z` Git tag 与 GitHub Release 都存在。它依赖 GitHub CLI：
+该检查会读取 `plugin/manifest.json` 和 `docs/CHANGELOG.md` 顶部版本，确认两者一致，并确认同名 `vX.Y.Z` Git tag 与 GitHub Release 都存在。它依赖 GitHub CLI：
 
 ```bash
 gh release view vX.Y.Z --json tagName,url
@@ -109,8 +109,8 @@ node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn
 
 ## 翻译数据规则
 
-- `verbs/zh-CN.json` 是 spinner verbs 的唯一数据源
-- `tips/zh-CN.json` 是 spinner tips 的唯一数据源
+- `locales/zh-CN/verbs.json` 是 spinner verbs 的唯一数据源
+- `locales/zh-CN/tips.json` 是 spinner tips 的唯一数据源
 - `settings-overlay.json` 不重复存储 verbs / tips 的实际内容
 
 改动这三个文件后，运行：
@@ -121,6 +121,14 @@ node scripts/verify-settings-sources.js
 
 ## 支持矩阵
 
-- `npm` 安装：稳定支持
-- `macOS 官方安装器`：实验性支持
-- `Linux 官方安装器`：暂不支持
+| 安装方式 | 口径 | 版本窗口 | 备注 |
+|---------|------|---------|------|
+| npm 全局安装 | `stable` | 2.1.92–2.1.112 | 旧 cli.js 形态，启动前自修复 |
+| macOS 官方安装器 | `experimental` | 2.1.110–2.1.112 | 指定旧版本走 native patch |
+| macOS native binary | `experimental` | 2.1.113–2.1.170 | 已验证 extract/patch/repack + 显示审计；需 node-lief |
+| Linux native binary | `experimental` | 2.1.172（仅 2.1.172 已实测） | 需 node-lief；同 minor 线更高版本自动本机自验证 |
+| Linux 官方安装器 | `unsupported` | - | 暂不承诺支持 |
+| Windows / npm (PowerShell) | `stable` | 2.1.92–2.1.112 | PowerShell 5.1+；旧 cli.js 形态 |
+| Windows native .exe | `experimental` | 2.1.113–2.1.162 | 已验证 extract/patch/repack + 显示审计；需 node-lief |
+
+详情见 [docs/support-matrix.md](./docs/support-matrix.md)。

@@ -6,6 +6,37 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.53] - 2026-06-11
+
+### 新增
+
+- i18n 多语言基础设施：`locales/` 目录、`plugin/core/i18n.js` 模块、按语言包加载翻译
+- Linux native experimental 支持（`2.1.110`–`2.1.172`，不含跳过版本）
+- ClawGod 可选支持脚本 `scripts/clawgod-patch.sh`
+
+### 改进
+
+- CLI Patch 新增 44 条翻译（底部栏快捷键、动作名、UI 对话文字），总数 1838
+- `patch-cli.js` i18n 自动检测：不传 translations 文件时自动从语言包加载
+- Spinner "for" 占位符移除逻辑泛化为通用正则，覆盖更多变量名变体
+- `install.sh` 检测 `claude` 二进制后备搜索标准安装路径
+- `install.ps1` verbs/tips 路径适配 `locales/zh-CN/`
+- `compute-patch-revision.sh` 加入 locales 文件到哈希计算
+
+### 修复
+
+- session-start hook JSON 输出修复：多行文本正确转义，解决 additionalContext 被丢弃导致模型回英文
+- `plugin/core/binary-io.js` ELF repack 修复：移除有问题的 sizeDiff 扩展逻辑
+
+### 文档
+
+- README 更新项目结构、Linux native 支持、翻译数 1838
+- CLAUDE.md / CONTRIBUTING.md / AGENTS.md 路径更新
+- 校验证脚本 `verify-settings-sources.js`、`sync-doc-derived-counts.js` 路径迁移
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
 ## [2.4.51] - 2026-06-09
 
 ### 改进
@@ -456,7 +487,7 @@
 
 ### 改进
 
-- 恢复 native latest 自动 closeout 的发布准备链路：Claude Code latest 通过 macOS native 验证并产生真实支持窗口变化后，会自动补 `plugin/manifest.json`、`CHANGELOG.md`，再创建带新插件版本号的 draft PR
+- 恢复 native latest 自动 closeout 的发布准备链路：Claude Code latest 通过 macOS native 验证并产生真实支持窗口变化后，会自动补 `plugin/manifest.json`、`docs/CHANGELOG.md`，再创建带新插件版本号的 draft PR
 - Native latest workflow 新增 no-op 闸门：如果 latest 已经被当前支持窗口覆盖，只写 Actions summary，不再重复升版本或开空 PR
 - Native latest 候选失败时会自动生成接手报告并开草稿修复 PR，避免维护者只能从邮件和 artifact 手工捞线索
 

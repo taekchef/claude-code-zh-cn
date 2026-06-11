@@ -85,7 +85,7 @@ function isNegatedBoundaryLine(line) {
 }
 
 function isAllowedNativeExperimentalLine(line) {
-  const mentionsPlatform = /macOS|darwin|Windows|win32/i.test(line);
+  const mentionsPlatform = /macOS|darwin|Windows|win32|Linux|x86_64|x64|linux/i.test(line);
   const mentionsNative = /native|原生|二进制|binary/i.test(line);
   const experimental = /experimental|实验/i.test(line);
   const stableClaim = /\bstable\b|稳定支持|stable CLI Patch/i.test(line);
@@ -222,11 +222,12 @@ function addSupportEntryFindings(findings, node, relative, pathParts, boundary) 
     const pathText = entryPath.toLowerCase();
     const isMacosInstaller = pathText.includes("macosofficialinstaller");
     const isMacosNativeExperimental = pathText.includes("macosnativeexperimental");
+    const isLinuxNativeExperimental = pathText.includes("linuxnativeexperimental");
     const isWindowsNativeExperimental = pathText.includes("windowsnativeexperimental");
     const isWindowsNative =
       pathText.includes("windows") &&
       (pathText.includes("native") || pathText.includes("exe") || pathText.includes("binary") || pathText.includes("official"));
-    const ceilingLimit = isMacosNativeExperimental || isWindowsNativeExperimental || !boundary.validStableRange
+    const ceilingLimit = isMacosNativeExperimental || isLinuxNativeExperimental || isWindowsNativeExperimental || !boundary.validStableRange
       ? null
       : boundary.stableCeiling;
 
@@ -307,14 +308,14 @@ function buildFindings(repoRoot) {
 function printOk(boundary) {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`native CLI Patch: only explicitly verified macOS / Windows experimental versions; no latest stable claim`);
+  console.log(`native CLI Patch: only explicitly verified macOS / Linux / Windows experimental versions; no latest stable claim`);
 }
 
 function printFail(findings, boundary) {
   console.log("support-boundary-guard: FAIL");
   console.log("当前官方边界:");
   console.log(`- stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；native 只能写已验证 experimental 窗口`);
+  console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；native 只能写已验证 experimental 窗口（macOS / Linux / Windows）`);
   console.log("- Windows native 只能写成 explicit experimental，不能写成 stable");
   console.log("");
 

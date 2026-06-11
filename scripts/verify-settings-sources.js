@@ -59,8 +59,8 @@ function validateSettingsOverlay(settingsOverlay, errors) {
   }
 
   const forbiddenKeys = new Map([
-    ["spinnerVerbs", "verbs/zh-CN.json"],
-    ["spinnerTipsOverride", "tips/zh-CN.json"],
+    ["spinnerVerbs", "locales/zh-CN/verbs.json"],
+    ["spinnerTipsOverride", "locales/zh-CN/tips.json"],
   ]);
 
   for (const [key, sourceFile] of forbiddenKeys) {
@@ -72,18 +72,18 @@ function validateSettingsOverlay(settingsOverlay, errors) {
 
 function validateVerbs(verbsConfig, errors) {
   if (!isObject(verbsConfig)) {
-    errors.push("verbs/zh-CN.json must contain a JSON object");
+    errors.push("locales/zh-CN/verbs.json must contain a JSON object");
     return 0;
   }
   if (!Array.isArray(verbsConfig.verbs)) {
-    errors.push("verbs/zh-CN.json must contain a verbs array");
+    errors.push("locales/zh-CN/verbs.json must contain a verbs array");
     return 0;
   }
 
   for (let i = 0; i < verbsConfig.verbs.length; i += 1) {
     const verb = verbsConfig.verbs[i];
     if (typeof verb !== "string" || verb.trim() === "") {
-      errors.push(`verbs/zh-CN.json verbs[${i}] must be a non-empty string`);
+      errors.push(`locales/zh-CN/verbs.json verbs[${i}] must be a non-empty string`);
     }
   }
 
@@ -92,25 +92,25 @@ function validateVerbs(verbsConfig, errors) {
 
 function validateTips(tipsConfig, errors) {
   if (!isObject(tipsConfig)) {
-    errors.push("tips/zh-CN.json must contain a JSON object");
+    errors.push("locales/zh-CN/tips.json must contain a JSON object");
     return 0;
   }
   if (!Array.isArray(tipsConfig.tips)) {
-    errors.push("tips/zh-CN.json must contain a tips array");
+    errors.push("locales/zh-CN/tips.json must contain a tips array");
     return 0;
   }
 
   for (let i = 0; i < tipsConfig.tips.length; i += 1) {
     const tip = tipsConfig.tips[i];
     if (!isObject(tip)) {
-      errors.push(`tips/zh-CN.json tips[${i}] must be an object`);
+      errors.push(`locales/zh-CN/tips.json tips[${i}] must be an object`);
       continue;
     }
     if (typeof tip.id !== "string" || tip.id.trim() === "") {
-      errors.push(`tips/zh-CN.json tips[${i}].id must be a non-empty string`);
+      errors.push(`locales/zh-CN/tips.json tips[${i}].id must be a non-empty string`);
     }
     if (typeof tip.text !== "string" || tip.text.trim() === "") {
-      errors.push(`tips/zh-CN.json tips[${i}].text must be a non-empty string`);
+      errors.push(`locales/zh-CN/tips.json tips[${i}].text must be a non-empty string`);
     }
   }
 
@@ -128,8 +128,8 @@ function main() {
 
   const errors = [];
   const settingsOverlay = readJson(root, "settings-overlay.json", errors);
-  const verbsConfig = readJson(root, path.join("verbs", "zh-CN.json"), errors);
-  const tipsConfig = readJson(root, path.join("tips", "zh-CN.json"), errors);
+  const verbsConfig = readJson(root, path.join("locales", "zh-CN", "verbs.json"), errors);
+  const tipsConfig = readJson(root, path.join("locales", "zh-CN", "tips.json"), errors);
 
   if (settingsOverlay !== null) {
     validateSettingsOverlay(settingsOverlay, errors);

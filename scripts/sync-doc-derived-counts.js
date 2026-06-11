@@ -65,8 +65,8 @@ function usage() {
     "Checks or rewrites README / AGENTS / CLAUDE derived counts from source files.",
     "Sources:",
     "- cli-translations.json array length",
-    "- verbs/zh-CN.json verbs length",
-    "- tips/zh-CN.json tips length",
+    "- locales/zh-CN/verbs.json verbs length",
+    "- locales/zh-CN/tips.json tips length",
     "- scripts/upstream-compat.config.json stable representative",
     "- docs/support-matrix.md generated patch count",
     "- scripts/upstream-compat.config.json macOS / Windows native experimental windows",
@@ -261,8 +261,8 @@ function loadDerivedCounts() {
 
   return {
     uiTranslations: countArray("cli-translations.json", null, "UI translations"),
-    spinnerVerbs: countArray("verbs/zh-CN.json", "verbs", "spinner verbs"),
-    spinnerTips: countArray("tips/zh-CN.json", "tips", "spinner tips"),
+    spinnerVerbs: countArray("locales/zh-CN/verbs.json", "verbs", "spinner verbs"),
+    spinnerTips: countArray("locales/zh-CN/tips.json", "tips", "spinner tips"),
     stableRepresentative,
     stablePatchCount: readPatchCount(stableRepresentative),
     stableDisplayAudit: readDisplayAudit(stableRepresentative),
@@ -286,12 +286,12 @@ function rulesForDoc(file, counts) {
         (_, before, after) => `${before}${counts.uiTranslations}${after}`
       ),
       rule(
-        "verbs/zh-CN.json spinner verb count",
+        "locales/zh-CN/verbs.json spinner verb count",
         /(`verbs\/zh-CN\.json`\s+—\s+)\d+( 个 spinner 动词翻译)/g,
         (_, before, after) => `${before}${counts.spinnerVerbs}${after}`
       ),
       rule(
-        "tips/zh-CN.json spinner tip count",
+        "locales/zh-CN/tips.json spinner tip count",
         /(`tips\/zh-CN\.json`\s+—\s+)\d+( 条 spinner 提示翻译)/g,
         (_, before, after) => `${before}${counts.spinnerTips}${after}`
       ),

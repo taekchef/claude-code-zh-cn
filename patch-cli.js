@@ -1,16 +1,56 @@
 #!/usr/bin/env node
-// patch-cli.js - cli.js 硬编码文字中文 patch（安全版）
+// patch-cli.js — CLI 硬编码文字翻译引擎
 // 逐条翻译：对每条翻译用正则匹配 "..." 内的目标文本，安全替换
 // 被 patch-cli.sh 调用
+//
+// i18n 支持：
+//   - 不传 translations 参数时自动加载当前语言的翻译数据（通过 plugin/core/i18n.js）
+//   - 传了则直接使用（旧行为兼容）
 
 const fs = require("fs");
+const path = require("path");
 
 const cliFile = process.argv[2];
-const translationsFile = process.argv[3];
+let translationsFile = process.argv[3];
 
 if (!cliFile || !fs.existsSync(cliFile)) {
     console.log("0");
     process.exit(0);
+}
+
+// 未指定翻译文件时，从 i18n 模块自动加载
+if (!translationsFile) {
+    // 支持三种部署路径：
+    //   repo:  <root>/plugin/core/i18n.js       → __dirname/plugin/core/i18n.js
+    //   install: <plugin-root>/core/i18n.js      → __dirname/core/i18n.js
+    //   cwd:   <cwd>/plugin/core/i18n.js        → process.cwd()/plugin/core/i18n.js
+    const i18nCandidates = [
+        path.join(__dirname, "plugin", "core", "i18n.js"),
+        path.join(__dirname, "core", "i18n.js"),
+        path.join(process.cwd(), "plugin", "core", "i18n.js"),
+    ];
+    let i18nPath = "";
+    for (const c of i18nCandidates) {
+        if (fs.existsSync(c)) { i18nPath = c; break; }
+    }
+    if (i18nPath) {
+        try {
+            const i18n = require(i18nPath);
+            const locale = i18n.loadActiveLocale();
+            if (locale && Array.isArray(locale.translations) && locale.translations.length > 0) {
+                translationsFile = "i18n:" + locale.code;
+                // 用 i18n: 标记表示内联数据，构造虚拟文件内容
+                const entry = {};
+                for (const t of locale.translations) {
+                    if (t.en != null && t.zh != null) {
+                        entry[t.en] = t.zh;
+                    }
+                }
+                // 使用对象而不是数组，patch-cli.js 入口处判断格式
+                global.__i18nTranslations = entry;
+            }
+        } catch {}
+    }
 }
 
 const original = fs.readFileSync(cliFile, "utf8");
@@ -764,11 +804,12 @@ tryReplace('"Idle for "', '"空闲 "');
 tryReplace(' Worked for ${w3(Date.now()-V.startTime)}', ' ${w3(Date.now()-V.startTime)}');
 tryReplace('${bL} Idle', '${bL} 空闲');
 
-// 4c. 同类 duration 模板的泛化匹配
-// 某些版本会改变量名或表达式，但模板结构仍是 `${verb} Worked for ${duration}`。
-// 这里按模板形态处理，不再依赖固定变量名。
-tryRegexReplace(/\$\{[^}]+\}\s+Worked for\s+\$\{[^}]+\}/g, (match) =>
-    match.replace(" Worked for ", " ")
+// 4c. createElement 中的 spinner 时长模板：
+//   createElement(y,{dimColor:!0},`${VERB} for ${DURATION}`)
+//   → createElement(y,{dimColor:!0},`${VERB} ${DURATION}`)
+tryRegexReplace(
+    /(createElement\([A-Za-z$.]+,?\{[^}]*dimColor[^}]*\}[^,]*,`\$\{[^}]+\}) for (\$\{[^}]+\}`\))/g,
+    (match, before, after) => before + ' ' + after
 );
 tryRegexReplace(/\$\{[^}]+\}\s+Idle(?=[`"])/g, (match) =>
     match.replace(" Idle", " 空闲")
@@ -828,9 +869,21 @@ tryRegexReplace(
 // 再扫描源码中的真实字符串 token，只在这些 token 内做替换。
 // 这样不会跨越源码结构误改对象键、标识符或注释。
 
-if (translationsFile && fs.existsSync(translationsFile)) {
+if (translationsFile) {
+    let translationEntries = [];
+
+    if (translationsFile.startsWith("i18n:") && global.__i18nTranslations) {
+        // i18n 模式：translations 是 { en: zh } 对象
+        const dict = global.__i18nTranslations;
+        for (const en of Object.keys(dict)) {
+            translationEntries.push({ en, zh: dict[en], skipLiteral: false });
+        }
+    } else if (fs.existsSync(translationsFile)) {
+        translationEntries = JSON.parse(fs.readFileSync(translationsFile, "utf8"));
+    }
+
     const translationRules = [
-        ...JSON.parse(fs.readFileSync(translationsFile, "utf8")).filter(
+        ...translationEntries.filter(
             (rule) => !shouldSkipTranslationRule(rule)
         ),
         ...specialLiteralTranslations,

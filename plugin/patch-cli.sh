@@ -15,4 +15,5 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-node "$SCRIPT_DIR/patch-cli.js" "$CLI_FILE" "$SCRIPT_DIR/cli-translations.json" 2>/dev/null
+# i18n 模式：patch-cli.js 自动从 locales/ 加载翻译，无需传文件路径
+node "$SCRIPT_DIR/patch-cli.js" "$CLI_FILE" 2>/dev/null

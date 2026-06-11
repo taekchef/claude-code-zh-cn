@@ -215,6 +215,15 @@ native_platform() {
         Darwin-arm64|Darwin-aarch64)
             printf 'darwin-arm64'
             ;;
+        Linux-x86_64|Linux-amd64)
+            printf 'linux-x64'
+            ;;
+        Linux-aarch64|Linux-arm64)
+            printf 'linux-arm64'
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            printf 'win32-x64'
+            ;;
         *)
             printf ''
             ;;
@@ -244,7 +253,7 @@ const version = process.argv[3];
 const platform = process.argv[4] || "";
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const versions = [];
-for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental", "windowsNativeExperimental", "linuxNativeExperimental"]) {
   const entry = data[key];
   if (!entry) continue;
   if (platform && entry.platform && entry.platform !== platform) continue;
@@ -296,7 +305,7 @@ function sameMinor(a, b) {
   return left[0] === right[0] && left[1] === right[1];
 }
 
-const keys = ["macosNativeExperimental"];
+const keys = ["macosNativeExperimental", "windowsNativeExperimental", "linuxNativeExperimental"];
 for (const key of keys) {
   const entry = data[key];
   if (!entry || entry.platform !== platform || !entry.ceiling) continue;
@@ -321,7 +330,7 @@ const fs = require("fs");
 const file = process.argv[2];
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const ranges = [];
-for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental", "windowsNativeExperimental", "linuxNativeExperimental"]) {
   const entry = data[key];
   if (!entry || !entry.floor || !entry.ceiling) continue;
   let range = entry.floor === entry.ceiling ? entry.floor : `${entry.floor} - ${entry.ceiling}`;
@@ -374,24 +383,33 @@ try {
 }
 
 build_overlay_content() {
+    # \u786E\u5B9A locale \u4EE3\u7801\uFF08\u5F53\u524D\u4EC5 zh-CN\uFF0C\u540E\u7EED\u53EF\u6269\u5C55\uFF09
+    local locale_code="${ZH_CN_LANG:-zh-CN}"
+    local verbs_file tips_file
+
+    verbs_file="$SCRIPT_DIR/locales/$locale_code/verbs.json"
+    tips_file="$SCRIPT_DIR/locales/$locale_code/tips.json"
+
     if [ -f "$INSTALL_JSON_HELPER" ]; then
         node "$INSTALL_JSON_HELPER" build-overlay \
             "$OVERLAY_FILE" \
-            "$SCRIPT_DIR/verbs/zh-CN.json" \
-            "$SCRIPT_DIR/tips/zh-CN.json"
+            "$verbs_file" \
+            "$tips_file"
         return
     fi
 
     ZH_CN_BASE_FILE="$OVERLAY_FILE" \
-    ZH_CN_VERBS_FILE="$SCRIPT_DIR/verbs/zh-CN.json" \
-    ZH_CN_TIPS_FILE="$SCRIPT_DIR/tips/zh-CN.json" \
+    ZH_CN_VERBS_FILE="$verbs_file" \
+    ZH_CN_TIPS_FILE="$tips_file" \
     node -e "
 const fs = require('fs');
 const base = JSON.parse(fs.readFileSync(process.env.ZH_CN_BASE_FILE, 'utf8').replace(/^\uFEFF/, ''));
-const verbs = JSON.parse(fs.readFileSync(process.env.ZH_CN_VERBS_FILE, 'utf8').replace(/^\uFEFF/, ''));
+const verbsRaw = JSON.parse(fs.readFileSync(process.env.ZH_CN_VERBS_FILE, 'utf8').replace(/^\uFEFF/, ''));
 const tips = JSON.parse(fs.readFileSync(process.env.ZH_CN_TIPS_FILE, 'utf8').replace(/^\uFEFF/, ''));
+// verbs \u53EF\u80FD\u662F\u6570\u7EC4\u6216 { mode, verbs } \u5BF9\u8C61
+const verbs = Array.isArray(verbsRaw) ? verbsRaw : (verbsRaw.verbs || []);
 base.spinnerVerbs = verbs;
-base.spinnerTipsOverride = { excludeDefault: true, tips: (tips.tips || []).map(t => t.text) };
+base.spinnerTipsOverride = { excludeDefault: true, tips: (tips.tips || []).map(t => typeof t === 'string' ? t : t.text || t) };
 process.stdout.write(JSON.stringify(base));
 "
 }
@@ -845,6 +863,15 @@ sync_plugin_payload() {
     mkdir -p "$PLUGIN_DST"
     find "$PLUGIN_DST" -mindepth 1 -maxdepth 1 ! -name '.*' -exec rm -rf {} +
     cp -R "$PLUGIN_SRC"/. "$PLUGIN_DST"/
+    # 部署语言包
+    if [ -d "$SCRIPT_DIR/locales" ]; then
+        cp -R "$SCRIPT_DIR/locales" "$PLUGIN_DST/" 2>/dev/null || true
+    fi
+    # 部署 /lang 命令 skill
+    mkdir -p "$HOME/.claude/skills" 2>/dev/null || true
+    if [ -f "$PLUGIN_DST/skills/lang.md" ]; then
+        cp "$PLUGIN_DST/skills/lang.md" "$HOME/.claude/skills/lang.md" 2>/dev/null || true
+    fi
     chmod +x "$PLUGIN_DST/patch-cli.sh" "$PLUGIN_DST/compute-patch-revision.sh" 2>/dev/null || true
     chmod +x "$PLUGIN_DST/hooks/session-start" "$PLUGIN_DST/hooks/notification" 2>/dev/null || true
     chmod +x "$PLUGIN_DST/bin/claude-launcher" "$PLUGIN_DST/bin/doctor" 2>/dev/null || true
@@ -1066,8 +1093,23 @@ detect_installation() {
 
     # 调用 JS 后端（用源码侧路径 $PLUGIN_SRC，首次安装时 $PLUGIN_DST 不存在）
     if [ -f "$PLUGIN_SRC/bun-binary-io.js" ]; then
-        local result
-        result="$(node "$PLUGIN_SRC/bun-binary-io.js" detect "$claude_bin" 2>/dev/null || true)"
+        local result resolved_bin
+        resolved_bin="$(node -e "try{process.stdout.write(require('fs').realpathSync(process.argv[1]))}catch{}" "$claude_bin" 2>/dev/null || readlink -f "$claude_bin" 2>/dev/null || printf '%s' "$claude_bin")"
+        result="$(node "$PLUGIN_SRC/bun-binary-io.js" detect "$resolved_bin" 2>/dev/null || true)"
+
+        # 在标准安装位置搜索真正的 Claude 二进制（备用）
+        if [ -z "$result" ] || [ "$result" = "unknown" ]; then
+            local known_bin
+            for known_bin in "$HOME/.local/share/claude/versions"/*; do
+                if [ -f "$known_bin" ] && [ -x "$known_bin" ]; then
+                    result="$(node "$PLUGIN_SRC/bun-binary-io.js" detect "$known_bin" 2>/dev/null || true)"
+                    if [ -n "$result" ] && [ "$result" != "unknown" ]; then
+                        break
+                    fi
+                    result=""
+                fi
+            done
+        fi
 
         # helper 成功执行：有结果就用；unknown 也向上传递，供上层决定如何提示
         if [ -n "$result" ]; then

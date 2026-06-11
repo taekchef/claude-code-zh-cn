@@ -6,6 +6,9 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+const I18N_CORE = "core/i18n.js";
+const LOCALES_DIR = "locales";
+
 const STABLE_PINNED_VERSION = "2.1.112";
 const STABLE_INSTALL_CMD = `npm install -g @anthropic-ai/claude-code@${STABLE_PINNED_VERSION}`;
 const CLAUDE_UPDATER_BOUNDARY =
@@ -88,6 +91,7 @@ function nativeSupportLists(support) {
     "macosNativeOfficialInstallerExperimental",
     "macosNativeExperimental",
     "windowsNativeExperimental",
+    "linuxNativeExperimental",
   ]) {
     const entry = support?.[key];
     if (!entry) continue;
@@ -109,6 +113,9 @@ function nativePlatformForTarget(target) {
   }
   if (process.platform === "darwin") {
     return "darwin-arm64";
+  }
+  if (process.platform === "linux") {
+    return os.arch() === "arm64" ? "linux-arm64" : "linux-x64";
   }
   return process.platform || "";
 }
@@ -446,6 +453,32 @@ function runDoctor(options = {}) {
   } else {
     add("settings", "settings.json (Layer 1)", "warn", `未找到 ${settingsFile}`);
     recommendations.push("运行 ./install.sh 创建并合并 settings.json");
+  }
+
+  // i18n 语言包检测
+  const localesDir = path.join(pluginRoot, LOCALES_DIR);
+  if (fs.existsSync(localesDir)) {
+    const indexFile = path.join(localesDir, "index.json");
+    if (fs.existsSync(indexFile)) {
+      try {
+        const index = readJson(indexFile);
+        if (Array.isArray(index.available)) {
+          const codes = index.available.map((l) => l.code).join(", ");
+          add("i18n", "语言包 (i18n)", "ok", `可用: ${codes}`);
+        }
+      } catch {}
+    }
+    const localeDirs = fs.readdirSync(localesDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && fs.existsSync(path.join(localesDir, d.name, "manifest.json")))
+      .map((d) => d.name);
+    if (localeDirs.length > 0) {
+      for (const code of localeDirs) {
+        const manifest = readJson(path.join(localesDir, code, "manifest.json"));
+        if (manifest) {
+          add("i18n-" + code, `  ${code}`, "ok", `${manifest.name} v${manifest.version}`);
+        }
+      }
+    }
   }
 
   const ccSwitch = readCcSwitchCommonConfig(homeDir);

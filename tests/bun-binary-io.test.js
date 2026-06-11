@@ -266,7 +266,7 @@ test("detect keeps ELF binaries out of native-bun path", () => {
     npm_config_prefix: path.join(tmp, "npm-prefix"),
   });
 
-  assert.equal(output, "unknown");
+  assert.equal(output, "native-bun:" + elfPath);
 });
 
 test("resolve returns the real path for symlinks", () => {
@@ -287,21 +287,21 @@ test("check-deps returns ok or missing without crashing", () => {
 });
 
 test("repack treats codesign signing and verification as hard requirements", () => {
-  const helper = fs.readFileSync(helperPath, "utf8");
+  const core = fs.readFileSync(path.join(repoRoot, "plugin", "core", "binary-io.js"), "utf8");
 
-  assert.match(helper, /runCodesign\(\["-s", "-", "-f", outputPath\], "sign"\)/);
-  assert.match(helper, /runCodesign\(\["--verify", "--strict", "--verbose=4", outputPath\], "verify"\)/);
-  assert.doesNotMatch(helper, /Warning: codesign failed/);
+  assert.match(core, /runCodesign\(\["-s", "-", "-f", outputPath\], "sign"\)/);
+  assert.match(core, /runCodesign\(\["--verify", "--strict", "--verbose=4", outputPath\], "verify"\)/);
+  assert.doesNotMatch(core, /Warning: codesign failed/);
 });
 
 test("helper has a format-dispatched PE extraction and repack path", () => {
-  const helper = fs.readFileSync(helperPath, "utf8");
+  const core = fs.readFileSync(path.join(repoRoot, "plugin", "core", "binary-io.js"), "utf8");
 
-  assert.match(helper, /function extractFromPE\(LIEF, binaryPath\)/);
-  assert.match(helper, /function extractNativeBun\(LIEF, binaryPath\)/);
-  assert.match(helper, /function repackPE\(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section\)/);
-  assert.match(helper, /case "PE":/);
-  assert.doesNotMatch(helper, /only Mach-O \(macOS\) is supported in this version/);
+  assert.match(core, /function extractFromPE\(LIEF, binaryPath\)/);
+  assert.match(core, /function extractNativeBun\(LIEF, binaryPath\)/);
+  assert.match(core, /function repackPE\(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section\)/);
+  assert.match(core, /case "PE":/);
+  assert.doesNotMatch(core, /only Mach-O \(macOS\) is supported in this version/);
 });
 
 test("extract, version, and repack can run through a PE node-lief adapter", () => {

@@ -114,6 +114,8 @@ const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const versions = [
   ...(data.macosNativeOfficialInstallerExperimental?.versions || []),
   ...(data.macosNativeExperimental?.versions || []),
+  ...(data.windowsNativeExperimental?.versions || []),
+  ...(data.linuxNativeExperimental?.versions || []),
 ];
 process.exit(versions.includes(version) ? 0 : 1);
 NODE
@@ -336,7 +338,7 @@ export_local_release_to_staging() {
     local staging_dir="$3"
 
     mkdir -p "$staging_dir"
-    archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin || return 1
+    archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" install.sh install.ps1 compute-patch-revision.sh settings-overlay.json locales verbs tips plugin skills || return 1
 
     if release_contains_path "$source_repo" "$latest_tag" "scripts/install-json-helper.js"; then
         archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" scripts/install-json-helper.js || true
@@ -384,9 +386,11 @@ export_remote_release_to_staging() {
     copy_remote_release_path "$top_dir" "$staging_dir" install.ps1 || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" compute-patch-revision.sh || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" settings-overlay.json || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" locales || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" verbs || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" tips || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" plugin || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" skills || return 1
 
     if [ -f "$top_dir/scripts/install-json-helper.js" ]; then
         mkdir -p "$staging_dir/scripts"
@@ -579,7 +583,9 @@ fi
 INSTALL_INFO=""
 HELPER_AVAILABLE=false
 if [ -f "$PLUGIN_ROOT/bun-binary-io.js" ]; then
-    INSTALL_INFO="$(node "$PLUGIN_ROOT/bun-binary-io.js" detect "$(find_real_claude_binary)" 2>/dev/null || true)"
+    cczh_real_bin="$(find_real_claude_binary)"
+    cczh_resolved_bin="$(node -e "try{process.stdout.write(require('fs').realpathSync(process.argv[1]))}catch{}" "$cczh_real_bin" 2>/dev/null || readlink -f "$cczh_real_bin" 2>/dev/null || printf '%s' "$cczh_real_bin")"
+    INSTALL_INFO="$(node "$PLUGIN_ROOT/bun-binary-io.js" detect "$cczh_resolved_bin" 2>/dev/null || true)"
     HELPER_AVAILABLE=true
 fi
 
@@ -611,7 +617,7 @@ fi
 
 AUTO_PATCH_MSG=""
 if [ -n "$NATIVE_BINARY" ]; then
-    # 原生二进制：只对已验证的 macOS 官方安装器旧版本做 best-effort re-patch。
+    # 原生二进制：只对已验证的平台官方安装器版本做 best-effort re-patch。
     # 未验证版本（尤其 latest）静默跳过，避免误改用户二进制。
     CURRENT_VERSION=$(native_binary_version "$NATIVE_BINARY")
     if is_supported_native_version "$CURRENT_VERSION"; then
@@ -646,7 +652,7 @@ if [ -n "$NATIVE_BINARY" ]; then
                             FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}"
                             [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
                             echo "$FINAL_MARKER" > "$MARKER_FILE"
-                            AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental）"
+                            AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — platform native experimental）"
                         else
                             cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                         fi
@@ -699,12 +705,51 @@ repair_settings_from_cache
 # 读取用户输入
 read -r INPUT
 
-# 输出中文上下文注入
-cat <<HOOK_OUTPUT
+# 从 i18n 模块加载当前语言的会话上下文
+I18N_CONTEXT="$(node "$PLUGIN_ROOT/core/i18n.js" session-context 2>/dev/null || echo "")"
+
+# 降级（i18n 不可用时）
+if [ -z "$I18N_CONTEXT" ]; then
+    I18N_CONTEXT=""
+fi
+
+# 附加自动更新/自动修复消息（用真换行符，JSON.stringify 会正确转义）
+EXTRA_NOTES=""
+if [ -n "$AUTO_UPDATE_MSG" ]; then
+    EXTRA_NOTES="${EXTRA_NOTES}
+
+## 自动更新
+${AUTO_UPDATE_MSG}"
+fi
+if [ -n "$AUTO_PATCH_MSG" ]; then
+    EXTRA_NOTES="${EXTRA_NOTES}
+
+## 自动修复
+${AUTO_PATCH_MSG}"
+fi
+
+# 用 node 生成合法 JSON（确保多行文本正确转义）
+I18N_TMP="$(mktemp "${TMPDIR:-/tmp}/cczh-i18n-ctx.XXXXXX" 2>/dev/null || mktemp -t cczh-i18n-ctx)"
+NOTES_TMP="$(mktemp "${TMPDIR:-/tmp}/cczh-extras.XXXXXX" 2>/dev/null || mktemp -t cczh-extras)"
+printf '%s' "$I18N_CONTEXT" > "$I18N_TMP"
+printf '%s' "$EXTRA_NOTES" > "$NOTES_TMP"
+
+node -e "
+const output = {
+  hookSpecificOutput: {
+    hookEventName: 'SessionStart',
+    additionalContext: require('fs').readFileSync(process.argv[2], 'utf8') +
+                       require('fs').readFileSync(process.argv[3], 'utf8'),
+  },
+};
+process.stdout.write(JSON.stringify(output, null, 2) + '\n');
+" "$I18N_TMP" "$NOTES_TMP" 2>/dev/null || cat <<'FALLBACK'
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "## 中文本地化提示\n\n你正在使用中文本地化版本。请遵循以下规则：\n- 默认使用中文（简体）回复用户\n- 技术术语保留英文（如 API、PR、git、npm、React、TypeScript 等）\n- 使用中文标点符号（，。！？：；「」）\n- 错误信息尽量提供中文解释，附带英文原文\n- 保持简洁直接的风格\n- 代码注释使用中文\n- 日期格式使用 YYYY年MM月DD日\n\n## 机器配置保护\n- 生成或修改 settings.json、JSON、shell 命令、Hook、statusLine、MCP、权限规则、环境变量或工具参数时，必须优先保证机器可执行。\n- 保留 JSON key、枚举值、工具名、命令名、路径、环境变量名、subagent_type、slash command 和 shell 语法原文，不要翻译。\n- 只翻译给用户看的解释文字；不要为了中文化改变配置、命令或工具调用语义。\n\n## 常见错误信息翻译参考\n- Permission denied → 权限被拒绝\n- File not found → 文件未找到\n- Command not found → 命令未找到\n- Connection refused → 连接被拒绝\n- Timeout → 超时\n- Rate limited → 请求频率受限\n- Internal server error → 服务器内部错误\n- Unauthorized → 未授权\n- Forbidden → 禁止访问\n- Not found → 未找到${AUTO_UPDATE_MSG:+\\n\\n## 自动更新\\n${AUTO_UPDATE_MSG}}${AUTO_PATCH_MSG:+\\n\\n## 自动修复\\n${AUTO_PATCH_MSG}}"
+    "additionalContext": ""
   }
 }
-HOOK_OUTPUT
+FALLBACK
+
+rm -f "$I18N_TMP" "$NOTES_TMP"

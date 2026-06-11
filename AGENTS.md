@@ -10,16 +10,16 @@ Claude Code CLI 中文本地化插件。
 - `compute-patch-revision.sh` — patch 规则指纹计算，供 install.sh 和 session-start hook 共用
 - `settings-overlay.json` — 合并到 settings.json 的中文设置（只含 language、spinnerTipsEnabled 等独有配置，**不含** verbs 和 tips 数据）
 - `plugin/` — 插件（manifest、hooks、output-styles）
-- `verbs/zh-CN.json` — 187 个 spinner 动词翻译（**唯一数据源**）
-- `tips/zh-CN.json` — 41 条 spinner 提示翻译（**唯一数据源**）
-- `CHANGELOG.md` — 版本变更记录
+- `locales/zh-CN/verbs.json` — 187 个 spinner 动词翻译（**唯一数据源**）
+- `locales/zh-CN/tips.json` — 41 条 spinner 提示翻译（**唯一数据源**）
+- `docs/CHANGELOG.md` — 版本变更记录
 
 ## 数据流
 
 翻译数据**单一来源**，不允许重复维护：
 
-- `verbs/zh-CN.json` 是动词的**唯一数据源**
-- `tips/zh-CN.json` 是提示的**唯一数据源**
+- `locales/zh-CN/verbs.json` 是动词的**唯一数据源**
+- `locales/zh-CN/tips.json` 是提示的**唯一数据源**
 - `settings-overlay.json` **不重复存放** verbs 和 tips 数据
 - `install.sh` 安装时从上述两个 JSON 文件动态读取，现场组装合并到 `~/.claude/settings.json`
 
@@ -45,7 +45,7 @@ Claude Code CLI 中文本地化插件。
 每完成一批有意义的改动后，按以下步骤发布新版本：
 
 1. **升版本号** — 修改 `plugin/manifest.json` 里的 `version`（语义化版本）
-2. **更新 CHANGELOG** — 在 `CHANGELOG.md` 顶部新增版本段落，分"新增/改进/修复"
+2. **更新 CHANGELOG** — 在 `docs/CHANGELOG.md` 顶部新增版本段落，分"新增/改进/修复"
 3. **提交** — `git commit`，提交信息带上版本号
 4. **打 tag** — `git tag vX.Y.Z`
 5. **推送** — `git push origin main --tags`
