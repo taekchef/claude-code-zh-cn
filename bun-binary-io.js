@@ -117,7 +117,7 @@ function detectInstallation(claudeCmd) {
   // 2. 先判真实目标本身是不是 Bun 二进制（Codex 二审 #1）
   //    仅支持 Mach-O（macOS），ELF (Linux) 暂不开放
   const format = detectBinaryFormat(realPath);
-  if ((format === "MachO64" || format === "MachO32" || format === "PE") && hasBunTrailer(realPath)) {
+  if ((format === "MachO64" || format === "MachO32" || format === "PE" || format === "ELF") && hasBunTrailer(realPath)) {
     return "native-bun:" + realPath;
   }
 
@@ -135,7 +135,7 @@ function detectInstallation(claudeCmd) {
     "node_modules/@anthropic-ai/claude-code/bin/claude.exe");
   if (fs.existsSync(npmExe)) {
     const exeFormat = detectBinaryFormat(npmExe);
-    if ((exeFormat === "PE" || exeFormat === "MachO64" || exeFormat === "MachO32") && hasBunTrailer(npmExe)) {
+    if ((exeFormat === "PE" || exeFormat === "MachO64" || exeFormat === "MachO32" || exeFormat === "ELF") && hasBunTrailer(npmExe)) {
       return "native-bun:" + npmExe;
     }
   }
@@ -327,6 +327,15 @@ function extractNativeBun(LIEF, binaryPath) {
         } catch {}
       }
       throw new Error("Bun section not found in PE binary");
+    }
+    case "ELF": {
+      let bunSection = null;
+      for (const s of binary.sections()) {
+        if (s.name === ".bun") { bunSection = s; break; }
+      }
+      if (!bunSection) throw new Error(".bun section not found in ELF binary");
+      const parsed = extractBunDataFromSection(bunSection.content);
+      return { ...parsed, format: "ELF", binary, section: bunSection };
     }
     default:
       throw new Error(`Unsupported native binary format: ${binary.format || "unknown"}`);
@@ -558,6 +567,22 @@ function repackPE(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHead
   verifyPERepack(LIEF, outputPath, newBunBuffer);
 }
 
+function repackElf(LIEF, elfBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section) {
+  const newSectionData = buildSectionData(newBunBuffer, sectionHeaderSize);
+  section.content = newSectionData;
+  section.size = BigInt(newSectionData.length);
+
+  atomicWriteBinary(LIEF, elfBinary, outputPath, binPath);
+  verifyElfRepack(LIEF, outputPath, newBunBuffer);
+}
+
+function verifyElfRepack(LIEF, outputPath, expectedBunBuffer) {
+  const { bunData } = extractNativeBun(LIEF, outputPath);
+  if (!bunData.equals(expectedBunBuffer)) {
+    throw new Error("ELF repack verification failed: embedded Bun data did not round-trip");
+  }
+}
+
 // ============================================================================
 // CLI 子命令实现
 // ============================================================================
@@ -619,6 +644,9 @@ function cmdRepack() {
       break;
     case "PE":
       repackPE(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
+      break;
+    case "ELF":
+      repackElf(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
       break;
     default:
       process.stderr.write(`Error: unsupported native binary format ${format || "unknown"}\n`);
