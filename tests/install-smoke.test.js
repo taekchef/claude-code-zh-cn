@@ -118,7 +118,7 @@ function copyTree(src, dst) {
   fs.copyFileSync(src, dst);
 }
 
-function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116") {
+function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116", options = {}) {
   const sourceRepo = path.join(tmpRoot, "source");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
@@ -141,8 +141,14 @@ if (cmd === "detect") {
   process.stdout.write("ok");
 } else if (cmd === "version") {
   process.stdout.write(${JSON.stringify(nativeVersion)});
-} else if (cmd === "extract" || cmd === "repack") {
+} else if (cmd === "extract") {
   fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
+} else if (cmd === "repack") {
+  fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
+  if (${options.breakOnRepack ? "true" : "false"}) {
+    fs.writeFileSync(process.argv[3], "#!/usr/bin/env bash\\nkill -9 $$\\n");
+    fs.chmodSync(process.argv[3], 0o755);
+  }
 } else if (cmd === "hash") {
   process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
 } else if (cmd === "resolve") {
@@ -265,6 +271,45 @@ test("install smoke can provisionally self-verify newer same-minor native binari
     ),
     "provisional native patch should write an explicit non-verified marker"
   );
+});
+
+test("install smoke restores native backup when runtime self-check fails", { skip: unixShellRequired }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-runtime-fail-"));
+  const home = path.join(tmp, "home");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeClaude = path.join(fakeBin, "claude");
+  const invokedFile = path.join(tmp, "patch-invoked");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const nativeVersion = "2.1.175";
+  const sourceRepo = createInstallSource(tmp, invokedFile, nativeVersion, { breakOnRepack: true });
+  const profileFile = path.join(home, ".zshrc");
+  const originalBinary = `#!/usr/bin/env bash\necho '${nativeVersion} (Claude Code)'\n`;
+
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.writeFileSync(fakeClaude, originalBinary);
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
+    cwd: sourceRepo,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
+      ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
+      ZH_CN_PROFILE_FILES: profileFile,
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    encoding: "utf8",
+  });
+
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
+  assert.match(output, /本机启动自检失败/, "runtime failure should be visible to the user");
+  assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "install should reach native repack");
+  assert.equal(fs.readFileSync(fakeClaude, "utf8"), originalBinary, "failed runtime self-check must restore backup");
+  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "failed self-check must not write success marker");
 });
 
 test("install smoke does not provisionally self-verify excluded in-window native binaries", { skip: unixShellRequired }, () => {

@@ -203,6 +203,22 @@ function classifyRuntimeError(input) {
   const raw = String(input || "").trim();
   if (!raw) return null;
 
+  const hasNativeKilled =
+    /zsh:\s*killed|killed\s+claude|sigkill|signal\s+sigkill|exit\s*137|status\s*137/i.test(raw);
+  if (hasNativeKilled) {
+    return {
+      code: "native-runtime-killed",
+      category: "native-runtime",
+      detail:
+        "检测到 claude 启动后被系统直接 killed：这通常发生在官方安装器 native 二进制 patch 后无法通过本机启动校验。",
+      recommendations: [
+        "运行本插件最新版 doctor --json，重点看“原生 CLI 启动自检”",
+        "先重新安装 Claude Code 本体恢复原始二进制，再运行最新版 ./install.sh",
+        "如果仍失败，请收集 which -a claude、codesign --verify --strict --verbose=4 和 xattr -l 输出",
+      ],
+    };
+  }
+
   const hasHttp200 = /\bhttp\s*200\b|\(http\s*200\)|\bstatus\s*200\b/i.test(raw);
   const hasMalformed = /api returned an empty or malformed response|malformed response/i.test(raw);
   if (hasHttp200 && hasMalformed) {
@@ -275,6 +291,55 @@ function nativeBinaryHash(bunBinaryIoPath, target) {
     encoding: "utf8",
   });
   return String(result.stdout || "").trim();
+}
+
+function isExecutableFile(target) {
+  try {
+    fs.accessSync(target, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function nativeRuntimeVersion(target) {
+  if (!target || !fs.existsSync(target) || !isExecutableFile(target)) {
+    return null;
+  }
+
+  let tempHome = "";
+  try {
+    tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-runtime-home-"));
+    const result = spawnSync(target, ["--version"], {
+      encoding: "utf8",
+      timeout: 10000,
+      windowsHide: true,
+      env: {
+        ...process.env,
+        HOME: tempHome,
+        USERPROFILE: tempHome,
+        XDG_CONFIG_HOME: path.join(tempHome, ".config"),
+        XDG_CACHE_HOME: path.join(tempHome, ".cache"),
+        XDG_DATA_HOME: path.join(tempHome, ".local", "share"),
+      },
+    });
+    const output = `${result.stdout || ""}\n${result.stderr || ""}`;
+    const match = output.match(/[0-9]+\.[0-9]+\.[0-9]+/);
+    if (result.status === 0 && match) {
+      return { checked: true, ok: true, version: match[0] };
+    }
+
+    const parts = [];
+    if (result.signal) parts.push(`signal=${result.signal}`);
+    if (typeof result.status === "number") parts.push(`status=${result.status}`);
+    if (result.error) parts.push(`error=${result.error.message}`);
+    const detail = parts.join("，") || "未返回版本号";
+    return { checked: true, ok: false, detail };
+  } finally {
+    if (tempHome) {
+      try { fs.rmSync(tempHome, { recursive: true, force: true }); } catch {}
+    }
+  }
 }
 
 function detectInstallation(bunBinaryIoPath, claudeBin) {
@@ -620,6 +685,17 @@ function runDoctor(options = {}) {
     add("cli-version", "CLI 版本", "ok", cliVersion);
   } else if (claudeBin) {
     add("cli-version", "CLI 版本", "warn", "无法读取版本号");
+  }
+
+  if (kind === "native-bun" && target) {
+    const runtimeVersion = nativeRuntimeVersion(target);
+    if (runtimeVersion?.ok) {
+      add("native-runtime", "原生 CLI 启动自检", "ok", `--version ${runtimeVersion.version}`);
+    } else if (runtimeVersion?.checked) {
+      add("native-runtime", "原生 CLI 启动自检", "fail", runtimeVersion.detail);
+      recommendations.push("重新安装 Claude Code 本体恢复原始 native 二进制，再运行最新版 ./install.sh");
+      recommendations.push("如果重新安装后仍被 killed，请贴 codesign --verify --strict --verbose=4 和 xattr -l 输出");
+    }
   }
 
   const marker = parseMarker(readMarker(markerFile));

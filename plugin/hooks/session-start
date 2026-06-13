@@ -91,6 +91,21 @@ native_binary_version() {
     printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
 }
 
+native_binary_version_from_execution() {
+    local binary_path="$1"
+    local output temp_home
+
+    temp_home="$(mktemp -d "${TMPDIR:-/tmp}/cczh-version-home.XXXXXX" 2>/dev/null || true)"
+    if [ -n "${temp_home:-}" ]; then
+        output="$(HOME="$temp_home" XDG_CONFIG_HOME="$temp_home/.config" XDG_CACHE_HOME="$temp_home/.cache" XDG_DATA_HOME="$temp_home/.local/share" "$binary_path" --version 2>/dev/null || true)"
+        rm -rf "$temp_home" 2>/dev/null || true
+    else
+        output="$("$binary_path" --version 2>/dev/null || true)"
+    fi
+
+    printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
+}
+
 is_supported_native_version() {
     local version="$1"
     local support_file="$PLUGIN_ROOT/support-window.json"
@@ -642,11 +657,16 @@ if [ -n "$NATIVE_BINARY" ]; then
                     PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
                     if [ "$PATCH_COUNT" != "0" ]; then
                         if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
-                            FINAL_HASH=$(native_binary_hash "$NATIVE_BINARY")
-                            FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}"
-                            [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
-                            echo "$FINAL_MARKER" > "$MARKER_FILE"
-                            AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental）"
+                            VERIFIED_VERSION="$(native_binary_version_from_execution "$NATIVE_BINARY")"
+                            if [ "${VERIFIED_VERSION:-}" = "${CURRENT_VERSION:-}" ]; then
+                                FINAL_HASH=$(native_binary_hash "$NATIVE_BINARY")
+                                FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}"
+                                [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
+                                echo "$FINAL_MARKER" > "$MARKER_FILE"
+                                AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental，启动自检通过）"
+                            else
+                                cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                            fi
                         else
                             cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                         fi

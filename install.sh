@@ -1243,22 +1243,23 @@ patch_native_binary() {
             rm -f "$tmp_js"
             return
         }
+        local verified_version
+        echo -e "  正在运行 --version 做本机启动自检..."
+        verified_version="$(native_binary_version_from_execution "$binary_path")"
+        if [ "${verified_version:-}" != "${current_version:-}" ]; then
+            echo -e "${RED}本机启动自检失败，正在从备份恢复...${NC}"
+            cp "$backup_path" "$binary_path" 2>/dev/null || true
+            CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机启动自检失败）"
+            rm -f "$tmp_js"
+            return
+        fi
+
         if [ "$patch_mode" = "provisional" ]; then
-            local verified_version
-            echo -e "  正在运行 --version 做本机自验证..."
-            verified_version="$(native_binary_version_from_execution "$binary_path")"
-            if [ "${verified_version:-}" != "${current_version:-}" ]; then
-                echo -e "${RED}本机自验证失败，正在从备份恢复...${NC}"
-                cp "$backup_path" "$binary_path" 2>/dev/null || true
-                CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机自验证失败）"
-                rm -f "$tmp_js"
-                return
-            fi
             echo -e "${GREEN}本机自验证通过，已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
             CLI_PATCH_STATUS_SUMMARY="官方安装器 native 本机自验证中文化（${patch_count} 处硬编码文字，未纳入已发布支持窗口）"
         else
-            echo -e "${GREEN}已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
-            CLI_PATCH_STATUS_SUMMARY="官方安装器 native 中文化（${patch_count} 处硬编码文字）"
+            echo -e "${GREEN}本机启动自检通过，已 patch 原生二进制（${patch_count} 处硬编码文字）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="官方安装器 native 启动自检中文化（${patch_count} 处硬编码文字）"
         fi
         CLI_PATCH_STATUS_OK=true
     else
