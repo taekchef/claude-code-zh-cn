@@ -7,12 +7,28 @@ body:
       value: |
         请先运行诊断并填写下面几项。截图可以补充现象，但不能替代诊断信息；只有截图时，维护者通常还要再追问版本、安装方式和路径。
 
+        如果你遇到的是 `API returned an empty or malformed response (HTTP 200)`、`Access denied (403)` 或代理 / 网关 / CC Switch / EvoMap 链路错误，这通常不是“汉化没生效”。请在下面选择对应类型，并补充 provider / 网关信息。
+
   - type: textarea
     id: problem
     attributes:
       label: 现象
-      description: 说清楚哪里没汉化、是刚安装就没生效，还是更新 / 切换后失效。
-      placeholder: 例如：安装后权限确认面板还是英文；或 CC Switch 切换模型后 spinner 又变回英文。
+      description: 说清楚哪里没汉化，或粘贴完整运行时报错。请区分“界面仍是英文”和“请求发不出去 / provider 拒绝”。
+      placeholder: 例如：安装后权限确认面板还是英文；或请求时报 API returned an empty or malformed response (HTTP 200)。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-kind
+    attributes:
+      label: 问题类型
+      description: 先选最接近的一项，方便维护者把汉化问题和上游 / 代理链路问题分开看。
+      options:
+        - 界面英文 / 汉化没生效
+        - API returned an empty or malformed response (HTTP 200)
+        - Access denied (403)
+        - 代理 / 网关 / CC Switch / EvoMap 链路异常
+        - 其他 / 不确定
     validations:
       required: true
 
@@ -23,6 +39,7 @@ body:
       description: |
         macOS / Linux / WSL：在仓库目录运行 `./doctor.sh --json`；如果只保留了已安装插件，可运行 `bash ~/.claude/plugins/claude-code-zh-cn/bin/doctor --json`。
         Windows PowerShell：在仓库目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\doctor.ps1 --json`；如果只保留了已安装插件，可运行 `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\plugins\claude-code-zh-cn\bin\doctor.ps1" --json`。
+        如果是 API / 403 / 代理网关错误，也可以把报错交给 doctor 分流：`./doctor.sh --runtime-error '完整报错' --json`。
         如果命令运行失败，也请粘贴完整报错。
       render: json
       placeholder: |
@@ -78,6 +95,25 @@ body:
         /usr/local/bin/claude
 
         .last-update-status / CLI Patch 输出:
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: runtime-chain
+    attributes:
+      label: API / 代理 / 网关链路信息
+      description: |
+        如果问题类型不是“界面英文 / 汉化没生效”，请填写这一项；如果只是 UI 没汉化，写“无”即可。
+        请粘贴 `claude doctor`、当前 provider / 模型 / base URL、CC Switch 或 EvoMap 健康检查结果，以及脱敏后的 `ANTHROPIC_*`、`HTTP(S)_PROXY`、`NO_PROXY` 关键信息。
+      placeholder: |
+        claude doctor:
+        ...
+
+        provider / model / base URL:
+        ...
+
+        脱敏后的代理或网关配置:
         ...
     validations:
       required: true

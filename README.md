@@ -223,6 +223,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\pl
 
 如果你使用 CC Switch，`doctor` 也会只读检查它的 Claude 通用配置是否包含中文设置。缺失时，重新运行 `./install.sh` 并同意同步即可；如果你不想让安装器修改 CC Switch，也可以按 FAQ 里的手动步骤处理。
 
+如果请求失败，而不是界面仍是英文，可以把报错原文交给 doctor 分流：
+
+```bash
+./doctor.sh --runtime-error 'API returned an empty or malformed response (HTTP 200)' --json
+```
+
+Windows PowerShell：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\doctor.ps1 --runtime-error "Access denied (403)" --json
+```
+
+| 报错 | 判断 | 下一步 |
+| --- | --- | --- |
+| `API returned an empty or malformed response (HTTP 200)` | 上游 / 代理 / 网关返回体不对，不是汉化没生效 | 跑 `claude doctor`，检查 `ANTHROPIC_BASE_URL`、`HTTP(S)_PROXY`、CC Switch 当前 provider 和网关健康检查 |
+| `Access denied (403)` | provider / 网关授权拒绝，不是 CLI Patch 问题 | 查 API key、模型权限、额度、base URL 是否匹配 |
+| 代理、网关、EvoMap、CC Switch、`ECONNREFUSED` 等链路错误 | Claude Code 到 provider 的请求链路异常 | 收集 `claude doctor`、`which -a claude`（Windows 用 `where.exe claude`）、当前 provider / 模型 / base URL；粘贴前请脱敏 token |
+
 ### 更新
 
 Claude Code 更新后，插件会在首次会话启动时**自动检测版本变更并重新 patch**，无需手动操作。

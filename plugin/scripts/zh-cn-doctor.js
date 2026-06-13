@@ -25,6 +25,7 @@ const NPM_RESIDUE_PROBES = [
   "This command requires approval",
   "Use /btw to ask a quick side question without interrupting Claude's current work",
 ];
+const RUNTIME_ERROR_ENV = "ZH_CN_DOCTOR_RUNTIME_ERROR";
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -198,6 +199,70 @@ function npmCliResidue(cliFile, probes = NPM_RESIDUE_PROBES) {
   }
 }
 
+function classifyRuntimeError(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return null;
+
+  const hasHttp200 = /\bhttp\s*200\b|\(http\s*200\)|\bstatus\s*200\b/i.test(raw);
+  const hasMalformed = /api returned an empty or malformed response|malformed response/i.test(raw);
+  if (hasHttp200 && hasMalformed) {
+    return {
+      code: "http-200-malformed",
+      category: "upstream-or-proxy",
+      detail:
+        "检测到 API returned an empty or malformed response (HTTP 200)：这不是汉化没生效，而是上游/代理/网关返回了 Claude Code 无法解析的内容。",
+      recommendations: [
+        "运行 claude doctor，确认当前 Claude Code Updates、登录状态和 provider 状态",
+        "检查当前链路：ANTHROPIC_BASE_URL、HTTP(S)_PROXY、CC Switch 当前 provider、网关健康检查",
+        "如果使用 CC Switch / EvoMap，请收集 provider 名、模型名、脱敏后的完整报错和网关侧响应摘要",
+      ],
+    };
+  }
+
+  const has403 = /\b403\b|http\s*403|\(403\)/i.test(raw);
+  const hasAccessDenied = /access denied|forbidden|权限|拒绝|无权限/i.test(raw);
+  if (has403 && hasAccessDenied) {
+    return {
+      code: "access-denied-403",
+      category: "provider-auth",
+      detail:
+        "检测到 Access denied (403)：这是上游 provider / 网关授权拒绝，不是汉化或 CLI Patch 问题。",
+      recommendations: [
+        "先查 provider/API key/模型权限/额度，确认 ANTHROPIC_AUTH_TOKEN 和 ANTHROPIC_BASE_URL 指向同一网关",
+        "运行 claude doctor，并收集 which -a claude（Windows 用 where.exe claude）",
+        "如果使用 CC Switch / EvoMap，请收集当前 provider 名、模型名和网关健康检查的 403 原文",
+      ],
+    };
+  }
+
+  const hasProxyGatewaySignal =
+    /proxy|gateway|upstream|cc switch|evomap|anthropic_base_url|http_proxy|https_proxy|no_proxy|econnrefused|etimedout|enotfound|socket hang up|tunnel|代理|网关|上游|供应商|provider|base_url|127\.0\.0\.1|localhost/i.test(raw);
+  if (hasProxyGatewaySignal) {
+    return {
+      code: "proxy-gateway-chain",
+      category: "upstream-or-proxy",
+      detail:
+        "检测到代理/网关链路异常信号：先按 Claude Code 到 provider 的请求链路排查，不要当作汉化没生效处理。",
+      recommendations: [
+        "确认本地代理/网关进程和端口仍在运行，再确认 claude 实际读取到的 ANTHROPIC_* / HTTP(S)_PROXY / NO_PROXY",
+        "运行 claude doctor 和 which -a claude（Windows 用 where.exe claude）",
+        "如果使用 CC Switch / EvoMap，请收集当前 provider 名、模型名、base URL 和脱敏后的完整报错",
+      ],
+    };
+  }
+
+  return {
+    code: "runtime-error-unclassified",
+    category: "runtime",
+    detail:
+      "收到运行时报错，但不匹配已知的 403 / HTTP 200 malformed / 代理网关模式；先收集运行链路信息，再判断是否需要插件侧处理。",
+    recommendations: [
+      "运行 claude doctor，并收集 which -a claude（Windows 用 where.exe claude）",
+      "粘贴脱敏后的完整报错、安装方式、Claude Code 版本和当前 provider / base URL",
+    ],
+  };
+}
+
 function checkNodeLief(bunBinaryIoPath) {
   const result = spawnSync(process.execPath, [bunBinaryIoPath, "check-deps"], {
     encoding: "utf8",
@@ -366,6 +431,7 @@ function readCcSwitchCommonConfig(homeDir) {
  * @param {string} [options.homeDir]
  * @param {string} [options.pluginRoot]
  * @param {string} [options.claudePath]
+ * @param {string} [options.runtimeError]
  * @param {boolean} [options.json]
  * @param {boolean} [options.color]
  */
@@ -682,6 +748,14 @@ function runDoctor(options = {}) {
     add("claude-updater", "Claude Code 本体自动升级", "warn", CLAUDE_UPDATER_BOUNDARY);
   }
 
+  const runtimeIssue = classifyRuntimeError(
+    options.runtimeError !== undefined ? options.runtimeError : process.env[RUNTIME_ERROR_ENV]
+  );
+  if (runtimeIssue) {
+    add("runtime-error", "运行时报错分流", "warn", runtimeIssue.detail);
+    recommendations.push(...runtimeIssue.recommendations);
+  }
+
   const hasFail = checks.some((item) => item.status === "fail");
   const summary = {
     ok: !hasFail,
@@ -690,6 +764,9 @@ function runDoctor(options = {}) {
     layer4Status,
     installKind: kind,
     cliVersion,
+    runtimeIssue: runtimeIssue
+      ? { code: runtimeIssue.code, category: runtimeIssue.category }
+      : null,
   };
 
   if (options.json) {
@@ -728,12 +805,14 @@ function runDoctor(options = {}) {
 function main() {
   const args = process.argv.slice(2);
   const json = args.includes("--json");
+  const runtimeErrorArg = readArgValue(args, "--runtime-error") || readArgValue(args, "--error");
   const result = runDoctor({
     repoRoot: process.env.ZH_CN_DOCTOR_REPO || path.join(__dirname, ".."),
     homeDir: process.env.ZH_CN_DOCTOR_HOME,
     pluginRoot: process.env.ZH_CN_DOCTOR_PLUGIN_ROOT,
     claudePath:
       process.env.ZH_CN_DOCTOR_CLAUDE !== undefined ? process.env.ZH_CN_DOCTOR_CLAUDE : undefined,
+    runtimeError: runtimeErrorArg || process.env[RUNTIME_ERROR_ENV],
     json,
     color: process.stdout.isTTY,
   });
@@ -751,4 +830,16 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { runDoctor, STABLE_INSTALL_CMD, STABLE_PINNED_VERSION, NPM_RESIDUE_PROBES };
+function readArgValue(args, name) {
+  const index = args.indexOf(name);
+  if (index < 0) return "";
+  return args[index + 1] || "";
+}
+
+module.exports = {
+  runDoctor,
+  STABLE_INSTALL_CMD,
+  STABLE_PINNED_VERSION,
+  NPM_RESIDUE_PROBES,
+  classifyRuntimeError,
+};
