@@ -266,6 +266,9 @@ jobs:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: windows-2022
     timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6
@@ -295,8 +298,12 @@ jobs:
         run: |
           $Version = "${{ steps.version.outputs.version }}"
           $JsonPath = Join-Path $env:RUNNER_TEMP "windows-native-latest-candidate-$Version.json"
+          $ErrorActionPreference = "Continue"
           node scripts/verify-upstream-compat.js --baseline "$Version" --skip-latest --native-windows-x64 --json > $JsonPath
+          $Status = $LASTEXITCODE
+          $ErrorActionPreference = "Stop"
           "json_path=$JsonPath" >> $env:GITHUB_OUTPUT
+          exit $Status
 
       - name: Upload Windows native candidate JSON
         if: always()
@@ -304,4 +311,164 @@ jobs:
         with:
           name: windows-native-latest-candidate-${{ steps.version.outputs.version }}
           path: ${{ steps.verify.outputs.json_path }}
+          if-no-files-found: error
+
+      - name: Generate Windows native text diff report
+        id: windows_text_diff
+        if: always() && steps.version.outputs.version != ''
+        shell: powershell
+        run: |
+          $Version = "${{ steps.version.outputs.version }}"
+          $TextReportPath = Join-Path $env:RUNNER_TEMP "windows-native-latest-text-diff-$Version.md"
+          $ErrorActionPreference = "Continue"
+          node scripts/generate-upstream-text-diff.js --to "$Version" --native-windows-x64 > $TextReportPath
+          $TextReportStatus = $LASTEXITCODE
+          $ErrorActionPreference = "Stop"
+          if ($TextReportStatus -ne 0) {
+            @(
+              "# Windows upstream text diff: unavailable",
+              "",
+              "Text diff report failed; see workflow logs before treating this candidate as fully reviewed."
+            ) | Set-Content -Path $TextReportPath -Encoding utf8
+          }
+          "text_report_path=$TextReportPath" >> $env:GITHUB_OUTPUT
+          "## Windows native latest text diff" >> $env:GITHUB_STEP_SUMMARY
+          Get-Content $TextReportPath | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload Windows native text diff report
+        if: always() && steps.windows_text_diff.outputs.text_report_path != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-native-latest-text-diff-${{ steps.version.outputs.version }}
+          path: ${{ steps.windows_text_diff.outputs.text_report_path }}
+          if-no-files-found: error
+
+      - name: Explain Windows native candidate boundary failure
+        if: failure() && steps.verify.outputs.json_path != ''
+        shell: powershell
+        run: |
+          "## Windows native candidate boundary failure" >> $env:GITHUB_STEP_SUMMARY
+          node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" --platform windows 2>&1 |
+            Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          exit 0
+
+      - name: Prepare Windows native failure handoff
+        id: windows_failure_handoff
+        if: failure() && steps.verify.outputs.json_path != ''
+        shell: powershell
+        run: |
+          $Version = "${{ steps.version.outputs.version }}"
+          $ReportPath = "docs/native-latest-failures/windows-$Version.md"
+          node scripts/prepare-native-failure-handoff.js `
+            --candidate "${{ steps.verify.outputs.json_path }}" `
+            --platform windows `
+            --text-report "${{ steps.windows_text_diff.outputs.text_report_path }}" `
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" `
+            --head-sha "${{ github.sha }}" `
+            --output "$ReportPath"
+          "report_path=$ReportPath" >> $env:GITHUB_OUTPUT
+          "## Windows native failure handoff" >> $env:GITHUB_STEP_SUMMARY
+          "Prepared ``$ReportPath``; the next step opens or updates a draft PR branch for maintainer takeover." >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Create Windows native candidate failure handoff PR
+        id: windows_failure_handoff_pr
+        if: failure() && steps.windows_failure_handoff.outputs.report_path != ''
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: codex/windows-native-latest-${{ steps.version.outputs.version }}-fix
+          draft: true
+          delete-branch: true
+          commit-message: "chore: hand off Windows native ${{ steps.version.outputs.version }} failure"
+          title: "fix: follow up Windows native ${{ steps.version.outputs.version }} candidate failure"
+          body: |
+            Automated handoff for a failed Windows x64 native Claude Code candidate.
+
+            This draft PR is created when the candidate does not pass native verification or display audit. The branch starts with a generated failure report so the maintainer can take it over directly, add the required translations or guard fix, and rerun the candidate workflow.
+
+            Failure report: `${{ steps.windows_failure_handoff.outputs.report_path }}`.
+
+            Candidate JSON artifact: `windows-native-latest-candidate-${{ steps.version.outputs.version }}`.
+
+            Text diff report artifact: `windows-native-latest-text-diff-${{ steps.version.outputs.version }}`.
+
+      - name: Summarize Windows native failure handoff PR
+        if: failure() && steps.windows_failure_handoff.outputs.report_path != ''
+        shell: powershell
+        run: |
+          $PrUrl = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-url }}"
+          $PrBranch = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-branch }}"
+          $PrOperation = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-operation }}"
+          if (-not $PrBranch) {
+            $PrBranch = "codex/windows-native-latest-${{ steps.version.outputs.version }}-fix"
+          }
+          if (-not $PrOperation) {
+            $PrOperation = "not reported"
+          }
+          "## Windows native failure handoff PR" >> $env:GITHUB_STEP_SUMMARY
+          "- Branch: ``$PrBranch``" >> $env:GITHUB_STEP_SUMMARY
+          if ($PrUrl) {
+            "- Pull request: $PrUrl" >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            "- Pull request: not created; inspect the create-pull-request step logs." >> $env:GITHUB_STEP_SUMMARY
+          }
+          "- Operation: ``$PrOperation``" >> $env:GITHUB_STEP_SUMMARY
+          "- Report: ``${{ steps.windows_failure_handoff.outputs.report_path }}``" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Prepare Windows native support promotion artifacts
+        id: windows_promotion
+        if: success()
+        shell: powershell
+        run: |
+          $Version = "${{ steps.version.outputs.version }}"
+          $ArtifactDir = Join-Path $env:RUNNER_TEMP "windows-native-support-promotion-$Version"
+          New-Item -ItemType Directory -Force -Path $ArtifactDir | Out-Null
+          $PromotionLog = Join-Path $ArtifactDir "promotion.log"
+
+          function Invoke-LoggedNode {
+            param([string[]] $NodeArgs)
+            & node @NodeArgs 2>&1 | Tee-Object -FilePath $PromotionLog -Append
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+          }
+
+          Invoke-LoggedNode @("scripts/promote-native-candidate.js", "--candidate", "${{ steps.verify.outputs.json_path }}", "--platform", "windows", "--write")
+          Invoke-LoggedNode @("scripts/generate-plugin-support-window.js", "--write")
+          Invoke-LoggedNode @("scripts/generate-support-matrix.js")
+          Invoke-LoggedNode @("scripts/sync-readme-support-window.js", "--write")
+          Invoke-LoggedNode @("scripts/sync-doc-derived-counts.js", "--write")
+          Invoke-LoggedNode @("scripts/check-support-boundary.js")
+          Invoke-LoggedNode @("scripts/sync-readme-support-window.js", "--check")
+          Invoke-LoggedNode @("scripts/sync-doc-derived-counts.js", "--check")
+
+          $DiffPath = Join-Path $ArtifactDir "windows-native-support-promotion.diff"
+          git diff -- scripts/upstream-compat.config.json plugin/support-window.json docs/support-matrix.md README.md AGENTS.md CLAUDE.md > $DiffPath
+          $Changed = if ((Get-Item $DiffPath).Length -gt 0) { "true" } else { "false" }
+
+          @(
+            "# Windows native support promotion preview",
+            "",
+            "- Candidate: $Version",
+            "- Changed support surfaces: $Changed",
+            '- Guard: `node scripts/check-support-boundary.js` passed',
+            '- Follow-up: review `windows-native-support-promotion.diff` before opening a support promotion PR.'
+          ) | Set-Content -Path (Join-Path $ArtifactDir "promotion-summary.md") -Encoding utf8
+
+          Copy-Item scripts/upstream-compat.config.json (Join-Path $ArtifactDir "upstream-compat.config.json") -Force
+          Copy-Item plugin/support-window.json (Join-Path $ArtifactDir "support-window.json") -Force
+          Copy-Item docs/support-matrix.md (Join-Path $ArtifactDir "support-matrix.md") -Force
+          Copy-Item README.md (Join-Path $ArtifactDir "README.md") -Force
+
+          "artifact_dir=$ArtifactDir" >> $env:GITHUB_OUTPUT
+          "changed=$Changed" >> $env:GITHUB_OUTPUT
+          "## Windows native support promotion preview" >> $env:GITHUB_STEP_SUMMARY
+          Get-Content (Join-Path $ArtifactDir "promotion-summary.md") | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload Windows native support promotion artifacts
+        if: success() && steps.windows_promotion.outputs.artifact_dir != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-native-support-promotion-${{ steps.version.outputs.version }}
+          path: ${{ steps.windows_promotion.outputs.artifact_dir }}
           if-no-files-found: error
