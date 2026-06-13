@@ -5,6 +5,6 @@
 
 ## 提交前检查
 
-> CI will automatically run `bash scripts/preflight.sh`. You do not need to run it manually.
+> CI 会自动运行 `bash scripts/preflight.sh`，PR 描述里不需要手动勾选这个检查。
 > 
-> If this is a PR from a forked repository, the maintainer will trigger the required CI checks after review.
+> 如果是 fork PR，需要权限的 CI 检查会由维护者在 review 后触发。
