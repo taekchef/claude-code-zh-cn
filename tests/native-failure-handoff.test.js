@@ -108,10 +108,10 @@ test("prepare-native-failure-handoff writes a maintainer-ready failure report", 
   const { result, outputPath } = runHandoff(fixtureCandidate());
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /prepared native failure handoff for 2\.1\.143/);
+  assert.match(result.stdout, /prepared macOS native failure handoff for 2\.1\.143/);
 
   const report = fs.readFileSync(outputPath, "utf8");
-  assert.match(report, /^# Native latest candidate failure: 2\.1\.143/m);
+  assert.match(report, /^# macOS native latest candidate failure: 2\.1\.143/m);
   assert.match(report, /Run: https:\/\/github\.com\/taekchef\/claude-code-zh-cn\/actions\/runs\/123/);
   assert.match(report, /Head SHA: `b23cb9c6b317d5a83a682e31071006c266580c23`/);
   assert.match(report, /Status: `fail`/);
@@ -120,6 +120,32 @@ test("prepare-native-failure-handoff writes a maintainer-ready failure report", 
   assert.match(report, /--add-dir <directory>                 Additional directory to allow tool/);
   assert.match(report, /node scripts\/verify-upstream-compat\.js --baseline 2\.1\.143 --skip-latest --native-macos-arm64 --json/);
   assert.match(report, /# Upstream text diff/);
+});
+
+test("prepare-native-failure-handoff writes Windows takeover commands", () => {
+  const candidate = fixtureCandidate();
+  const [entry] = candidate.results;
+  entry.kind = "native-wrapper";
+  entry.nativeVerification = {
+    packageName: "@anthropic-ai/claude-code-win32-x64",
+    platform: "win32-x64",
+    detect: "native-bun",
+    extract: "ok",
+    repack: "ok",
+    versionOutput: "2.1.143 (Claude Code)",
+  };
+
+  const { result, outputPath } = runHandoff(candidate, ["--platform", "windows"]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /prepared Windows native failure handoff for 2\.1\.143/);
+
+  const report = fs.readFileSync(outputPath, "utf8");
+  assert.match(report, /^# Windows native latest candidate failure: 2\.1\.143/m);
+  assert.match(report, /Native: `win32-x64` \/ `ok` \/ `ok` \/ `unknown`/);
+  assert.match(report, /node scripts\/verify-upstream-compat\.js --baseline 2\.1\.143 --skip-latest --native-windows-x64 --json/);
+  assert.match(report, /node scripts\/generate-upstream-text-diff\.js --to 2\.1\.143 --native-windows-x64/);
+  assert.match(report, /node scripts\/promote-native-candidate\.js --candidate <candidate-json> --platform windows/);
 });
 
 test("prepare-native-failure-handoff rejects passing candidates", () => {

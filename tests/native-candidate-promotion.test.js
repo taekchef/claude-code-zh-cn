@@ -30,6 +30,9 @@ function bumpPatch(version, amount) {
 const currentNativeCeiling = readJson(sourceConfig).support.macosNativeExperimental.ceiling;
 const unverifiedGapVersion = bumpPatch(currentNativeCeiling, 1);
 const promotableCandidateVersion = bumpPatch(currentNativeCeiling, 2);
+const currentWindowsNativeCeiling = readJson(sourceConfig).support.windowsNativeExperimental.ceiling;
+const unverifiedWindowsGapVersion = bumpPatch(currentWindowsNativeCeiling, 1);
+const promotableWindowsCandidateVersion = bumpPatch(currentWindowsNativeCeiling, 2);
 
 function copyConfig() {
   const configPath = tmpFile("config.json");
@@ -57,6 +60,40 @@ function candidateResult(overrides = {}) {
           repack: "ok",
           codeSignature: "ok",
           versionOutput: promotableCandidateVersion,
+        },
+        displayAudit: {
+          status: "pass",
+          commandCount: 11,
+          issueCount: 0,
+          commands: [],
+          issues: [],
+        },
+        ...overrides,
+      },
+    ],
+    summary: { pass: 1, fail: 0, skip: 0 },
+  };
+}
+
+function windowsCandidateResult(overrides = {}) {
+  return {
+    packageName: "@anthropic-ai/claude-code",
+    baseline: [promotableWindowsCandidateVersion],
+    results: [
+      {
+        version: promotableWindowsCandidateVersion,
+        kind: "native-wrapper",
+        status: "pass",
+        patchCount: 1385,
+        residue: [],
+        missingRequired: [],
+        nativeVerification: {
+          packageName: "@anthropic-ai/claude-code-win32-x64",
+          platform: "win32-x64",
+          detect: "native-bun",
+          extract: "ok",
+          repack: "ok",
+          versionOutput: promotableWindowsCandidateVersion,
         },
         displayAudit: {
           status: "pass",
@@ -123,6 +160,45 @@ test("promote-native-candidate rejects skipped candidates with a maintainer-read
   const config = readJson(configPath);
   assert.equal(config.support.macosNativeExperimental.ceiling, currentNativeCeiling);
   assert.equal(config.support.macosNativeExperimental.representatives.includes(promotableCandidateVersion), false);
+});
+
+test("promote-native-candidate advances Windows native source-of-truth from a passing candidate", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  writeJson(candidatePath, windowsCandidateResult());
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--platform", "windows", "--write"]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(
+    result.stdout,
+    new RegExp(`promoted Windows native candidate ${promotableWindowsCandidateVersion.replaceAll(".", "\\.")}`)
+  );
+
+  const config = readJson(configPath);
+  const native = config.support.windowsNativeExperimental;
+  assert.equal(native.ceiling, promotableWindowsCandidateVersion);
+  assert.ok(native.representatives.includes(promotableWindowsCandidateVersion));
+  assert.ok(native.excluded.includes(unverifiedWindowsGapVersion), "unverified Windows gap should stay outside support");
+  assert.match(
+    native.verification,
+    new RegExp(`${promotableWindowsCandidateVersion.replaceAll(".", "\\.")} PASS\\(native 1385, display 11\\/11\\)`)
+  );
+  assert.match(native.notes, /Windows x64 native binary experimental/);
+  assert.match(native.notes, /provisional/);
+});
+
+test("promote-native-candidate rejects Windows candidates from the macOS promotion lane", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  writeJson(candidatePath, windowsCandidateResult());
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /expected native, got native-wrapper/);
+  assert.match(result.stderr, /expected darwin-arm64, got win32-x64/);
+  assert.equal(readJson(configPath).support.windowsNativeExperimental.ceiling, currentWindowsNativeCeiling);
 });
 
 test("promote-native-candidate requires display audit before support-window promotion", () => {

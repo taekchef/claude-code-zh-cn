@@ -78,22 +78,156 @@ if ((-not (Test-Path $LauncherBinDir)) -and $currentUserPath -like "*$LauncherBi
     Write-Host "已从用户 PATH 移除 launcher 目录" -ForegroundColor Green
 }
 
-# 3. 从 settings.json 精准移除插件注入的 key
+# 3. 从 settings.json 精准移除插件注入的设置项
 if (Test-Path $SettingsFile) {
-    if (Get-Command jq -ErrorAction SilentlyContinue) {
-        $tempFile = "$SettingsFile.tmp"
-        jq 'del(.language) | del(.spinnerTipsEnabled) | del(.spinnerTipsOverride) | del(.spinnerVerbs)' $SettingsFile | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
-        Move-Item $tempFile $SettingsFile -Force
-        Write-Host "已从 settings.json 移除中文设置（保留其他配置）" -ForegroundColor Green
-    } elseif (Get-Command node -ErrorAction SilentlyContinue) {
+    if (Get-Command node -ErrorAction SilentlyContinue) {
         $env:ZH_CN_SETTINGS = $SettingsFile
+        $env:ZH_CN_PLUGIN_DST = $PluginDst
         node -e @"
 const fs=require('fs');
-const s=JSON.parse(fs.readFileSync(process.env.ZH_CN_SETTINGS,'utf8'));
-for(const k of ['language','spinnerTipsEnabled','spinnerTipsOverride','spinnerVerbs']){delete s[k]}
-fs.writeFileSync(process.env.ZH_CN_SETTINGS,JSON.stringify(s,null,2)+'\n');
+const settingsFile=process.env.ZH_CN_SETTINGS;
+const pluginRoot=process.env.ZH_CN_PLUGIN_DST||'';
+
+function isObject(value){
+  return value&&typeof value==='object'&&!Array.isArray(value);
+}
+
+function readSettings(file){
+  const raw=fs.readFileSync(file,'utf8').replace(/^\uFEFF/,'');
+  return raw.trim()?JSON.parse(raw):{};
+}
+
+function normalizePath(value){
+  return String(value||'').replace(/\\/g,'/').replace(/\/+$/,'');
+}
+
+const pluginRootNormalized=normalizePath(pluginRoot);
+let settings=readSettings(settingsFile);
+if(!isObject(settings)) settings={};
+
+let changed=false;
+for(const k of ['language','spinnerTipsEnabled','spinnerTipsOverride','spinnerVerbs']){
+  if(Object.prototype.hasOwnProperty.call(settings,k)){
+    delete settings[k];
+    changed=true;
+  }
+}
+
+if(isObject(settings.enabledPlugins)&&Object.prototype.hasOwnProperty.call(settings.enabledPlugins,'claude-code-zh-cn@local-zh-cn')){
+  delete settings.enabledPlugins['claude-code-zh-cn@local-zh-cn'];
+  if(Object.keys(settings.enabledPlugins).length===0) delete settings.enabledPlugins;
+  changed=true;
+}
+
+if(isObject(settings.extraKnownMarketplaces)&&Object.prototype.hasOwnProperty.call(settings.extraKnownMarketplaces,'local-zh-cn')){
+  delete settings.extraKnownMarketplaces['local-zh-cn'];
+  if(Object.keys(settings.extraKnownMarketplaces).length===0) delete settings.extraKnownMarketplaces;
+  changed=true;
+}
+
+function commandBelongsToPlugin(command){
+  if(typeof command!=='string') return false;
+  const normalized=normalizePath(command);
+  return normalized.indexOf('claude-code-zh-cn')!==-1 ||
+    normalized.indexOf('local-zh-cn')!==-1 ||
+    (normalized.indexOf('CLAUDE_PLUGIN_ROOT')!==-1&&normalized.indexOf('/hooks/')!==-1) ||
+    (pluginRootNormalized&&normalized.indexOf(pluginRootNormalized)!==-1);
+}
+
+function cleanHookEntry(entry){
+  if(!isObject(entry)||!Array.isArray(entry.hooks)){
+    return {entry:entry,changed:false,keep:true};
+  }
+
+  const hooks=entry.hooks.filter(function(hook){
+    return !(isObject(hook)&&commandBelongsToPlugin(hook.command));
+  });
+  if(hooks.length===entry.hooks.length){
+    return {entry:entry,changed:false,keep:true};
+  }
+  if(hooks.length===0){
+    return {changed:true,keep:false};
+  }
+  return {entry:Object.assign({},entry,{hooks:hooks}),changed:true,keep:true};
+}
+
+if(isObject(settings.hooks)){
+  for(const eventName of Object.keys(settings.hooks)){
+    const entries=settings.hooks[eventName];
+    if(!Array.isArray(entries)) continue;
+    const nextEntries=[];
+    let eventChanged=false;
+    for(const entry of entries){
+      const result=cleanHookEntry(entry);
+      if(result.changed) eventChanged=true;
+      if(result.keep) nextEntries.push(result.entry);
+    }
+    if(eventChanged){
+      changed=true;
+      if(nextEntries.length>0) settings.hooks[eventName]=nextEntries;
+      else delete settings.hooks[eventName];
+    }
+  }
+  if(Object.keys(settings.hooks).length===0){
+    delete settings.hooks;
+    changed=true;
+  }
+}
+
+if(changed) fs.writeFileSync(settingsFile,JSON.stringify(settings,null,2)+'\n');
 "@
         Remove-Item Env:\ZH_CN_SETTINGS -ErrorAction SilentlyContinue
+        Remove-Item Env:\ZH_CN_PLUGIN_DST -ErrorAction SilentlyContinue
+        Write-Host "已从 settings.json 移除中文设置（保留其他配置）" -ForegroundColor Green
+    } elseif (Get-Command jq -ErrorAction SilentlyContinue) {
+        $tempFile = "$SettingsFile.tmp"
+        $jqFilter = @'
+def normalize_path:
+  tostring | gsub("\\\\"; "/") | sub("/+$"; "");
+
+def plugin_command:
+  if type != "string" then false
+  else
+    (normalize_path) as $command |
+    ($command | contains("claude-code-zh-cn")) or
+    ($command | contains("local-zh-cn")) or
+    (($command | contains("CLAUDE_PLUGIN_ROOT")) and ($command | contains("/hooks/"))) or
+    (($pluginRoot | normalize_path | length) > 0 and ($command | contains($pluginRoot | normalize_path)))
+  end;
+
+def clean_hook_entry:
+  if type == "object" and (.hooks | type) == "array" then
+    (.hooks |= map(select(((.command? // null) | plugin_command) | not)))
+    | select((.hooks | length) > 0)
+  else
+    .
+  end;
+
+del(.language, .spinnerTipsEnabled, .spinnerTipsOverride, .spinnerVerbs)
+| if (.enabledPlugins | type) == "object" then
+    .enabledPlugins |= del(."claude-code-zh-cn@local-zh-cn")
+    | if (.enabledPlugins | length) == 0 then del(.enabledPlugins) else . end
+  else . end
+| if (.extraKnownMarketplaces | type) == "object" then
+    .extraKnownMarketplaces |= del(."local-zh-cn")
+    | if (.extraKnownMarketplaces | length) == 0 then del(.extraKnownMarketplaces) else . end
+  else . end
+| if (.hooks | type) == "object" then
+    .hooks |= with_entries(
+      if (.value | type) == "array" then
+        (.value | map(clean_hook_entry)) as $next |
+        if ($next == .value) then .
+        elif ($next | length) > 0 then .value = $next
+        else empty
+        end
+      else .
+      end
+    )
+    | if (.hooks | length) == 0 then del(.hooks) else . end
+  else . end
+'@
+        jq --arg pluginRoot $PluginDst $jqFilter $SettingsFile | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
+        Move-Item $tempFile $SettingsFile -Force
         Write-Host "已从 settings.json 移除中文设置（保留其他配置）" -ForegroundColor Green
     } else {
         Write-Host "请手动编辑 $SettingsFile 移除以下字段：" -ForegroundColor Yellow
@@ -101,6 +235,7 @@ fs.writeFileSync(process.env.ZH_CN_SETTINGS,JSON.stringify(s,null,2)+'\n');
         Write-Host "  - spinnerTipsEnabled"
         Write-Host "  - spinnerTipsOverride"
         Write-Host "  - spinnerVerbs"
+        Write-Host "  - 本插件写入的 hooks / enabledPlugins / extraKnownMarketplaces 项"
     }
 }
 

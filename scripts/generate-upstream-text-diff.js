@@ -29,6 +29,7 @@ function parseArgs(argv) {
     config: defaultConfigPath,
     json: false,
     nativeMacosArm64: false,
+    nativeWindowsX64: false,
     translations: defaultTranslationsPath,
     maxItems: 40,
   };
@@ -57,6 +58,9 @@ function parseArgs(argv) {
       case "--native-macos-arm64":
         args.nativeMacosArm64 = true;
         break;
+      case "--native-windows-x64":
+        args.nativeWindowsX64 = true;
+        break;
       case "--max-items":
         args.maxItems = Number.parseInt(argv[++i], 10);
         break;
@@ -77,7 +81,7 @@ function parseArgs(argv) {
 
 function usage() {
   return [
-    "Usage: node scripts/generate-upstream-text-diff.js --to <version> [--from <version>] [--native-macos-arm64] [--json]",
+    "Usage: node scripts/generate-upstream-text-diff.js --to <version> [--from <version>] [--native-macos-arm64|--native-windows-x64] [--json]",
     "",
     "Compares upstream JS string literals between two Claude Code versions and reports",
     "added/removed English text for translation review. When --from is omitted, the",
@@ -101,8 +105,18 @@ function compareVersions(a, b) {
   return String(a).localeCompare(String(b));
 }
 
-function resolvePreviousVersion(config, toVersion) {
-  const nativeVersions = config.support?.macosNativeExperimental?.representatives || [];
+function nativeSupportConfig(config, args) {
+  if (args.nativeWindowsX64) {
+    return config.support?.windowsNativeExperimental || null;
+  }
+  if (args.nativeMacosArm64) {
+    return config.support?.macosNativeExperimental || null;
+  }
+  return null;
+}
+
+function resolvePreviousVersion(config, args, toVersion) {
+  const nativeVersions = nativeSupportConfig(config, args)?.representatives || [];
   const baselineVersions = config.baseline?.versions || [];
   const candidates = [...nativeVersions, ...baselineVersions]
     .map(String)
@@ -132,9 +146,9 @@ function packageShapeError(packageDir) {
 }
 
 function resolvePackageName(config, args, version) {
-  const nativeConfig = config.support?.macosNativeExperimental;
+  const nativeConfig = nativeSupportConfig(config, args);
   if (
-    args.nativeMacosArm64 &&
+    (args.nativeMacosArm64 || args.nativeWindowsX64) &&
     nativeConfig?.packageName &&
     compareVersions(version, nativeConfig.floor || version) >= 0
   ) {
@@ -183,12 +197,13 @@ function resolvePackageDir(config, args, version) {
 }
 
 function checkNativePlatform(args) {
-  if (!args.nativeMacosArm64) {
-    fail("Native package text diff requires --native-macos-arm64");
+  if (!args.nativeMacosArm64 && !args.nativeWindowsX64) {
+    fail("Native package text diff requires --native-macos-arm64 or --native-windows-x64");
   }
+  const expectedPlatform = args.nativeWindowsX64 ? "win32-x64" : "darwin-arm64";
   const platform = process.env.CCZH_NATIVE_VERIFY_PLATFORM || `${process.platform}-${process.arch}`;
-  if (platform !== "darwin-arm64") {
-    fail("Native package text diff requires macOS arm64");
+  if (platform !== expectedPlatform) {
+    fail(args.nativeWindowsX64 ? "Native package text diff requires Windows x64" : "Native package text diff requires macOS arm64");
   }
   const depStatus = execFile("node", [binaryIoPath, "check-deps"], {
     cwd: repoRoot,
@@ -207,7 +222,11 @@ function readPackageJs(config, args, version) {
     return fs.readFileSync(legacyCli, "utf8");
   }
 
-  const nativeBinary = path.join(packageDir, "claude");
+  const nativeBinary = args.nativeWindowsX64
+    ? (fs.existsSync(path.join(packageDir, "claude.exe"))
+        ? path.join(packageDir, "claude.exe")
+        : path.join(packageDir, "bin", "claude.exe"))
+    : path.join(packageDir, "claude");
   if (fs.existsSync(nativeBinary)) {
     checkNativePlatform(args);
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-text-diff-"));
@@ -392,7 +411,7 @@ function buildPayload(config, args) {
     fail("--to is required");
   }
 
-  const from = args.from || resolvePreviousVersion(config, args.to);
+  const from = args.from || resolvePreviousVersion(config, args, args.to);
   if (!from) {
     fail(`Could not infer previous version for ${args.to}; pass --from explicitly`);
   }

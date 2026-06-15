@@ -19,6 +19,7 @@ done
 
 mkdir -p "$REPO_ROOT/plugin/bin" "$REPO_ROOT/plugin/scripts"
 cp "$REPO_ROOT/doctor.sh" "$REPO_ROOT/plugin/bin/doctor"
+cp "$REPO_ROOT/doctor.ps1" "$REPO_ROOT/plugin/bin/doctor.ps1"
 cp "$REPO_ROOT/scripts/zh-cn-doctor.js" "$REPO_ROOT/plugin/scripts/zh-cn-doctor.js"
 
 chmod +x "$REPO_ROOT/plugin/patch-cli.sh" "$REPO_ROOT/plugin/compute-patch-revision.sh" "$REPO_ROOT/plugin/bin/doctor" 2>/dev/null || true

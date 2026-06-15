@@ -45,7 +45,10 @@ test("native latest candidate workflow also verifies Windows native candidates",
   assert.match(workflow, /^\s*verify-windows:/m);
   assert.match(workflow, /name:\s*Verify Windows native candidate/);
   assert.match(workflow, /runs-on:\s*windows-2022\b/);
+  assert.match(workflow, /contents:\s*write/);
+  assert.match(workflow, /pull-requests:\s*write/);
   assert.match(workflow, /node\s+scripts\/verify-upstream-compat\.js\s+--baseline\s+"\$Version"\s+--skip-latest\s+--native-windows-x64\s+--json/);
+  assert.match(workflow, /\$Status = \$LASTEXITCODE/);
   assert.match(workflow, /windows-native-latest-candidate-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
 });
 
@@ -147,4 +150,34 @@ test("native latest candidate workflow summarizes the failure handoff PR result"
   assert.match(workflow, /echo "- Operation: \\`\$\{PR_OPERATION\}\\`"/);
   assert.match(workflow, /echo "- Report: \\`\$\{\{\s*steps\.failure_handoff\.outputs\.report_path\s*\}\}\\`"/);
   assert.match(workflow, /GITHUB_STEP_SUMMARY/);
+});
+
+test("native latest candidate workflow opens a handoff PR for failed Windows candidates", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /Prepare Windows native failure handoff/);
+  assert.match(workflow, /scripts\/prepare-native-failure-handoff\.js[\s\S]*--platform windows/);
+  assert.match(workflow, /docs\/native-latest-failures\/windows-\$Version\.md/);
+  assert.match(workflow, /Create Windows native candidate failure handoff PR/);
+  assert.match(workflow, /id:\s*windows_failure_handoff_pr/);
+  assert.match(workflow, /codex\/windows-native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
+  assert.match(workflow, /follow up Windows native \$\{\{\s*steps\.version\.outputs\.version\s*\}\} candidate failure/);
+  assert.match(workflow, /windows-native-latest-text-diff-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
+});
+
+test("native latest candidate workflow prepares Windows promotion artifacts with guards", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /Generate Windows native text diff report/);
+  assert.match(workflow, /scripts\/generate-upstream-text-diff\.js --to "\$Version" --native-windows-x64/);
+  assert.match(workflow, /Prepare Windows native support promotion artifacts/);
+  assert.match(workflow, /scripts\/promote-native-candidate\.js", "--candidate", "\$\{\{\s*steps\.verify\.outputs\.json_path\s*\}\}", "--platform", "windows", "--write"/);
+  assert.match(workflow, /scripts\/generate-plugin-support-window\.js", "--write"/);
+  assert.match(workflow, /scripts\/generate-support-matrix\.js/);
+  assert.match(workflow, /scripts\/sync-readme-support-window\.js", "--write"/);
+  assert.match(workflow, /scripts\/sync-doc-derived-counts\.js", "--write"/);
+  assert.match(workflow, /scripts\/check-support-boundary\.js/);
+  assert.match(workflow, /windows-native-support-promotion\.diff/);
+  assert.match(workflow, /Upload Windows native support promotion artifacts/);
+  assert.match(workflow, /windows-native-support-promotion-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
 });

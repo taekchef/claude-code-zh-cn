@@ -119,6 +119,20 @@ test("Windows uninstall protects custom launcher files with the same zh-cn marke
   assert.match(script, /检测到自定义 launcher，未自动删除/);
 });
 
+test("Windows uninstall uses BOM-safe settings cleanup without PowerShell 7 syntax", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "uninstall.ps1"), "utf8");
+  const powershellOnly = script.replace(/node -e @"[\s\S]*?"@/g, 'node -e @"..."@');
+
+  assert.match(script, /replace\(\/\^\\uFEFF\/,''\)/);
+  assert.match(script, /ZH_CN_PLUGIN_DST/);
+  assert.match(script, /enabledPlugins/);
+  assert.match(script, /extraKnownMarketplaces/);
+  assert.match(script, /cleanHookEntry/);
+  assert.match(script, /CLAUDE_PLUGIN_ROOT/);
+  assert.match(script, /jq --arg pluginRoot/);
+  assert.doesNotMatch(powershellOnly, /\?\s*[^:\r\n]+:/);
+});
+
 test("Windows installer checks install-json-helper native command failures", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
 

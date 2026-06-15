@@ -8,6 +8,10 @@ const { spawnSync } = require("child_process");
 
 const STABLE_PINNED_VERSION = "2.1.112";
 const STABLE_INSTALL_CMD = `npm install -g @anthropic-ai/claude-code@${STABLE_PINNED_VERSION}`;
+const CLAUDE_UPDATER_BOUNDARY =
+  "DISABLE_AUTOUPDATER 归 Claude Code 本体；本插件只更新中文插件和重 patch，不能保证阻止本体升级。请以 claude doctor 的 Updates 段为准。";
+const UNPUBLISHED_WINDOW_GUIDANCE =
+  "升到未发布支持窗口时，先看 docs/support-matrix.md；未收录就等插件 Release，或临时退回已验证版本";
 const PATCH_REVISION_FILES = [
   "manifest.json",
   "patch-cli.sh",
@@ -21,6 +25,7 @@ const NPM_RESIDUE_PROBES = [
   "This command requires approval",
   "Use /btw to ask a quick side question without interrupting Claude's current work",
 ];
+const RUNTIME_ERROR_ENV = "ZH_CN_DOCTOR_RUNTIME_ERROR";
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -194,6 +199,86 @@ function npmCliResidue(cliFile, probes = NPM_RESIDUE_PROBES) {
   }
 }
 
+function classifyRuntimeError(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return null;
+
+  const hasNativeKilled =
+    /zsh:\s*killed|killed\s+claude|sigkill|signal\s+sigkill|exit\s*137|status\s*137/i.test(raw);
+  if (hasNativeKilled) {
+    return {
+      code: "native-runtime-killed",
+      category: "native-runtime",
+      detail:
+        "检测到 claude 启动后被系统直接 killed：这通常发生在官方安装器 native 二进制 patch 后无法通过本机启动校验。",
+      recommendations: [
+        "运行本插件最新版 doctor --json，重点看“原生 CLI 启动自检”",
+        "先重新安装 Claude Code 本体恢复原始二进制，再运行最新版 ./install.sh",
+        "如果仍失败，请收集 which -a claude、codesign --verify --strict --verbose=4 和 xattr -l 输出",
+      ],
+    };
+  }
+
+  const hasHttp200 = /\bhttp\s*200\b|\(http\s*200\)|\bstatus\s*200\b/i.test(raw);
+  const hasMalformed = /api returned an empty or malformed response|malformed response/i.test(raw);
+  if (hasHttp200 && hasMalformed) {
+    return {
+      code: "http-200-malformed",
+      category: "upstream-or-proxy",
+      detail:
+        "检测到 API returned an empty or malformed response (HTTP 200)：这不是汉化没生效，而是上游/代理/网关返回了 Claude Code 无法解析的内容。",
+      recommendations: [
+        "运行 claude doctor，确认当前 Claude Code Updates、登录状态和 provider 状态",
+        "检查当前链路：ANTHROPIC_BASE_URL、HTTP(S)_PROXY、CC Switch 当前 provider、网关健康检查",
+        "如果使用 CC Switch / EvoMap，请收集 provider 名、模型名、脱敏后的完整报错和网关侧响应摘要",
+      ],
+    };
+  }
+
+  const has403 = /\b403\b|http\s*403|\(403\)/i.test(raw);
+  const hasAccessDenied = /access denied|forbidden|权限|拒绝|无权限/i.test(raw);
+  if (has403 && hasAccessDenied) {
+    return {
+      code: "access-denied-403",
+      category: "provider-auth",
+      detail:
+        "检测到 Access denied (403)：这是上游 provider / 网关授权拒绝，不是汉化或 CLI Patch 问题。",
+      recommendations: [
+        "先查 provider/API key/模型权限/额度，确认 ANTHROPIC_AUTH_TOKEN 和 ANTHROPIC_BASE_URL 指向同一网关",
+        "运行 claude doctor，并收集 which -a claude（Windows 用 where.exe claude）",
+        "如果使用 CC Switch / EvoMap，请收集当前 provider 名、模型名和网关健康检查的 403 原文",
+      ],
+    };
+  }
+
+  const hasProxyGatewaySignal =
+    /proxy|gateway|upstream|cc switch|evomap|anthropic_base_url|http_proxy|https_proxy|no_proxy|econnrefused|etimedout|enotfound|socket hang up|tunnel|代理|网关|上游|供应商|provider|base_url|127\.0\.0\.1|localhost/i.test(raw);
+  if (hasProxyGatewaySignal) {
+    return {
+      code: "proxy-gateway-chain",
+      category: "upstream-or-proxy",
+      detail:
+        "检测到代理/网关链路异常信号：先按 Claude Code 到 provider 的请求链路排查，不要当作汉化没生效处理。",
+      recommendations: [
+        "确认本地代理/网关进程和端口仍在运行，再确认 claude 实际读取到的 ANTHROPIC_* / HTTP(S)_PROXY / NO_PROXY",
+        "运行 claude doctor 和 which -a claude（Windows 用 where.exe claude）",
+        "如果使用 CC Switch / EvoMap，请收集当前 provider 名、模型名、base URL 和脱敏后的完整报错",
+      ],
+    };
+  }
+
+  return {
+    code: "runtime-error-unclassified",
+    category: "runtime",
+    detail:
+      "收到运行时报错，但不匹配已知的 403 / HTTP 200 malformed / 代理网关模式；先收集运行链路信息，再判断是否需要插件侧处理。",
+    recommendations: [
+      "运行 claude doctor，并收集 which -a claude（Windows 用 where.exe claude）",
+      "粘贴脱敏后的完整报错、安装方式、Claude Code 版本和当前 provider / base URL",
+    ],
+  };
+}
+
 function checkNodeLief(bunBinaryIoPath) {
   const result = spawnSync(process.execPath, [bunBinaryIoPath, "check-deps"], {
     encoding: "utf8",
@@ -206,6 +291,55 @@ function nativeBinaryHash(bunBinaryIoPath, target) {
     encoding: "utf8",
   });
   return String(result.stdout || "").trim();
+}
+
+function isExecutableFile(target) {
+  try {
+    fs.accessSync(target, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function nativeRuntimeVersion(target) {
+  if (!target || !fs.existsSync(target) || !isExecutableFile(target)) {
+    return null;
+  }
+
+  let tempHome = "";
+  try {
+    tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-runtime-home-"));
+    const result = spawnSync(target, ["--version"], {
+      encoding: "utf8",
+      timeout: 10000,
+      windowsHide: true,
+      env: {
+        ...process.env,
+        HOME: tempHome,
+        USERPROFILE: tempHome,
+        XDG_CONFIG_HOME: path.join(tempHome, ".config"),
+        XDG_CACHE_HOME: path.join(tempHome, ".cache"),
+        XDG_DATA_HOME: path.join(tempHome, ".local", "share"),
+      },
+    });
+    const output = `${result.stdout || ""}\n${result.stderr || ""}`;
+    const match = output.match(/[0-9]+\.[0-9]+\.[0-9]+/);
+    if (result.status === 0 && match) {
+      return { checked: true, ok: true, version: match[0] };
+    }
+
+    const parts = [];
+    if (result.signal) parts.push(`signal=${result.signal}`);
+    if (typeof result.status === "number") parts.push(`status=${result.status}`);
+    if (result.error) parts.push(`error=${result.error.message}`);
+    const detail = parts.join("，") || "未返回版本号";
+    return { checked: true, ok: false, detail };
+  } finally {
+    if (tempHome) {
+      try { fs.rmSync(tempHome, { recursive: true, force: true }); } catch {}
+    }
+  }
 }
 
 function detectInstallation(bunBinaryIoPath, claudeBin) {
@@ -362,6 +496,7 @@ function readCcSwitchCommonConfig(homeDir) {
  * @param {string} [options.homeDir]
  * @param {string} [options.pluginRoot]
  * @param {string} [options.claudePath]
+ * @param {string} [options.runtimeError]
  * @param {boolean} [options.json]
  * @param {boolean} [options.color]
  */
@@ -552,6 +687,17 @@ function runDoctor(options = {}) {
     add("cli-version", "CLI 版本", "warn", "无法读取版本号");
   }
 
+  if (kind === "native-bun" && target) {
+    const runtimeVersion = nativeRuntimeVersion(target);
+    if (runtimeVersion?.ok) {
+      add("native-runtime", "原生 CLI 启动自检", "ok", `--version ${runtimeVersion.version}`);
+    } else if (runtimeVersion?.checked) {
+      add("native-runtime", "原生 CLI 启动自检", "fail", runtimeVersion.detail);
+      recommendations.push("重新安装 Claude Code 本体恢复原始 native 二进制，再运行最新版 ./install.sh");
+      recommendations.push("如果重新安装后仍被 killed，请贴 codesign --verify --strict --verbose=4 和 xattr -l 输出");
+    }
+  }
+
   const marker = parseMarker(readMarker(markerFile));
   if (marker.version || marker.revision) {
     add(
@@ -616,14 +762,16 @@ function runDoctor(options = {}) {
         layer4Status = "provisional";
         layer4Detail = `native ${cliVersion || "unknown"} 已本机自验证 patch，但尚未纳入已发布支持窗口`;
         add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
-        recommendations.push("这是本机通过的临时 patch；等插件发布支持窗口后可重新运行 ./install.sh 转为已验证记录");
+        recommendations.push("这是本机通过的临时 patch，不等于已发布支持");
+        recommendations.push(UNPUBLISHED_WINDOW_GUIDANCE);
+        recommendations.push("如仍未汉化，请贴本插件 doctor --json 输出和 claude doctor 的 Updates 段");
       }
     } else if (!supported) {
       layer4Status = "unsupported";
       layer4Detail = `native ${cliVersion || "unknown"} 不在已验证支持窗口内`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
       recommendations.push(`稳定方案：${STABLE_INSTALL_CMD}`);
-      recommendations.push("详见 docs/support-matrix.md");
+      recommendations.push(UNPUBLISHED_WINDOW_GUIDANCE);
     } else if (!liefOk) {
       layer4Status = "needs-deps";
       layer4Detail = "已验证版本，但缺少 node-lief";
@@ -672,6 +820,18 @@ function runDoctor(options = {}) {
     add("auto-update", "插件自动更新", "warn", "无 .source-repo，Release 自动同步可能不可用");
   }
 
+  if (fs.existsSync(pluginRoot)) {
+    add("claude-updater", "Claude Code 本体自动升级", "warn", CLAUDE_UPDATER_BOUNDARY);
+  }
+
+  const runtimeIssue = classifyRuntimeError(
+    options.runtimeError !== undefined ? options.runtimeError : process.env[RUNTIME_ERROR_ENV]
+  );
+  if (runtimeIssue) {
+    add("runtime-error", "运行时报错分流", "warn", runtimeIssue.detail);
+    recommendations.push(...runtimeIssue.recommendations);
+  }
+
   const hasFail = checks.some((item) => item.status === "fail");
   const summary = {
     ok: !hasFail,
@@ -680,6 +840,9 @@ function runDoctor(options = {}) {
     layer4Status,
     installKind: kind,
     cliVersion,
+    runtimeIssue: runtimeIssue
+      ? { code: runtimeIssue.code, category: runtimeIssue.category }
+      : null,
   };
 
   if (options.json) {
@@ -710,7 +873,7 @@ function runDoctor(options = {}) {
     lines.push("");
   }
 
-  lines.push("文档：docs/support-matrix.md · 重新检测：./doctor.sh");
+  lines.push("文档：docs/support-matrix.md · 重新检测：./doctor.sh 或 .\\doctor.ps1");
 
   return { ...summary, output: lines.join("\n") };
 }
@@ -718,12 +881,14 @@ function runDoctor(options = {}) {
 function main() {
   const args = process.argv.slice(2);
   const json = args.includes("--json");
+  const runtimeErrorArg = readArgValue(args, "--runtime-error") || readArgValue(args, "--error");
   const result = runDoctor({
     repoRoot: process.env.ZH_CN_DOCTOR_REPO || path.join(__dirname, ".."),
     homeDir: process.env.ZH_CN_DOCTOR_HOME,
     pluginRoot: process.env.ZH_CN_DOCTOR_PLUGIN_ROOT,
     claudePath:
       process.env.ZH_CN_DOCTOR_CLAUDE !== undefined ? process.env.ZH_CN_DOCTOR_CLAUDE : undefined,
+    runtimeError: runtimeErrorArg || process.env[RUNTIME_ERROR_ENV],
     json,
     color: process.stdout.isTTY,
   });
@@ -741,4 +906,16 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { runDoctor, STABLE_INSTALL_CMD, STABLE_PINNED_VERSION, NPM_RESIDUE_PROBES };
+function readArgValue(args, name) {
+  const index = args.indexOf(name);
+  if (index < 0) return "";
+  return args[index + 1] || "";
+}
+
+module.exports = {
+  runDoctor,
+  STABLE_INSTALL_CMD,
+  STABLE_PINNED_VERSION,
+  NPM_RESIDUE_PROBES,
+  classifyRuntimeError,
+};

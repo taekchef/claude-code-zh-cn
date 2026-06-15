@@ -237,15 +237,19 @@ test("slash command menu descriptions keep the newly restored wording", () => {
     ["Create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule.", "创建、更新、列出或运行按 cron 计划执行的远程 Agent（triggers）。"],
     ["Build, debug, and optimize Claude API / Anthropic SDK apps. Apps built with this skill should include prompt caching.", "构建、调试并优化 Claude API / Anthropic SDK 应用。使用此技能构建的应用应包含 prompt caching。"],
     ["Adjust mouse wheel scroll speed", "调整鼠标滚轮滚动速度"],
+    ["Automates your Chrome browser to interact with web pages - clicking elements, filling forms, capturing screenshots, reading console logs, and navigating sites. Opens pages in new tabs within your existing Chrome session. Requires site-level permissions before executing (configured in the extension).", "自动操作你的 Chrome 浏览器与网页交互：点击元素、填写表单、截图、读取 console 日志并浏览网站。会在现有 Chrome 会话中打开新标签页，执行前需要站点级权限（在扩展中配置）。"],
+    ["Author or improve the run-<unit> skill for this project.", "为这个项目编写或改进 run-<unit> skill。"],
     ["Browse dynamic workflow history (running and completed)", "浏览动态 workflow 历史（运行中和已完成）"],
     ["Claude in Chrome (beta) settings", "Claude in Chrome（beta）设置"],
     ["Configure optional break reminders and quiet-hours nudges", "配置可选的休息提醒和安静时段提示"],
     ["Configure usage credits to keep working when you hit a limit", "配置用量额度，达到限制后继续工作"],
+    ["Create, update, list, or run scheduled remote agents (routines) that execute on a cron schedule.", "创建、更新、列出或运行按 cron 定时执行的远程 agent（routine）。"],
     ["Detach from this background session (it keeps running)", "从这个后台会话断开（会话会继续运行）"],
     ["Dump the JS heap to ~/Desktop", "将 JS heap dump 到 ~/Desktop"],
     ["Exit the CLI", "退出 CLI"],
     ["Free up context by summarizing the conversation so far", "通过总结当前对话释放上下文空间"],
     ["Install the Claude Slack app", "安装 Claude Slack 应用"],
+    ["Launch and drive this project's app to see a change working.", "启动并操作这个项目的应用，确认改动实际生效。"],
     ["List, create, and delete recurring loops and stop-hooks", "列出、创建和删除循环任务与 stop-hook"],
     ["Listen to Claude FM lo-fi radio", "收听 Claude FM lo-fi radio"],
     ["Manage background services: assistants, scheduled tasks, and remote control", "管理后台服务：助手、计划任务和远程控制"],
@@ -254,7 +258,10 @@ test("slash command menu descriptions keep the newly restored wording", () => {
     ["Pick up skills added or changed on disk during this session", "加载本会话期间磁盘上新增或修改的 skills"],
     ["Reconfigure Amazon Bedrock authentication, region, or model pins", "重新配置 Amazon Bedrock 认证、区域或模型固定"],
     ["Reconfigure Google Vertex AI authentication, project, region, or model pins", "重新配置 Google Vertex AI 认证、项目、区域或模型固定"],
+    ["Research and plan a large-scale change, then execute it in parallel across 5\\u201330 isolated worktree agents that each open a PR.", "调研并规划大规模改动，然后并行交给 5–30 个隔离 worktree agent 执行，每个都会开 PR。"],
     ["Renamed to /usage-credits", "已重命名为 /usage-credits"],
+    ["Review the changed code for reuse, simplification, efficiency, and altitude cleanups, then apply the fixes. Quality only \\u2014 it does not hunt for bugs; use /code-review for that.", "审查已修改代码的复用、简化、效率和层级清理，然后应用修复。只做质量清理，不查 bug；查 bug 用 /code-review。"],
+    ["Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts.", "扫描你的 transcripts 中常见的只读 Bash 和 MCP 工具调用，然后把优先 allowlist 写入项目 .claude/settings.json，减少权限确认。"],
     ["Session keeps running. Use /stop to end it.", "会话会继续运行。用 /stop 结束它。"],
     ["Set a goal \\u2014 keep working until the condition is met", "设置目标：持续工作直到条件满足"],
     ["Set the AI model for Claude Code", "设置 Claude Code 使用的 AI 模型"],
@@ -269,6 +276,72 @@ test("slash command menu descriptions keep the newly restored wording", () => {
     ["Toggle brief-only mode", "切换 brief-only 模式"],
     ["Toggle focus view (show only your prompt, a tool summary, and the final response)", "切换专注视图（只显示你的提示词、工具摘要和最终回复）"],
     ["Toggle voice mode", "切换语音模式"],
+  ]);
+
+  for (const [en, zh] of expected) {
+    assert.equal(map.get(en), zh, `translation drift for: ${en}`);
+  }
+});
+
+test("slash and prompt command descriptions added for issue 122 stay translated", () => {
+  const map = translationMap();
+  const expected = new Map([
+    ["Let Claude consult a stronger model at key moments", "让 Claude 在关键时刻咨询更强模型"],
+    ["Set how full the context gets before auto-summarizing", "设置触发自动总结的上下文占用阈值"],
+    ["Plan a large change; background agents each open a PR", "规划大型改动；后台 Agent 分别开 PR"],
+    ["Build and debug apps that use the Claude API", "构建并调试使用 Claude API 的应用"],
+    ["Let Claude browse and interact with pages in your Chrome", "让 Claude 在你的 Chrome 中浏览并操作网页"],
+    ["Open settings", "打开设置"],
+    ["Manage background services and routines", "管理后台服务和计划任务"],
+    ["Turn on debug logging and investigate problems", "开启调试日志并排查问题"],
+    ["Push your design system components to claude.ai/design", "将你的设计系统组件推送到 claude.ai/design"],
+    ["Pre-approve safe read-only commands based on your usage", "根据你的使用记录预先批准安全的只读命令"],
+    ["Toggle focus view: just your prompt, summary, and response", "切换专注视图：仅显示你的提示词、摘要和回复"],
+    ["Set a goal Claude checks before stopping", "设置 Claude 停止前检查的目标"],
+    ["Open your keyboard shortcuts file", "打开你的键盘快捷键文件"],
+    ["List, create, and delete loops", "列出、创建和删除循环任务"],
+    ["Open a memory file in your editor", "在编辑器中打开 memory 文件"],
+    ["Manage allow and deny tool permission rules", "管理工具权限的 allow / deny 规则"],
+    ["Control this session from your phone or claude.ai/code", "通过手机或 claude.ai/code 控制本会话"],
+    ["Choose the default environment for cloud agents", "选择云端 Agent 的默认环境"],
+    ["Create and manage scheduled remote Claude Code agents", "创建和管理定时运行的远程 Claude Code Agent"],
+    ["Create and manage routines: cloud agents on a schedule", "创建和管理 routine：按计划运行的云端 Agent"],
+    ["Launch this project\\u2019s app to see your change working", "启动此项目的应用，确认改动生效"],
+    ["Create a skill that knows how to run this project\\u2019s app", "创建一个知道如何运行此项目应用的 skill"],
+    ["Clean up the changed code without changing behavior", "在不改变行为的前提下清理已修改代码"],
+    ["View and manage everything running in the background", "查看并管理所有后台运行项"],
+    ["Claude Code on the web drafts a plan you can edit and approve", "Claude Code on the web 会起草可编辑、可批准的方案"],
+    ["Find and verify bugs in your branch using Claude Code on the web", "使用 Claude Code on the web 查找并验证当前分支中的 bug"],
+    ["Show this session's version (autoupdate may have a newer one)", "显示当前会话版本（自动更新可能已有更新版本）"],
+    ["Set up Claude Code on the web with your GitHub account", "用你的 GitHub 账号设置 Claude Code on the web"],
+    ["Browse running and completed workflows", "浏览运行中和已完成的 workflow"],
+    ["Commit, push, and open a PR", "提交 commit、推送分支并打开 PR"],
+    ["Change settings: hooks, permissions, environment variables", "更改设置：Hook、权限和环境变量"],
+    ["Repeat a prompt or command on an interval (e.g. /loop 5m /foo)", "按间隔重复运行提示词或命令（例如 /loop 5m /foo）"],
+    [
+      "Create a new Cowork plugin from scratch, or customize an installed plugin for a specific organization. Use when: customize plugin, set up plugin, configure plugin, tailor plugin, adjust plugin settings, customize plugin connectors, customize plugin skill, tweak plugin, modify plugin configuration, create a plugin, build a plugin, make a new plugin, develop a plugin, scaffold a plugin.",
+      "从零创建 Cowork 插件，或为特定组织定制已安装插件。适用于：定制插件、设置插件、配置插件、调整插件设置、定制插件 connector、定制插件 skill、修改插件配置、创建插件、构建插件、开发插件或生成插件脚手架。",
+    ],
+    [
+      "Push a React design system to claude.ai/design. This runs a converter that bundles the real component code (from Storybook or a bare package) and uploads it. Use when the user runs /design-sync or says \\\"sync my design system to Claude Design\\\".",
+      "将 React 设计系统推送到 claude.ai/design。此命令会运行转换器，打包真实组件代码（来自 Storybook 或裸 package）并上传。适用于用户运行 /design-sync，或表示要将设计系统同步到 Claude Design 时。",
+    ],
+    [
+      "Reference for the Claude API / Anthropic SDK \\u2014 model ids, pricing, params, streaming, tool use, MCP, agents, caching, token counting, model migration.",
+      "Claude API / Anthropic SDK 参考：模型 ID、价格、参数、流式输出、工具使用、MCP、agents、缓存、token 计数和模型迁移。",
+    ],
+    [
+      "Launch and drive this project's app to see a change working. Use when asked to run, start, or screenshot the app, or to confirm a change works in the real app (not just tests). First looks for a project skill that already covers launching the app; otherwise falls back to built-in patterns per project type (CLI, server, TUI, Electron, browser-driven, library).",
+      "启动并操作此项目的应用，确认改动实际生效。适用于用户要求运行、启动、截图应用，或确认改动在真实应用中生效（不只是测试通过）时。会先查找已覆盖应用启动的项目 skill；否则按项目类型（CLI、server、TUI、Electron、browser-driven、library）使用内置模式。",
+    ],
+    [
+      "Author or improve the run-<unit> skill \\u2014 a per-project skill that tells agents how to build, launch, and drive this project's app. Use when the user asks to set up the project, get it running, write run instructions, or verify build/run steps work from a clean environment.",
+      "编写或改进 run-<unit> skill：这是一个项目级 skill，用来告诉 Agent 如何构建、启动并操作此项目的应用。适用于用户要求设置项目、让项目跑起来、编写运行说明，或验证构建/运行步骤能否在干净环境中生效时。",
+    ],
+    [
+      "Verify that a code change actually does what it's supposed to by running the app and observing behavior. Use when asked to verify a PR, confirm a fix works, test a change manually, check that a feature works, or validate local changes before pushing.",
+      "通过运行应用并观察行为，验证代码改动是否真正达到预期。适用于用户要求验证 PR、确认修复生效、手动测试改动、检查功能可用，或在推送前验证本地改动时。",
+    ],
   ]);
 
   for (const [en, zh] of expected) {

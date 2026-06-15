@@ -31,6 +31,7 @@ test("past-tense status verbs are translated when upstream escapes Sautéed", ()
 test("duration patch removes English 'for' from generic Worked/Idle variants", () => {
   const patched = patchFixture([
     "let teammate=`${verb} Worked for ${fmt(Date.now()-task.startTime)}`;",
+    'let finished=allIdle?`Worked for ${fmt(Date.now()-task.startTime)}`:"Idle";',
     "let guarded=H&&`${A} for ${X}`;",
     'let idleA=createElement(T,{dimColor:!0},label," for ",duration);',
     'let idleB=createElement(T,{dimColor:!0},"Idle for ",idleDuration);',
@@ -42,6 +43,7 @@ test("duration patch removes English 'for' from generic Worked/Idle variants", (
   assert.equal(patched.includes("Idle for "), false, patched);
   assert.equal(patched.includes("&&`${A} for ${X}`"), false, patched);
   assert.match(patched, /\$\{verb\}\s+\$\{fmt\(Date\.now\(\)-task\.startTime\)\}/);
+  assert.match(patched, /allIdle\?`忙活了 \$\{fmt\(Date\.now\(\)-task\.startTime\)\}`:"空闲"/);
   assert.match(patched, /&&`\$\{A\} \$\{X\}`/);
   assert.match(patched, /"空闲 "/);
 });
@@ -207,6 +209,7 @@ test("issue 80 native dynamic residues use targeted structural patches", () => {
     'let N4=true,pickerStatus=`Model set to ${bb(v8)}${gW.current?" and saved as your default for new sessions":" for this session only"}`;',
     'let remoteStatus=$(`Set model to ${P8.bold(US(P))}`);',
     'function BNf(){return`Review the current diff for correctness bugs and reuse/simplification/efficiency cleanups at the given effort level (low/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings${iB()?"; ultra: deep multi-agent review in the cloud":""}). Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review.`}',
+    'function NYT(){return`Review the current diff for correctness bugs and reuse/simplification/efficiency cleanups at the given effort level (low/medium: fewer, high-confidence findings; high\\u2192max: broader coverage, may include uncertain findings${r__()?`; ultra: deep multi-agent review in the cloud${Sg()?"":" (requires claude.ai account access)"}`:""}). Pass --comment to post findings as inline PR comments, or --fix to apply the findings to the working tree after the review.`}',
     "",
   ]);
 
@@ -216,6 +219,7 @@ test("issue 80 native dynamic residues use targeted structural patches", () => {
   assert.equal(patched.includes("Model set to "), false, patched);
   assert.equal(patched.includes(" and saved as your default for new sessions"), false, patched);
   assert.equal(patched.includes("Review the current diff for correctness bugs"), false, patched);
+  assert.equal(patched.includes("requires claude.ai account access"), false, patched);
   assert.match(patched, /"从 JetBrains Marketplace 安装 ",L7\.createElement\(k,\{color:"ide"\},q\)," 插件："/);
   assert.match(patched, /`已切换模型为 \$\{P8\.bold\(US\(H\)\)\}\$\{\$\?"，并已保存为新会话默认模型":"（仅本次会话）"\}`/);
   assert.match(patched, /`已切换模型为 \$\{bb\(v8\)\}\$\{gW\.current\?"，并已保存为新会话默认模型":"（仅本次会话）"\}`/);
@@ -223,6 +227,7 @@ test("issue 80 native dynamic residues use targeted structural patches", () => {
   assert.match(patched, /审查当前 diff 的正确性问题/);
   assert.match(patched, /high→max：覆盖更广/);
   assert.match(patched, /ultra：云端深度多 Agent review/);
+  assert.match(patched, /需要 claude\.ai 账号权限/);
 });
 
 test("string translation must not rewrite identifiers or object keys across code boundaries", () => {
@@ -457,6 +462,14 @@ test("issue 80 slash command menu residues are translated", () => {
     'const feedback={name:"feedback",description:"Submit feedback, report a bug, or share your conversation"};',
     'const focus={name:"focus",description:"Toggle focus view (show only your prompt, a tool summary, and the final response)"};',
     'const goal={name:"goal",description:"Set a goal \\u2014 keep working until the condition is met"};',
+    "const singleQuotedGoal={name:'goal',description:'Set a goal \\u2014 keep working until the condition is met'};",
+    'const batch={name:"batch",description:"Research and plan a large-scale change, then execute it in parallel across 5\\u201330 isolated worktree agents that each open a PR."};',
+    'const chrome={name:"claude-in-chrome",description:"Automates your Chrome browser to interact with web pages - clicking elements, filling forms, capturing screenshots, reading console logs, and navigating sites. Opens pages in new tabs within your existing Chrome session. Requires site-level permissions before executing (configured in the extension)."};',
+    'const fewer={name:"fewer-permission-prompts",description:"Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts."};',
+    'const simplify={name:"simplify",description:"Review the changed code for reuse, simplification, efficiency, and altitude cleanups, then apply the fixes. Quality only \\u2014 it does not hunt for bugs; use /code-review for that."};',
+    'const schedule={name:"schedule",description:"Create, update, list, or run scheduled remote agents (routines) that execute on a cron schedule."};',
+    "const run={name:\"run\",description:\"Launch and drive this project's app to see a change working.\"};",
+    'const runSkillGenerator={name:"run-skill-generator",description:"Author or improve the run-<unit> skill for this project."};',
     'const usage={name:"usage",description:"Show session cost, plan usage, and activity stats"};',
     'const stop={name:"stop",description:"Stop this background session; transcript and worktree are kept"};',
     "",
@@ -472,6 +485,91 @@ test("issue 80 slash command menu residues are translated", () => {
   assert.match(patched, /提交反馈、报告问题或分享你的对话/);
   assert.match(patched, /切换专注视图/);
   assert.match(patched, /设置目标：持续工作直到条件满足/);
+  assert.match(patched, /description:'设置目标：持续工作直到条件满足'/);
+  assert.match(patched, /调研并规划大规模改动/);
+  assert.match(patched, /自动操作你的 Chrome 浏览器与网页交互/);
+  assert.match(patched, /减少权限确认/);
+  assert.match(patched, /只做质量清理，不查 bug/);
+  assert.match(patched, /按 cron 定时执行/);
+  assert.match(patched, /确认改动实际生效/);
+  assert.match(patched, /编写或改进 run-<unit> skill/);
   assert.match(patched, /显示会话成本、计划用量和活动统计/);
   assert.match(patched, /停止这个后台会话；保留 transcript 和 worktree/);
+});
+
+test("issue 122 slash and prompt command descriptions are translated", () => {
+  const issue122Descriptions = [
+    ["Let Claude consult a stronger model at key moments", "让 Claude 在关键时刻咨询更强模型"],
+    ["Set how full the context gets before auto-summarizing", "设置触发自动总结的上下文占用阈值"],
+    ["Plan a large change; background agents each open a PR", "规划大型改动；后台 Agent 分别开 PR"],
+    ["Build and debug apps that use the Claude API", "构建并调试使用 Claude API 的应用"],
+    ["Let Claude browse and interact with pages in your Chrome", "让 Claude 在你的 Chrome 中浏览并操作网页"],
+    ["Open settings", "打开设置"],
+    ["Manage background services and routines", "管理后台服务和计划任务"],
+    ["Turn on debug logging and investigate problems", "开启调试日志并排查问题"],
+    ["Push your design system components to claude.ai/design", "将你的设计系统组件推送到 claude.ai/design"],
+    ["Pre-approve safe read-only commands based on your usage", "根据你的使用记录预先批准安全的只读命令"],
+    ["Toggle focus view: just your prompt, summary, and response", "切换专注视图：仅显示你的提示词、摘要和回复"],
+    ["Set a goal Claude checks before stopping", "设置 Claude 停止前检查的目标"],
+    ["Open your keyboard shortcuts file", "打开你的键盘快捷键文件"],
+    ["List, create, and delete loops", "列出、创建和删除循环任务"],
+    ["Open a memory file in your editor", "在编辑器中打开 memory 文件"],
+    ["Manage allow and deny tool permission rules", "管理工具权限的 allow / deny 规则"],
+    ["Control this session from your phone or claude.ai/code", "通过手机或 claude.ai/code 控制本会话"],
+    ["Choose the default environment for cloud agents", "选择云端 Agent 的默认环境"],
+    ["Create and manage scheduled remote Claude Code agents", "创建和管理定时运行的远程 Claude Code Agent"],
+    ["Create and manage routines: cloud agents on a schedule", "创建和管理 routine：按计划运行的云端 Agent"],
+    ["Launch this project\\u2019s app to see your change working", "启动此项目的应用，确认改动生效"],
+    ["Create a skill that knows how to run this project\\u2019s app", "创建一个知道如何运行此项目应用的 skill"],
+    ["Clean up the changed code without changing behavior", "在不改变行为的前提下清理已修改代码"],
+    ["View and manage everything running in the background", "查看并管理所有后台运行项"],
+    ["Claude Code on the web drafts a plan you can edit and approve", "Claude Code on the web 会起草可编辑、可批准的方案"],
+    ["Find and verify bugs in your branch using Claude Code on the web", "使用 Claude Code on the web 查找并验证当前分支中的 bug"],
+    ["Show this session's version (autoupdate may have a newer one)", "显示当前会话版本（自动更新可能已有更新版本）"],
+    ["Set up Claude Code on the web with your GitHub account", "用你的 GitHub 账号设置 Claude Code on the web"],
+    ["Browse running and completed workflows", "浏览运行中和已完成的 workflow"],
+    ["Commit, push, and open a PR", "提交 commit、推送分支并打开 PR"],
+    ["Change settings: hooks, permissions, environment variables", "更改设置：Hook、权限和环境变量"],
+    ["Repeat a prompt or command on an interval (e.g. /loop 5m /foo)", "按间隔重复运行提示词或命令（例如 /loop 5m /foo）"],
+    [
+      "Create a new Cowork plugin from scratch, or customize an installed plugin for a specific organization. Use when: customize plugin, set up plugin, configure plugin, tailor plugin, adjust plugin settings, customize plugin connectors, customize plugin skill, tweak plugin, modify plugin configuration, create a plugin, build a plugin, make a new plugin, develop a plugin, scaffold a plugin.",
+      "从零创建 Cowork 插件，或为特定组织定制已安装插件。适用于：定制插件、设置插件、配置插件、调整插件设置、定制插件 connector、定制插件 skill、修改插件配置、创建插件、构建插件、开发插件或生成插件脚手架。",
+    ],
+    [
+      "Push a React design system to claude.ai/design. This runs a converter that bundles the real component code (from Storybook or a bare package) and uploads it. Use when the user runs /design-sync or says \\\"sync my design system to Claude Design\\\".",
+      "将 React 设计系统推送到 claude.ai/design。此命令会运行转换器，打包真实组件代码（来自 Storybook 或裸 package）并上传。适用于用户运行 /design-sync，或表示要将设计系统同步到 Claude Design 时。",
+    ],
+    [
+      "Reference for the Claude API / Anthropic SDK \\u2014 model ids, pricing, params, streaming, tool use, MCP, agents, caching, token counting, model migration.",
+      "Claude API / Anthropic SDK 参考：模型 ID、价格、参数、流式输出、工具使用、MCP、agents、缓存、token 计数和模型迁移。",
+    ],
+    [
+      "Launch and drive this project's app to see a change working. Use when asked to run, start, or screenshot the app, or to confirm a change works in the real app (not just tests). First looks for a project skill that already covers launching the app; otherwise falls back to built-in patterns per project type (CLI, server, TUI, Electron, browser-driven, library).",
+      "启动并操作此项目的应用，确认改动实际生效。适用于用户要求运行、启动、截图应用，或确认改动在真实应用中生效（不只是测试通过）时。会先查找已覆盖应用启动的项目 skill；否则按项目类型（CLI、server、TUI、Electron、browser-driven、library）使用内置模式。",
+    ],
+    [
+      "Author or improve the run-<unit> skill \\u2014 a per-project skill that tells agents how to build, launch, and drive this project's app. Use when the user asks to set up the project, get it running, write run instructions, or verify build/run steps work from a clean environment.",
+      "编写或改进 run-<unit> skill：这是一个项目级 skill，用来告诉 Agent 如何构建、启动并操作此项目的应用。适用于用户要求设置项目、让项目跑起来、编写运行说明，或验证构建/运行步骤能否在干净环境中生效时。",
+    ],
+    [
+      "Verify that a code change actually does what it's supposed to by running the app and observing behavior. Use when asked to verify a PR, confirm a fix works, test a change manually, check that a feature works, or validate local changes before pushing.",
+      "通过运行应用并观察行为，验证代码改动是否真正达到预期。适用于用户要求验证 PR、确认修复生效、手动测试改动、检查功能可用，或在推送前验证本地改动时。",
+    ],
+  ];
+
+  const sourceLines = issue122Descriptions.map(
+    ([en], index) => `const issue122_${index}=${JSON.stringify(en)};`
+  );
+  sourceLines[20] = String.raw`const issue122_20="Launch this project\u2019s app to see your change working";`;
+  sourceLines[21] = String.raw`const issue122_21="Create a skill that knows how to run this project\u2019s app";`;
+  sourceLines[33] = String.raw`const issue122_33="Push a React design system to claude.ai/design. This runs a converter that bundles the real component code (from Storybook or a bare package) and uploads it. Use when the user runs /design-sync or says \"sync my design system to Claude Design\".";`;
+  sourceLines[34] = String.raw`const issue122_34="Reference for the Claude API / Anthropic SDK \u2014 model ids, pricing, params, streaming, tool use, MCP, agents, caching, token counting, model migration.";`;
+  sourceLines[36] = String.raw`const issue122_36="Author or improve the run-<unit> skill \u2014 a per-project skill that tells agents how to build, launch, and drive this project's app. Use when the user asks to set up the project, get it running, write run instructions, or verify build/run steps work from a clean environment.";`;
+
+  const patched = patchFixture([...sourceLines, ""]);
+
+  for (const [en, zh] of issue122Descriptions) {
+    assert.equal(patched.includes(en), false, patched);
+    assert.match(patched, new RegExp(zh.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
 });
