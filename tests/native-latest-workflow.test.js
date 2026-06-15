@@ -41,12 +41,15 @@ test("native latest candidate workflow runs on macOS arm64 with native dependenc
 
 test("native latest candidate workflow also verifies Windows native candidates", () => {
   const workflow = readWorkflow();
+  const windowsJob = workflow.slice(workflow.indexOf("verify-windows:"));
 
   assert.match(workflow, /^\s*verify-windows:/m);
   assert.match(workflow, /name:\s*Verify Windows native candidate/);
   assert.match(workflow, /runs-on:\s*windows-2022\b/);
   assert.match(workflow, /contents:\s*write/);
   assert.match(workflow, /pull-requests:\s*write/);
+  assert.match(windowsJob, /shell:\s*pwsh/);
+  assert.doesNotMatch(windowsJob, /shell:\s*powershell/);
   assert.match(workflow, /node\s+scripts\/verify-upstream-compat\.js\s+--baseline\s+"\$Version"\s+--skip-latest\s+--native-windows-x64\s+--json/);
   assert.match(workflow, /\$Status = \$LASTEXITCODE/);
   assert.match(workflow, /windows-native-latest-candidate-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
