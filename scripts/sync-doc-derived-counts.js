@@ -267,9 +267,7 @@ function loadDerivedCounts() {
     stablePatchCount: readPatchCount(stableRepresentative),
     stableDisplayAudit: readDisplayAudit(stableRepresentative),
     macosNative: readNativeFacts(config, "macosNativeExperimental", "macOS native experimental"),
-    windowsNative: readNativeFacts(config, "windowsNativeExperimental", "Windows native experimental", {
-      parseVerification: false,
-    }),
+    windowsNative: readNativeFacts(config, "windowsNativeExperimental", "Windows native experimental"),
   };
 }
 
@@ -354,9 +352,9 @@ function rulesForDoc(file, counts) {
       ),
       rule(
         "Windows native support table facts",
-        /(\| Windows \/ native \.exe \| `experimental` \| `)[^`]+(`（不含未纳入本轮支持的 ).+?(） \| 当前 Windows x64 native 已验证 extract \/ patch \/ repack \/ `--version`；需要 `node-lief`；未验证新版本会安全跳过 CLI Patch \|)/g,
-        (_, before, excludedBefore, suffix) =>
-          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${suffix}`
+        /(\| Windows \/ native \.exe \| `experimental` \| `)[^`]+(`（不含未纳入本轮支持的 ).+?(） \| 当前 Windows x64 native 已验证 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计；需要 `node-lief`；未验证新版本会安全跳过 CLI Patch \|)/g,
+        (_, before, excludedBefore, auditPrefix, suffix) =>
+          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${auditPrefix}${counts.windowsNative.displayTotal}${suffix}`
       ),
       rule(
         "macOS native latest note facts",
@@ -366,14 +364,15 @@ function rulesForDoc(file, counts) {
       ),
       rule(
         "Windows native latest note facts",
-        /(Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 `)[^`]+(`（不含(?:未纳入本轮支持的 )?).+?(），不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 `npm install -g @anthropic-ai\/claude-code@2\.1\.112`。)/g,
-        (_, before, excludedBefore, suffix) =>
-          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${suffix}`
+        /(Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 `)[^`]+(`（不含(?:未纳入本轮支持的 )?).+?(），已通过 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计，不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 `npm install -g @anthropic-ai\/claude-code@2\.1\.112`。)/g,
+        (_, before, excludedBefore, auditPrefix, suffix) =>
+          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${auditPrefix}${counts.windowsNative.displayTotal}${suffix}`
       ),
       rule(
         "Windows native latest note compact versions",
-        /(Windows x64 native 也有独立 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*(。)/g,
-        (_, before, suffix) => `${before}${counts.windowsNative.compactBackticked}${suffix}`
+        /(Windows x64 native 也有独立 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。)/g,
+        (_, before, middle, suffix) =>
+          `${before}${counts.windowsNative.compactBackticked}${middle}${counts.windowsNative.displayTotal}${suffix}`
       ),
       rule(
         "macOS native install option facts",
@@ -507,6 +506,9 @@ function main() {
     counts.macosNative
       ? `macosNative=${counts.macosNative.range} excluded=${counts.macosNative.excluded.join(",") || "-"} patchRange=${counts.macosNative.patchRange} display=${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}`
       : "macosNative=-",
+    counts.windowsNative
+      ? `windowsNative=${counts.windowsNative.range} excluded=${counts.windowsNative.excluded.join(",") || "-"} patchRange=${counts.windowsNative.patchRange} display=${counts.windowsNative.displayPassed}/${counts.windowsNative.displayTotal}`
+      : "windowsNative=-",
   ].join(" ");
 
   if (updated.length > 0) {

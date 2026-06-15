@@ -14,6 +14,7 @@ const payloadPairs = [
   { source: "bun-binary-io.js", mirror: "plugin/bun-binary-io.js" },
   { source: "compute-patch-revision.sh", mirror: "plugin/compute-patch-revision.sh" },
   { source: "doctor.sh", mirror: "plugin/bin/doctor" },
+  { source: "doctor.ps1", mirror: "plugin/bin/doctor.ps1" },
   { source: "scripts/zh-cn-doctor.js", mirror: "plugin/scripts/zh-cn-doctor.js" },
 ];
 

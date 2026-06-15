@@ -6,6 +6,246 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.56] - 2026-06-15
+
+### 改进
+
+- Windows native latest 自动跟进 Claude Code `2.1.177`：在 Windows runner 完成 extract / patch / repack / `--version` + 11 个稳定显示面审计后，同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.56`。
+
+### 验证
+
+- `Native Latest Candidate workflow 27534895290`
+- `CI preflight`
+
+## [2.4.55] - 2026-06-13
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.177`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.55`，合并后可按发布流程创建 `v2.4.55`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.54] - 2026-06-12
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.175`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.54`，合并后可按发布流程创建 `v2.4.54`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.53] - 2026-06-11
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.173`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.53`，合并后可按发布流程创建 `v2.4.53`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.52] - 2026-06-09
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.170`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.52`，合并后可按发布流程创建 `v2.4.52`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.51] - 2026-06-09
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.169`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.51`，合并后可按发布流程创建 `v2.4.51`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.50] - 2026-06-07
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.168`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.50`，合并后可按发布流程创建 `v2.4.50`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.49] - 2026-06-06
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.167`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.49`，合并后可按发布流程创建 `v2.4.49`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.48] - 2026-06-05
+
+### 修复
+
+- 补齐 Claude Code `2.1.163` 中 `/` slash command 菜单、命令说明和 prompt command 描述的中文翻译；命令名、参数、配置 key、工具名和 model-facing prompt 正文保持原文，避免改变执行语义。
+- 新增 upstream guard 和回归测试，锁定新增 `/` 命令说明不再漏翻。
+
+### 验证
+
+- `node --test tests/translations-quality.test.js tests/patch-cli.test.js tests/upstream-compat.test.js`
+- `node scripts/verify-upstream-compat.js --baseline '["2.1.163"]' --latest-version 2.1.163 --native-macos-arm64 --skip-latest --packages-dir /private/tmp/cczh-compat-packages --json`
+
+## [2.4.47] - 2026-06-05
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.165`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.47`，合并后可按发布流程创建 `v2.4.47`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.46] - 2026-06-05
+
+### 改进
+
+- Windows x64 native published support window 跟进 Claude Code `2.1.162`：基于 pinned Windows runner 的 PE extract / patch / repack / `--version` / display audit 证据，同步支持窗口、README / support matrix 派生产物。
+- install / doctor 输出明确区分 Claude Code 本体自动升级和中文插件自动更新，避免用户把 `DISABLE_AUTOUPDATER` 误认为由本插件兜底。
+
+### 验证
+
+- `CI workflow 26960843688`
+- `Native Latest Candidate workflow 26960840309`
+- `node --test tests/doctor.test.js tests/install-smoke.test.js tests/support-window-generation.test.js`
+
+## [2.4.45] - 2026-06-04
+
+### 修复
+
+- 新增 Windows PowerShell 诊断入口 `doctor.ps1`，并随插件 payload 安装到 `plugin/bin/doctor.ps1`，避免 Windows 用户按维护者回复运行诊断时找不到脚本。
+- README 和没汉化 issue 模板补充 Windows 对应的 `doctor.ps1 --json` 命令，减少 Windows 用户只填“无”的情况。
+
+### 验证
+
+- `node --test tests/plugin-payload.test.js tests/payload-source-guard.test.js tests/doctor.test.js`
+- `node --check scripts/zh-cn-doctor.js`
+- `node --check plugin/scripts/zh-cn-doctor.js`
+
+## [2.4.44] - 2026-06-04
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.162`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.44`，合并后可按发布流程创建 `v2.4.44`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.43] - 2026-06-04
+
+### 修复
+
+- 卸载脚本现在会清理本插件写入的 `enabledPlugins`、`extraKnownMarketplaces` 和 settings hooks，避免卸载后 Claude Code 继续尝试执行已删除的 Hook。
+- 兼容 `${CLAUDE_PLUGIN_ROOT}/hooks/...` 这类插件随包 Hook 占位符，并让 Bash / PowerShell 的 `jq` fallback 使用同一清理范围。
+
+### 验证
+
+- `node --test tests/node-only-runtime.test.js tests/install-json-helper.test.js`
+- `bash scripts/preflight.sh --skip-release-state`
+- `CI workflow 26928293326`
+
+## [2.4.42] - 2026-06-03
+
+### 改进
+
+- Windows x64 native published support window 跟进 Claude Code `2.1.160` / `2.1.161`：基于 pinned Windows runner 的 PE extract / patch / repack / `--version` / display audit 证据，同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.42`。
+
+### 验证
+
+- `Native Latest Candidate workflow 26806852039`
+- `Native Latest Candidate workflow 26871231090`
+
+## [2.4.41] - 2026-06-03
+
+### 改进
+
+- Windows x64 native published support window 跟进 Claude Code `2.1.159`：基于 pinned Windows runner 的 PE extract / patch / repack / `--version` / display audit 证据，同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.41`。
+
+### 验证
+
+- `Native Latest Candidate workflow 26735357996`
+- `node --test tests/support-window-generation.test.js tests/readme-support-window-sync.test.js tests/doc-derived-counts.test.js tests/support-matrix-generation.test.js`
+- `bash scripts/preflight.sh --base origin/main --skip-release-state`
+
+## [2.4.40] - 2026-06-03
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.161`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.40`，合并后可按发布流程创建 `v2.4.40`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.39] - 2026-06-02
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.160`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.39`，合并后可按发布流程创建 `v2.4.39`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.38] - 2026-06-01
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.159`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.38`，合并后可按发布流程创建 `v2.4.38`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
+## [2.4.37] - 2026-06-01
+
+### 修复
+
+- 修复单引号字符串里的 `/goal` 描述匹配：`Set a goal \u2014 keep working until the condition is met` 这类 escaped Unicode 文案现在会被正确汉化，覆盖 PR #99 Codex review 指出的漏网路径。
+- 补齐同一批 slash / prompt command 菜单里的后续英文描述：`/batch`、`/claude-in-chrome`、`/fewer-permission-prompts`、`/simplify`、`/schedule`、`/run`、`/run-skill-generator`，并加入 upstream guard 防止回归。
+
+### 验证
+
+- `node --test tests/patch-cli.test.js`
+- `bash scripts/preflight.sh --skip-release-state`
+
+## [2.4.36] - 2026-05-31
+
+### 改进
+
+- macOS native latest 自动 closeout 跟进 Claude Code `2.1.158`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.36`，合并后可按发布流程创建 `v2.4.36`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
 ## [2.4.35] - 2026-05-29
 
 ### 改进

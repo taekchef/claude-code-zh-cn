@@ -84,21 +84,147 @@ remove_launcher_artifacts() {
 
 remove_launcher_artifacts
 
-# 精准移除插件注入的 key（保留用户其他配置）
+# 精准移除插件注入的 settings 项（保留用户其他配置和 Hook）
 if [ -f "$SETTINGS_FILE" ]; then
-    if command -v jq &>/dev/null; then
-        jq 'del(.language) | del(.spinnerTipsEnabled) | del(.spinnerTipsOverride) | del(.spinnerVerbs)' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
-        echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
-    elif command -v node &>/dev/null; then
-        ZH_CN_SETTINGS="$SETTINGS_FILE" node -e "
+    if command -v node &>/dev/null; then
+        ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_PLUGIN_DST="$PLUGIN_DST" node -e "
 const fs = require('fs');
 const settingsFile = process.env.ZH_CN_SETTINGS;
-const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
-for (const key of ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spinnerVerbs']) {
-  delete settings[key];
+const pluginRoot = process.env.ZH_CN_PLUGIN_DST || '';
+
+function isObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
 }
-fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + '\n');
+
+function readSettings(file) {
+  const raw = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+  return raw.trim() ? JSON.parse(raw) : {};
+}
+
+function normalizePath(value) {
+  return String(value || '').replace(/\\\\/g, '/').replace(/\/+$/, '');
+}
+
+const pluginRootNormalized = normalizePath(pluginRoot);
+let settings = readSettings(settingsFile);
+if (!isObject(settings)) settings = {};
+
+let changed = false;
+for (const key of ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spinnerVerbs']) {
+  if (Object.prototype.hasOwnProperty.call(settings, key)) {
+    delete settings[key];
+    changed = true;
+  }
+}
+
+if (isObject(settings.enabledPlugins) && Object.prototype.hasOwnProperty.call(settings.enabledPlugins, 'claude-code-zh-cn@local-zh-cn')) {
+  delete settings.enabledPlugins['claude-code-zh-cn@local-zh-cn'];
+  if (Object.keys(settings.enabledPlugins).length === 0) delete settings.enabledPlugins;
+  changed = true;
+}
+
+if (isObject(settings.extraKnownMarketplaces) && Object.prototype.hasOwnProperty.call(settings.extraKnownMarketplaces, 'local-zh-cn')) {
+  delete settings.extraKnownMarketplaces['local-zh-cn'];
+  if (Object.keys(settings.extraKnownMarketplaces).length === 0) delete settings.extraKnownMarketplaces;
+  changed = true;
+}
+
+function commandBelongsToPlugin(command) {
+  if (typeof command !== 'string') return false;
+  const normalized = normalizePath(command);
+  return normalized.includes('claude-code-zh-cn') ||
+    normalized.includes('local-zh-cn') ||
+    (normalized.includes('CLAUDE_PLUGIN_ROOT') && normalized.includes('/hooks/')) ||
+    (pluginRootNormalized && normalized.includes(pluginRootNormalized));
+}
+
+function cleanHookEntry(entry) {
+  if (!isObject(entry) || !Array.isArray(entry.hooks)) {
+    return { entry, changed: false, keep: true };
+  }
+
+  const hooks = entry.hooks.filter((hook) => !(isObject(hook) && commandBelongsToPlugin(hook.command)));
+  if (hooks.length === entry.hooks.length) {
+    return { entry, changed: false, keep: true };
+  }
+  if (hooks.length === 0) {
+    return { changed: true, keep: false };
+  }
+  return { entry: { ...entry, hooks }, changed: true, keep: true };
+}
+
+if (isObject(settings.hooks)) {
+  for (const eventName of Object.keys(settings.hooks)) {
+    const entries = settings.hooks[eventName];
+    if (!Array.isArray(entries)) continue;
+    const nextEntries = [];
+    let eventChanged = false;
+    for (const entry of entries) {
+      const result = cleanHookEntry(entry);
+      if (result.changed) eventChanged = true;
+      if (result.keep) nextEntries.push(result.entry);
+    }
+    if (eventChanged) {
+      changed = true;
+      if (nextEntries.length > 0) settings.hooks[eventName] = nextEntries;
+      else delete settings.hooks[eventName];
+    }
+  }
+  if (Object.keys(settings.hooks).length === 0) {
+    delete settings.hooks;
+    changed = true;
+  }
+}
+
+if (changed) fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + '\n');
 "
+        echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
+    elif command -v jq &>/dev/null; then
+        jq --arg pluginRoot "$PLUGIN_DST" '
+def normalize_path:
+  tostring | gsub("\\\\"; "/") | sub("/+$"; "");
+
+def plugin_command:
+  if type != "string" then false
+  else
+    (normalize_path) as $command |
+    ($command | contains("claude-code-zh-cn")) or
+    ($command | contains("local-zh-cn")) or
+    (($command | contains("CLAUDE_PLUGIN_ROOT")) and ($command | contains("/hooks/"))) or
+    (($pluginRoot | normalize_path | length) > 0 and ($command | contains($pluginRoot | normalize_path)))
+  end;
+
+def clean_hook_entry:
+  if type == "object" and (.hooks | type) == "array" then
+    (.hooks |= map(select(((.command? // null) | plugin_command) | not)))
+    | select((.hooks | length) > 0)
+  else
+    .
+  end;
+
+del(.language, .spinnerTipsEnabled, .spinnerTipsOverride, .spinnerVerbs)
+| if (.enabledPlugins | type) == "object" then
+    .enabledPlugins |= del(."claude-code-zh-cn@local-zh-cn")
+    | if (.enabledPlugins | length) == 0 then del(.enabledPlugins) else . end
+  else . end
+| if (.extraKnownMarketplaces | type) == "object" then
+    .extraKnownMarketplaces |= del(."local-zh-cn")
+    | if (.extraKnownMarketplaces | length) == 0 then del(.extraKnownMarketplaces) else . end
+  else . end
+| if (.hooks | type) == "object" then
+    .hooks |= with_entries(
+      if (.value | type) == "array" then
+        (.value | map(clean_hook_entry)) as $next |
+        if ($next == .value) then .
+        elif ($next | length) > 0 then .value = $next
+        else empty
+        end
+      else .
+      end
+    )
+    | if (.hooks | length) == 0 then del(.hooks) else . end
+  else . end
+' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
         echo -e "${GREEN}已从 settings.json 移除中文设置（保留其他配置）${NC}"
     else
         echo -e "${YELLOW}请手动编辑 $SETTINGS_FILE 移除以下字段：${NC}"
@@ -106,6 +232,7 @@ fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + '\n');
         echo "  - spinnerTipsEnabled"
         echo "  - spinnerTipsOverride"
         echo "  - spinnerVerbs"
+        echo "  - 本插件写入的 hooks / enabledPlugins / extraKnownMarketplaces 项"
     fi
 fi
 

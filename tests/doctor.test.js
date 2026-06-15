@@ -105,6 +105,30 @@ else process.stdout.write("");
   }
 }
 
+function createHealthyRuntimeDoctorFixture() {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-runtime-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const { claudeBin } = createFakeNpmClaudeLayout(home, [
+    "#!/usr/bin/env node",
+    "// Version: 2.1.112",
+    'const x="快速安全检查";',
+    "",
+  ]);
+
+  writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
+  fs.cpSync(path.join(repoRoot, "plugin", "support-window.json"), path.join(pluginRoot, "support-window.json"));
+  fs.cpSync(path.join(repoRoot, "bun-binary-io.js"), path.join(pluginRoot, "bun-binary-io.js"));
+  fs.writeFileSync(path.join(pluginRoot, ".patched-version"), "2.1.112|deadbeef\n");
+  writeJson(path.join(home, ".claude", "settings.json"), {
+    language: "Chinese",
+    spinnerVerbs: Object.fromEntries(
+      Array.from({ length: 120 }, (_, index) => [`Verb${index}`, `动词${index}`])
+    ),
+  });
+
+  return { home, pluginRoot, claudeBin };
+}
+
 test("runDoctor reports missing plugin and recommends install", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
 
@@ -281,6 +305,68 @@ test("runDoctor counts current spinnerVerbs object shape", () => {
   assert.match(settings.detail, /187/);
 });
 
+test("runDoctor classifies HTTP 200 malformed as upstream or proxy issue", () => {
+  const { home, pluginRoot, claudeBin } = createHealthyRuntimeDoctorFixture();
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: claudeBin,
+    runtimeError: "API returned an empty or malformed response (HTTP 200)",
+    json: true,
+    color: false,
+  });
+
+  const runtime = result.checks.find((item) => item.id === "runtime-error");
+  assert.equal(runtime.status, "warn");
+  assert.match(runtime.detail, /不是汉化没生效/);
+  assert.equal(result.runtimeIssue.code, "http-200-malformed");
+  assert.equal(result.runtimeIssue.category, "upstream-or-proxy");
+  assert.ok(result.recommendations.some((line) => line.includes("ANTHROPIC_BASE_URL")));
+});
+
+test("runDoctor classifies zsh killed as native runtime issue", () => {
+  const { home, pluginRoot, claudeBin } = createHealthyRuntimeDoctorFixture();
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: claudeBin,
+    runtimeError: "zsh: killed     claude",
+    json: true,
+    color: false,
+  });
+
+  const runtime = result.checks.find((item) => item.id === "runtime-error");
+  assert.equal(runtime.status, "warn");
+  assert.match(runtime.detail, /系统直接 killed/);
+  assert.equal(result.runtimeIssue.code, "native-runtime-killed");
+  assert.equal(result.runtimeIssue.category, "native-runtime");
+  assert.ok(result.recommendations.some((line) => line.includes("codesign")));
+});
+
+test("runDoctor classifies proxy and gateway chain signals separately", () => {
+  const { home, pluginRoot, claudeBin } = createHealthyRuntimeDoctorFixture();
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: claudeBin,
+    runtimeError: "CC Switch -> EvoMap gateway ECONNREFUSED 127.0.0.1:15721",
+    json: true,
+    color: false,
+  });
+
+  const runtime = result.checks.find((item) => item.id === "runtime-error");
+  assert.equal(runtime.status, "warn");
+  assert.match(runtime.detail, /代理\/网关链路异常/);
+  assert.equal(result.runtimeIssue.code, "proxy-gateway-chain");
+  assert.ok(result.recommendations.some((line) => line.includes("provider 名")));
+});
+
 test("runDoctor warns when CC Switch common Claude config is missing zh-cn overlay", { skip: hasSqlite3() ? false : "requires sqlite3" }, () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-ccswitch-"));
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -423,8 +509,11 @@ test("runDoctor does not treat macOS native support as Windows native support", 
   });
 
   const layer4 = result.checks.find((item) => item.id === "layer4");
+  const updater = result.checks.find((item) => item.id === "claude-updater");
   assert.equal(layer4.status, "warn");
   assert.match(layer4.detail, /不在已验证支持窗口/);
+  assert.match(updater.detail, /DISABLE_AUTOUPDATER/);
+  assert.ok(result.recommendations.some((line) => line.includes("docs/support-matrix.md")));
   assert.equal(result.layer4Status, "unsupported");
 });
 
@@ -501,6 +590,41 @@ test("runDoctor reports supported Windows native as needing node-lief or patch",
   assert.equal(ok.layer4Status, "ok");
 });
 
+test("runDoctor fails native runtime self-check when executable is killed", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-native-killed-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude.exe");
+
+  fs.writeFileSync(targetPath, "#!/usr/bin/env bash\nkill -9 $$\n", { mode: 0o755 });
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    version: "2.1.175",
+    targetPath,
+    depStatus: "ok",
+    marker: "native|2.1.175|fakehash|\n",
+    supportWindow: {
+      windowsNativeExperimental: {
+        platform: "win32-x64",
+        versions: ["2.1.175"],
+      },
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  const runtime = result.checks.find((item) => item.id === "native-runtime");
+  assert.equal(runtime.status, "fail");
+  assert.match(runtime.detail, /SIGKILL|status=137/);
+  assert.equal(result.ok, false);
+  assert.ok(result.recommendations.some((line) => line.includes("恢复原始 native 二进制")));
+});
+
 test("runDoctor reports provisional native marker without treating it as published support", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -532,10 +656,14 @@ test("runDoctor reports provisional native marker without treating it as publish
 
   const marker = result.checks.find((item) => item.id === "patch-marker");
   const layer4 = result.checks.find((item) => item.id === "layer4");
+  const updater = result.checks.find((item) => item.id === "claude-updater");
   assert.match(marker.detail, /provisional/);
   assert.equal(layer4.status, "warn");
   assert.match(layer4.detail, /本机自验证/);
   assert.match(layer4.detail, /尚未纳入已发布支持窗口/);
+  assert.match(updater.detail, /DISABLE_AUTOUPDATER/);
+  assert.ok(result.recommendations.some((line) => line.includes("docs/support-matrix.md")));
+  assert.ok(result.recommendations.some((line) => line.includes("Updates")));
   assert.equal(result.layer4Status, "provisional");
 });
 
@@ -584,7 +712,12 @@ test("doctor.sh --json surfaces env overrides", () => {
     ),
   });
 
-  const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts", "zh-cn-doctor.js"), "--json"], {
+  const result = spawnSync(process.execPath, [
+    path.join(repoRoot, "scripts", "zh-cn-doctor.js"),
+    "--json",
+    "--runtime-error",
+    "Access denied (403)",
+  ], {
     encoding: "utf8",
     env: {
       ...process.env,
@@ -600,6 +733,7 @@ test("doctor.sh --json surfaces env overrides", () => {
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.checks.some((item) => item.id === "plugin" && item.status === "ok"), true);
   assert.equal(payload.checks.some((item) => item.id === "claude" && item.status === "fail"), true);
+  assert.equal(payload.runtimeIssue.code, "access-denied-403");
 });
 
 test("STABLE_INSTALL_CMD pins recommended npm version", () => {

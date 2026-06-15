@@ -118,7 +118,7 @@ function copyTree(src, dst) {
   fs.copyFileSync(src, dst);
 }
 
-function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116") {
+function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116", options = {}) {
   const sourceRepo = path.join(tmpRoot, "source");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
@@ -141,8 +141,14 @@ if (cmd === "detect") {
   process.stdout.write("ok");
 } else if (cmd === "version") {
   process.stdout.write(${JSON.stringify(nativeVersion)});
-} else if (cmd === "extract" || cmd === "repack") {
+} else if (cmd === "extract") {
   fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
+} else if (cmd === "repack") {
+  fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
+  if (${options.breakOnRepack ? "true" : "false"}) {
+    fs.writeFileSync(process.argv[3], "#!/usr/bin/env bash\\nkill -9 $$\\n");
+    fs.chmodSync(process.argv[3], 0o755);
+  }
 } else if (cmd === "hash") {
   process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
 } else if (cmd === "resolve") {
@@ -256,6 +262,7 @@ test("install smoke can provisionally self-verify newer same-minor native binari
   assert.match(output, new RegExp(escapeRegex(provisionalNativeVersion)));
   assert.match(output, /本机自验证/, "new same-minor native versions should be locally self-verified");
   assert.match(output, /未纳入已发布支持窗口/, "provisional patch must not look like published support");
+  assert.match(output, /DISABLE_AUTOUPDATER/, "install output should not imply the plugin controls Claude Code core updates");
   assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "provisional path should extract, patch, and repack");
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
@@ -264,6 +271,45 @@ test("install smoke can provisionally self-verify newer same-minor native binari
     ),
     "provisional native patch should write an explicit non-verified marker"
   );
+});
+
+test("install smoke restores native backup when runtime self-check fails", { skip: unixShellRequired }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-runtime-fail-"));
+  const home = path.join(tmp, "home");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeClaude = path.join(fakeBin, "claude");
+  const invokedFile = path.join(tmp, "patch-invoked");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const nativeVersion = "2.1.175";
+  const sourceRepo = createInstallSource(tmp, invokedFile, nativeVersion, { breakOnRepack: true });
+  const profileFile = path.join(home, ".zshrc");
+  const originalBinary = `#!/usr/bin/env bash\necho '${nativeVersion} (Claude Code)'\n`;
+
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.writeFileSync(fakeClaude, originalBinary);
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
+    cwd: sourceRepo,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
+      ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
+      ZH_CN_PROFILE_FILES: profileFile,
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    encoding: "utf8",
+  });
+
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
+  assert.match(output, /本机启动自检失败/, "runtime failure should be visible to the user");
+  assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "install should reach native repack");
+  assert.equal(fs.readFileSync(fakeClaude, "utf8"), originalBinary, "failed runtime self-check must restore backup");
+  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "failed self-check must not write success marker");
 });
 
 test("install smoke does not provisionally self-verify excluded in-window native binaries", { skip: unixShellRequired }, () => {
@@ -339,15 +385,30 @@ test("install.ps1 gates launcher injection to Windows old npm cli.js installs", 
 
 test("install.ps1 gates Windows native patch through support window and node-lief", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  const completionStart = script.indexOf("function completion");
+  const completionEnd = script.indexOf("# ======== 依赖检查 ========");
+  const nativePatchStart = script.indexOf("function patch-native-bun");
+  const nativePatchEnd = script.indexOf("function initial-patch");
+  const completion = script.slice(completionStart, completionEnd);
+  const nativePatch = script.slice(nativePatchStart, nativePatchEnd);
 
   assert.match(script, /function patch-native-bun/);
   assert.match(script, /windowsNativeExperimental/);
   assert.match(script, /is-supported-windows-native-version/);
   assert.match(script, /can-try-provisional-windows-native-version/);
+  assert.match(script, /\$SupportMatrixUrl = "https:\/\/github\.com\/taekchef\/claude-code-zh-cn\/blob\/main\/docs\/support-matrix\.md"/);
+  assert.match(script, /function write-support-window-link \{/);
+  assert.match(completion, /write-support-window-link/);
+  assert.match(nativePatch, /原生二进制 patch helper 缺失[\s\S]+write-support-window-link[\s\S]+return/);
+  assert.match(nativePatch, /暂不支持 CLI Patch[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
+  assert.match(nativePatch, /需要安装 node-lief[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
+  assert.match(nativePatch, /本机自验证未找到可 patch 内容[\s\S]+write-support-window-link[\s\S]+return/);
+  assert.match(nativePatch, /Windows 原生二进制 patch 失败[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
   assert.match(script, /node \$helper check-deps/);
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
   assert.match(script, /--version/);
+  assert.match(script, /DISABLE_AUTOUPDATER/);
   assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
   assert.match(script, /\.patched-version/);
   assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);

@@ -41,6 +41,47 @@ test("upstream text diff can emit machine-readable added and removed strings", (
   assert.deepEqual(payload.needsTranslationReview, ["Future untranslated probe"]);
 });
 
+test("upstream text diff accepts Windows native mode when resolving the previous verified version", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-text-diff-windows-native-test-"));
+  const configPath = path.join(tmp, "config.json");
+  const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  fixtureConfigJson.support = {
+    windowsNativeExperimental: {
+      platform: "win32-x64",
+      packageName: "@anthropic-ai/claude-code-win32-x64",
+      floor: "1.0.0",
+      representatives: ["1.0.0"],
+    },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(fixtureConfigJson, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [
+      diffScript,
+      "--config",
+      configPath,
+      "--fixtures-dir",
+      fixturesDir,
+      "--to",
+      "1.0.1",
+      "--native-windows-x64",
+      "--json",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.from, "1.0.0");
+  assert.equal(payload.to, "1.0.1");
+  assert.deepEqual(payload.needsTranslationReview, ["Future untranslated probe"]);
+});
+
 test("upstream text diff filters build metadata and embedded code fragments", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-text-diff-test-"));
   const packagesDir = path.join(tmp, "packages");

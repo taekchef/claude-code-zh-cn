@@ -7,10 +7,36 @@ const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const defaultConfigPath = path.join(__dirname, "upstream-compat.config.json");
+const platforms = {
+  macos: {
+    label: "macOS",
+    supportKey: "macosNativeExperimental",
+    expectedPlatform: "darwin-arm64",
+    expectedPackage: "@anthropic-ai/claude-code-darwin-arm64",
+    allowedKinds: ["native"],
+    requireCodeSignature: true,
+    requireCompleteVerification: true,
+    notesSubject: "macOS arm64 native binary experimental",
+    notesSuffix: "不代表未来 latest 自动稳定。",
+  },
+  windows: {
+    label: "Windows",
+    supportKey: "windowsNativeExperimental",
+    expectedPlatform: "win32-x64",
+    expectedPackage: "@anthropic-ai/claude-code-win32-x64",
+    allowedKinds: ["native", "native-wrapper"],
+    requireCodeSignature: false,
+    requireCompleteVerification: false,
+    notesSubject: "Windows x64 native binary experimental",
+    notesSuffix:
+      "不代表 future latest 自动稳定。高于该窗口但仍在同一 minor 线的版本，install.ps1 可在安装时做本机自验证并以 provisional 方式启用；这不等于已发布支持窗口。",
+  },
+};
 
 function parseArgs(argv) {
   const args = {
     config: defaultConfigPath,
+    platform: "macos",
     write: false,
   };
 
@@ -22,6 +48,9 @@ function parseArgs(argv) {
         break;
       case "--config":
         args.config = path.resolve(argv[++i]);
+        break;
+      case "--platform":
+        args.platform = argv[++i];
         break;
       case "--write":
         args.write = true;
@@ -40,9 +69,9 @@ function parseArgs(argv) {
 
 function usage() {
   return [
-    "Usage: node scripts/promote-native-candidate.js --candidate candidate.json [--config scripts/upstream-compat.config.json] [--write]",
+    "Usage: node scripts/promote-native-candidate.js --candidate candidate.json [--platform macos|windows] [--config scripts/upstream-compat.config.json] [--write]",
     "",
-    "Validates one macOS arm64 native candidate JSON and, with --write, promotes it into scripts/upstream-compat.config.json.",
+    "Validates one native candidate JSON and, with --write, promotes it into scripts/upstream-compat.config.json.",
     "The script refuses skipped/failed candidates and prints the exact boundary that blocked promotion.",
     "",
   ].join("\n");
@@ -54,6 +83,14 @@ function fail(message) {
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function platformDescriptor(platformName) {
+  const descriptor = platforms[platformName];
+  if (!descriptor) {
+    fail(`--platform must be one of ${Object.keys(platforms).join(", ")}, got ${platformName || "unknown"}`);
+  }
+  return descriptor;
 }
 
 function writeJson(file, payload) {
@@ -156,14 +193,15 @@ function describeList(entries, formatter) {
   return entries.map(formatter).join(", ");
 }
 
-function validateCandidate(config, payload) {
+function validateCandidate(config, payload, platformName) {
+  const platform = platformDescriptor(platformName);
   const reasons = [];
   const results = Array.isArray(payload.results) ? payload.results : [];
   const result = results.length === 1 ? results[0] : null;
-  const nativeConfig = config.support?.macosNativeExperimental;
+  const nativeConfig = config.support?.[platform.supportKey];
 
   if (!nativeConfig || nativeConfig.unsupported === true) {
-    reasons.push("support.macosNativeExperimental is missing or unsupported");
+    reasons.push(`support.${platform.supportKey} is missing or unsupported`);
   }
 
   if (!result) {
@@ -181,8 +219,10 @@ function validateCandidate(config, payload) {
     reasons.push(`native verification did not pass: status=${result.status || "unknown"}${skip}${error}`);
   }
 
-  if (result.kind !== "native") {
-    reasons.push(`package shape boundary failed: expected native, got ${result.kind || "unknown"}`);
+  if (!platform.allowedKinds.includes(result.kind)) {
+    reasons.push(
+      `package shape boundary failed: expected ${platform.allowedKinds.join(" or ")}, got ${result.kind || "unknown"}`
+    );
   }
 
   if (!Number.isInteger(result.patchCount) || result.patchCount <= 0) {
@@ -202,11 +242,11 @@ function validateCandidate(config, payload) {
   }
 
   const native = result.nativeVerification || {};
-  if (native.platform !== "darwin-arm64") {
-    reasons.push(`native platform boundary failed: expected darwin-arm64, got ${native.platform || "unknown"}`);
+  if (native.platform !== platform.expectedPlatform) {
+    reasons.push(`native platform boundary failed: expected ${platform.expectedPlatform}, got ${native.platform || "unknown"}`);
   }
 
-  const expectedPackage = nativeConfig?.packageName || "@anthropic-ai/claude-code-darwin-arm64";
+  const expectedPackage = nativeConfig?.packageName || platform.expectedPackage;
   if (native.packageName && native.packageName !== expectedPackage) {
     reasons.push(`native package boundary failed: expected ${expectedPackage}, got ${native.packageName}`);
   }
@@ -219,8 +259,10 @@ function validateCandidate(config, payload) {
     reasons.push(`native repack boundary failed: ${native.repack || "unknown"}`);
   }
 
-  if (native.codeSignature !== "ok") {
+  if (platform.requireCodeSignature && native.codeSignature !== "ok") {
     reasons.push(`native codesign boundary failed: ${native.codeSignature || "unknown"}`);
+  } else if (!platform.requireCodeSignature && native.codeSignature && native.codeSignature !== "ok") {
+    reasons.push(`native signature boundary failed: ${native.codeSignature}`);
   }
 
   if (!String(native.versionOutput || "").includes(String(result.version || ""))) {
@@ -247,17 +289,19 @@ function validateCandidate(config, payload) {
   return { result, reasons };
 }
 
-function renderNotes(entry, displayCount) {
+function renderNotes(entry, displayCount, platformName) {
+  const platform = platformDescriptor(platformName);
   const verified = compactVersions(entry.representatives).join("、");
   const excluded = Array.isArray(entry.excluded) && entry.excluded.length > 0
     ? `${entry.excluded.join("、")} 未发布或未纳入支持；`
     : "";
 
-  return `macOS arm64 native binary experimental；需要 node-lief；已验证 ${verified} 的 extract / patch / repack / --version 和 ${displayCount} 个稳定显示面审计；${excluded}不代表未来 latest 自动稳定。`;
+  return `${platform.notesSubject}；需要 node-lief；已验证 ${verified} 的 extract / patch / repack / --version 和 ${displayCount} 个稳定显示面审计；${excluded}${platform.notesSuffix}`;
 }
 
-function promote(config, result) {
-  const entry = config.support.macosNativeExperimental;
+function promote(config, result, platformName) {
+  const platform = platformDescriptor(platformName);
+  const entry = config.support[platform.supportKey];
   const previousCeiling = entry.ceiling;
   const representatives = new Set((entry.representatives || []).map(String));
   const excluded = new Set((entry.excluded || []).map(String));
@@ -280,19 +324,23 @@ function promote(config, result) {
   const byVersion = verificationMap(entry.verification);
   byVersion.set(result.version, verificationEntry(result));
   const missingVerification = entry.representatives.filter((version) => !byVersion.has(version));
-  if (missingVerification.length > 0) {
+  if (missingVerification.length > 0 && platform.requireCompleteVerification) {
     fail(`Existing native verification is missing representatives: ${missingVerification.join(", ")}`);
   }
 
-  entry.verification = entry.representatives.map((version) => byVersion.get(version)).join(" · ");
-  entry.notes = renderNotes(entry, result.displayAudit.commandCount);
+  entry.verification = entry.representatives
+    .map((version) => byVersion.get(version))
+    .filter(Boolean)
+    .join(" · ");
+  entry.notes = renderNotes(entry, result.displayAudit.commandCount, platformName);
 
   return entry;
 }
 
-function printBlocked(result, reasons) {
+function printBlocked(result, reasons, platformName) {
+  const platform = platformDescriptor(platformName);
   const version = result?.version || "unknown";
-  console.error(`native candidate promotion blocked for ${version}`);
+  console.error(`${platform.label} native candidate promotion blocked for ${version}`);
   for (const reason of reasons) {
     console.error(`- ${reason}`);
   }
@@ -311,24 +359,25 @@ function main() {
 
   const config = readJson(args.config);
   const candidate = readJson(args.candidate);
-  const { result, reasons } = validateCandidate(config, candidate);
+  const { result, reasons } = validateCandidate(config, candidate, args.platform);
 
   if (reasons.length > 0) {
-    printBlocked(result, reasons);
+    printBlocked(result, reasons, args.platform);
     process.exit(1);
   }
 
-  promote(config, result);
+  promote(config, result, args.platform);
+  const platform = platformDescriptor(args.platform);
 
   if (args.write) {
     writeJson(args.config, config);
     process.stdout.write(
-      `promoted macOS native candidate ${result.version} into ${path.relative(repoRoot, args.config)}\n`
+      `promoted ${platform.label} native candidate ${result.version} into ${path.relative(repoRoot, args.config)}\n`
     );
     return;
   }
 
-  process.stdout.write(`macOS native candidate ${result.version} is promotable\n`);
+  process.stdout.write(`${platform.label} native candidate ${result.version} is promotable\n`);
 }
 
 if (require.main === module) {

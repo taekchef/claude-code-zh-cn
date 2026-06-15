@@ -171,6 +171,10 @@ if (cmd === "detect") {
   );
 }
 
+function nativeShellFixture(version, body = "NATIVE") {
+  return `#!/usr/bin/env bash\necho '${version} (Claude Code)'\nexit 0\n// Version: ${version}\n${body}\n`;
+}
+
 test("session-start repairs settings from cached overlay before emitting JSON", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-settings-repair-"));
   const home = path.join(tmp, "home");
@@ -781,7 +785,7 @@ printf '1'
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.112\nUPGRADED\n");
+  fs.writeFileSync(fakeBinary, nativeShellFixture("2.1.112", "UPGRADED"));
   fs.writeFileSync(backupBinary, "// Version: 2.1.110\nOLD BACKUP\n");
   fs.chmodSync(fakeBinary, 0o755);
   fs.writeFileSync(markerFile, "2.1.110|stale-revision\n");
@@ -837,7 +841,7 @@ printf '1'
   );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, "// Version: 2.1.123\nNATIVE\n");
+  fs.writeFileSync(fakeBinary, nativeShellFixture("2.1.123"));
   fs.chmodSync(fakeBinary, 0o755);
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
 
@@ -934,6 +938,84 @@ printf '1'
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(fs.readFileSync(fakeBinary, "utf8"), "// Version: 2.1.140\nCLEAN BACKUP\n");
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "native|2.1.140|stale|old-revision");
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+});
+
+test("session-start restores native backup when runtime self-check fails after repack", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-runtime-fail-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeBinary = path.join(tmp, "claude-native");
+  const backupBinary = `${fakeBinary}.zh-cn-backup`;
+  const markerFile = path.join(pluginRoot, ".patched-version");
+  const cleanBackup = nativeShellFixture("2.1.175", "CLEAN BACKUP");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(path.join(pluginRoot, "manifest.json"), JSON.stringify({ version: "2.4.56" }));
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    `#!/usr/bin/env node
+const fs = require("node:fs");
+function readVersion(file) {
+  const text = fs.readFileSync(file, "utf8");
+  const match = text.match(/^\\/\\/ Version: (.+)$/m);
+  return match ? match[1] : "";
+}
+const cmd = process.argv[2];
+if (cmd === "detect") {
+  process.stdout.write("native-bun:" + fs.realpathSync(process.argv[3]));
+} else if (cmd === "check-deps") {
+  process.stdout.write("ok");
+} else if (cmd === "version") {
+  process.stdout.write(readVersion(process.argv[3]));
+} else if (cmd === "hash") {
+  process.stdout.write(require("node:crypto").createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
+} else if (cmd === "extract") {
+  fs.copyFileSync(process.argv[3], process.argv[4]);
+} else if (cmd === "repack") {
+  fs.writeFileSync(process.argv[3], "#!/usr/bin/env bash\\nkill -9 $$\\n");
+  fs.chmodSync(process.argv[3], 0o755);
+}
+`
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf '\nPATCHED-BUT-KILLED\n' >> "$1"
+printf '1'
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  fs.writeFileSync(fakeBinary, nativeShellFixture("2.1.175", "ORIGINAL"));
+  fs.writeFileSync(backupBinary, cleanBackup);
+  fs.chmodSync(fakeBinary, 0o755);
+  fs.chmodSync(backupBinary, 0o755);
+  fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
+  fs.writeFileSync(markerFile, "native|2.1.175|stale|old-revision\n");
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(fs.readFileSync(fakeBinary, "utf8"), cleanBackup);
+  assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "native|2.1.175|stale|old-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
