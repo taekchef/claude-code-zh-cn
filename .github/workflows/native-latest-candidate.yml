@@ -282,7 +282,7 @@ jobs:
 
       - name: Resolve candidate version
         id: version
-        shell: powershell
+        shell: pwsh
         run: |
           $InputVersion = "${{ inputs.version || '' }}"
           if ($InputVersion) {
@@ -294,7 +294,7 @@ jobs:
 
       - name: Verify Windows native candidate
         id: verify
-        shell: powershell
+        shell: pwsh
         run: |
           $Version = "${{ steps.version.outputs.version }}"
           $JsonPath = Join-Path $env:RUNNER_TEMP "windows-native-latest-candidate-$Version.json"
@@ -316,7 +316,7 @@ jobs:
       - name: Generate Windows native text diff report
         id: windows_text_diff
         if: always() && steps.version.outputs.version != ''
-        shell: powershell
+        shell: pwsh
         run: |
           $Version = "${{ steps.version.outputs.version }}"
           $TextReportPath = Join-Path $env:RUNNER_TEMP "windows-native-latest-text-diff-$Version.md"
@@ -345,7 +345,7 @@ jobs:
 
       - name: Explain Windows native candidate boundary failure
         if: failure() && steps.verify.outputs.json_path != ''
-        shell: powershell
+        shell: pwsh
         run: |
           "## Windows native candidate boundary failure" >> $env:GITHUB_STEP_SUMMARY
           node scripts/promote-native-candidate.js --candidate "${{ steps.verify.outputs.json_path }}" --platform windows 2>&1 |
@@ -355,7 +355,7 @@ jobs:
       - name: Prepare Windows native failure handoff
         id: windows_failure_handoff
         if: failure() && steps.verify.outputs.json_path != ''
-        shell: powershell
+        shell: pwsh
         run: |
           $Version = "${{ steps.version.outputs.version }}"
           $ReportPath = "docs/native-latest-failures/windows-$Version.md"
@@ -394,7 +394,7 @@ jobs:
 
       - name: Summarize Windows native failure handoff PR
         if: failure() && steps.windows_failure_handoff.outputs.report_path != ''
-        shell: powershell
+        shell: pwsh
         run: |
           $PrUrl = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-url }}"
           $PrBranch = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-branch }}"
@@ -418,7 +418,7 @@ jobs:
       - name: Prepare Windows native support promotion artifacts
         id: windows_promotion
         if: success()
-        shell: powershell
+        shell: pwsh
         run: |
           $Version = "${{ steps.version.outputs.version }}"
           $ArtifactDir = Join-Path $env:RUNNER_TEMP "windows-native-support-promotion-$Version"
