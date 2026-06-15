@@ -7330,6 +7330,10 @@
     "zh": "动态工作流"
   },
   {
+    "en": "Dynamic workflow",
+    "zh": "动态工作流"
+  },
+  {
     "en": "Loading dynamic workflow history\\u2026",
     "zh": "正在加载动态工作流历史…"
   },
@@ -7374,6 +7378,18 @@
     "zh": "保存动态工作流"
   },
   {
+    "en": "Workflow script has a syntax error and was not launched:\n${...}",
+    "zh": "工作流脚本存在语法错误，未启动：\n${...}"
+  },
+  {
+    "en": "Workflow launched in a remote CCR session. Task ID: ${...}\nSession: ${...}\n",
+    "zh": "远程 CCR 会话中的工作流已启动。任务 ID：${...}\n会话：${...}\n"
+  },
+  {
+    "en": "The workflow runs against a fresh clone of the pushed branch; phase progress is visible at the session URL, not in /workflows. You will be notified when it completes.",
+    "zh": "工作流会在已推送分支的新克隆上运行；阶段进度可在会话 URL 查看，不在 /workflows 中显示。完成后会通知你。"
+  },
+  {
     "en": "Workflow launched in background. Task ID: ${...}${...}${...}${...}${...} You will be notified when it completes. Use /workflows to watch live progress.",
     "zh": "工作流已在后台启动。任务 ID：${...}${...}${...}${...}${...} 完成后会通知你。用 /workflows 查看实时进度。"
   },
@@ -7388,6 +7404,90 @@
   {
     "en": "Use /workflows to watch live progress.",
     "zh": "用 /workflows 查看实时进度。"
+  },
+  {
+    "en": "\nSummary: ${...}",
+    "zh": "\n摘要：${...}"
+  },
+  {
+    "en": "Summary: ${...}\n",
+    "zh": "摘要：${...}\n"
+  },
+  {
+    "en": "Warning: ${...}\n",
+    "zh": "警告：${...}\n"
+  },
+  {
+    "en": "\nTranscript dir: ${...}",
+    "zh": "\ntranscript 目录：${...}"
+  },
+  {
+    "en": "\nScript file: ${...}\n(Edit this file with Write/Edit and re-invoke Workflow with {scriptPath: \"${...}\"} to iterate without resending the script.)",
+    "zh": "\n脚本文件：${...}\n（可用 Write/Edit 编辑此文件，然后用 Workflow({scriptPath: \"${...}\"}) 重新调用，无需重发脚本。）"
+  },
+  {
+    "en": "\nRun ID: ${...}\nTo resume after editing the script: Workflow({scriptPath: \"${...}\", resumeFromRunId: \"${...}\"}) \\u2014 completed agents return cached results.",
+    "zh": "\n运行 ID：${...}\n编辑脚本后如需继续：Workflow({scriptPath: \"${...}\", resumeFromRunId: \"${...}\"})，已完成的 Agent 会复用缓存结果。"
+  },
+  {
+    "en": "Dynamic workflow \"${...}\" completed",
+    "zh": "动态工作流 \"${...}\" 已完成"
+  },
+  {
+    "en": "Dynamic workflow \"${...}\" failed: ${...}",
+    "zh": "动态工作流 \"${...}\" 失败：${...}"
+  },
+  {
+    "en": "Dynamic workflow \"${...}\" was stopped",
+    "zh": "动态工作流 \"${...}\" 已停止"
+  },
+  {
+    "en": "To resume after editing the script, call: Workflow({scriptPath: '${...}', resumeFromRunId: '${...}'${...}})",
+    "zh": "编辑脚本后如需继续，请调用：Workflow({scriptPath: '${...}', resumeFromRunId: '${...}'${...}})"
+  },
+  {
+    "en": "Resume the paused workflow by calling: Workflow({scriptPath: '${...}', resumeFromRunId: '${...}'${...}}) \\u2014 completed agents return cached results.",
+    "zh": "如需继续暂停的工作流，请调用：Workflow({scriptPath: '${...}', resumeFromRunId: '${...}'${...}})，已完成的 Agent 会复用缓存结果。"
+  },
+  {
+    "en": "Agent transcripts: ${...}",
+    "zh": "Agent 记录：${...}"
+  },
+  {
+    "en": "Dynamic workflow saved to ${...}. Invoke as /${...} or Workflow({name: \"${...}\"}) in future sessions.",
+    "zh": "动态工作流已保存到 ${...}。以后可用 /${...} 或 Workflow({name: \"${...}\"}) 调用。"
+  },
+  {
+    "en": "Dynamic workflow \"${...}\" already exists at ${...}. Use a different name or overwrite.",
+    "zh": "动态工作流 \"${...}\" 已存在于 ${...}。请使用其他名称或覆盖。"
+  },
+  {
+    "en": "${...} in progress",
+    "zh": "${...} 进行中"
+  },
+  {
+    "en": "${...} pending",
+    "zh": "${...} 待处理"
+  },
+  {
+    "en": "${...} completed",
+    "zh": "${...} 已完成"
+  },
+  {
+    "en": " tasks (",
+    "zh": " 个任务（"
+  },
+  {
+    "en": " done, ",
+    "zh": " 已完成，"
+  },
+  {
+    "en": " in progress, ",
+    "zh": " 进行中，"
+  },
+  {
+    "en": " open)",
+    "zh": " 未完成）"
   },
   {
     "en": "x stop workflow",

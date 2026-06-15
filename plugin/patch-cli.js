@@ -725,6 +725,20 @@ function installCommonVisibleResidueLocalization() {
     tryRegexReplace(/"again "/g, () => '"再次 "');
 }
 
+function installWorkflowLifecycleResidueLocalization() {
+    tryRegexReplace(
+        /`Dynamic workflow requested for this turn\$\{([A-Za-z0-9_$]+)\?` \\xB7 \$\{\1\} to ignore`:""\}`/g,
+        (match, keyHint) =>
+            "`本轮已请求动态工作流${" + keyHint + "?` · ${" + keyHint + "} 忽略`:\"\"}`"
+    );
+
+    tryRegexReplace(
+        /`Ultracode keyword ignored for this prompt\$\{([A-Za-z0-9_$]+)\?` \\xB7 \$\{\1\} to undo`:""\}`/g,
+        (match, keyHint) =>
+            "`已忽略本条提示词中的 Ultracode 关键词${" + keyHint + "?` · ${" + keyHint + "} 撤销`:\"\"}`"
+    );
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -736,6 +750,7 @@ installDurationFormatterLocalization();
 installIssue80VisibleResidueLocalization();
 installEffortAndWorkflowFooterLocalization();
 installCommonVisibleResidueLocalization();
+installWorkflowLifecycleResidueLocalization();
 
 // 1. 过去式动词数组
 tryRegexReplace(

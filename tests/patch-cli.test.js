@@ -603,6 +603,90 @@ test("shared visible footer residues are localized without changing unrelated ac
   assert.match(patched, /action:"cancel"/);
 });
 
+test("dynamic workflow lifecycle and progress residues are translated safely", () => {
+  const patched = patchFixture([
+    'const workflowDefault="Dynamic workflow";',
+    'const syntaxError=`Workflow script has a syntax error and was not launched:\n${error}`;',
+    'const remoteLaunch=`Workflow launched in a remote CCR session. Task ID: ${taskId}\nSession: ${sessionUrl}\n`;',
+    'const remoteNote=`\nThe workflow runs against a fresh clone of the pushed branch; phase progress is visible at the session URL, not in /workflows. You will be notified when it completes.`;',
+    'const remoteSummary=`Summary: ${summary}\n`;',
+    'const remoteWarning=`Warning: ${warning}\n`;',
+    'const launchSummary=`\nSummary: ${summary}`;',
+    'const transcriptDir=`\nTranscript dir: ${transcriptDir}`;',
+    'const scriptFile=`\nScript file: ${scriptPath}\n(Edit this file with Write/Edit and re-invoke Workflow with {scriptPath: "${scriptPath}"} to iterate without resending the script.)`;',
+    'const runId=`\nRun ID: ${runId}\nTo resume after editing the script: Workflow({scriptPath: "${scriptPath}", resumeFromRunId: "${runId}"}) \\u2014 completed agents return cached results.`;',
+    'const completed=`Dynamic workflow "${name}" completed`;',
+    'const failed=`Dynamic workflow "${name}" failed: ${error||"Unknown error"}`;',
+    'const stopped=`Dynamic workflow "${name}" was stopped`;',
+    "const resume=`To resume after editing the script, call: Workflow({scriptPath: '${scriptPath}', resumeFromRunId: '${runId}'${args}})`;",
+    "const paused=`Resume the paused workflow by calling: Workflow({scriptPath: '${scriptPath}', resumeFromRunId: '${runId}'${args}}) \\u2014 completed agents return cached results.`;",
+    'const transcripts=`Agent transcripts: ${transcriptDir}`;',
+    'const saved=`Dynamic workflow saved to ${path}. Invoke as /${name} or Workflow({name: "${name}"}) in future sessions.`;',
+    'const exists=`Dynamic workflow "${name}" already exists at ${path}. Use a different name or overwrite.`;',
+    'const inProgress=`${running} in progress`;',
+    'const pending=`${pending} pending`;',
+    'const completedCount=`${done} completed`;',
+    'const taskText=" tasks ("+done+" done, "+running+" in progress, "+open+" open)";',
+    'const active=`Dynamic workflow requested for this turn${HO?` \\xB7 ${HO} to ignore`:""}`;',
+    'const ignored=`Ultracode keyword ignored for this prompt${HO?` \\xB7 ${HO} to undo`:""}`;',
+    "",
+  ]);
+
+  for (const residue of [
+    '"Dynamic workflow"',
+    "Workflow script has a syntax error",
+    "remote CCR session",
+    "phase progress is visible",
+    "Summary:",
+    "Warning:",
+    "Transcript dir:",
+    "Script file:",
+    "Edit this file with Write/Edit",
+    "Run ID:",
+    "To resume after editing the script",
+    "Resume the paused workflow",
+    "completed agents return cached results",
+    "Agent transcripts:",
+    "Dynamic workflow saved",
+    "Use a different name or overwrite",
+    "` in progress`",
+    "` pending`",
+    "` completed`",
+    " done, ",
+    " open)",
+    "to ignore",
+    "to undo",
+  ]) {
+    assert.equal(patched.includes(residue), false, `raw residue remained: ${residue}\n${patched}`);
+  }
+
+  assert.match(patched, /动态工作流/);
+  assert.match(patched, /工作流脚本存在语法错误，未启动/);
+  assert.match(patched, /远程 CCR 会话中的工作流已启动。任务 ID：\$\{taskId\}/);
+  assert.match(patched, /阶段进度可在会话 URL 查看，不在 \/workflows 中显示/);
+  assert.match(patched, /摘要：\$\{summary\}/);
+  assert.match(patched, /警告：\$\{warning\}/);
+  assert.match(patched, /transcript 目录：\$\{transcriptDir\}/);
+  assert.match(patched, /脚本文件：\$\{scriptPath\}/);
+  assert.match(patched, /Workflow\(\{scriptPath: "\$\{scriptPath\}"\}\)/);
+  assert.match(patched, /运行 ID：\$\{runId\}/);
+  assert.match(patched, /resumeFromRunId: "\$\{runId\}"/);
+  assert.match(patched, /动态工作流 "\$\{name\}" 已完成/);
+  assert.match(patched, /动态工作流 "\$\{name\}" 失败：\$\{error\|\|"Unknown error"\}/);
+  assert.match(patched, /动态工作流 "\$\{name\}" 已停止/);
+  assert.match(patched, /Workflow\(\{scriptPath: '\$\{scriptPath\}', resumeFromRunId: '\$\{runId\}'\$\{args\}\}\)/);
+  assert.match(patched, /Agent 记录：\$\{transcriptDir\}/);
+  assert.match(patched, /动态工作流已保存到 \$\{path\}/);
+  assert.match(patched, /请使用其他名称或覆盖/);
+  assert.match(patched, /\$\{running\} 进行中/);
+  assert.match(patched, /\$\{pending\} 待处理/);
+  assert.match(patched, /\$\{done\} 已完成/);
+  assert.match(patched, / 个任务（/);
+  assert.match(patched, / 未完成）/);
+  assert.match(patched, /本轮已请求动态工作流\$\{HO\?` · \$\{HO\} 忽略`:""\}/);
+  assert.match(patched, /已忽略本条提示词中的 Ultracode 关键词\$\{HO\?` · \$\{HO\} 撤销`:""\}/);
+});
+
 test("issue 80 slash command menu residues are translated", () => {
   const patched = patchFixture([
     'const exitDescription="Exit the CLI";',
