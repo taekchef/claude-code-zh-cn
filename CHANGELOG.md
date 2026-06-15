@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.57] - 2026-06-15
+
+### 改进
+
+- 补充 Claude Code `2.1.177` 的 `/effort` 思考强度选择界面和动态 workflow 界面翻译，覆盖选择器标题、速度/智能提示、workflow 空状态、运行确认、后台运行提示和冲突提示。
+
+### 验证
+
+- `node --test tests/payload-source-guard.test.js tests/plugin-payload.test.js tests/patch-cli.test.js tests/translations-quality.test.js tests/translations-schema.test.js tests/doc-derived-counts.test.js`
+- `node scripts/check-translation-sentinels.js /private/tmp/claude-2.1.177.workflow-effort.patched.js`
+- `/private/tmp/claude-2.1.177.workflow-effort.binary --version`
+
 ## [2.4.56] - 2026-06-15
 
 ### 改进

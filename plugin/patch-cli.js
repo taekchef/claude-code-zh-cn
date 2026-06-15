@@ -688,6 +688,25 @@ function installIssue80VisibleResidueLocalization() {
     );
 }
 
+function installEffortAndWorkflowFooterLocalization() {
+    tryRegexReplace(
+        /`\$\{([^`]+?)\} to adjust \\xB7 \$\{([^`]+?)\} to confirm \\xB7 \$\{([^`]+?)\} to cancel`/g,
+        (match, adjustKeys, confirmKeys, cancelKeys) =>
+            `\`\${${adjustKeys}} 调整 · \${${confirmKeys}} 确认 · \${${cancelKeys}} 取消\``
+    );
+
+    tryRegexReplace(
+        /([A-Za-z0-9_$]+)\.createElement\(([A-Za-z0-9_$]+),null,\1\.createElement\(([A-Za-z0-9_$]+),\{chord:\["left","right"\],action:"adjust"\}\),\1\.createElement\(\3,\{chord:"enter",action:"confirm"\}\),\1\.createElement\(\3,\{chord:"escape",action:"cancel"\}\)\)/g,
+        (match, factory, wrapper) =>
+            `${factory}.createElement(${wrapper},null,"←/→ 调整 · Enter 确认 · Esc 取消")`
+    );
+
+    tryRegexReplace(
+        /(?:[A-Za-z0-9_$]+\.)?[A-Za-z0-9_$]+\.createElement\(([A-Za-z0-9_$]+),\{chord:"escape",action:"close"\}\)/g,
+        () => '"Esc 关闭"'
+    );
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -697,6 +716,7 @@ installStatuslinePromptPathGuard();
 installStatuslineCommandPromptPathGuard();
 installDurationFormatterLocalization();
 installIssue80VisibleResidueLocalization();
+installEffortAndWorkflowFooterLocalization();
 
 // 1. 过去式动词数组
 tryRegexReplace(

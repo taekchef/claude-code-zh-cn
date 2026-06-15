@@ -7184,5 +7184,261 @@
   {
     "en": "Verify that a code change actually does what it's supposed to by running the app and observing behavior. Use when asked to verify a PR, confirm a fix works, test a change manually, check that a feature works, or validate local changes before pushing.",
     "zh": "通过运行应用并观察行为，验证代码改动是否真正达到预期。适用于用户要求验证 PR、确认修复生效、手动测试改动、检查功能可用，或在推送前验证本地改动时。"
+  },
+  {
+    "en": "Effort",
+    "zh": "思考强度"
+  },
+  {
+    "en": "Faster",
+    "zh": "更快"
+  },
+  {
+    "en": "Smarter",
+    "zh": "更强"
+  },
+  {
+    "en": "xhigh + workflows",
+    "zh": "xhigh + 工作流"
+  },
+  {
+    "en": "to adjust",
+    "zh": "调整"
+  },
+  {
+    "en": "to confirm",
+    "zh": "确认"
+  },
+  {
+    "en": "Usage: /effort [low|medium|high|xhigh|max${...}|auto] Effort levels: - low: Quick, straightforward implementation - medium: Balanced approach with standard testing - high: Comprehensive implementation with extensive testing - xhigh: Extended reasoning with thorough analysis (${...}) - max: Maximum capability with deepest reasoning (${...})",
+    "zh": "用法：/effort [low|medium|high|xhigh|max${...}|auto] 思考强度： - low：快速、直接的实现 - medium：均衡处理，包含常规测试 - high：更完整的实现和充分测试 - xhigh：扩展推理，做更彻底的分析（${...}） - max：最大能力，进行最深度推理（${...}）"
+  },
+  {
+    "en": "Effort levels:",
+    "zh": "思考强度："
+  },
+  {
+    "en": "Quick, straightforward implementation",
+    "zh": "快速、直接的实现"
+  },
+  {
+    "en": "Balanced approach with standard testing",
+    "zh": "均衡处理，包含常规测试"
+  },
+  {
+    "en": "Comprehensive implementation with extensive testing",
+    "zh": "更完整的实现和充分测试"
+  },
+  {
+    "en": "Extended reasoning with thorough analysis (${...})",
+    "zh": "扩展推理，做更彻底的分析（${...}）"
+  },
+  {
+    "en": "Extended reasoning with thorough analysis",
+    "zh": "扩展推理，做更彻底的分析"
+  },
+  {
+    "en": "Maximum capability with deepest reasoning (${...})",
+    "zh": "最大能力，进行最深度推理（${...}）"
+  },
+  {
+    "en": "Maximum capability with deepest reasoning",
+    "zh": "最大能力，进行最深度推理"
+  },
+  {
+    "en": "- ultracode: xhigh + dynamic workflow orchestration (this session only)",
+    "zh": "- ultracode：xhigh + 动态工作流编排（仅本次会话）"
+  },
+  {
+    "en": "- auto: Use the default effort level for your model",
+    "zh": "- auto：使用当前模型的默认思考强度"
+  },
+  {
+    "en": "Change effort level?",
+    "zh": "更改思考强度？"
+  },
+  {
+    "en": "Set effort level to ${...}${...}: ${...}${...}",
+    "zh": "将思考强度设为 ${...}${...}：${...}${...}"
+  },
+  {
+    "en": "Set effort level to ultracode (this session only): xhigh + dynamic workflow orchestration${...}",
+    "zh": "将思考强度设为 ultracode（仅本次会话）：xhigh + 动态工作流编排${...}"
+  },
+  {
+    "en": "Current effort level: ultracode (xhigh + dynamic workflow orchestration; this session only)",
+    "zh": "当前思考强度：ultracode（xhigh + 动态工作流编排；仅本次会话）"
+  },
+  {
+    "en": "Current effort level: ${...} (${...})",
+    "zh": "当前思考强度：${...}（${...}）"
+  },
+  {
+    "en": "Effort level: auto (currently ${...})",
+    "zh": "思考强度：auto（当前为 ${...}）"
+  },
+  {
+    "en": "Effort level set to auto${...}",
+    "zh": "思考强度已设为 auto${...}"
+  },
+  {
+    "en": "Kept effort level as ${...}",
+    "zh": "思考强度保持为 ${...}"
+  },
+  {
+    "en": "Failed to set effort level: ${...}",
+    "zh": "设置思考强度失败：${...}"
+  },
+  {
+    "en": "Effort not supported",
+    "zh": "不支持思考强度"
+  },
+  {
+    "en": "controls how long Claude thinks before answering.",
+    "zh": "控制 Claude 回答前思考多久。"
+  },
+  {
+    "en": "for tricky bugs,",
+    "zh": "处理棘手 bug 时用"
+  },
+  {
+    "en": "when you just need a quick edit.",
+    "zh": "只需要快速修改时用。"
+  },
+  {
+    "en": "Quick, straightforward implementation with minimal overhead",
+    "zh": "快速、直接的实现，额外开销最小"
+  },
+  {
+    "en": "Balanced approach with standard implementation and testing",
+    "zh": "均衡处理，包含标准实现和测试"
+  },
+  {
+    "en": "Comprehensive implementation with extensive testing and documentation",
+    "zh": "更完整的实现，包含充分测试和文档"
+  },
+  {
+    "en": "Deeper reasoning than high, just below maximum (${...})",
+    "zh": "比 high 更深入的推理，仅次于 max（${...}）"
+  },
+  {
+    "en": "Maximum capability with deepest reasoning. ${...}",
+    "zh": "最大能力，进行最深度推理。${...}"
+  },
+  {
+    "en": "Dynamic workflows",
+    "zh": "动态工作流"
+  },
+  {
+    "en": "Loading dynamic workflow history\\u2026",
+    "zh": "正在加载动态工作流历史…"
+  },
+  {
+    "en": "No dynamic workflows in this session.",
+    "zh": "本次会话还没有动态工作流。"
+  },
+  {
+    "en": "Dynamic workflows dialog dismissed",
+    "zh": "已关闭动态工作流面板"
+  },
+  {
+    "en": "Review dynamic workflow before running",
+    "zh": "运行前查看动态工作流"
+  },
+  {
+    "en": "Run a dynamic workflow?",
+    "zh": "运行动态工作流？"
+  },
+  {
+    "en": "View workflow summary",
+    "zh": "查看工作流摘要"
+  },
+  {
+    "en": "View raw script",
+    "zh": "查看原始脚本"
+  },
+  {
+    "en": "Dynamic workflows can use a lot of tokens quickly by running many",
+    "zh": "动态工作流会并行运行多个子 Agent，可能快速消耗大量 token"
+  },
+  {
+    "en": "subagents in parallel \\u2014 which counts against your usage limit. Stop a",
+    "zh": "这些用量会计入你的使用限制。可以随时停止"
+  },
+  {
+    "en": "running workflow at any time with /workflows, or disable dynamic workflows in /config.",
+    "zh": "正在运行的工作流：用 /workflows；也可以在 /config 中禁用动态工作流。"
+  },
+  {
+    "en": "Save dynamic workflow",
+    "zh": "保存动态工作流"
+  },
+  {
+    "en": "Workflow launched in background. Task ID: ${...}${...}${...}${...}${...} You will be notified when it completes. Use /workflows to watch live progress.",
+    "zh": "工作流已在后台启动。任务 ID：${...}${...}${...}${...}${...} 完成后会通知你。用 /workflows 查看实时进度。"
+  },
+  {
+    "en": "Workflow launched in background. Task ID: ",
+    "zh": "工作流已在后台启动。任务 ID："
+  },
+  {
+    "en": "You will be notified when it completes.",
+    "zh": "完成后会通知你。"
+  },
+  {
+    "en": "Use /workflows to watch live progress.",
+    "zh": "用 /workflows 查看实时进度。"
+  },
+  {
+    "en": "x stop workflow",
+    "zh": "x 停止工作流"
+  },
+  {
+    "en": "to view dynamic workflow runs",
+    "zh": "查看动态工作流运行"
+  },
+  {
+    "en": "Dynamic workflows are disabled by managed settings (`disableWorkflows`).",
+    "zh": "动态工作流已被托管设置（`disableWorkflows`）禁用。"
+  },
+  {
+    "en": "Dynamic workflows are not enabled for this session (org policy, launch gate, or the \"Dynamic workflows\" setting in /config).",
+    "zh": "本次会话未启用动态工作流（可能是组织策略、发布开关，或 /config 中的 \"动态工作流\" 设置）。"
+  },
+  {
+    "en": "Dynamic workflow cancelled",
+    "zh": "动态工作流已取消"
+  },
+  {
+    "en": "Workflow \"${...}\" not found. Available: ${...}",
+    "zh": "未找到工作流 \"${...}\"。可用：${...}"
+  },
+  {
+    "en": "Workflow file conflict",
+    "zh": "工作流文件冲突"
+  },
+  {
+    "en": "The file .github/workflows/claude.yml already exists",
+    "zh": "文件 .github/workflows/claude.yml 已存在"
+  },
+  {
+    "en": "A Claude workflow file already exists at",
+    "zh": "Claude 工作流文件已存在："
+  },
+  {
+    "en": "2. Your workflow file was kept unchanged",
+    "zh": "2. 你的工作流文件保持不变"
+  },
+  {
+    "en": "Creating workflow files",
+    "zh": "正在创建工作流文件"
+  },
+  {
+    "en": "Creating workflow file",
+    "zh": "正在创建工作流文件"
+  },
+  {
+    "en": "Add Claude Code GitHub Workflow",
+    "zh": "添加 Claude Code GitHub 工作流"
   }
 ]

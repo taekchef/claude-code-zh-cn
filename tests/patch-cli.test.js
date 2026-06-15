@@ -456,6 +456,122 @@ test("dynamic effort help description is translated while preserving choices exp
   );
 });
 
+test("effort picker and dynamic workflow UI residues are translated without changing option values", () => {
+  const patched = patchFixture([
+    'const effortTitle="Effort";',
+    'const effortScale=["Faster","Smarter","xhigh + workflows"];',
+    'const effortFooter="←/→ to adjust · Enter to confirm · Esc to cancel";',
+    'const effortFooterTemplate=co.useMemo(()=>`${R2H([jp("left"),jp("right")])} to adjust \\xB7 ${R2H([jp("enter")])} to confirm \\xB7 ${R2H([jp("escape")])} to cancel`,[]);',
+    'const effortFooterComponent=Nq.createElement(G6,null,Nq.createElement(K_,{chord:["left","right"],action:"adjust"}),Nq.createElement(K_,{chord:"enter",action:"confirm"}),Nq.createElement(K_,{chord:"escape",action:"cancel"}));',
+    'const effortUsage=`Usage: /effort [low|medium|high|xhigh|max${extra}|auto] Effort levels: - low: Quick, straightforward implementation - medium: Balanced approach with standard testing - high: Comprehensive implementation with extensive testing - xhigh: Extended reasoning with thorough analysis (${xhighNote}) - max: Maximum capability with deepest reasoning (${maxNote})`;',
+    'const ultracode="- ultracode: xhigh + dynamic workflow orchestration (this session only)";',
+    'const auto="- auto: Use the default effort level for your model";',
+    'const lowDescription="Quick, straightforward implementation with minimal overhead";',
+    'const mediumDescription="Balanced approach with standard implementation and testing";',
+    'const highDescription="Comprehensive implementation with extensive testing and documentation";',
+    'const xhighDescription=`Deeper reasoning than high, just below maximum (${note})`;',
+    'const maxDescription=`Maximum capability with deepest reasoning. ${note}`;',
+    'const effortPrompt="Change effort level?";',
+    'const effortCurrent=`Current effort level: ${level} (${source})`;',
+    'const effortAuto=`Effort level: auto (currently ${level})`;',
+    'const effortFailed=`Failed to set effort level: ${message}`;',
+    'const workflowTitle="Dynamic workflows";',
+    'const workflowLoading="Loading dynamic workflow history\\u2026";',
+    'const workflowEmpty="No dynamic workflows in this session.";',
+    'const workflowDismissed="Dynamic workflows dialog dismissed";',
+    'const workflowReview="Review dynamic workflow before running";',
+    'const workflowAsk="Run a dynamic workflow?";',
+    'const workflowSummary="View workflow summary";',
+    'const workflowScript="View raw script";',
+    'const workflowTokenA="Dynamic workflows can use a lot of tokens quickly by running many";',
+    'const workflowTokenB="subagents in parallel \\u2014 which counts against your usage limit. Stop a";',
+    'const workflowTokenC="running workflow at any time with /workflows, or disable dynamic workflows in /config.";',
+    'const workflowSave="Save dynamic workflow";',
+    'const workflowLaunched=`Workflow launched in background. Task ID: ${taskId}${summary}${transcript}${script}${runId} You will be notified when it completes. Use /workflows to watch live progress.`;',
+    'const workflowLaunchedWithBreaks=`Workflow launched in background. Task ID: ${taskId}${summary}${transcript}${script}${runId}\\n\\nYou will be notified when it completes. Use /workflows to watch live progress.`;',
+    'const workflowStop="x stop workflow";',
+    'const workflowViewRuns="to view dynamic workflow runs";',
+    'const workflowClose=VO.createElement(K_,{chord:"escape",action:"close"});',
+    'const workflowDefaultClose=qT.default.createElement(K_,{chord:"escape",action:"close"});',
+    'const workflowDisabled="Dynamic workflows are disabled by managed settings (`disableWorkflows`).";',
+    'const workflowUnavailable="Dynamic workflows are not enabled for this session (org policy, launch gate, or the \\"Dynamic workflows\\" setting in /config).";',
+    'const workflowConflict="Workflow file conflict";',
+    'const workflowFile="The file .github/workflows/claude.yml already exists";',
+    'const creatingPlural="Creating workflow files";',
+    'const creatingSingle="Creating workflow file";',
+    "",
+  ]);
+
+  for (const residue of [
+    "Faster",
+    "Smarter",
+    "xhigh + workflows",
+    "to adjust",
+    "to confirm",
+    'action:"adjust"',
+    'action:"confirm"',
+    'action:"cancel"',
+    "Usage: /effort",
+    "Quick, straightforward implementation",
+    "Balanced approach with standard implementation",
+    "Balanced approach with standard testing",
+    "Comprehensive implementation with extensive testing",
+    "Extended reasoning with thorough analysis",
+    "Deeper reasoning than high",
+    "Maximum capability with deepest reasoning",
+    "Use the default effort level",
+    "Change effort level?",
+    "Current effort level",
+    "Effort level: auto",
+    "Failed to set effort level",
+    "Dynamic workflows",
+    "Loading dynamic workflow history",
+    "No dynamic workflows in this session.",
+    "Review dynamic workflow before running",
+    "Run a dynamic workflow?",
+    "View workflow summary",
+    "View raw script",
+    "Dynamic workflows can use a lot of tokens quickly",
+    "subagents in parallel",
+    "Save dynamic workflow",
+    "Workflow launched in background",
+    "x stop workflow",
+    "to view dynamic workflow runs",
+    'action:"close"',
+    "Workflow file conflict",
+    "Creating workflow file",
+  ]) {
+    assert.equal(patched.includes(residue), false, `raw residue remained: ${residue}\n${patched}`);
+  }
+
+  assert.match(patched, /思考强度/);
+  assert.match(patched, /更快/);
+  assert.match(patched, /更强/);
+  assert.match(patched, /\$\{R2H\(\[jp\("left"\),jp\("right"\)\]\)\} 调整 · \$\{R2H\(\[jp\("enter"\)\]\)\} 确认 · \$\{R2H\(\[jp\("escape"\)\]\)\} 取消/);
+  assert.match(patched, /←\/→ 调整 · Enter 确认 · Esc 取消/);
+  assert.match(patched, /xhigh \+ 工作流/);
+  assert.match(patched, /low\|medium\|high\|xhigh\|max\$\{extra\}\|auto/);
+  assert.match(patched, /- ultracode：xhigh \+ 动态工作流编排（仅本次会话）/);
+  assert.match(patched, /快速、直接的实现，额外开销最小/);
+  assert.match(patched, /快速、直接的实现/);
+  assert.match(patched, /均衡处理，包含标准实现和测试/);
+  assert.match(patched, /更完整的实现，包含充分测试和文档/);
+  assert.match(patched, /思考强度：/);
+  assert.match(patched, /均衡处理，包含常规测试/);
+  assert.match(patched, /扩展推理，做更彻底的分析/);
+  assert.match(patched, /比 high 更深入的推理，仅次于 max（\$\{note\}）/);
+  assert.match(patched, /最大能力，进行最深度推理。\$\{note\}/);
+  assert.match(patched, /动态工作流/);
+  assert.match(patched, /正在加载动态工作流历史…/);
+  assert.match(patched, /运行前查看动态工作流/);
+  assert.match(patched, /工作流已在后台启动。任务 ID：\$\{taskId\}/);
+  assert.match(patched, /用 \/workflows 查看实时进度。/);
+  assert.match(patched, /Esc 关闭/);
+  assert.doesNotMatch(patched, /\."Esc 关闭"/);
+  assert.match(patched, /动态工作流已被托管设置/);
+  assert.match(patched, /工作流文件冲突/);
+});
+
 test("issue 80 slash command menu residues are translated", () => {
   const patched = patchFixture([
     'const exitDescription="Exit the CLI";',
