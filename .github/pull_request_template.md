@@ -5,5 +5,6 @@
 
 ## 提交前检查
 
-- [ ] 已在仓库根目录运行 `bash scripts/preflight.sh`
-- [ ] 如果没跑，原因：
+> CI 会自动运行 `bash scripts/preflight.sh`，PR 描述里不需要手动勾选这个检查。
+> 
+> 如果是 fork PR，需要权限的 CI 检查会由维护者在 review 后触发。
