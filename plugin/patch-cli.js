@@ -707,6 +707,24 @@ function installEffortAndWorkflowFooterLocalization() {
     );
 }
 
+function installCommonVisibleResidueLocalization() {
+    tryRegexReplace(
+        /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([A-Za-z0-9_$]+),null,\1\.createElement\(([A-Za-z0-9_$]+),\{chord:"enter",action:"confirm"\}\),\1\.createElement\(\3,\{chord:"escape",action:"cancel"\}\)\)/g,
+        (match, factory, wrapper) =>
+            `${factory}.createElement(${wrapper},null,"Enter 确认","Esc 取消")`
+    );
+
+    tryRegexReplace(
+        /([A-Za-z0-9_$]+(?:\.default)?)\.createElement\(([A-Za-z0-9_$]+),null,\1\.createElement\(([A-Za-z0-9_$]+),\{chord:"enter",action:"confirm"\}\),\1\.createElement\([A-Za-z0-9_$]+,\{action:"confirm:no",context:"Confirmation",fallback:"Esc",description:"cancel"\}\)\)/g,
+        (match, factory, wrapper) =>
+            `${factory}.createElement(${wrapper},null,"Enter 确认","Esc 取消")`
+    );
+
+    tryRegexReplace(/" for agents"/g, () => '" 查看 Agent"');
+    tryRegexReplace(/"for agents"/g, () => '"查看 Agent"');
+    tryRegexReplace(/"again "/g, () => '"再次 "');
+}
+
 // === 特殊 patch（基于精确代码模式匹配，安全）===
 // 这些 patch 匹配非常特定的代码模式，不会误伤标识符
 
@@ -717,6 +735,7 @@ installStatuslineCommandPromptPathGuard();
 installDurationFormatterLocalization();
 installIssue80VisibleResidueLocalization();
 installEffortAndWorkflowFooterLocalization();
+installCommonVisibleResidueLocalization();
 
 // 1. 过去式动词数组
 tryRegexReplace(

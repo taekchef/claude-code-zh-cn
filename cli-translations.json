@@ -7406,6 +7406,10 @@
     "zh": "本次会话未启用动态工作流（可能是组织策略、发布开关，或 /config 中的 \"动态工作流\" 设置）。"
   },
   {
+    "en": "Cancelled",
+    "zh": "已取消"
+  },
+  {
     "en": "Dynamic workflow cancelled",
     "zh": "动态工作流已取消"
   },

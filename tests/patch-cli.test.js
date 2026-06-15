@@ -572,6 +572,37 @@ test("effort picker and dynamic workflow UI residues are translated without chan
   assert.match(patched, /工作流文件冲突/);
 });
 
+test("shared visible footer residues are localized without changing unrelated action values", () => {
+  const patched = patchFixture([
+    'const trustFooter=QE.default.createElement(G6,null,QE.default.createElement(K_,{chord:"enter",action:"confirm"}),QE.default.createElement(K_,{chord:"escape",action:"cancel"}));',
+    'const confirmationFooter=lj.default.createElement(G6,null,lj.default.createElement(K_,{chord:"enter",action:"confirm"}),lj.default.createElement(w8,{action:"confirm:no",context:"Confirmation",fallback:"Esc",description:"cancel"}));',
+    'const agentsFooter=D8.createElement(V,{dimColor:!0},Ll," ",z?"again ":"","for agents");',
+    'const bgAgentsFooter=D8.createElement(V,{dimColor:!0,key:"bg-detach"},Ll," for agents");',
+    'const cancelled="Cancelled";',
+    'const internalAction={action:"cancel"};',
+    "",
+  ]);
+
+  for (const residue of [
+    "to confirm",
+    "to cancel",
+    '"for agents"',
+    '" for agents"',
+    '"again "',
+    '"Cancelled"',
+  ]) {
+    assert.equal(patched.includes(residue), false, `raw residue remained: ${residue}\n${patched}`);
+  }
+
+  assert.match(patched, /Enter 确认/);
+  assert.match(patched, /Esc 取消/);
+  assert.match(patched, /"再次 "/);
+  assert.match(patched, /"查看 Agent"/);
+  assert.match(patched, /" 查看 Agent"/);
+  assert.match(patched, /"已取消"/);
+  assert.match(patched, /action:"cancel"/);
+});
+
 test("issue 80 slash command menu residues are translated", () => {
   const patched = patchFixture([
     'const exitDescription="Exit the CLI";',

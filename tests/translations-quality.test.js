@@ -270,6 +270,7 @@ test("slash command menu descriptions keep the newly restored wording", () => {
     ["Workflow launched in background. Task ID: ", "工作流已在后台启动。任务 ID："],
     ["You will be notified when it completes.", "完成后会通知你。"],
     ["x stop workflow", "x 停止工作流"],
+    ["Cancelled", "已取消"],
     ["Workflow file conflict", "工作流文件冲突"],
     ["Claude in Chrome (beta) settings", "Claude in Chrome（beta）设置"],
     ["Configure optional break reminders and quiet-hours nudges", "配置可选的休息提醒和安静时段提示"],
