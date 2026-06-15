@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.4.56] - 2026-06-15
+
+### 改进
+
+- Windows native latest 自动跟进 Claude Code `2.1.177`：在 Windows runner 完成 extract / patch / repack / `--version` + 11 个稳定显示面审计后，同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.56`。
+
+### 验证
+
+- `Native Latest Candidate workflow 27534895290`
+- `CI preflight`
+
 ## [2.4.55] - 2026-06-13
 
 ### 改进

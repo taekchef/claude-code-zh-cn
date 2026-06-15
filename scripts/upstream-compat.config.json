@@ -872,7 +872,7 @@
     },
     "windowsNativeExperimental": {
       "floor": "2.1.113",
-      "ceiling": "2.1.162",
+      "ceiling": "2.1.177",
       "platform": "win32-x64",
       "packageName": "@anthropic-ai/claude-code-win32-x64",
       "representatives": [
@@ -913,7 +913,8 @@
         "2.1.159",
         "2.1.160",
         "2.1.161",
-        "2.1.162"
+        "2.1.162",
+        "2.1.177"
       ],
       "excluded": [
         "2.1.115",
@@ -927,13 +928,27 @@
         "2.1.151",
         "2.1.154",
         "2.1.155",
-        "2.1.157"
+        "2.1.157",
+        "2.1.163",
+        "2.1.164",
+        "2.1.165",
+        "2.1.166",
+        "2.1.167",
+        "2.1.168",
+        "2.1.169",
+        "2.1.170",
+        "2.1.171",
+        "2.1.172",
+        "2.1.173",
+        "2.1.174",
+        "2.1.175",
+        "2.1.176"
       ],
-      "verification": "Windows native verification runs on pinned Windows runners with PE extract / patch / repack / --version / display audit; 2.1.156 PASS(native 1385, display 11/11) · 2.1.158 PASS(native 1385, display 11/11) · 2.1.159 PASS(native 1392, display 11/11) · 2.1.160 PASS(native 1392, display 11/11) · 2.1.161 PASS(native 1387, display 11/11) · 2.1.162 PASS(native 1385, display 11/11)",
+      "verification": "2.1.158 PASS(native 1385, display 11/11) · 2.1.159 PASS(native 1392, display 11/11) · 2.1.160 PASS(native 1392, display 11/11) · 2.1.161 PASS(native 1387, display 11/11) · 2.1.162 PASS(native 1385, display 11/11) · 2.1.177 PASS(native 1381, display 11/11)",
       "requires": [
         "node-lief"
       ],
-      "notes": "Windows x64 native binary experimental；需要 node-lief；已验证 2.1.113 - 2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128 - 2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.146、2.1.148、2.1.150、2.1.152 - 2.1.153、2.1.156、2.1.158 - 2.1.162 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135、2.1.147、2.1.149、2.1.151、2.1.154、2.1.155、2.1.157 未发布或未纳入支持；不代表 future latest 自动稳定。高于该窗口但仍在同一 minor 线的版本，install.ps1 可在安装时做本机自验证并以 provisional 方式启用；这不等于已发布支持窗口。"
+      "notes": "Windows x64 native binary experimental；需要 node-lief；已验证 2.1.113 - 2.1.114、2.1.116 - 2.1.124、2.1.126、2.1.128 - 2.1.129、2.1.131 - 2.1.133、2.1.136 - 2.1.146、2.1.148、2.1.150、2.1.152 - 2.1.153、2.1.156、2.1.158 - 2.1.162、2.1.177 的 extract / patch / repack / --version 和 11 个稳定显示面审计；2.1.115、2.1.125、2.1.127、2.1.130、2.1.134、2.1.135、2.1.147、2.1.149、2.1.151、2.1.154、2.1.155、2.1.157、2.1.163、2.1.164、2.1.165、2.1.166、2.1.167、2.1.168、2.1.169、2.1.170、2.1.171、2.1.172、2.1.173、2.1.174、2.1.175、2.1.176 未发布或未纳入支持；不代表 future latest 自动稳定。高于该窗口但仍在同一 minor 线的版本，install.ps1 可在安装时做本机自验证并以 provisional 方式启用；这不等于已发布支持窗口。"
     }
   }
 }
