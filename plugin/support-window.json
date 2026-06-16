@@ -105,7 +105,7 @@
   },
   "windowsNativeExperimental": {
     "floor": "2.1.113",
-    "ceiling": "2.1.177",
+    "ceiling": "2.1.178",
     "excluded": [
       "2.1.115",
       "2.1.125",
@@ -173,7 +173,8 @@
       "2.1.160",
       "2.1.161",
       "2.1.162",
-      "2.1.177"
+      "2.1.177",
+      "2.1.178"
     ],
     "platform": "win32-x64",
     "packageName": "@anthropic-ai/claude-code-win32-x64",

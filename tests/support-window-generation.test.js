@@ -50,7 +50,7 @@ test("native support includes issue 80, issue 109, and issue 117 reporter versio
   const issue80ReporterVersion = "2.1.153";
   const issue109ReporterVersion = "2.1.159";
   const issue117InitialReporterVersion = "2.1.161";
-  const latestWindowsNativeCandidateVersion = "2.1.177";
+  const latestWindowsNativeCandidateVersion = compatConfig.support.windowsNativeExperimental.ceiling;
 
   assert.equal(
     generated.macosNativeExperimental.ceiling,
