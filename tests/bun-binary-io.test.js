@@ -29,7 +29,7 @@ function createFakePeBinary(filePath) {
   fs.chmodSync(filePath, 0o755);
 }
 
-function createBunSectionData(source) {
+function createBunSectionData(source, { encoding = 0 } = {}) {
   const strings = [
     Buffer.from("claude"),
     Buffer.from(source),
@@ -70,7 +70,7 @@ function createBunSectionData(source) {
     bunData.writeUInt32LE(pointer.length, pos + 4);
     pos += 8;
   }
-  bunData.writeUInt8(0, pos);
+  bunData.writeUInt8(encoding, pos);
   bunData.writeUInt8(0, pos + 1);
   bunData.writeUInt8(0, pos + 2);
   bunData.writeUInt8(0, pos + 3);
@@ -93,6 +93,16 @@ function createBunSectionData(source) {
   sectionData.writeBigUInt64LE(BigInt(bunData.length), 0);
   bunData.copy(sectionData, 8);
   return sectionData;
+}
+
+function readFakePeClaudeModuleEncoding(binaryPath) {
+  const sectionData = fs.readFileSync(binaryPath).subarray(4);
+  const bunDataLength = Number(sectionData.readBigUInt64LE(0));
+  const bunData = sectionData.subarray(8, 8 + bunDataLength);
+  const offsetsOffset = bunData.length - 32 - bunTrailer.length;
+  const modulesListOffset = bunData.readUInt32LE(offsetsOffset + 8);
+  const moduleEncodingOffset = modulesListOffset + 48;
+  return bunData.readUInt8(moduleEncodingOffset);
 }
 
 function writeFakeNodeLief(root) {
@@ -337,6 +347,33 @@ test("extract, version, and repack can run through a PE node-lief adapter", () =
 
   assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
   assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
+});
+
+test("repack marks rewritten Claude source as UTF-8 module content", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-utf8-repack-"));
+  const binaryPath = path.join(tmp, "claude.exe");
+  const replacementPath = path.join(tmp, "replacement.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+
+  writeFakeNodeLief(fakeModuleRoot);
+  fs.writeFileSync(
+    binaryPath,
+    Buffer.concat([
+      Buffer.from([0x4d, 0x5a, 0x90, 0x00]),
+      createBunSectionData("// Version: 2.1.181\nconst label = \"Help\";\n", { encoding: 1 }),
+    ])
+  );
+  fs.chmodSync(binaryPath, 0o755);
+  fs.writeFileSync(replacementPath, "// Version: 2.1.181\nconst label = \"帮助\";\n");
+
+  const repack = runHelperWithStatus(["repack", binaryPath, replacementPath], {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  });
+
+  assert.equal(repack.status, 0, repack.stderr);
+  assert.equal(readFakePeClaudeModuleEncoding(binaryPath), 0);
 });
 
 test("hash returns sha256 for binary marker identity", () => {

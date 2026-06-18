@@ -6462,6 +6462,18 @@
     "zh": "将每台机器不同的信息段（cwd、env 信息、memory 路径、git 状态）从系统提示词移到第一条用户消息中。这样可提高跨用户 prompt cache 复用。仅适用于默认系统提示词（使用 --system-prompt 时忽略）。"
   },
   {
+    "en": "Render screen-reader friendly output (flat text, no decorative borders or animations).",
+    "zh": "渲染适合屏幕阅读器的输出（纯文本，没有装饰边框或动画）。"
+  },
+  {
+    "en": "Render screen-reader friendly output",
+    "zh": "渲染适合屏幕阅读器的输出"
+  },
+  {
+    "en": "(flat text, no decorative borders or animations).",
+    "zh": "（纯文本，没有装饰边框或动画）。"
+  },
+  {
     "en": "Enable automatic fallback to specified model when default model is overloaded (only works with --print)",
     "zh": "默认模型过载时自动回退到指定模型（仅 --print 有效）"
   },
