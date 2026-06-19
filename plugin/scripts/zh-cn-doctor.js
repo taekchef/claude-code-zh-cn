@@ -88,6 +88,7 @@ function nativeSupportLists(support) {
   for (const key of [
     "macosNativeOfficialInstallerExperimental",
     "macosNativeExperimental",
+    "linuxNativeExperimental",
     "windowsNativeExperimental",
   ]) {
     const entry = support?.[key];
@@ -110,6 +111,9 @@ function nativePlatformForTarget(target) {
   }
   if (process.platform === "darwin") {
     return "darwin-arm64";
+  }
+  if (process.platform === "linux" && (process.arch === "x64" || process.arch === "amd64")) {
+    return "linux-x64";
   }
   return process.platform || "";
 }

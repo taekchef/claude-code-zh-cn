@@ -210,6 +210,29 @@ test("support boundary guard allows explicit macOS native experimental versions"
   assert.match(result.stdout, /support-boundary-guard: OK/);
 });
 
+test("support boundary guard allows explicit Linux native experimental versions", () => {
+  const repo = createFixture({
+    "docs/support-matrix.md":
+      "| Linux official installer / native binary | experimental | 2.1.112, 2.1.170 | 2.1.170 PASS(native) | requires node-lief |\n",
+  }, {
+    support: {
+      linuxNativeExperimental: {
+        floor: "2.1.112",
+        ceiling: "2.1.170",
+        platform: "linux-x64",
+        packageName: "@anthropic-ai/claude-code-linux-x64",
+        representatives: ["2.1.112", "2.1.170"],
+        notes: "Linux x86-64 ELF native experimental; requires node-lief; verified versions only.",
+      },
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /support-boundary-guard: OK/);
+});
+
 test("support boundary guard still rejects latest in macOS native experimental representatives", () => {
   const repo = createFixture({}, {
     support: {

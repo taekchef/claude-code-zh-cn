@@ -87,6 +87,14 @@ test("support matrix includes separate macOS native experimental row", () => {
           notes: "macOS arm64 native binary experimental；需要 node-lief；只对明确验证版本开放，不代表 latest stable。",
         },
         linuxOfficialInstaller: { unsupported: true },
+        linuxNativeExperimental: {
+          floor: "2.1.112",
+          ceiling: "2.1.170",
+          platform: "linux-x64",
+          representatives: ["2.1.112", "2.1.170"],
+          verification: "2.1.112 PASS(native 1405) · 2.1.170 PASS(native 1389)",
+          notes: "Linux x86-64 ELF native binary experimental；需要 node-lief；只对明确验证版本开放。",
+        },
         windowsNativeExe: {
           unsupported: true,
           notes: "Windows native .exe unsupported.",
@@ -103,6 +111,8 @@ test("support matrix includes separate macOS native experimental row", () => {
   assert.match(markdown, /汉化效果/);
   assert.match(markdown, /npm global install \| stable \| 2\.1\.92 - 2\.1\.112/);
   assert.match(markdown, /macOS native binary \| experimental \| 2\.1\.113 - 2\.1\.123 \(不含未纳入本轮支持的 2\.1\.115\)/);
+  assert.match(markdown, /Linux official installer \/ native binary \| experimental \| 2\.1\.112, 2\.1\.170/);
+  assert.match(markdown, /2\.1\.170 PASS\(native 1389\)/);
   assert.match(markdown, /2\.1\.113 PASS\(native 1358\)/);
   assert.match(markdown, /2\.1\.123 PASS\(native 1262\)/);
   assert.match(markdown, /Windows \/ native \.exe \/ latest \| unsupported/);

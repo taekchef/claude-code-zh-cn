@@ -175,6 +175,12 @@ function nativeShellFixture(version, body = "NATIVE") {
   return `#!/usr/bin/env bash\necho '${version} (Claude Code)'\nexit 0\n// Version: ${version}\n${body}\n`;
 }
 
+test("session-start reads Linux native experimental support window", () => {
+  const script = fs.readFileSync(hookPath, "utf8");
+
+  assert.match(script, /linuxNativeExperimental/);
+});
+
 test("session-start repairs settings from cached overlay before emitting JSON", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-settings-repair-"));
   const home = path.join(tmp, "home");

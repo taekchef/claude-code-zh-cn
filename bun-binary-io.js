@@ -3,7 +3,7 @@
  * bun-binary-io.js — Bun 原生二进制 I/O 工具
  *
  * 从 tweakcc (Piebald-AI/tweakcc) 的 nativeInstallation.ts 精简移植。
- * 支持 macOS (Mach-O) 与 Windows (PE)，仍按平台版本窗口开放。
+ * 支持 macOS (Mach-O)、Linux (ELF) 与 Windows (PE)，仍按平台版本窗口开放。
  *
  * CLI 子命令：
  *   detect <claude-cmd>     → 输出 "npm:<path>" 或 "native-bun:<path>" 或 "unknown"
