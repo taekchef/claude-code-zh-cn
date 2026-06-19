@@ -114,8 +114,16 @@ function writeFakeNodeLief(root) {
 const fs = require("node:fs");
 const path = require("node:path");
 
-function createSection(binaryPath) {
-  let content = fs.readFileSync(binaryPath).subarray(4);
+function readPrefix(binaryPath) {
+  const file = fs.readFileSync(binaryPath);
+  if (file[0] === 0x7f && file[1] === 0x45 && file[2] === 0x4c && file[3] === 0x46) {
+    return file.subarray(0, 8);
+  }
+  return file.subarray(0, 4);
+}
+
+function createSection(binaryPath, prefix) {
+  let content = fs.readFileSync(binaryPath).subarray(prefix.length);
   return {
     name: ".bun",
     size: BigInt(content.length),
@@ -133,14 +141,16 @@ function createSection(binaryPath) {
 
 exports.logging = { disable() {} };
 exports.parse = function parse(binaryPath) {
-  const section = createSection(binaryPath);
+  const prefix = readPrefix(binaryPath);
+  const format = prefix[0] === 0x7f ? "ELF" : "PE";
+  const section = createSection(binaryPath, prefix);
   return {
-    format: "PE",
+    format,
     sections() {
       return [section];
     },
     write(outputPath) {
-      fs.writeFileSync(outputPath, Buffer.concat([Buffer.from([0x4d, 0x5a, 0x90, 0x00]), section.content]));
+      fs.writeFileSync(outputPath, Buffer.concat([prefix, section.content]));
     },
   };
 };
@@ -266,7 +276,7 @@ test("detect returns unknown for plain files that are neither Bun binaries nor n
   assert.equal(output, "unknown");
 });
 
-test("detect keeps ELF binaries out of native-bun path", () => {
+test("detect treats ELF binaries with Bun trailer as native-bun", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-detect-elf-"));
   const elfPath = path.join(tmp, "claude-elf");
   createFakeElfBinary(elfPath);
@@ -276,7 +286,7 @@ test("detect keeps ELF binaries out of native-bun path", () => {
     npm_config_prefix: path.join(tmp, "npm-prefix"),
   });
 
-  assert.equal(output, "unknown");
+  assert.equal(output, `native-bun:${fs.realpathSync(elfPath)}`);
 });
 
 test("resolve returns the real path for symlinks", () => {
@@ -304,13 +314,16 @@ test("repack treats codesign signing and verification as hard requirements", () 
   assert.doesNotMatch(helper, /Warning: codesign failed/);
 });
 
-test("helper has a format-dispatched PE extraction and repack path", () => {
+test("helper has format-dispatched PE and ELF extraction and repack paths", () => {
   const helper = fs.readFileSync(helperPath, "utf8");
 
   assert.match(helper, /function extractFromPE\(LIEF, binaryPath\)/);
+  assert.match(helper, /function extractFromELF\(LIEF, binaryPath\)/);
   assert.match(helper, /function extractNativeBun\(LIEF, binaryPath\)/);
   assert.match(helper, /function repackPE\(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section\)/);
+  assert.match(helper, /function repackELF\(LIEF, elfBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section\)/);
   assert.match(helper, /case "PE":/);
+  assert.match(helper, /case "ELF":/);
   assert.doesNotMatch(helper, /only Mach-O \(macOS\) is supported in this version/);
 });
 
@@ -347,6 +360,45 @@ test("extract, version, and repack can run through a PE node-lief adapter", () =
 
   assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
   assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
+});
+
+test("extract, version, and repack can run through an ELF node-lief adapter", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-elf-repack-"));
+  const binaryPath = path.join(tmp, "claude");
+  const extractedPath = path.join(tmp, "extracted.js");
+  const replacementPath = path.join(tmp, "replacement.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+  const initialSource = "// Version: 2.1.170\nconst label = \"Bash command\";\n";
+  const replacementSource = "// Version: 2.1.170\nconst label = \"Bash 命令\";\n";
+
+  writeFakeNodeLief(fakeModuleRoot);
+  fs.writeFileSync(
+    binaryPath,
+    Buffer.concat([
+      Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00]),
+      createBunSectionData(initialSource),
+    ])
+  );
+  fs.chmodSync(binaryPath, 0o755);
+  fs.writeFileSync(replacementPath, replacementSource);
+
+  const env = {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  };
+
+  assert.equal(runHelper(["version", binaryPath], env), "2.1.170");
+  assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
+  assert.equal(fs.readFileSync(extractedPath, "utf8"), initialSource);
+
+  const repack = runHelperWithStatus(["repack", binaryPath, replacementPath], env);
+  assert.equal(repack.status, 0, repack.stderr);
+  assert.equal(repack.stdout.trim(), "ok");
+
+  assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
+  assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
+  assert.equal(fs.statSync(binaryPath).mode & 0o111, 0o111);
 });
 
 test("repack marks rewritten Claude source as UTF-8 module content", () => {

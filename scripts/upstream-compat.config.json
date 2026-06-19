@@ -864,6 +864,21 @@
       "unsupported": true,
       "notes": "当前不支持 Linux 官方安装器；请改用 npm 路径。"
     },
+    "linuxNativeExperimental": {
+      "floor": "2.1.112",
+      "ceiling": "2.1.170",
+      "platform": "linux-x64",
+      "packageName": "@anthropic-ai/claude-code-linux-x64",
+      "representatives": [
+        "2.1.112",
+        "2.1.170"
+      ],
+      "verification": "2.1.112 PASS(native 1405) · 2.1.170 PASS(native 1389)",
+      "requires": [
+        "node-lief"
+      ],
+      "notes": "Linux x86-64 ELF native binary experimental；需要 node-lief；已验证 2.1.112 和 2.1.170 的 extract / patch / repack / --version 端到端；不代表 future latest 自动稳定。"
+    },
     "windowsNpmPowerShell": {
       "stable": {
         "floor": "2.1.92",

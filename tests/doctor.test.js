@@ -6,6 +6,9 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
+const linuxX64Required = process.platform !== "linux" || process.arch !== "x64"
+  ? "requires Linux x64"
+  : false;
 const { runDoctor, STABLE_INSTALL_CMD } = require(path.join(repoRoot, "scripts", "zh-cn-doctor.js"));
 
 function writeJson(filePath, value) {
@@ -588,6 +591,40 @@ test("runDoctor reports supported Windows native as needing node-lief or patch",
   layer4 = ok.checks.find((item) => item.id === "layer4");
   assert.equal(layer4.status, "ok");
   assert.equal(ok.layer4Status, "ok");
+});
+
+test("runDoctor reports supported Linux native as needing node-lief or patch", { skip: linuxX64Required }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude");
+  const supportWindow = {
+    linuxNativeExperimental: {
+      platform: "linux-x64",
+      versions: ["2.1.170"],
+    },
+  };
+
+  fs.writeFileSync(targetPath, "fake elf");
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    version: "2.1.170",
+    targetPath,
+    depStatus: "ok",
+    supportWindow,
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    json: true,
+    color: false,
+  });
+
+  const layer4 = result.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "warn");
+  assert.equal(result.layer4Status, "needed");
+  assert.ok(result.recommendations.some((line) => line.includes("install.sh")));
 });
 
 test("runDoctor fails native runtime self-check when executable is killed", () => {

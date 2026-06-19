@@ -36,6 +36,13 @@ function renderRange(entry) {
   return entry.floor || entry.ceiling || "-";
 }
 
+function renderRepresentativeVersions(entry) {
+  if (!Array.isArray(entry?.representatives) || entry.representatives.length === 0) {
+    return renderRange(entry);
+  }
+  return entry.representatives.join(", ");
+}
+
 function renderRepresentativeStatus(representatives, resultMap) {
   if (!Array.isArray(representatives) || representatives.length === 0) {
     return "-";
@@ -112,6 +119,7 @@ function buildMarkdown(config, compat) {
     : macosExperimental.verification ||
       renderRepresentativeStatus(macosExperimental.representatives, resultMap);
   const linuxUnsupported = config.support?.linuxOfficialInstaller || {};
+  const linuxNativeExperimental = config.support?.linuxNativeExperimental || null;
   const windowsNpm = config.support?.windowsNpmPowerShell || {};
   const windowsNpmStable = windowsNpm.stable || {};
   const windowsNpmTier = windowsNpm.unsupported ? "unsupported" : "stable";
@@ -144,9 +152,20 @@ function buildMarkdown(config, compat) {
           )} | ${renderAction("experimental", macosNativeExperimental.notes)} |`,
         ]
       : []),
-    `| Linux official installer | ${renderRange(linuxUnsupported)} | unsupported | ${renderCoverageForChannel(
-      "unsupported"
-    )} | ${renderAction("unsupported", linuxUnsupported.notes)} |`,
+    ...(linuxNativeExperimental && linuxNativeExperimental.unsupported !== true
+      ? [
+          `| Linux official installer / native binary | ${renderRepresentativeVersions(
+            linuxNativeExperimental
+          )} | experimental | native patch 已验证 | ${renderAction(
+            "experimental",
+            linuxNativeExperimental.notes
+          )} |`,
+        ]
+      : [
+          `| Linux official installer | ${renderRange(linuxUnsupported)} | unsupported | ${renderCoverageForChannel(
+            "unsupported"
+          )} | ${renderAction("unsupported", linuxUnsupported.notes)} |`,
+        ]),
     `| Windows / npm global install (PowerShell) | ${renderRange(
       windowsNpmWindow
     )} | ${windowsNpmTier} | ${renderCoverageForChannel(windowsNpmTier)} | ${renderAction(
@@ -198,7 +217,18 @@ function buildMarkdown(config, compat) {
           )} | ${macosNativeExperimental.notes || "-"} |`,
         ]
       : []),
-    `| Linux official installer | unsupported | ${renderRange(linuxUnsupported)} | - | ${linuxUnsupported.notes || "-"} |`,
+    ...(linuxNativeExperimental && linuxNativeExperimental.unsupported !== true
+      ? [
+          `| Linux official installer / native binary | experimental | ${renderRepresentativeVersions(
+            linuxNativeExperimental
+          )} | ${linuxNativeExperimental.verification || renderRepresentativeStatus(
+            linuxNativeExperimental.representatives,
+            resultMap
+          )} | ${linuxNativeExperimental.notes || "-"} |`,
+        ]
+      : [
+          `| Linux official installer | unsupported | ${renderRange(linuxUnsupported)} | - | ${linuxUnsupported.notes || "-"} |`,
+        ]),
     `| Windows / npm global install (PowerShell) | ${windowsNpmTier} | ${renderRange(
       windowsNpmWindow
     )} | - | ${windowsNpmWindow.notes || "-"} |`,
@@ -232,7 +262,7 @@ function buildMarkdown(config, compat) {
     "",
   ];
 
-  return `${lines.join("\n")}\n`;
+  return lines.join("\n");
 }
 
 function main() {

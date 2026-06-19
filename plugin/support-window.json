@@ -108,6 +108,20 @@
       "node-lief"
     ]
   },
+  "linuxNativeExperimental": {
+    "floor": "2.1.112",
+    "ceiling": "2.1.170",
+    "excluded": [],
+    "versions": [
+      "2.1.112",
+      "2.1.170"
+    ],
+    "platform": "linux-x64",
+    "packageName": "@anthropic-ai/claude-code-linux-x64",
+    "requires": [
+      "node-lief"
+    ]
+  },
   "windowsNativeExperimental": {
     "floor": "2.1.113",
     "ceiling": "2.1.183",

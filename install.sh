@@ -163,7 +163,7 @@ check_dependencies() {
             fi
         else
             echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
-            echo -e "  macOS native 已验证窗口：$(native_support_summary)"
+            echo -e "  native 已验证窗口：$(native_support_summary)"
             echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         fi
     fi
@@ -215,6 +215,9 @@ native_platform() {
         Darwin-arm64|Darwin-aarch64)
             printf 'darwin-arm64'
             ;;
+        Linux-x86_64|Linux-amd64)
+            printf 'linux-x64'
+            ;;
         *)
             printf ''
             ;;
@@ -244,7 +247,7 @@ const version = process.argv[3];
 const platform = process.argv[4] || "";
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const versions = [];
-for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental", "linuxNativeExperimental"]) {
   const entry = data[key];
   if (!entry) continue;
   if (platform && entry.platform && entry.platform !== platform) continue;
@@ -296,7 +299,7 @@ function sameMinor(a, b) {
   return left[0] === right[0] && left[1] === right[1];
 }
 
-const keys = ["macosNativeExperimental"];
+const keys = ["macosNativeExperimental", "linuxNativeExperimental"];
 for (const key of keys) {
   const entry = data[key];
   if (!entry || entry.platform !== platform || !entry.ceiling) continue;
@@ -321,7 +324,7 @@ const fs = require("fs");
 const file = process.argv[2];
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const ranges = [];
-for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental", "linuxNativeExperimental"]) {
   const entry = data[key];
   if (!entry || !entry.floor || !entry.ceiling) continue;
   let range = entry.floor === entry.ceiling ? entry.floor : `${entry.floor} - ${entry.ceiling}`;
@@ -1177,7 +1180,7 @@ patch_native_binary() {
         patch_mode="provisional"
     else
         echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
-        echo -e "  macOS native 已验证窗口：$(native_support_summary)"
+        echo -e "  native 已验证窗口：$(native_support_summary)"
         echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         print_updater_boundary_note
         echo -e "${YELLOW}  下一步：如果是 Claude Code 自动升到未发布窗口，请等插件发布支持，或临时安装支持窗口内版本。${NC}"

@@ -3,7 +3,7 @@
  * bun-binary-io.js — Bun 原生二进制 I/O 工具
  *
  * 从 tweakcc (Piebald-AI/tweakcc) 的 nativeInstallation.ts 精简移植。
- * 支持 macOS (Mach-O) 与 Windows (PE)，仍按平台版本窗口开放。
+ * 支持 macOS (Mach-O)、Linux (ELF) 与 Windows (PE)，仍按平台版本窗口开放。
  *
  * CLI 子命令：
  *   detect <claude-cmd>     → 输出 "npm:<path>" 或 "native-bun:<path>" 或 "unknown"
@@ -116,9 +116,9 @@ function detectInstallation(claudeCmd) {
   try { realPath = fs.realpathSync(claudeCmd); } catch { return "unknown"; }
 
   // 2. 先判真实目标本身是不是 Bun 二进制（Codex 二审 #1）
-  //    仅支持 Mach-O（macOS），ELF (Linux) 暂不开放
+  //    支持 Mach-O（macOS）、PE（Windows）、ELF（Linux）
   const format = detectBinaryFormat(realPath);
-  if ((format === "MachO64" || format === "MachO32" || format === "PE") && hasBunTrailer(realPath)) {
+  if ((format === "MachO64" || format === "MachO32" || format === "PE" || format === "ELF") && hasBunTrailer(realPath)) {
     return "native-bun:" + realPath;
   }
 
@@ -136,7 +136,7 @@ function detectInstallation(claudeCmd) {
     "node_modules/@anthropic-ai/claude-code/bin/claude.exe");
   if (fs.existsSync(npmExe)) {
     const exeFormat = detectBinaryFormat(npmExe);
-    if ((exeFormat === "PE" || exeFormat === "MachO64" || exeFormat === "MachO32") && hasBunTrailer(npmExe)) {
+    if ((exeFormat === "PE" || exeFormat === "MachO64" || exeFormat === "MachO32" || exeFormat === "ELF") && hasBunTrailer(npmExe)) {
       return "native-bun:" + npmExe;
     }
   }
@@ -151,7 +151,7 @@ function detectInstallation(claudeCmd) {
     const npmExe2 = path.join(globalRoot, "@anthropic-ai/claude-code/bin/claude.exe");
     if (fs.existsSync(npmExe2)) {
       const exeFormat2 = detectBinaryFormat(npmExe2);
-      if ((exeFormat2 === "PE" || exeFormat2 === "MachO64" || exeFormat2 === "MachO32") && hasBunTrailer(npmExe2)) {
+      if ((exeFormat2 === "PE" || exeFormat2 === "MachO64" || exeFormat2 === "MachO32" || exeFormat2 === "ELF") && hasBunTrailer(npmExe2)) {
         return "native-bun:" + npmExe2;
       }
     }
@@ -306,6 +306,24 @@ function extractFromPE(LIEF, binaryPath) {
 
   throw new Error("Bun section not found in PE binary");
 }
+ 
+function extractFromELF(LIEF, binaryPath) {
+  LIEF.logging.disable();
+  const binary = LIEF.parse(binaryPath);
+
+  for (const section of binary.sections()) {
+    if (section.name === '.bun') {
+      try {
+        const parsed = extractBunDataFromSection(section.content);
+        return { ...parsed, section, binary };
+      } catch (err) {
+        throw new Error(`ELF .bun section parse failed: ${err.message}`);
+      }
+    }
+  }
+
+  throw new Error(".bun section not found in ELF binary");
+}
 
 function extractNativeBun(LIEF, binaryPath) {
   LIEF.logging.disable();
@@ -328,6 +346,10 @@ function extractNativeBun(LIEF, binaryPath) {
         } catch {}
       }
       throw new Error("Bun section not found in PE binary");
+    }
+    case "ELF": {
+      const parsed = extractFromELF(LIEF, binaryPath);
+      return { ...parsed, format: "ELF" };
     }
     default:
       throw new Error(`Unsupported native binary format: ${binary.format || "unknown"}`);
@@ -561,6 +583,21 @@ function repackPE(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHead
   verifyPERepack(LIEF, outputPath, newBunBuffer);
 }
 
+function repackELF(LIEF, elfBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section) {
+  const newSectionData = buildSectionData(newBunBuffer, sectionHeaderSize);
+
+  section.content = newSectionData;
+  section.size = BigInt(newSectionData.length);
+  if ("virtualSize" in section) {
+    section.virtualSize = BigInt(newSectionData.length);
+  }
+
+  atomicWriteBinary(LIEF, elfBinary, outputPath, binPath);
+
+  // 恢复可执行权限（Linux 需要）
+  try { fs.chmodSync(outputPath, 0o755); } catch {}
+}
+
 // ============================================================================
 // CLI 子命令实现
 // ============================================================================
@@ -623,6 +660,9 @@ function cmdRepack() {
     case "PE":
       repackPE(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
       break;
+    case "ELF":
+      repackELF(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
+      break;
     default:
       process.stderr.write(`Error: unsupported native binary format ${format || "unknown"}\n`);
       process.exit(1);
@@ -633,7 +673,8 @@ function cmdRepack() {
 function isClaudePackageName(name) {
   return name === "@anthropic-ai/claude-code" ||
     name === "@anthropic-ai/claude-code-darwin-arm64" ||
-    name === "@anthropic-ai/claude-code-win32-x64";
+    name === "@anthropic-ai/claude-code-win32-x64" ||
+    name === "@anthropic-ai/claude-code-linux-x64";
 }
 
 function normalizeSemver(value) {
