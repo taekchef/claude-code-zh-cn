@@ -10,7 +10,7 @@
 
 ### 改进
 
-- macOS native latest 自动 closeout 跟进 Claude Code `2.1.183`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.60`，合并后可按发布流程创建 `v2.4.60`。
+- macOS / Windows native latest 自动 closeout 跟进 Claude Code `2.1.183`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.4.60`，合并后可按发布流程创建 `v2.4.60`。
 
 ### 验证
 
