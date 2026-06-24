@@ -485,6 +485,10 @@
     "zh": "所有后台 Agent 已停止"
   },
   {
+    "en": "Start the session as a background agent and return immediately (manage with `claude agents`)",
+    "zh": "以后台 Agent 启动会话并立即返回（用 `claude agents` 管理）"
+  },
+  {
     "en": "All plugins from our internal marketplace are vetted and approved.",
     "zh": "我们内部插件市场的所有插件都经过审查和批准。"
   },
@@ -1983,6 +1987,14 @@
   {
     "en": "Establishing connection to MCP server",
     "zh": "正在建立与 MCP 服务器的连接"
+  },
+  {
+    "en": "Authenticate with an MCP server (HTTP, SSE, or claude.ai connector)",
+    "zh": "向 MCP 服务器进行身份验证（HTTP、SSE 或 claude.ai connector）"
+  },
+  {
+    "en": "Clear stored OAuth credentials for an MCP server",
+    "zh": "清除 MCP 服务器已保存的 OAuth 凭据"
   },
   {
     "en": "Estimated usage by category",
