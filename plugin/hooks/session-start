@@ -663,7 +663,7 @@ if [ -n "$NATIVE_BINARY" ]; then
                                 FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}"
                                 [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
                                 echo "$FINAL_MARKER" > "$MARKER_FILE"
-                                AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native experimental，启动自检通过）"
+                                AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native 已验证版本，启动自检通过）"
                             else
                                 cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                             fi
@@ -678,7 +678,8 @@ if [ -n "$NATIVE_BINARY" ]; then
         fi
     fi
 elif [ -f "$CLI_FILE" ]; then
-    # 现有 npm 自动 re-patch 逻辑
+    # npm 自动 re-patch：备份/恢复/语法校验/失败回滚统一由 patch-cli.js 托管（--backup 模式）。
+    # 任何失败都只是"保持英文可用"（优雅降级），绝不让 CLI 坏掉。
     CURRENT_VERSION=$(head -6 "$CLI_FILE" | grep -o '// Version: [^ ]*' | head -1 | sed 's/\/\/ Version: //')
     PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
     CURRENT_MARKER="${CURRENT_VERSION}"
@@ -696,21 +697,28 @@ elif [ -f "$CLI_FILE" ]; then
     fi
 
     if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ] || [ -n "$NPM_PROBE_RESIDUE" ]; then
-        PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$CLI_FILE" 2>/dev/null || echo "0")
+        PATCH_STATUS_FILE="${TMPDIR:-/tmp}/cczh-patch-status.$$.${RANDOM:-0}"
+        PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$CLI_FILE" \
+            --backup "${CLI_FILE}.zh-cn-backup" \
+            --status "$PATCH_STATUS_FILE" 2>/dev/null || echo "0")
+        PATCH_STATUS="$(cat "$PATCH_STATUS_FILE" 2>/dev/null || echo "error")"
+        rm -f "$PATCH_STATUS_FILE"
 
-        if NPM_PROBE_RESIDUE="$(npm_cli_probe_residue "$CLI_FILE")"; then
-            :
-        else
-            NPM_PROBE_RESIDUE=""
-        fi
-
-        if [ -z "$NPM_PROBE_RESIDUE" ]; then
-            echo "$CURRENT_MARKER" > "$MARKER_FILE"
-        fi
-
-        if [ "$PATCH_COUNT" != "0" ] && [ -z "$NPM_PROBE_RESIDUE" ]; then
-            AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字）"
-        fi
+        case "$PATCH_STATUS" in
+            ok|noop)
+                echo "$CURRENT_MARKER" > "$MARKER_FILE"
+                if [ "$PATCH_STATUS" = "ok" ] && [ "$PATCH_COUNT" != "0" ]; then
+                    AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字）"
+                fi
+                ;;
+            partial)
+                # 部分降级：当前版本存在未覆盖文案，不更新 marker，等插件更新后重试
+                AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处；当前 Claude Code 版本存在未覆盖文案，部分界面保持英文，等待插件更新）"
+                ;;
+            *)
+                # validation-failed / error：未写盘，CLI 保持原样可用；详情见 patch.log
+                ;;
+        esac
     fi
 fi
 

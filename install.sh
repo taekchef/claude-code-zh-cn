@@ -102,7 +102,7 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 属于 experimental；新同版本线会在安装时本机自验证"
+        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 按已验证版本窗口执行；新同版本线会在安装时本机自验证"
     fi
 
     echo ""
@@ -152,7 +152,7 @@ check_dependencies() {
                 echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version:-unknown}，CLI Patch 需要 node-lief${NC}"
                 echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
             else
-                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将使用 experimental native patch${NC}"
+                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将执行 native patch${NC}"
             fi
         elif can_try_provisional_native_version "$native_version"; then
             if [ "$dep_status" != "ok" ]; then
@@ -1124,33 +1124,50 @@ write_install_metadata() {
 
 patch_npm_cli() {
     local cli_file="$1"
-    local current_version backup_version patch_count patch_revision
+    local current_version patch_count patch_revision patch_status status_file
 
     echo ""
     echo -e "${BLUE}正在 patch cli.js 硬编码文字...${NC}"
 
     current_version=$(sed -n 's/^\/\/ Version: //p' "$cli_file" | head -1) || current_version=""
-    backup_version=""
-    if [ -f "${cli_file}.zh-cn-backup" ]; then
-        backup_version=$(sed -n 's/^\/\/ Version: //p' "${cli_file}.zh-cn-backup" | head -1) || backup_version=""
-    fi
 
-    if [ "${current_version:-}" = "${backup_version:-}" ] && [ -n "${backup_version:-}" ] && [ -f "${cli_file}.zh-cn-backup" ]; then
-        cp "${cli_file}.zh-cn-backup" "$cli_file"
-        echo -e "${GREEN}已从备份恢复原始 cli.js（版本一致: ${current_version:-unknown}）${NC}"
-    else
-        cp "$cli_file" "${cli_file}.zh-cn-backup"
-        echo -e "${GREEN}已备份 cli.js（版本: ${current_version:-unknown}）${NC}"
-    fi
+    # 备份/恢复/语法校验/失败回滚统一由 patch-cli.js 托管（--backup 模式）：
+    # - 同版本备份存在 → 从备份恢复干净基底再 patch，杜绝 patch 叠 patch
+    # - patch 结果通过 JS 语法校验才写盘；失败则不落盘，CLI 保持可用（优雅降级）
+    status_file="${TMPDIR:-/tmp}/cczh-patch-status.$$.${RANDOM:-0}"
+    patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$cli_file" \
+        --backup "${cli_file}.zh-cn-backup" \
+        --status "$status_file" 2>/dev/null || echo "0")
+    patch_status="$(cat "$status_file" 2>/dev/null || echo "error")"
+    rm -f "$status_file"
 
-    patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$cli_file" 2>/dev/null || echo "0")
-    echo -e "${GREEN}已 patch cli.js（${patch_count:-0} 处硬编码文字）${NC}"
-    if [ "${patch_count:-0}" = "0" ]; then
-        CLI_PATCH_STATUS_SUMMARY="cli.js 无新增改动（可能已是最新状态）"
-    else
-        CLI_PATCH_STATUS_SUMMARY="cli.js 中文化（${patch_count:-0} 处硬编码文字）"
-    fi
-    CLI_PATCH_STATUS_OK=true
+    case "$patch_status" in
+        ok)
+            echo -e "${GREEN}已 patch cli.js（${patch_count:-0} 处硬编码文字）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="cli.js 中文化（${patch_count:-0} 处硬编码文字）"
+            CLI_PATCH_STATUS_OK=true
+            ;;
+        partial)
+            echo -e "${YELLOW}已 patch cli.js（${patch_count:-0} 处），但当前版本存在未覆盖的英文文案（部分降级，CLI 可正常使用）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="cli.js 部分中文化（${patch_count:-0} 处，当前版本存在未覆盖文案）"
+            CLI_PATCH_STATUS_OK=true
+            ;;
+        noop)
+            echo -e "${GREEN}cli.js 无新增改动（可能已是最新状态）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="cli.js 无新增改动（可能已是最新状态）"
+            CLI_PATCH_STATUS_OK=true
+            ;;
+        validation-failed)
+            echo -e "${YELLOW}patch 结果未通过 JS 语法校验，已放弃写入（CLI 保持英文可用，详见插件目录 patch.log）${NC}"
+            CLI_PATCH_STATUS_SUMMARY="已跳过（patch 结果未通过语法校验，CLI 保持英文可用）"
+            return
+            ;;
+        *)
+            echo -e "${YELLOW}CLI Patch 未完成（详见插件目录 patch.log），CLI 保持原样可用${NC}"
+            CLI_PATCH_STATUS_SUMMARY="已跳过（CLI Patch 未完成，详见 patch.log）"
+            return
+            ;;
+    esac
 
     patch_revision=$(compute_patch_revision "$PLUGIN_DST" 2>/dev/null || true)
     if [ -n "${patch_revision:-}" ] && [ -n "${current_version:-}" ]; then
@@ -1189,7 +1206,7 @@ patch_native_binary() {
         echo -e "  版本: ${current_version}（未纳入已发布支持窗口，安装时本机自验证）"
         print_unpublished_window_note
     else
-        echo -e "  版本: ${current_version}（experimental）"
+        echo -e "  版本: ${current_version}（已验证）"
     fi
 
     local dep_status

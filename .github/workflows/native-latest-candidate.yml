@@ -38,6 +38,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write
 
     steps:
       - uses: actions/checkout@v6
@@ -139,55 +140,65 @@ jobs:
           echo "report_path=${REPORT_PATH}" >> "$GITHUB_OUTPUT"
           {
             echo "## Native failure handoff"
-            echo "Prepared \`${REPORT_PATH}\`; the next step opens or updates a draft PR branch for maintainer takeover."
+            echo "Prepared \`${REPORT_PATH}\`; the next step appends it to the single tracking issue (no more per-version draft PRs)."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create native candidate failure handoff PR
-        id: failure_handoff_pr
+      - name: Report native candidate failure to tracking issue
+        id: failure_issue
         if: failure() && steps.failure_handoff.outputs.report_path != ''
-        uses: peter-evans/create-pull-request@v8
+        uses: actions/github-script@v8
+        env:
+          CANDIDATE_VERSION: ${{ steps.version.outputs.version }}
+          REPORT_PATH: ${{ steps.failure_handoff.outputs.report_path }}
+          PLATFORM_LABEL: macOS arm64
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: codex/native-latest-${{ steps.version.outputs.version }}-fix
-          draft: true
-          delete-branch: true
-          commit-message: "chore: hand off macOS native ${{ steps.version.outputs.version }} failure"
-          title: "fix: follow up macOS native ${{ steps.version.outputs.version }} candidate failure"
-          body: |
-            Automated handoff for a failed macOS arm64 native Claude Code candidate.
-
-            This draft PR is created when the candidate does not pass native verification or display audit. The branch starts with a generated failure report so the maintainer can take it over directly, add the required translations or guard fix, and rerun the candidate workflow.
-
-            Failure report: `${{ steps.failure_handoff.outputs.report_path }}`.
-
-            Candidate JSON artifact: `native-latest-candidate-${{ steps.version.outputs.version }}`.
-
-            Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.
-
-      - name: Summarize native failure handoff PR
-        if: failure() && steps.failure_handoff.outputs.report_path != ''
-        shell: bash
-        run: |
-          PR_URL="${{ steps.failure_handoff_pr.outputs.pull-request-url }}"
-          PR_BRANCH="${{ steps.failure_handoff_pr.outputs.pull-request-branch }}"
-          PR_OPERATION="${{ steps.failure_handoff_pr.outputs.pull-request-operation }}"
-          if [ -z "$PR_BRANCH" ]; then
-            PR_BRANCH="codex/native-latest-${{ steps.version.outputs.version }}-fix"
-          fi
-          if [ -z "$PR_OPERATION" ]; then
-            PR_OPERATION="not reported"
-          fi
-          {
-            echo "## Native failure handoff PR"
-            echo "- Branch: \`${PR_BRANCH}\`"
-            if [ -n "$PR_URL" ]; then
-              echo "- Pull request: ${PR_URL}"
-            else
-              echo "- Pull request: not created; inspect the create-pull-request step logs."
-            fi
-            echo "- Operation: \`${PR_OPERATION}\`"
-            echo "- Report: \`${{ steps.failure_handoff.outputs.report_path }}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          script: |
+            const fs = require("fs");
+            const label = "native-candidate-failure";
+            const title = "Native latest candidate failures (tracking)";
+            const { CANDIDATE_VERSION, REPORT_PATH, PLATFORM_LABEL, RUN_URL } = process.env;
+            let report = "";
+            try { report = fs.readFileSync(REPORT_PATH, "utf8"); } catch {}
+            const marker = `<!-- native-candidate-failure ${PLATFORM_LABEL} ${CANDIDATE_VERSION} -->`;
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: label });
+            } catch {
+              await github.rest.issues.createLabel({ ...context.repo, name: label, color: "d73a4a", description: "Automated native candidate failure tracking" });
+            }
+            const issues = await github.rest.issues.listForRepo({ ...context.repo, state: "open", labels: label });
+            let issue = issues.data.find((item) => item.title === title);
+            if (!issue) {
+              const created = await github.rest.issues.create({
+                ...context.repo,
+                title,
+                labels: [label],
+                body: "自动跟踪 native latest candidate 验证失败。每个失败的版本/平台在下方追加一条评论（同版本同平台只报一次）；修复或后续版本通过后由维护者收敛处理。此机制取代了以前每次失败开一个草稿 PR 的做法。",
+              });
+              issue = created.data;
+            }
+            const comments = await github.paginate(github.rest.issues.listComments, { ...context.repo, issue_number: issue.number, per_page: 100 });
+            if (comments.some((comment) => (comment.body || "").includes(marker))) {
+              core.info(`already reported: ${PLATFORM_LABEL} ${CANDIDATE_VERSION}`);
+              return;
+            }
+            const body = [
+              marker,
+              `## ${PLATFORM_LABEL} native ${CANDIDATE_VERSION} candidate failed`,
+              "",
+              `- Run: ${RUN_URL}`,
+              `- Report file: \`${REPORT_PATH}\``,
+              "",
+              "<details><summary>Failure report</summary>",
+              "",
+              "````markdown",
+              report.slice(0, 60000),
+              "````",
+              "",
+              "</details>",
+            ].join("\n");
+            await github.rest.issues.createComment({ ...context.repo, issue_number: issue.number, body });
+            await core.summary.addRaw(`Reported failure to tracking issue #${issue.number}`).write();
 
       - name: Promote native candidate support surfaces
         if: success()
@@ -267,8 +278,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      issues: write
 
     steps:
       - uses: actions/checkout@v6
@@ -368,52 +379,64 @@ jobs:
             --output "$ReportPath"
           "report_path=$ReportPath" >> $env:GITHUB_OUTPUT
           "## Windows native failure handoff" >> $env:GITHUB_STEP_SUMMARY
-          "Prepared ``$ReportPath``; the next step opens or updates a draft PR branch for maintainer takeover." >> $env:GITHUB_STEP_SUMMARY
+          "Prepared ``$ReportPath``; the next step appends it to the single tracking issue (no more per-version draft PRs)." >> $env:GITHUB_STEP_SUMMARY
 
-      - name: Create Windows native candidate failure handoff PR
-        id: windows_failure_handoff_pr
+      - name: Report Windows native candidate failure to tracking issue
+        id: windows_failure_issue
         if: failure() && steps.windows_failure_handoff.outputs.report_path != ''
-        uses: peter-evans/create-pull-request@v8
+        uses: actions/github-script@v8
+        env:
+          CANDIDATE_VERSION: ${{ steps.version.outputs.version }}
+          REPORT_PATH: ${{ steps.windows_failure_handoff.outputs.report_path }}
+          PLATFORM_LABEL: Windows x64
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: codex/windows-native-latest-${{ steps.version.outputs.version }}-fix
-          draft: true
-          delete-branch: true
-          commit-message: "chore: hand off Windows native ${{ steps.version.outputs.version }} failure"
-          title: "fix: follow up Windows native ${{ steps.version.outputs.version }} candidate failure"
-          body: |
-            Automated handoff for a failed Windows x64 native Claude Code candidate.
-
-            This draft PR is created when the candidate does not pass native verification or display audit. The branch starts with a generated failure report so the maintainer can take it over directly, add the required translations or guard fix, and rerun the candidate workflow.
-
-            Failure report: `${{ steps.windows_failure_handoff.outputs.report_path }}`.
-
-            Candidate JSON artifact: `windows-native-latest-candidate-${{ steps.version.outputs.version }}`.
-
-            Text diff report artifact: `windows-native-latest-text-diff-${{ steps.version.outputs.version }}`.
-
-      - name: Summarize Windows native failure handoff PR
-        if: failure() && steps.windows_failure_handoff.outputs.report_path != ''
-        shell: pwsh
-        run: |
-          $PrUrl = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-url }}"
-          $PrBranch = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-branch }}"
-          $PrOperation = "${{ steps.windows_failure_handoff_pr.outputs.pull-request-operation }}"
-          if (-not $PrBranch) {
-            $PrBranch = "codex/windows-native-latest-${{ steps.version.outputs.version }}-fix"
-          }
-          if (-not $PrOperation) {
-            $PrOperation = "not reported"
-          }
-          "## Windows native failure handoff PR" >> $env:GITHUB_STEP_SUMMARY
-          "- Branch: ``$PrBranch``" >> $env:GITHUB_STEP_SUMMARY
-          if ($PrUrl) {
-            "- Pull request: $PrUrl" >> $env:GITHUB_STEP_SUMMARY
-          } else {
-            "- Pull request: not created; inspect the create-pull-request step logs." >> $env:GITHUB_STEP_SUMMARY
-          }
-          "- Operation: ``$PrOperation``" >> $env:GITHUB_STEP_SUMMARY
-          "- Report: ``${{ steps.windows_failure_handoff.outputs.report_path }}``" >> $env:GITHUB_STEP_SUMMARY
+          script: |
+            const fs = require("fs");
+            const label = "native-candidate-failure";
+            const title = "Native latest candidate failures (tracking)";
+            const { CANDIDATE_VERSION, REPORT_PATH, PLATFORM_LABEL, RUN_URL } = process.env;
+            let report = "";
+            try { report = fs.readFileSync(REPORT_PATH, "utf8"); } catch {}
+            const marker = `<!-- native-candidate-failure ${PLATFORM_LABEL} ${CANDIDATE_VERSION} -->`;
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: label });
+            } catch {
+              await github.rest.issues.createLabel({ ...context.repo, name: label, color: "d73a4a", description: "Automated native candidate failure tracking" });
+            }
+            const issues = await github.rest.issues.listForRepo({ ...context.repo, state: "open", labels: label });
+            let issue = issues.data.find((item) => item.title === title);
+            if (!issue) {
+              const created = await github.rest.issues.create({
+                ...context.repo,
+                title,
+                labels: [label],
+                body: "自动跟踪 native latest candidate 验证失败。每个失败的版本/平台在下方追加一条评论（同版本同平台只报一次）；修复或后续版本通过后由维护者收敛处理。此机制取代了以前每次失败开一个草稿 PR 的做法。",
+              });
+              issue = created.data;
+            }
+            const comments = await github.paginate(github.rest.issues.listComments, { ...context.repo, issue_number: issue.number, per_page: 100 });
+            if (comments.some((comment) => (comment.body || "").includes(marker))) {
+              core.info(`already reported: ${PLATFORM_LABEL} ${CANDIDATE_VERSION}`);
+              return;
+            }
+            const body = [
+              marker,
+              `## ${PLATFORM_LABEL} native ${CANDIDATE_VERSION} candidate failed`,
+              "",
+              `- Run: ${RUN_URL}`,
+              `- Report file: \`${REPORT_PATH}\``,
+              "",
+              "<details><summary>Failure report</summary>",
+              "",
+              "````markdown",
+              report.slice(0, 60000),
+              "````",
+              "",
+              "</details>",
+            ].join("\n");
+            await github.rest.issues.createComment({ ...context.repo, issue_number: issue.number, body });
+            await core.summary.addRaw(`Reported failure to tracking issue #${issue.number}`).write();
 
       - name: Prepare Windows native support promotion artifacts
         id: windows_promotion

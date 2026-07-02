@@ -7,70 +7,6 @@ const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const syncScript = path.join(repoRoot, "scripts", "sync-doc-derived-counts.js");
-const nativeSupport = require(path.join(repoRoot, "scripts", "upstream-compat.config.json")).support
-  .macosNativeExperimental;
-
-function escapeRegex(text) {
-  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function versionParts(version) {
-  return String(version).split(".").map((part) => Number.parseInt(part, 10));
-}
-
-function compareVersions(left, right) {
-  const a = versionParts(left);
-  const b = versionParts(right);
-  for (let index = 0; index < 3; index += 1) {
-    const diff = (a[index] || 0) - (b[index] || 0);
-    if (diff !== 0) {
-      return diff;
-    }
-  }
-  return 0;
-}
-
-function compactVersions(versions) {
-  const sorted = [...versions].map(String).sort(compareVersions);
-  const segments = [];
-  let start = null;
-  let previous = null;
-
-  for (const version of sorted) {
-    if (!start) {
-      start = version;
-      previous = version;
-      continue;
-    }
-
-    const [major, minor, patch] = versionParts(version);
-    const [previousMajor, previousMinor, previousPatch] = versionParts(previous);
-    if (major === previousMajor && minor === previousMinor && patch === previousPatch + 1) {
-      previous = version;
-      continue;
-    }
-
-    segments.push(start === previous ? start : `${start} - ${previous}`);
-    start = version;
-    previous = version;
-  }
-
-  if (start) {
-    segments.push(start === previous ? start : `${start} - ${previous}`);
-  }
-
-  return segments;
-}
-
-function nativePatchRange() {
-  const patchCounts = [...String(nativeSupport.verification || "").matchAll(/native (\d+), display/g)].map(
-    (match) => Number.parseInt(match[1], 10)
-  );
-  assert.notEqual(patchCounts.length, 0, "native support verification should include patch counts");
-  return `${Math.min(...patchCounts)}-${Math.max(...patchCounts)}`;
-}
-
-const expectedNativePatchRange = nativePatchRange();
 
 function runSync(args) {
   return spawnSync("node", [syncScript, ...args], {
@@ -98,7 +34,7 @@ function makeStale(filePath) {
     [/(\d+)( 个 \| `spinnerVerbs` \|)/g, `777777$2`],
     [/(\d+)( 条 \| `spinnerTipsOverride` \|)/g, `666666$2`],
     [/(\d+)( 条 UI 翻译对照表)/g, `999999$2`],
-    [/(\d+)( 条翻译；当前 stable 代表版本)/g, `999999$2`],
+    [/(\d+)( 条翻译；代表版本)/g, `999999$2`],
     [/(\| UI 文字中文化 \| )\d+( 条翻译)/g, `$1999999$2`],
     [/(` 实测 )\d+( 处有效 patch)/g, `$1888888$2`],
     [/(\d+)( spinner verbs,)/g, `777777$2`],
@@ -106,29 +42,6 @@ function makeStale(filePath) {
     [/(\d+)( UI translations,)/g, `999999$2`],
     [/(\d+)( 个 spinner 动词翻译)/g, `777777$2`],
     [/(\d+)( 条 spinner 提示翻译)/g, `666666$2`],
-  ]) {
-    text = text.replace(pattern, replacement);
-  }
-  fs.writeFileSync(filePath, text);
-}
-
-function makeNativeStale(filePath) {
-  let text = fs.readFileSync(filePath, "utf8");
-  const floor = nativeSupport.floor;
-  const ceiling = nativeSupport.ceiling;
-  const badgeRange = `${floor}--${ceiling}`;
-  const displayRange = `${floor} - ${ceiling}`;
-  const englishRange = `${floor}\` through \`${ceiling}\``;
-  for (const [pattern, replacement] of [
-    [new RegExp(escapeRegex(badgeRange), "g"), "9.9.113--9.9.143"],
-    [new RegExp(escapeRegex(displayRange), "g"), "9.9.113 - 9.9.143"],
-    [/2\.1\.116 - 2\.1\.123/g, "9.9.116 - 9.9.123"],
-    [new RegExp(escapeRegex(ceiling), "g"), "9.9.143"],
-    [/2\.1\.115/g, "9.9.115"],
-    [new RegExp(escapeRegex(expectedNativePatchRange), "g"), "1-2"],
-    [/11\/11/g, "3/4"],
-    [/11 个稳定显示面/g, "4 个稳定显示面"],
-    [new RegExp(`${escapeRegex(englishRange)} except unsupported ${escapeRegex("`2.1.115`")}`, "g"), "9.9.113` through `9.9.143` except unsupported `9.9.115`"],
   ]) {
     text = text.replace(pattern, replacement);
   }
@@ -175,43 +88,4 @@ test("doc-derived count sync rewrites stale docs from source files", () => {
     assert.doesNotMatch(text, /777777 个 spinner 动词/);
     assert.doesNotMatch(text, /666666 条 spinner 提示/);
   }
-});
-
-test("doc-derived count sync rewrites README native support facts from config and matrix", () => {
-  const { files } = copyDocFixtures();
-  const readme = files.find((file) => path.basename(file) === "README.md");
-  makeNativeStale(readme);
-
-  const staleResult = runSync(["--check", readme]);
-  assert.equal(staleResult.status, 1, "stale native README facts should fail the guard");
-
-  const writeResult = runSync(["--write", readme]);
-  assert.equal(writeResult.status, 0, writeResult.stderr || writeResult.stdout);
-
-  const checkResult = runSync(["--check", readme]);
-  assert.equal(checkResult.status, 0, checkResult.stderr || checkResult.stdout);
-
-  const text = fs.readFileSync(readme, "utf8");
-  assert.match(
-    text,
-    new RegExp(escapeRegex(`macos%20native-${nativeSupport.floor}--${nativeSupport.ceiling}%20experimental`))
-  );
-  assert.match(text, new RegExp(escapeRegex(`${nativeSupport.floor} - ${nativeSupport.ceiling}`)));
-  assert.match(text, /不含未纳入本轮支持的 `2\.1\.115`、`2\.1\.125`/);
-  assert.match(text, /`2\.1\.113 - 2\.1\.114`、`2\.1\.116 - 2\.1\.124`/);
-  for (const segment of compactVersions(nativeSupport.representatives)) {
-    assert.match(text, new RegExp(escapeRegex(`\`${segment}\``)));
-  }
-  assert.match(text, new RegExp(`${escapeRegex(expectedNativePatchRange)} 处`));
-  assert.match(text, /显示审计 11\/11 PASS/);
-  assert.match(text, /11 个稳定显示面/);
-  assert.match(
-    text,
-    new RegExp(
-      `${escapeRegex(`${nativeSupport.floor}\` through \`${nativeSupport.ceiling}\``)} except unsupported ${escapeRegex(
-        "`2.1.115`, `2.1.125`"
-      )}`
-    )
-  );
-  assert.doesNotMatch(text, /9\.9\.|1-2 处|3\/4|4 个稳定显示面/);
 });

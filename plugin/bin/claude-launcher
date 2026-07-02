@@ -113,6 +113,8 @@ maybe_patch_npm_cli() {
     local patched_marker=""
     local patch_output=""
     local residue=""
+    local status_file=""
+    local patch_status=""
 
     if [ -f "$MARKER_FILE" ]; then
         IFS= read -r patched_marker < "$MARKER_FILE" || true
@@ -129,17 +131,30 @@ maybe_patch_npm_cli() {
         return
     fi
 
-    if ! patch_output="$("$PLUGIN_ROOT/patch-cli.sh" "$cli_file" 2>/dev/null)"; then
+    # 备份/恢复/语法校验/失败回滚统一由 patch-cli.js 托管（--backup 模式）；
+    # 任何失败都只是保持英文可用，不阻塞启动。
+    status_file="${TMPDIR:-/tmp}/cczh-patch-status.$$.${RANDOM:-0}"
+    if ! patch_output="$("$PLUGIN_ROOT/patch-cli.sh" "$cli_file" \
+        --backup "${cli_file}.zh-cn-backup" \
+        --status "$status_file" 2>/dev/null)"; then
+        rm -f "$status_file"
         log_warning "prelaunch patch failed; continuing with original Claude Code"
         return
     fi
+    patch_status="$(cat "$status_file" 2>/dev/null || echo "error")"
+    rm -f "$status_file"
 
-    if residue="$(npm_cli_probe_residue "$cli_file")"; then
-        log_warning "prelaunch patch left English probes: $residue; continuing with original Claude Code"
-        return
-    fi
-
-    printf "%s\n" "$current_marker" > "$MARKER_FILE"
+    case "$patch_status" in
+        ok|noop)
+            printf "%s\n" "$current_marker" > "$MARKER_FILE"
+            ;;
+        partial)
+            log_warning "prelaunch patch applied partially (some English remains for this Claude Code version); continuing"
+            ;;
+        *)
+            log_warning "prelaunch patch skipped (status: $patch_status, see plugin patch.log); continuing with original Claude Code"
+            ;;
+    esac
 }
 
 main() {

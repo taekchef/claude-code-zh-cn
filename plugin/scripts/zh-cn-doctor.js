@@ -13,7 +13,6 @@ const CLAUDE_UPDATER_BOUNDARY =
 const UNPUBLISHED_WINDOW_GUIDANCE =
   "升到未发布支持窗口时，先看 docs/support-matrix.md；未收录就等插件 Release，或临时退回已验证版本";
 const PATCH_REVISION_FILES = [
-  "manifest.json",
   "patch-cli.sh",
   "patch-cli.js",
   "cli-translations.json",
@@ -720,7 +719,7 @@ function runDoctor(options = {}) {
     const residue = npmCliResidue(target);
     if (!stable) {
       layer4Status = "unsupported";
-      layer4Detail = `npm ${cliVersion || "unknown"} 不在 stable 窗口 2.1.92–2.1.112`;
+      layer4Detail = `npm ${cliVersion || "unknown"} 不在已验证版本窗口 2.1.92–2.1.112（未验证版本会自动降级：翻译不上就保持英文，CLI 不受影响）`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
       recommendations.push(`如需完整 UI 中文，请改用：${STABLE_INSTALL_CMD}`);
       recommendations.push("然后在本仓库重新运行 ./install.sh");
@@ -791,7 +790,7 @@ function runDoctor(options = {}) {
         recommendations.push("运行 ./install.sh 重新 patch native 二进制");
       } else {
         layer4Status = "ok";
-        add("layer4", "Layer 4（UI 硬编码）", "ok", `experimental native ${cliVersion} 已记录 patch`);
+        add("layer4", "Layer 4（UI 硬编码）", "ok", `已验证 native ${cliVersion} 已记录 patch`);
       }
     } else {
       layer4Status = "needed";
@@ -806,6 +805,32 @@ function runDoctor(options = {}) {
     } else {
       recommendations.push(`完整 UI 中文推荐：${STABLE_INSTALL_CMD}`);
     }
+  }
+
+  // patch.log：CLI Patch 失败/降级事件（由 patch-cli.js 写入）
+  const patchLogFile = path.join(pluginRoot, "patch.log");
+  if (fs.existsSync(patchLogFile)) {
+    try {
+      const logLines = fs
+        .readFileSync(patchLogFile, "utf8")
+        .split(/\r?\n/)
+        .filter(Boolean);
+      const recent = logLines.slice(-3);
+      const hasValidationFailure = recent.some((line) => line.includes("validation-failed"));
+      if (recent.length > 0) {
+        add(
+          "patch-log",
+          "CLI Patch 日志",
+          hasValidationFailure ? "warn" : "ok",
+          `最近记录：${recent[recent.length - 1]}`
+        );
+        if (hasValidationFailure) {
+          recommendations.push(
+            "最近一次 patch 结果未通过语法校验，已自动放弃写入（CLI 保持英文可用）；完整日志见 " + patchLogFile
+          );
+        }
+      }
+    } catch {}
   }
 
   if (fs.existsSync(sourceRepoFile)) {

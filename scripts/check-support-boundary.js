@@ -81,17 +81,26 @@ function readBoundary(config) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|不属于|不代表|unsupported|not\s+supported|not\s+currently\s+supported|not\s+stable|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|不属于|不代表|unsupported|not\s+supported|not\s+currently\s+supported|not\s+stable|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含|未纳入|才启用|自动降级|graceful degradation/i.test(line);
 }
 
+// 统一「已验证版本」口径后，native 行只要明确限定在已验证窗口内（已验证 / experimental 措辞），
+// 且不宣称 latest / stable 全量支持，就是合法表述。
 function isAllowedNativeExperimentalLine(line) {
   const mentionsPlatform = /macOS|darwin|Windows|win32/i.test(line);
   const mentionsNative = /native|原生|二进制|binary/i.test(line);
-  const experimental = /experimental|实验/i.test(line);
+  const verifiedScope = /experimental|实验|已验证/i.test(line);
   const stableClaim = /\bstable\b|稳定支持|stable CLI Patch/i.test(line);
   const latestClaim = /\blatest\b|最新版|最新版本/i.test(line);
 
-  return mentionsPlatform && mentionsNative && experimental && !stableClaim && !latestClaim;
+  return mentionsPlatform && mentionsNative && verifiedScope && !stableClaim && !latestClaim;
+}
+
+// 徽章等行直接链接到支持矩阵（单一来源），版本窗口以矩阵为准，不算越界宣称。
+function isSupportMatrixScopedLine(line) {
+  const linksMatrix = /support-matrix\.md/.test(line);
+  const latestClaim = /\blatest\b|最新版|最新版本/i.test(line);
+  return linksMatrix && !latestClaim;
 }
 
 function isAllowedMixedStableExperimentalLine(line) {
@@ -118,7 +127,8 @@ function findSupportClaim(line, boundary) {
     hasSupportVerb &&
     !isNegatedBoundaryLine(line) &&
     !isAllowedNativeExperimentalLine(line) &&
-    !isAllowedMixedStableExperimentalLine(line)
+    !isAllowedMixedStableExperimentalLine(line) &&
+    !isSupportMatrixScopedLine(line)
   ) {
     return `${boundary.nativeBoundary}+ / latest 不能写成 stable 支持`;
   }

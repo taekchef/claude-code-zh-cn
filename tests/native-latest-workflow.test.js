@@ -124,48 +124,43 @@ test("native latest candidate workflow explains failed promotion boundaries", ()
   assert.match(workflow, /2>&1/);
 });
 
-test("native latest candidate workflow opens a handoff PR for failed candidates", () => {
+test("native latest candidate workflow reports failed candidates to a single tracking issue", () => {
   const workflow = readWorkflow();
 
   assert.match(workflow, /Prepare native failure handoff/);
   assert.match(workflow, /scripts\/prepare-native-failure-handoff\.js[\s\S]*--candidate/);
   assert.match(workflow, /docs\/native-latest-failures\/\$\{VERSION\}\.md/);
-  assert.match(workflow, /Create native candidate failure handoff PR/);
-  assert.match(workflow, /id:\s*failure_handoff_pr/);
-  assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
-  assert.match(workflow, /codex\/native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
-  assert.match(workflow, /draft:\s*true/);
-  assert.match(workflow, /follow up macOS native \$\{\{\s*steps\.version\.outputs\.version\s*\}\} candidate failure/);
+  assert.match(workflow, /Report native candidate failure to tracking issue/);
+  assert.match(workflow, /id:\s*failure_issue/);
+  assert.match(workflow, /actions\/github-script@v\d+/);
+  assert.match(workflow, /native-candidate-failure/);
+  assert.match(workflow, /Native latest candidate failures \(tracking\)/);
   assert.match(workflow, /steps\.failure_handoff\.outputs\.report_path != ''/);
+  // 失败不再开草稿 PR
+  assert.doesNotMatch(workflow, /Create native candidate failure handoff PR/);
+  assert.doesNotMatch(workflow, /codex\/native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
 });
 
-test("native latest candidate workflow summarizes the failure handoff PR result", () => {
+test("native failure tracking issue reporting is idempotent per platform and version", () => {
   const workflow = readWorkflow();
 
-  assert.match(workflow, /Summarize native failure handoff PR/);
-  assert.match(workflow, /steps\.failure_handoff_pr\.outputs\.pull-request-url/);
-  assert.match(workflow, /steps\.failure_handoff_pr\.outputs\.pull-request-branch/);
-  assert.match(workflow, /steps\.failure_handoff_pr\.outputs\.pull-request-operation/);
-  assert.match(workflow, /if \[ -z "\$PR_OPERATION" \]; then\s+PR_OPERATION="not reported"/);
-  assert.match(workflow, /codex\/native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
-  assert.match(workflow, /echo "- Pull request:/);
-  assert.match(workflow, /echo "- Branch: \\`\$\{PR_BRANCH\}\\`"/);
-  assert.match(workflow, /echo "- Operation: \\`\$\{PR_OPERATION\}\\`"/);
-  assert.match(workflow, /echo "- Report: \\`\$\{\{\s*steps\.failure_handoff\.outputs\.report_path\s*\}\}\\`"/);
-  assert.match(workflow, /GITHUB_STEP_SUMMARY/);
+  assert.match(workflow, /<!-- native-candidate-failure \$\{PLATFORM_LABEL\} \$\{CANDIDATE_VERSION\} -->/);
+  assert.match(workflow, /already reported/);
+  assert.match(workflow, /issues:\s*write/);
 });
 
-test("native latest candidate workflow opens a handoff PR for failed Windows candidates", () => {
+test("native latest candidate workflow reports failed Windows candidates to the tracking issue", () => {
   const workflow = readWorkflow();
 
   assert.match(workflow, /Prepare Windows native failure handoff/);
   assert.match(workflow, /scripts\/prepare-native-failure-handoff\.js[\s\S]*--platform windows/);
   assert.match(workflow, /docs\/native-latest-failures\/windows-\$Version\.md/);
-  assert.match(workflow, /Create Windows native candidate failure handoff PR/);
-  assert.match(workflow, /id:\s*windows_failure_handoff_pr/);
-  assert.match(workflow, /codex\/windows-native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
-  assert.match(workflow, /follow up Windows native \$\{\{\s*steps\.version\.outputs\.version\s*\}\} candidate failure/);
+  assert.match(workflow, /Report Windows native candidate failure to tracking issue/);
+  assert.match(workflow, /id:\s*windows_failure_issue/);
+  assert.match(workflow, /PLATFORM_LABEL:\s*Windows x64/);
   assert.match(workflow, /windows-native-latest-text-diff-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
+  assert.doesNotMatch(workflow, /Create Windows native candidate failure handoff PR/);
+  assert.doesNotMatch(workflow, /codex\/windows-native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
 });
 
 test("native latest candidate workflow prepares Windows promotion artifacts with guards", () => {

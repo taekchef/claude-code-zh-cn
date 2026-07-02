@@ -95,7 +95,7 @@ function Get-PatchRevision($Root) {
     $code = @'
 const crypto=require("crypto"),fs=require("fs"),path=require("path");
 const root=process.argv[2];
-const files=["manifest.json","patch-cli.sh","patch-cli.js","cli-translations.json","bun-binary-io.js","compute-patch-revision.sh"];
+const files=["patch-cli.sh","patch-cli.js","cli-translations.json","bun-binary-io.js","compute-patch-revision.sh"];
 const hash=crypto.createHash("sha256");
 for(const f of files){const t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update("\0");hash.update(fs.readFileSync(t));hash.update("\0")}
 process.stdout.write(hash.digest("hex").slice(0,16));
@@ -236,10 +236,31 @@ if ($InstallInfo) {
         $hasResidue = Test-NpmCliResidue $Target
         if ($CurrentMarker -ne $PatchedVersion -or $hasResidue) {
             if (Test-Path "$PluginRoot\patch-cli.js") {
-                $patchCount = node "$PluginRoot\patch-cli.js" "$Target" "$PluginRoot\cli-translations.json" 2>$null
-                if ($patchCount -and [int]$patchCount -gt 0) {
-                    "$CurrentMarker" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
-                    $AutoPatchMsg = "（已自动 patch ${patchCount} 处硬编码文字）"
+                # 备份/恢复/语法校验/失败回滚统一由 patch-cli.js 托管（--backup 模式）
+                $statusFile = Join-Path ([System.IO.Path]::GetTempPath()) ("cczh-patch-status-" + [System.IO.Path]::GetRandomFileName())
+                $patchCount = node "$PluginRoot\patch-cli.js" "$Target" "$PluginRoot\cli-translations.json" --backup "$Target.zh-cn-backup" --status $statusFile 2>$null
+                $patchStatus = "error"
+                if (Test-Path $statusFile) {
+                    $patchStatus = (Get-Content $statusFile -Raw).Trim()
+                    Remove-Item $statusFile -Force -ErrorAction SilentlyContinue
+                }
+                switch ($patchStatus) {
+                    "ok" {
+                        "$CurrentMarker" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+                        if ($patchCount -and [int]$patchCount -gt 0) {
+                            $AutoPatchMsg = "（已自动 patch ${patchCount} 处硬编码文字）"
+                        }
+                    }
+                    "noop" {
+                        "$CurrentMarker" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+                    }
+                    "partial" {
+                        # 部分降级：当前版本存在未覆盖文案，不更新 marker，等插件更新后重试
+                        $AutoPatchMsg = "（已自动 patch ${patchCount} 处；当前 Claude Code 版本存在未覆盖文案，部分界面保持英文，等待插件更新）"
+                    }
+                    default {
+                        # validation-failed / error：未写盘，CLI 保持原样可用；详情见 patch.log
+                    }
                 }
             }
         }
