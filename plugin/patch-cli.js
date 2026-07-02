@@ -86,10 +86,28 @@ function looksPatched(text) {
     return PATCHED_TRACE_PROBES.some((probe) => text.includes(probe));
 }
 
+// 先用 vm.Script（CommonJS 语法，进程内、快）；失败再退到 node --check
+// （子进程，能正确解析 ESM——npm 的 cli.js 顶层有 import，vm.Script 必然报错）。
 function parsesAsJs(text) {
     try {
         new vm.Script(text, { filename: cliFile });
         return true;
+    } catch {}
+    try {
+        const tmp = path.join(
+            os.tmpdir(),
+            `cczh-syntax-check.${process.pid}.${Math.random().toString(36).slice(2)}.mjs`
+        );
+        fs.writeFileSync(tmp, text);
+        try {
+            const result = require("child_process").spawnSync(process.execPath, ["--check", tmp], {
+                stdio: "ignore",
+                timeout: 30000,
+            });
+            return result.status === 0;
+        } finally {
+            try { fs.unlinkSync(tmp); } catch {}
+        }
     } catch {
         return false;
     }
