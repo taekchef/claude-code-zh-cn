@@ -6,6 +6,26 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.5.0] - 2026-07-03
+
+### 新增
+
+- **npm 路径优雅降级闭环**：`patch-cli.js` 新增 `--backup` / `--status` / `--log` 参数，统一实现「备份 → patch → 语法校验 → 失败放弃写入」。re-patch 一律从同版本备份恢复干净基底，杜绝 patch 叠 patch；patch 结果必须通过 JS 语法校验（vm.Script + `node --check` 兜底，兼容 ESM）才落盘，未验证的新版本自动降级为部分翻译或保持英文，CLI 绝不会坏。
+- **错误可见性**：去掉 stderr 静默，patch 失败写入插件目录 `patch.log`（自动截断），doctor 读取并在报告中提示最近的校验失败。
+- 回归测试：新增 `tests/graceful-degradation.test.js` 覆盖备份恢复、版本变更刷新备份、partial/noop/error 状态、ESM 语法校验等场景。
+
+### 改进
+
+- **版本口径统一**：取消用户可见的 stable / experimental 双轨叫法，统一为「已验证版本」，语义从安全门禁改为翻译完整度（依赖降级闭环保证未验证版本可用）。内部 JSON schema key 保持不变以兼容旧版插件。
+- **README 精简**：540 行精简到约 380 行；重复多次的排除版本列表改为统一链接 [docs/support-matrix.md](docs/support-matrix.md)；生成脚本（badges / 支持范围 / 安装建议）同步简化。
+- **patch revision 收敛**：`manifest.json` 移出指纹输入（插件版本号变化不再触发无谓 re-patch），JS / shell / PowerShell 各实现输入统一。
+- CI：native candidate 验证失败不再开草稿 PR 刷屏，改为汇总到单一跟踪 Issue（幂等追加评论）。
+
+### 修复
+
+- npm 托管 re-patch 不再在已 patch 的 `cli.js` 上叠加二次 patch。
+- `mktemp` 依赖移除，受限环境下状态文件创建不再失败。
+
 ## [2.4.62] - 2026-06-24
 
 ### 改进
