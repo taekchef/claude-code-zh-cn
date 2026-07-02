@@ -109,97 +109,31 @@ function renderRange(entry) {
   return entry.floor || entry.ceiling || "-";
 }
 
-function renderRangeWithExcluded(entry, { code = true } = {}) {
-  const range = renderRange(entry);
-  const wrapped = code && range !== "-" ? `\`${range}\`` : range;
-  const excluded = Array.isArray(entry?.excluded) && entry.excluded.length > 0
-    ? `（不含未纳入本轮支持的 ${entry.excluded.map((version) => `\`${version}\``).join("、")}）`
-    : "";
-  return `${wrapped}${excluded}`;
-}
-
-function renderNativeInstallLabel(entry) {
-  const range = renderRange(entry);
-  if (range === "-") return "-";
-  const excluded = Array.isArray(entry?.excluded) && entry.excluded.length > 0
-    ? `，不含未纳入本轮支持的 ${entry.excluded.map((version) => `\`${version}\``).join("、")}`
-    : "";
-  return `\`${range}\`（macOS arm64${excluded}）`;
-}
-
 function renderBadgeRange(entry) {
   return renderRange(entry).replace(/ - /g, "--").replace(/\s+/g, "%20");
 }
 
-function compactVersions(versions) {
-  if (!Array.isArray(versions) || versions.length === 0) return "-";
-
-  const ranges = [];
-  let start = versions[0];
-  let previous = versions[0];
-
-  function pushRange() {
-    ranges.push(start === previous ? `\`${start}\`` : `\`${start} - ${previous}\``);
-  }
-
-  for (const version of versions.slice(1)) {
-    const prevParts = semverParts(previous);
-    const parts = semverParts(version);
-    const isConsecutive =
-      prevParts &&
-      parts &&
-      prevParts[0] === parts[0] &&
-      prevParts[1] === parts[1] &&
-      parts[2] === prevParts[2] + 1;
-
-    if (isConsecutive) {
-      previous = version;
-      continue;
-    }
-
-    pushRange();
-    start = version;
-    previous = version;
-  }
-
-  pushRange();
-  return ranges.join("、");
-}
-
-function parseNativeDisplayAudit(entry, label = "native experimental") {
-  if (!entry || entry.unsupported) return null;
-
-  const displayPairs = [...String(entry.verification || "").matchAll(/display\s+(\d+)\/(\d+)/g)].map((match) => [
-    Number.parseInt(match[1], 10),
-    Number.parseInt(match[2], 10),
-  ]);
-  if (displayPairs.length === 0) {
-    fail(`${label} verification must include display audit counts`);
-  }
-
-  const uniquePairs = new Set(displayPairs.map((pair) => pair.join("/")));
-  if (uniquePairs.size !== 1) {
-    fail(`${label} display audit counts must be consistent before syncing README`);
-  }
-
-  const [passed, total] = displayPairs[0];
-  return { passed, total };
-}
-
 function renderBadges(config) {
-  const { npmStable, macosNative } = supportEntries(config);
+  const { npmStable, macosNative, windowsNativeExperimental } = supportEntries(config);
   const lines = [
-    `[![npm stable](https://img.shields.io/badge/npm%20stable-${renderBadgeRange(
+    `[![npm](https://img.shields.io/badge/npm-${renderBadgeRange(
       npmStable
     )}-green)](./docs/support-matrix.md)`,
-    `[![macOS installer](https://img.shields.io/badge/macos%20installer-experimental-yellow)](./docs/support-matrix.md)`,
   ];
 
   if (macosNative && macosNative.unsupported !== true) {
     lines.push(
       `[![macOS native](https://img.shields.io/badge/macos%20native-${renderBadgeRange(
         macosNative
-      )}%20experimental-yellow)](./docs/support-matrix.md)`
+      )}-green)](./docs/support-matrix.md)`
+    );
+  }
+
+  if (windowsNativeExperimental && windowsNativeExperimental.unsupported !== true) {
+    lines.push(
+      `[![Windows native](https://img.shields.io/badge/windows%20native-${renderBadgeRange(
+        windowsNativeExperimental
+      )}-green)](./docs/support-matrix.md)`
     );
   }
 
@@ -211,67 +145,37 @@ function renderSupportSystems(config) {
     npmStable,
     macosInstaller,
     macosNative,
-    linuxInstaller,
     windowsNpm,
-    windowsNative,
     windowsNativeExperimental,
   } = supportEntries(config);
   const stablePinned = npmStable.ceiling || npmStable.representatives?.at(-1) || npmStable.floor;
-  const macosNativeRange = macosNative && macosNative.unsupported !== true
-    ? renderRangeWithExcluded(macosNative)
-    : "-";
-  const macosVerified = macosNative && macosNative.unsupported !== true
-    ? compactVersions(macosNative.representatives)
-    : "-";
-  const macosNativeAudit = parseNativeDisplayAudit(macosNative);
-  const macosExcluded = macosNative?.excluded?.length
-    ? `${macosNative.excluded.map((version) => `\`${version}\``).join("、")} 未纳入本轮支持；`
-    : "";
-  const windowsNativeAudit = windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
-    ? parseNativeDisplayAudit(windowsNativeExperimental, "Windows native experimental")
-    : null;
   const nativeBoundary = nextMajorBoundary(npmStable);
-  const nativeLatestNote = macosNative && macosNative.unsupported !== true
-    ? `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；macOS arm64 native binary 现在有独立 experimental 通道，已验证 ${macosVerified} 的二进制改写链路和 ${macosNativeAudit.total} 个稳定显示面。${windowsNativeExperimental && windowsNativeExperimental.unsupported !== true ? `Windows x64 native 也有独立 experimental 通道，已验证 ${compactVersions(windowsNativeExperimental.representatives)} 的二进制改写链路和 ${windowsNativeAudit.total} 个稳定显示面。` : ""}${macosExcluded}\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`
-    : `本插件当前 stable CLI Patch 支持到 \`${npmStable.ceiling}\`；\`latest\` 不是 stable 承诺，未验证的新版本会跳过 CLI Patch。`;
+  const hasExcluded =
+    (macosNative?.excluded?.length || 0) + (windowsNativeExperimental?.excluded?.length || 0) > 0;
 
   return [
-    "| 系统 / 通道 | 当前口径 | 已验证窗口 | 说明 |",
-    "|------|---------|-----------|------|",
-    `| macOS / npm 全局安装 | \`stable\` | ${renderRangeWithExcluded(npmStable)} | 启动前 launcher 自修复 + \`session-start\` 二层兜底 |`,
-    `| macOS / 官方安装器 | \`experimental\` | ${renderRangeWithExcluded(macosInstaller)} | 指定旧版本的 native 二进制已验证；插件可用 native patch 处理，需要 \`node-lief\`，稳定仍建议 npm pinned |`,
+    "| 平台 / 安装形态 | 已验证版本窗口 | 说明 |",
+    "|------|-----------|------|",
+    `| macOS / Linux / WSL · npm 全局安装 | \`${renderRange(npmStable)}\` | 翻译最完整；launcher 启动前自修复 + \`session-start\` 兜底 |`,
+    `| macOS · 官方安装器（native） | \`${renderRange(macosInstaller)}\` | 需要 \`node-lief\` |`,
     ...(macosNative && macosNative.unsupported !== true
       ? [
-          `| macOS / native binary | \`experimental\` | ${macosNativeRange} | 当前 macOS arm64 native 已验证 extract / patch / repack / \`--version\` + ${macosNativeAudit.total} 个稳定显示面审计；需要 \`node-lief\`；未验证新版本会安全跳过 CLI Patch |`,
+          `| macOS · native binary（arm64） | \`${renderRange(macosNative)}\` 内的已验证版本 | 需要 \`node-lief\`；个别版本未收录，见支持矩阵 |`,
         ]
       : []),
-    `| Linux / npm 全局安装 | \`stable\` | ${renderRangeWithExcluded(npmStable)} | 与 npm stable 同口径 |`,
-    `| Linux / 官方安装器 | \`unsupported\` | ${renderRangeWithExcluded(linuxInstaller)} | 当前不承诺支持 |`,
-    `| Windows / npm 全局安装 (PowerShell) | \`stable\` | ${renderRangeWithExcluded(windowsNpm)} | 新增 PowerShell 安装脚本（install.ps1）；适用于旧 npm cli.js 形态，CLI Patch 可用；需 PowerShell 5.1+ |`,
+    `| Windows · npm（PowerShell） | \`${renderRange(windowsNpm)}\` | 用 install.ps1，需 PowerShell 5.1+ |`,
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
-          `| Windows / native .exe | \`experimental\` | ${renderRangeWithExcluded(windowsNativeExperimental)} | 当前 Windows x64 native 已验证 extract / patch / repack / \`--version\` + ${windowsNativeAudit.total} 个稳定显示面审计；需要 \`node-lief\`；未验证新版本会安全跳过 CLI Patch |`,
+          `| Windows · native .exe（x64） | \`${renderRange(windowsNativeExperimental)}\` 内的已验证版本 | 需要 \`node-lief\`；个别版本未收录，见支持矩阵 |`,
         ]
       : [
-          `| Windows / native .exe / latest | \`unsupported\` | ${renderRangeWithExcluded(windowsNative)} | 检测到 Windows native .exe 或 \`${nativeBoundary}+\` 时会跳过 CLI Patch，仅启用 Layer 1~3（设置 + Hook + 插件） |`,
+          "| Windows · native .exe（x64） | 暂无已验证版本 | 会明确跳过 CLI Patch，仅 Layer 1~3 生效 |",
         ]),
-    `| Windows / WSL + npm 全局安装 | 跟随 npm \`stable\` | ${renderRangeWithExcluded(npmStable)} | **必须在 WSL 终端内运行**，使用 install.sh |`,
+    "| Linux · 官方安装器 | 暂无已验证版本 | 仅 Layer 1~3 生效 |",
     "",
-    `> **Windows 用户（原生 PowerShell）**：现已新增 PowerShell 安装脚本（install.ps1），可在 Windows 10/11 上原生安装**旧 npm cli.js 形态**的 Claude Code（${renderRangeWithExcluded(windowsNpm)}），无需 WSL。见下方「Windows 原生安装」章节。`,
-    ">",
-    "> **Windows 用户（WSL）**：也可先安装 [WSL](https://learn.microsoft.com/zh-cn/windows/wsl/install)，然后在 WSL 中安装 Claude Code 和本插件。",
-    ">",
-    ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
-      ? [
-          `> **Windows native .exe experimental**：Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 ${renderRangeWithExcluded(windowsNativeExperimental)}，已通过 extract / patch / repack / \`--version\` + ${windowsNativeAudit.total} 个稳定显示面审计，不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
-        ]
-      : [
-          `> **Windows native .exe / latest 不支持 CLI Patch**：${windowsNative.notes || "Windows native .exe 目前会明确跳过 CLI Patch，仅启用 Layer 1~3。"}如需完整中文化，请使用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` 安装旧 npm 版本。`,
-        ]),
-    ">",
-    "> **支持边界单一来源**：当前口径以 [docs/support-matrix.md](./docs/support-matrix.md) 为准。该文档由 `scripts/upstream-compat.config.json` + `node scripts/verify-upstream-compat.js --json` 通过 `node scripts/generate-support-matrix.js` 生成。",
-    ">",
-    `> **最新版说明**：Claude Code 从 \`${nativeBoundary}\` 开始，npm 主包切换为 native binary wrapper，不再包含旧的 \`cli.js\`。${nativeLatestNote}`,
+    "> - **未验证版本不会坏**：插件会自动跳过或只翻译能匹配的部分（其余保持英文），CLI 始终可用；patch 结果不通过语法校验会自动放弃写入。",
+    `> - **已验证版本完整清单**${hasExcluded ? "（含个别未收录版本）" : ""}见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。`,
+    `> - Claude Code 从 \`${nativeBoundary}\` 起 npm 主包切换为 native binary，不再包含旧的 \`cli.js\`；要最完整的翻译请用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
   ].join("\n");
 }
 
@@ -287,47 +191,29 @@ function renderInstallAdvice(config) {
   const { npmStable, macosInstaller, macosNative, windowsNativeExperimental } = supportEntries(config);
   const stablePinned = npmStable.ceiling || npmStable.representatives?.at(-1) || npmStable.floor;
   const macosInstallerPinned = macosInstaller.ceiling || stablePinned;
-  const macosNativeRange = macosNative && macosNative.unsupported !== true
-    ? renderRangeWithExcluded(macosNative)
-    : "-";
-  const macosVerified = macosNative && macosNative.unsupported !== true
-    ? compactVersions(macosNative.representatives)
-    : "-";
-  const macosNativeAudit = parseNativeDisplayAudit(macosNative);
 
   return [
-    "当前安装方式口径如下：",
-    "",
-    "| 安装方式 | 说明 | 当前口径 |",
-    "|---------|------|---------|",
-    `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 推荐安装的旧 \`cli.js\` 版本；${renderRangeWithExcluded(
-      npmStable
-    )} 范围内也可用 | \`stable\` |`,
-    "| `npm install -g @anthropic-ai/claude-code` | npm 全局安装最新版；macOS arm64 / Windows x64 若版本正好在已验证 native 窗口内可走 experimental | `experimental / skipped`（未验证 native 版本会跳过 CLI Patch） |",
-    `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定旧版本 | \`experimental\`（macOS arm64 已验证；插件会用 native patch 处理，需要 \`node-lief\`） |`,
-    ...(macosNative && macosNative.unsupported !== true
-      ? [
-          `| Claude Code native binary ${renderNativeInstallLabel(
-            macosNative
-          )} | 当前已验证的 native binary 版本，显示审计 ${macosNativeAudit.passed}/${macosNativeAudit.total} PASS | \`experimental\`（需要 \`node-lief\`） |`,
-        ]
-      : []),
-    "| `curl -fsSL https://claude.ai/install.sh \\| sh` | 官方安装器 latest | `experimental / skipped`（只有明确验证版本会启用 CLI Patch） |",
+    "| 安装方式 | 中文化程度 |",
+    "|---------|-----------|",
+    `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 最完整（推荐） |`,
+    "| `npm install -g @anthropic-ai/claude-code`（latest） | 已验证版本完整翻译；未验证版本自动降级为部分/全英文，CLI 可用 |",
+    `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定已验证旧版本（需要 \`node-lief\`） |`,
+    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | 已验证版本才启用 CLI Patch，其余自动降级 |",
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
-          `| \`powershell -File install.ps1\` | Windows PowerShell 安装（旧 npm cli.js 为 stable；Windows x64 native \`${renderRange(windowsNativeExperimental)}\` 为 experimental，需要 \`node-lief\`） | \`stable / experimental\`（需 PowerShell 5.1+） |`,
+          `| \`powershell -File install.ps1\` | Windows：旧 npm cli.js 最完整；native .exe \`${renderRange(windowsNativeExperimental)}\` 内已验证版本需 \`node-lief\` |`,
         ]
       : [
-          "| `powershell -File install.ps1` | Windows PowerShell 安装（仅适用于旧 npm cli.js 形态；检测到 native .exe 时会跳过 CLI Patch） | `stable`（需 PowerShell 5.1+；CLI Patch 仅 npm 路径） |",
+          "| `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe 会跳过 CLI Patch |",
         ]),
+    ...(macosNative && macosNative.unsupported !== true
+      ? [
+          "",
+          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检，失败自动回滚。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)），需要 \`node-lief\`。`,
+        ]
+      : []),
     "",
     "安装脚本会自动检测安装方式，无需手动选择。",
-    "",
-    `> **native binary 说明**：官方安装器和新版 npm 包都可能装到 native 二进制，不是旧 npm \`cli.js\`。本插件的处理方法是：用 \`bun-binary-io.js\` 提取二进制里的 JS → 复用 \`patch-cli.sh\` 翻译 → 再写回二进制。macOS arm64 ${renderRangeWithExcluded(
-      macosInstaller
-    )} 已在临时目录验证通过；${macosVerified} 额外通过 ${macosNativeAudit.total} 个稳定显示面审计。运行时需要 \`node-lief\`。要最稳，请优先使用 npm pinned 安装方式。`,
-    ">",
-    "> **不支持的安装方式**：如当前安装方式暂不支持 CLI Patch，安装脚本会明确提示并只启用 Layer 1~3，不会误报“已完成全部 patch”。",
   ].join("\n");
 }
 

@@ -323,102 +323,15 @@ function rulesForDoc(file, counts) {
       ),
       rule(
         "install CLI patch summary counts",
-        /(patch 硬编码文字（)\d+( 条翻译；当前 stable 代表版本 `)[^`]+(` 实测 )\d+( 处有效 patch，显示审计 )\d+\/\d+( PASS）)/g,
-        (_, before, middle, after, auditPrefix, suffix) =>
-          `${before}${counts.uiTranslations}${middle}${counts.stableRepresentative}${after}${counts.stablePatchCount}${auditPrefix}${counts.stableDisplayAudit.passed}/${counts.stableDisplayAudit.total}${suffix}`
-      ),
-      rule(
-        "install native patch summary facts",
-        /(在 macOS native experimental 已验证版本上 patch 硬编码文字（).+?( 实测 )\d+-\d+( 处，显示审计 )\d+\/\d+( PASS）)/g,
+        /(patch 硬编码文字（)\d+( 条翻译；代表版本 `)[^`]+(` 实测 )\d+( 处有效 patch）)/g,
         (_, before, middle, after, suffix) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.patchRange}${after}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
+          `${before}${counts.uiTranslations}${middle}${counts.stableRepresentative}${after}${counts.stablePatchCount}${suffix}`
       ),
       rule(
         "coverage UI patch row counts",
-        /(\| UI 文字中文化 \| )\d+( 条翻译，`)[^`]+(` 实测 )\d+( 处有效 patch；macOS native experimental ).+?( 实测 )\d+-\d+( 处；固定显示面审计均为 )\d+\/\d+( PASS \|)/g,
-        (_, before, middle, stableAfter, nativeMiddle, nativeAfter, auditPrefix, suffix) =>
-          `${before}${counts.uiTranslations}${middle}${counts.stableRepresentative}${stableAfter}${counts.stablePatchCount}${nativeMiddle}${counts.macosNative.compactBackticked}${nativeAfter}${counts.macosNative.patchRange}${auditPrefix}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
-      ),
-      rule(
-        "macOS native badge window",
-        /(macos%20native-)[0-9.]+--[0-9.]+(%20experimental-yellow)/g,
-        (_, before, after) => `${before}${counts.macosNative.badgeRange}${after}`
-      ),
-      rule(
-        "macOS native support table facts",
-        /(\| macOS \/ native binary \| `experimental` \| `)[^`]+(`（不含未纳入本轮支持的 ).+?(） \| 当前 macOS arm64 native 已验证 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计)/g,
-        (_, before, excludedBefore, excludedAfter, auditSuffix) =>
-          `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedBackticked}${excludedAfter}${counts.macosNative.displayTotal}${auditSuffix}`
-      ),
-      rule(
-        "Windows native support table facts",
-        /(\| Windows \/ native \.exe \| `experimental` \| `)[^`]+(`（不含未纳入本轮支持的 ).+?(） \| 当前 Windows x64 native 已验证 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计；需要 `node-lief`；未验证新版本会安全跳过 CLI Patch \|)/g,
-        (_, before, excludedBefore, auditPrefix, suffix) =>
-          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${auditPrefix}${counts.windowsNative.displayTotal}${suffix}`
-      ),
-      rule(
-        "macOS native latest note facts",
-        /(已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。)(.*?)(`[^`]+`(?:、`[^`]+`)* 未纳入本轮支持)/g,
-        (_, before, middle, auditSuffix, between) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${auditSuffix}${between}${counts.macosNative.excludedBackticked} 未纳入本轮支持`
-      ),
-      rule(
-        "Windows native latest note facts",
-        /(Windows x64 native binary experimental；需要 node-lief；仅代表列出的已验证版本 `)[^`]+(`（不含(?:未纳入本轮支持的 )?).+?(），已通过 extract \/ patch \/ repack \/ `--version` \+ )\d+( 个稳定显示面审计，不代表 future latest 自动稳定。未验证的 latest 会跳过 CLI Patch；如需最稳，请使用 `npm install -g @anthropic-ai\/claude-code@2\.1\.112`。)/g,
-        (_, before, excludedBefore, auditPrefix, suffix) =>
-          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${auditPrefix}${counts.windowsNative.displayTotal}${suffix}`
-      ),
-      rule(
-        "Windows native latest note compact versions",
-        /(Windows x64 native 也有独立 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面。)/g,
-        (_, before, middle, suffix) =>
-          `${before}${counts.windowsNative.compactBackticked}${middle}${counts.windowsNative.displayTotal}${suffix}`
-      ),
-      rule(
-        "macOS native install option facts",
-        /(\| Claude Code native binary `)[^`]+(`（macOS arm64，不含未纳入本轮支持的 ).+?(） \| 当前已验证的 native binary 版本，显示审计 )\d+\/\d+( PASS \| `experimental`（需要 `node-lief`） \|)/g,
-        (_, before, excludedBefore, excludedAfter, suffix) =>
-          `${before}${counts.macosNative.range}${excludedBefore}${counts.macosNative.excludedBackticked}${excludedAfter}${counts.macosNative.displayPassed}/${counts.macosNative.displayTotal}${suffix}`
-      ),
-      rule(
-        "Windows PowerShell install option facts",
-        /(\| `powershell -File install\.ps1` \| Windows PowerShell 安装（旧 npm cli\.js 为 stable；Windows x64 native `)[^`]+(` 为 experimental，需要 `node-lief`） \| `stable \/ experimental`（需 PowerShell 5\.1\+） \|)/g,
-        (_, before, suffix) => `${before}${counts.windowsNative.range}${suffix}`
-      ),
-      rule(
-        "native binary note audit facts",
-        /(；)`[^`]+`(?:、`[^`]+`)*( 额外通过 )\d+( 个稳定显示面审计。)/g,
-        (_, before, middle, after) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${after}`
-      ),
-      rule(
-        "Windows CLI patch support scope facts",
-        /(\*\*CLI Patch 支持范围\*\*：install\.ps1 可 patch 旧 npm cli\.js 形态（`2\.1\.92 - 2\.1\.112`），也可在安装了 `node-lief` 时 experimental patch Windows x64 native `)[^`]+(`（不含 ).+?(）。检测到未验证 Windows native \.exe 或缺少 `node-lief` 时，会明确跳过 CLI Patch，只启用 Layer 1~3（设置 \+ Hook \+ 插件）。如需最稳，请使用 `npm install -g @anthropic-ai\/claude-code@2\.1\.112` 安装旧 npm 版本。)/g,
-        (_, before, excludedBefore, suffix) =>
-          `${before}${counts.windowsNative.range}${excludedBefore}${counts.windowsNative.excludedBackticked}${suffix}`
-      ),
-      rule(
-        "FAQ native support facts",
-        /(macOS arm64 native binary 走 experimental 通道，已验证 )`[^`]+`(?:、`[^`]+`)*( 的二进制改写链路和 )\d+( 个稳定显示面；).+?( (?:未纳入本轮支持|官方未发布))/g,
-        (_, before, middle, auditSuffix) =>
-          `${before}${counts.macosNative.compactBackticked}${middle}${counts.macosNative.displayTotal}${auditSuffix}${counts.macosNative.excludedBackticked} 未纳入本轮支持`
-      ),
-      rule(
-        "English native summary range",
-        /(from `)[^`]+(` through `)[^`]+(` except (?:unsupported|unpublished) ).+?(, now guarded)/g,
-        (_, before, middle, _excludedBefore, after) =>
-          `${before}${counts.macosNative.floor}${middle}${counts.macosNative.ceiling}\` except unsupported ${counts.macosNative.englishExcludedBackticked}${after}`
-      ),
-      rule(
-        "English Windows native summary range",
-        /(Windows native `\.exe` is experimental for explicitly verified versions from `)[^`]+(` through `)[^`]+(` except unsupported ).+?(; unverified latest builds are skipped for CLI Patch \(Layers 1–3 still active\))/g,
-        (_, before, middle, _excludedBefore, suffix) =>
-          `${before}${counts.windowsNative.floor}${middle}${counts.windowsNative.ceiling}\` except unsupported ${counts.windowsNative.englishExcludedBackticked}${suffix}`
-      ),
-      rule(
-        "project tree UI translation count",
-        /(\bcli-translations\.json\s+←\s+)\d+( 条 UI 翻译对照表)/g,
-        (_, before, after) => `${before}${counts.uiTranslations}${after}`
+        /(\| UI 文字中文化 \| )\d+( 条翻译，`)[^`]+(` 实测 )\d+( 处有效 patch \|)/g,
+        (_, before, middle, after, suffix) =>
+          `${before}${counts.uiTranslations}${middle}${counts.stableRepresentative}${after}${counts.stablePatchCount}${suffix}`
       ),
       rule(
         "English summary counts",
