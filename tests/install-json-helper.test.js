@@ -90,7 +90,6 @@ test("patch-revision matches the shared patch fingerprint algorithm", () => {
 
   const hash = crypto.createHash("sha256");
   for (const name of [
-    "manifest.json",
     "patch-cli.sh",
     "patch-cli.js",
     "cli-translations.json",

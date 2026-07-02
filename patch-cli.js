@@ -2,22 +2,175 @@
 // patch-cli.js - cli.js 硬编码文字中文 patch（安全版）
 // 逐条翻译：对每条翻译用正则匹配 "..." 内的目标文本，安全替换
 // 被 patch-cli.sh 调用
+//
+// 优雅降级契约：
+// - 单条翻译/结构化 patch 匹配不上 → 跳过该条，其余照常（新版本改了文字 = 那条保持英文）
+// - patch 结果必须通过 JS 语法校验才落盘；校验失败 → 不写任何东西，CLI 保持原样可用
+// - 任何意外异常 → 记录日志后按"未改动"退出（exit 0），绝不让调用方误以为 patch 成功
+//
+// 用法: patch-cli.js <cliFile> <translationsFile> [--backup <path>] [--status <file>] [--log <file>]
+//   --backup  npm 托管备份模式：patch 前从同版本备份恢复干净基底；备份缺失/过期时自动重建
+//   --status  写入单词状态: ok | partial | noop | validation-failed | error
+//   --log     错误日志路径（默认与本脚本同目录的 patch.log）
 
 const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const vm = require("vm");
 
-const cliFile = process.argv[2];
-const translationsFile = process.argv[3];
+const positional = [];
+const options = {};
+{
+    const argv = process.argv.slice(2);
+    for (let i = 0; i < argv.length; i++) {
+        if (argv[i] === "--backup" || argv[i] === "--status" || argv[i] === "--log") {
+            options[argv[i].slice(2)] = argv[i + 1];
+            i++;
+        } else {
+            positional.push(argv[i]);
+        }
+    }
+}
 
-if (!cliFile || !fs.existsSync(cliFile)) {
+const cliFile = positional[0];
+const translationsFile = positional[1];
+
+function defaultLogFile() {
+    const pluginRoot =
+        process.env.CLAUDE_PLUGIN_ROOT ||
+        path.join(os.homedir(), ".claude", "plugins", "claude-code-zh-cn");
+    if (fs.existsSync(pluginRoot)) {
+        return path.join(pluginRoot, "patch.log");
+    }
+    return path.join(__dirname, "patch.log");
+}
+
+const logFile = options.log || defaultLogFile();
+
+const RESIDUE_PROBES = [
+    "Quick safety check",
+    "This command requires approval",
+    "Use /btw to ask a quick side question without interrupting Claude's current work",
+];
+
+const PATCHED_TRACE_PROBES = ["安全检查：这是你自己创建", "等待权限确认…", "已切换模型为"];
+
+function logEvent(message) {
+    const line = `${new Date().toISOString()} ${message}\n`;
+    try {
+        try {
+            const stat = fs.statSync(logFile);
+            if (stat.size > 256 * 1024) {
+                const tail = fs.readFileSync(logFile, "utf8").slice(-64 * 1024);
+                fs.writeFileSync(logFile, tail);
+            }
+        } catch {}
+        fs.appendFileSync(logFile, line);
+    } catch {}
+    process.stderr.write(line);
+}
+
+function writeStatus(status) {
+    if (!options.status) return;
+    try {
+        fs.writeFileSync(options.status, status + "\n");
+    } catch {}
+}
+
+function readVersionComment(text) {
+    const match = text.match(/^\/\/ Version: (.+)$/m);
+    return match ? match[1].trim() : "";
+}
+
+function looksPatched(text) {
+    return PATCHED_TRACE_PROBES.some((probe) => text.includes(probe));
+}
+
+function parsesAsJs(text) {
+    try {
+        new vm.Script(text, { filename: cliFile });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// 语法校验策略：只有当"原文本身可被 Node 解析"时才要求 patch 结果也可解析。
+// 原文就解析不了（如 native 提取的 Bun JS 含非标准语法）→ 跳过校验，不误拦。
+function validateSyntax(before, after) {
+    if (!parsesAsJs(before)) {
+        logEvent(`validation-skipped ${cliFile}: source is not parseable by Node (e.g. native extract)`);
+        return true;
+    }
+    if (parsesAsJs(after)) {
+        return true;
+    }
+    logEvent(`validation-failed ${cliFile}: patched result is not valid JS, refusing to write`);
+    return false;
+}
+
+function residueStatus(text) {
+    return RESIDUE_PROBES.some((probe) => text.includes(probe)) ? "partial" : "ok";
+}
+
+function exitNoChange(status) {
+    writeStatus(status);
     console.log("0");
     process.exit(0);
 }
 
-const original = fs.readFileSync(cliFile, "utf8");
+if (!cliFile || !fs.existsSync(cliFile)) {
+    exitNoChange("noop");
+}
+
+const currentContent = fs.readFileSync(cliFile, "utf8");
+let original = currentContent;
+
+// --backup 托管备份模式：保证每次 patch 都基于干净的英文原文，杜绝 patch 叠 patch
+if (options.backup) {
+    const backupFile = options.backup;
+    const currentVersion = readVersionComment(currentContent);
+    let backupContent = null;
+    if (fs.existsSync(backupFile)) {
+        try {
+            backupContent = fs.readFileSync(backupFile, "utf8");
+        } catch {
+            backupContent = null;
+        }
+    }
+
+    if (backupContent !== null && currentVersion && readVersionComment(backupContent) === currentVersion) {
+        // 同版本备份存在 → 用备份做干净基底
+        original = backupContent;
+    } else if (!looksPatched(currentContent)) {
+        // 备份缺失/版本过期，且当前文件未被 patch 过 → 当前文件就是新 upstream 原文，刷新备份
+        try {
+            fs.writeFileSync(backupFile, currentContent);
+        } catch (error) {
+            logEvent(`backup-refresh-failed ${backupFile}: ${error.message}`);
+        }
+        original = currentContent;
+    } else {
+        // 备份不可用且当前文件已被 patch 过：没有干净基底。
+        // 继续在当前文件上做增量 patch（翻译规则对已翻译文本天然幂等），语法校验兜底。
+        logEvent(`no-clean-backup ${cliFile}: patching in place (backup missing or version mismatch)`);
+        original = currentContent;
+    }
+}
+
 let s = original;
 let count = 0;
 
+// 全局兜底：任何未预期异常都按"未改动"退出，绝不落半成品
+process.on("uncaughtException", (error) => {
+    logEvent(`unexpected-error ${cliFile}: ${error && error.stack ? error.stack : error}`);
+    writeStatus("error");
+    console.log("0");
+    process.exit(0);
+});
+
 // === Helper：直接全量替换（仅用于特殊 patch，匹配特定代码模式）===
+// 单条 patch 内部异常只跳过该条（优雅降级），不中断整体流程
 
 function tryReplace(from, to) {
     if (s.includes(from)) {
@@ -30,13 +183,21 @@ function tryReplace(from, to) {
 
 function tryRegexReplace(pattern, replacer) {
     let hit = false;
-    s = s.replace(pattern, (...args) => {
-        const match = args[0];
-        const replaced = replacer(...args);
-        if (replaced !== match) hit = true;
-        return replaced;
-    });
-    if (hit) count++;
+    try {
+        const replaced = s.replace(pattern, (...args) => {
+            const match = args[0];
+            const result = replacer(...args);
+            if (result !== match) hit = true;
+            return result;
+        });
+        if (hit) {
+            s = replaced;
+            count++;
+        }
+    } catch (error) {
+        logEvent(`structural-patch-skipped ${pattern}: ${error.message}`);
+        return false;
+    }
     return hit;
 }
 
@@ -744,13 +905,22 @@ function installWorkflowLifecycleResidueLocalization() {
 
 // 0. /statusline 内部 agent prompt 防守：第三方模型容易猜错 /Users/... 绝对路径。
 // 保持英文，不做中文化；只强化工具路径契约。
-installStatuslinePromptPathGuard();
-installStatuslineCommandPromptPathGuard();
-installDurationFormatterLocalization();
-installIssue80VisibleResidueLocalization();
-installEffortAndWorkflowFooterLocalization();
-installCommonVisibleResidueLocalization();
-installWorkflowLifecycleResidueLocalization();
+// 每个结构化 patch 独立执行，单个失败只跳过该项（记日志），其余照常。
+for (const step of [
+    installStatuslinePromptPathGuard,
+    installStatuslineCommandPromptPathGuard,
+    installDurationFormatterLocalization,
+    installIssue80VisibleResidueLocalization,
+    installEffortAndWorkflowFooterLocalization,
+    installCommonVisibleResidueLocalization,
+    installWorkflowLifecycleResidueLocalization,
+]) {
+    try {
+        step();
+    } catch (error) {
+        logEvent(`structural-step-skipped ${step.name}: ${error.message}`);
+    }
+}
 
 // 1. 过去式动词数组
 tryRegexReplace(
@@ -973,7 +1143,15 @@ if (translationsFile && fs.existsSync(translationsFile)) {
 }
 
 // === 只有实际改变文件内容才写入 ===
-if (s === original) {
+// s 是基于干净基底（original）patch 后的完整结果；currentContent 是磁盘上的现状。
+// 两者一致 → 无需写盘；不一致 → 语法校验通过后原子替换。
+if (s === currentContent) {
+    exitNoChange(residueStatus(s) === "ok" ? "noop" : "partial");
+}
+
+// 语法校验：patch 结果必须是合法 JS，否则放弃写盘（磁盘保持原状，CLI 可用）
+if (!validateSyntax(original, s)) {
+    writeStatus("validation-failed");
     console.log("0");
     process.exit(0);
 }
@@ -987,4 +1165,5 @@ if (process.platform === "win32") {
 }
 fs.renameSync(tmp, cliFile);
 
+writeStatus(residueStatus(s));
 console.log(count);

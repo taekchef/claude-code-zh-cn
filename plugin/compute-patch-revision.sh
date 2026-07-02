@@ -9,8 +9,8 @@ const fs = require("fs");
 const path = require("path");
 
 const root = process.argv[2];
+// 与 scripts/install-json-helper.js 的 PATCH_REVISION_FILES 保持一致（后者为权威来源）
 const files = [
-  "manifest.json",
   "patch-cli.sh",
   "patch-cli.js",
   "cli-translations.json",

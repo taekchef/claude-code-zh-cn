@@ -4,8 +4,11 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// patch revision 指纹只包含真正影响 patch 行为的文件。
+// 注意：不含 manifest.json（插件版本号变化不应触发 re-patch）。
+// 此列表是唯一权威来源；compute-patch-revision.sh / install.ps1 / session-start.ps1
+// 中的副本必须与此保持一致（由 tests/install-json-helper.test.js 守护）。
 const PATCH_REVISION_FILES = [
-  "manifest.json",
   "patch-cli.sh",
   "patch-cli.js",
   "cli-translations.json",

@@ -93,7 +93,7 @@ function run-install-json-helper {
 $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.env.ZH_CN_SETTINGS_DIR;try{var all=fs.readdirSync(dir).filter(function(n){return n.indexOf('settings.json.zh-cn-backup.')===0}).sort();var stale=all.slice(0,Math.max(0,all.length-5));for(var i=0;i<stale.length;i++){fs.unlinkSync(path.join(dir,stale[i]))}}catch(e){}"
 $JS_BUILD_OVERLAY_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var base=r(process.argv[2]);var verbs=r(process.argv[3]);var tips=r(process.argv[4]);base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:(tips.tips||[]).map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
 $JS_DEEP_MERGE_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var sf=process.argv[2];var of=process.argv[3];function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={};var k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}fs.writeFileSync(sf,JSON.stringify(dm(r(sf),r(of)),null,2)+'\n');process.stdout.write('ok')"
-$JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['manifest.json','patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
+$JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
 $JS_CCSWITCH_STATUS = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function vc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.verbs))return v.verbs.length;return Object.keys(v).length}function tc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.tips))return v.tips.length;return 0}try{var c=r(process.argv[2],{});r(process.argv[3],{});if(!po(c)){process.stdout.write('invalid');process.exit(0)}var ok=c.language==='Chinese'&&c.spinnerTipsEnabled===true&&vc(c.spinnerVerbs)>=100&&tc(c.spinnerTipsOverride)>=40;process.stdout.write(ok?'ok':'needs-sync')}catch(e){process.stdout.write('invalid')}"
 $JS_CCSWITCH_MERGE = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={},k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}var c=r(process.argv[2],{}),o=r(process.argv[3],{});if(!po(c)||!po(o))process.exit(2);fs.writeFileSync(process.argv[4],JSON.stringify(dm(c,o),null,2)+'\n')"
 $JS_CCSWITCH_PROVIDER_SQL = @'
@@ -638,30 +638,47 @@ function patch-npm-cli {
     Write-CN "正在 patch cli.js 硬编码文字..." Blue
     $currentVersion = read-cli-version $CliFile
     $backupFile = "$CliFile.zh-cn-backup"
-    $backupVersion = ""
-    if (Test-Path $backupFile) {
-        $backupVersion = read-cli-version $backupFile
-    }
-    if ($currentVersion -and $backupVersion -and $currentVersion -eq $backupVersion -and (Test-Path $backupFile)) {
-        Copy-Item $backupFile $CliFile -Force
-        Write-CN "已从备份恢复原始 cli.js（版本一致: $currentVersion）" Green
-    } else {
-        Copy-Item $CliFile $backupFile -Force
-        Write-CN "已备份 cli.js（版本: $currentVersion）" Green
-    }
     $patchScript = Join-Path $PluginSrc "patch-cli.js"
     $translationsFile = Join-Path $PluginSrc "cli-translations.json"
-    if (Test-Path $patchScript) {
-        $patchCount = node $patchScript $CliFile $translationsFile 2>$null
-        if ($patchCount -and [int]$patchCount -gt 0) {
+    if (-not (Test-Path $patchScript)) { return }
+
+    # 备份/恢复/语法校验/失败回滚统一由 patch-cli.js 托管（--backup 模式）
+    $statusFile = Join-Path ([System.IO.Path]::GetTempPath()) ("cczh-patch-status-" + [System.IO.Path]::GetRandomFileName())
+    $patchCount = node $patchScript $CliFile $translationsFile --backup $backupFile --status $statusFile 2>$null
+    $patchStatus = "error"
+    if (Test-Path $statusFile) {
+        $patchStatus = (Get-Content $statusFile -Raw).Trim()
+        Remove-Item $statusFile -Force -ErrorAction SilentlyContinue
+    }
+
+    switch ($patchStatus) {
+        "ok" {
             Write-CN "已 patch cli.js（${patchCount} 处硬编码文字）" Green
             $script:CliPatchStatusSummary = "cli.js 中文化（${patchCount} 处硬编码文字）"
             $script:CliPatchStatusOk = $true
-        } else {
-            Write-CN "已 patch cli.js（${patchCount} 处硬编码文字）" Green
+        }
+        "partial" {
+            Write-CN "已 patch cli.js（${patchCount} 处），但当前版本存在未覆盖的英文文案（部分降级，CLI 可正常使用）" Yellow
+            $script:CliPatchStatusSummary = "cli.js 部分中文化（${patchCount} 处，当前版本存在未覆盖文案）"
+            $script:CliPatchStatusOk = $true
+        }
+        "noop" {
+            Write-CN "cli.js 无新增改动（可能已是最新状态）" Green
             $script:CliPatchStatusSummary = "cli.js 无新增改动（可能已是最新状态）"
+            $script:CliPatchStatusOk = $true
+        }
+        "validation-failed" {
+            Write-CN "patch 结果未通过 JS 语法校验，已放弃写入（CLI 保持英文可用，详见插件目录 patch.log）" Yellow
+            $script:CliPatchStatusSummary = "已跳过（patch 结果未通过语法校验，CLI 保持英文可用）"
+            return
+        }
+        default {
+            Write-CN "CLI Patch 未完成（详见插件目录 patch.log），CLI 保持原样可用" Yellow
+            $script:CliPatchStatusSummary = "已跳过（CLI Patch 未完成，详见 patch.log）"
+            return
         }
     }
+
     $patchRevision = get-patch-revision $PluginDst
     if ($patchRevision -and $currentVersion) {
         "${currentVersion}|${patchRevision}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
