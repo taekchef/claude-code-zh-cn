@@ -150,6 +150,27 @@ test("unexpected errors degrade to no-change exit with error status and log entr
   assert.match(fs.readFileSync(ctx.logFile, "utf8"), /unexpected-error/);
 });
 
+test("validates ESM sources via node --check instead of skipping (real npm cli.js has top-level import)", () => {
+  const ctx = makeContext();
+  // vm.Script 解析不了顶层 import，但 node --check 可以 → 必须仍然做校验，不能走 validation-skipped
+  fs.writeFileSync(
+    ctx.cliFile,
+    [
+      "// Version: 1.0.0",
+      'import { createRequire } from "node:module";',
+      'const waiting="Waiting for permission\\u2026";',
+      "",
+    ].join("\n")
+  );
+
+  const result = runPatch(ctx);
+
+  assert.equal(result.status, "ok");
+  assert.match(fs.readFileSync(ctx.cliFile, "utf8"), /等待权限确认…/);
+  const log = fs.existsSync(ctx.logFile) ? fs.readFileSync(ctx.logFile, "utf8") : "";
+  assert.doesNotMatch(log, /validation-skipped/);
+});
+
 test("skips syntax validation when the source itself is not parseable (native extract)", () => {
   const ctx = makeContext();
   // 原文本身不是合法 JS（模拟 native 提取物），但包含可翻译字面量
