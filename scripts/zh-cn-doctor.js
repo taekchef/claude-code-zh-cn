@@ -719,7 +719,7 @@ function runDoctor(options = {}) {
     const residue = npmCliResidue(target);
     if (!stable) {
       layer4Status = "unsupported";
-      layer4Detail = `npm ${cliVersion || "unknown"} 不在 stable 窗口 2.1.92–2.1.112`;
+      layer4Detail = `npm ${cliVersion || "unknown"} 不在已验证版本窗口 2.1.92–2.1.112（未验证版本会自动降级：翻译不上就保持英文，CLI 不受影响）`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
       recommendations.push(`如需完整 UI 中文，请改用：${STABLE_INSTALL_CMD}`);
       recommendations.push("然后在本仓库重新运行 ./install.sh");
@@ -790,7 +790,7 @@ function runDoctor(options = {}) {
         recommendations.push("运行 ./install.sh 重新 patch native 二进制");
       } else {
         layer4Status = "ok";
-        add("layer4", "Layer 4（UI 硬编码）", "ok", `experimental native ${cliVersion} 已记录 patch`);
+        add("layer4", "Layer 4（UI 硬编码）", "ok", `已验证 native ${cliVersion} 已记录 patch`);
       }
     } else {
       layer4Status = "needed";

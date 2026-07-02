@@ -102,7 +102,7 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 属于 experimental；新同版本线会在安装时本机自验证"
+        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 按已验证版本窗口执行；新同版本线会在安装时本机自验证"
     fi
 
     echo ""
@@ -152,7 +152,7 @@ check_dependencies() {
                 echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version:-unknown}，CLI Patch 需要 node-lief${NC}"
                 echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
             else
-                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将使用 experimental native patch${NC}"
+                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将执行 native patch${NC}"
             fi
         elif can_try_provisional_native_version "$native_version"; then
             if [ "$dep_status" != "ok" ]; then
@@ -1206,7 +1206,7 @@ patch_native_binary() {
         echo -e "  版本: ${current_version}（未纳入已发布支持窗口，安装时本机自验证）"
         print_unpublished_window_note
     else
-        echo -e "  版本: ${current_version}（experimental）"
+        echo -e "  版本: ${current_version}（已验证）"
     fi
 
     local dep_status

@@ -821,7 +821,7 @@ function patch-native-bun {
         write-support-window-link
         write-unpublished-window-note
     } else {
-        Write-Host "  版本: $currentVersion（experimental）"
+        Write-Host "  版本: $currentVersion（已验证）"
     }
 
     $depStatus = (node $helper check-deps 2>$null)
@@ -874,7 +874,7 @@ function patch-native-bun {
                 $verifiedVersion = get-native-version-from-execution $BinaryPath
                 if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }
                 Write-CN "本机自验证通过，已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
-                $script:CliPatchStatusSummary = "Windows native patch experimental 本机自验证中文化（${patchCount} 处硬编码文字，未纳入已发布支持窗口）"
+                $script:CliPatchStatusSummary = "Windows native 本机自验证中文化（${patchCount} 处硬编码文字，未纳入已发布支持窗口）"
             } else {
                 Write-CN "已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
                 $script:CliPatchStatusSummary = "Windows native 中文化（${patchCount} 处硬编码文字）"
