@@ -196,6 +196,7 @@ test("install smoke provisionally self-verifies a future native release instead 
       HOME: home,
       CLAUDE_PLUGIN_ROOT: pluginRoot,
       ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
       ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
       ZH_CN_PROFILE_FILES: profileFile,
       GIT_TERMINAL_PROMPT: "0",
