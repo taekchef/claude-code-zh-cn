@@ -18,12 +18,13 @@
 - 插件状态移到持久数据目录，避免正式插件缓存随版本替换后丢失 patch 记录和设置修复信息。
 - native 候选验证把“运行安全”与“中文覆盖”分开：展示文案残留只记为 partial，不再把可用版本判成整套失败。
 - 纯上游兼容证据只更新支持矩阵，不再强制提升插件版本或创建 Release；插件代码、翻译或 manifest 真正变化时才发新版。
-- 正式安装态由 Claude Code 插件管理器更新；独立兜底安装继续只跟随已发布 Release。
+- 正式安装态由 Claude Code 插件管理器更新；独立兜底安装只做限时 Release 检查并提示手动更新，不在 SessionStart 中途覆盖自身。
 
 ### 修复
 
 - native 补丁改为事务流程：提取、替换、重打包或真实 `--version` 自检任一步失败，都会保留或恢复原文件，Claude Code 本体继续可用。
-- Windows SessionStart 补齐 native 自修复，并用跨平台 Node Hook 入口统一调用 Bash / PowerShell；Hook 执行异常时返回合法的安全降级结果。
+- Windows SessionStart 不再尝试改写已被系统锁定的运行中 `claude.exe`，而是保持原版可用并留下可操作的安装交接；macOS native 自动修复增加跨进程锁，避免并发会话同时改写二进制。
+- 正式插件的 SessionStart 更新增加 20 秒内部超时；插件管理器卡住时只记更新失败，不再拖住会话启动。
 - 卸载只移除本插件的正式注册、备用 Hook 和设置，不再因命令文案碰巧含插件名而误删用户 Hook。
 
 ### 验证

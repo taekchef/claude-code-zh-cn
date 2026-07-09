@@ -508,8 +508,8 @@ select_safe_plugin_fallback() {
 
     case "$settings_state" in
         enabled)
-            PLUGIN_RUNTIME_MODE="official-unverified"
-            echo -e "${YELLOW}官方插件 CLI 校验未完成（${reason}）；检测到已有启用记录，为避免重复 Hook，未注入备用 Hook。基础中文设置和 CLI Patch 继续生效。${NC}"
+            PLUGIN_RUNTIME_MODE="standalone"
+            echo -e "${YELLOW}官方插件 CLI 校验未完成（${reason}）；已有启用记录无法证明插件实际已加载，将启用独立备用 Hook。基础中文设置和 CLI Patch 不受影响。${NC}"
             ;;
         disabled)
             PLUGIN_RUNTIME_MODE="disabled"

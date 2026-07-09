@@ -420,6 +420,14 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
   assert.match(script, /--version/);
+  const repackIndex = nativePatch.indexOf("node $helper repack $BinaryPath $tmpJs");
+  const runtimeCheckIndex = nativePatch.indexOf("$verifiedVersion = get-native-version-from-execution $BinaryPath");
+  const modeMessageIndex = nativePatch.indexOf('if ($patchMode -eq "provisional")', repackIndex);
+  assert.ok(repackIndex >= 0 && runtimeCheckIndex > repackIndex, "Windows native repack must be followed by a runtime check");
+  assert.ok(
+    runtimeCheckIndex < modeMessageIndex,
+    "verified and provisional Windows native patches must both pass the real --version check"
+  );
   assert.match(script, /DISABLE_AUTOUPDATER/);
   assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
   assert.match(script, /\.patched-version/);

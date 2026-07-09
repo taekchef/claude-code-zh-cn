@@ -266,7 +266,7 @@ test("install registers and verifies the official user plugin without duplicate 
   );
 });
 
-test("install does not add fallback hooks when an enabled official record cannot be re-verified", { skip: unixShellRequired }, () => {
+test("install replaces a stale enabled record with standalone hooks when official loading cannot be verified", { skip: unixShellRequired }, () => {
   const context = createInstallContext("install-fails");
   const before = JSON.parse(fs.readFileSync(context.settingsFile, "utf8"));
   before.enabledPlugins = { "claude-code-zh-cn@claude-code-zh-cn": true };
@@ -275,14 +275,11 @@ test("install does not add fallback hooks when an enabled official record cannot
   const result = runInstall(context);
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /检测到已有启用记录，为避免重复 Hook，未注入备用 Hook/);
+  assert.match(output, /已有启用记录无法证明插件实际已加载.*启用独立备用 Hook/);
 
   const settings = JSON.parse(fs.readFileSync(context.settingsFile, "utf8"));
   assert.equal(settings.enabledPlugins["claude-code-zh-cn@claude-code-zh-cn"], true);
-  assert.equal(
-    standaloneHooks(settings, context.pluginRoot).length,
-    0
-  );
+  assert.equal(standaloneHooks(settings, context.pluginRoot).length, 2);
 });
 
 test("install respects an explicitly disabled official plugin without enabling fallback hooks", { skip: unixShellRequired }, () => {

@@ -25,20 +25,109 @@ LAST_UPDATE_CHECK_FILE="$STATE_ROOT/.last-update-check"
 SETTINGS_OVERLAY_CACHE_FILE="$STATE_ROOT/.settings-overlay-cache.json"
 SETTINGS_FILE="$HOME/.claude/settings.json"
 UPDATE_CHECK_INTERVAL_SECONDS="${ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS:-21600}"
+PLUGIN_UPDATE_TIMEOUT_SECONDS="${ZH_CN_PLUGIN_UPDATE_TIMEOUT_SECONDS:-20}"
 LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
 OFFICIAL_PLUGIN_ID="claude-code-zh-cn@claude-code-zh-cn"
 OFFICIAL_MARKETPLACE_NAME="claude-code-zh-cn"
-STAGING_DIR=""
+NATIVE_LOCK_DIR=""
+NATIVE_LOCK_HELD=false
 
 source "$PLUGIN_ROOT/compute-patch-revision.sh"
 
 cleanup() {
-    if [ -n "${STAGING_DIR:-}" ] && [ -d "$STAGING_DIR" ]; then
-        rm -rf "$STAGING_DIR"
-    fi
+    release_native_patch_lock
 }
 
 trap cleanup EXIT
+
+native_patch_lock_path() {
+    local binary_path="$1"
+
+    node - "$binary_path" <<'NODE'
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+
+let binary = process.argv[2];
+try {
+  binary = fs.realpathSync(binary);
+} catch {
+  binary = path.resolve(binary);
+}
+const id = crypto.createHash("sha256").update(binary).digest("hex").slice(0, 20);
+process.stdout.write(path.join(process.env.TMPDIR || "/tmp", `claude-zh-cn-native-${id}.lock`));
+NODE
+}
+
+acquire_native_patch_lock() {
+    local binary_path="$1"
+    local lock_pid=""
+
+    NATIVE_LOCK_DIR="$(native_patch_lock_path "$binary_path" 2>/dev/null || true)"
+    [ -n "$NATIVE_LOCK_DIR" ] || return 1
+
+    if mkdir "$NATIVE_LOCK_DIR" 2>/dev/null; then
+        printf '%s' "$$" > "$NATIVE_LOCK_DIR/pid"
+        NATIVE_LOCK_HELD=true
+        return 0
+    fi
+
+    lock_pid="$(cat "$NATIVE_LOCK_DIR/pid" 2>/dev/null || true)"
+    case "$lock_pid" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+
+    if ! kill -0 "$lock_pid" 2>/dev/null; then
+        rm -rf "$NATIVE_LOCK_DIR" 2>/dev/null || return 1
+        if mkdir "$NATIVE_LOCK_DIR" 2>/dev/null; then
+            printf '%s' "$$" > "$NATIVE_LOCK_DIR/pid"
+            NATIVE_LOCK_HELD=true
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+release_native_patch_lock() {
+    local lock_pid=""
+
+    if [ "${NATIVE_LOCK_HELD:-false}" = true ] && [ -n "${NATIVE_LOCK_DIR:-}" ]; then
+        lock_pid="$(cat "$NATIVE_LOCK_DIR/pid" 2>/dev/null || true)"
+        if [ "$lock_pid" = "$$" ]; then
+            rm -rf "$NATIVE_LOCK_DIR" 2>/dev/null || true
+        fi
+    fi
+    NATIVE_LOCK_HELD=false
+    NATIVE_LOCK_DIR=""
+}
+
+run_with_timeout_seconds() {
+    local timeout_seconds="$1"
+    shift
+    local command_pid watchdog_pid command_status
+
+    case "$timeout_seconds" in
+        ''|*[!0-9]*) timeout_seconds=20 ;;
+    esac
+    [ "$timeout_seconds" -gt 0 ] 2>/dev/null || timeout_seconds=20
+
+    "$@" &
+    command_pid=$!
+    (
+        sleep "$timeout_seconds"
+        kill "$command_pid" 2>/dev/null || exit 0
+        sleep 1
+        kill -9 "$command_pid" 2>/dev/null || true
+    ) &
+    watchdog_pid=$!
+
+    wait "$command_pid"
+    command_status=$?
+    kill "$watchdog_pid" 2>/dev/null || true
+    wait "$watchdog_pid" 2>/dev/null || true
+    return "$command_status"
+}
 
 read_manifest_version() {
     local target="$1"
@@ -316,27 +405,8 @@ should_check_for_update() {
 fetch_latest_local_release_tag() {
     local source_repo="$1"
 
-    if command -v timeout &>/dev/null; then
-        GIT_TERMINAL_PROMPT=0 timeout 15 git -C "$source_repo" fetch --tags --quiet >/dev/null 2>&1 || true
-    else
-        # macOS fallback: background + wait with 15s limit
-        local pid
-        GIT_TERMINAL_PROMPT=0 git -C "$source_repo" fetch --tags --quiet >/dev/null 2>&1 &
-        pid=$!
-        local waited=0
-        while [ $waited -lt 15 ]; do
-            if ! kill -0 "$pid" 2>/dev/null; then
-                wait "$pid" 2>/dev/null || true
-                break
-            fi
-            sleep 1
-            waited=$((waited + 1))
-        done
-        if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid" 2>/dev/null || true
-            wait "$pid" 2>/dev/null || true
-        fi
-    fi
+    GIT_TERMINAL_PROMPT=0 run_with_timeout_seconds "$PLUGIN_UPDATE_TIMEOUT_SECONDS" \
+        git -C "$source_repo" fetch --tags --quiet >/dev/null 2>&1 || true
 
     git -C "$source_repo" tag -l 'v*' --sort=-version:refname | head -1
 }
@@ -347,34 +417,16 @@ github_api_get() {
     local url="https://api.github.com/repos/${repo_slug}${path}"
 
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-        curl -fsSL \
+        curl -fsSL --connect-timeout 5 --max-time "$PLUGIN_UPDATE_TIMEOUT_SECONDS" \
             -H "Authorization: Bearer ${GITHUB_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "$url"
     else
-        curl -fsSL \
+        curl -fsSL --connect-timeout 5 --max-time "$PLUGIN_UPDATE_TIMEOUT_SECONDS" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "$url"
-    fi
-}
-
-github_download() {
-    local url="$1"
-    local output="$2"
-
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
-        curl -fsSL \
-            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "$url" -o "$output"
-    else
-        curl -fsSL \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "$url" -o "$output"
     fi
 }
 
@@ -394,22 +446,6 @@ json_string_field() {
     sed -nE "s/^[[:space:]]*\"${field}\"[[:space:]]*:[[:space:]]*\"([^\"]*)\".*/\1/p" | head -n 1
 }
 
-urlencode_ref() {
-    local value="$1"
-
-    if command -v python3 >/dev/null 2>&1; then
-        python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$value"
-        return
-    fi
-
-    if command -v node >/dev/null 2>&1; then
-        node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$value"
-        return
-    fi
-
-    printf '%s' "$value" | sed 's/%/%25/g; s#/#%2F#g; s/ /%20/g'
-}
-
 fetch_latest_remote_release_tag() {
     local repo_slug="$1"
     local release_json latest_tag
@@ -418,18 +454,6 @@ fetch_latest_remote_release_tag() {
     latest_tag="$(printf '%s' "$release_json" | json_string_field tag_name)"
     [ -n "$latest_tag" ] || return 1
     printf '%s' "$latest_tag"
-}
-
-resolve_remote_commit_sha() {
-    local repo_slug="$1"
-    local ref="$2"
-    local encoded_ref commit_json sha
-
-    encoded_ref="$(urlencode_ref "$ref")"
-    commit_json="$(github_api_get "$repo_slug" "/commits/${encoded_ref}")" || return 1
-    sha="$(printf '%s' "$commit_json" | json_string_field sha)"
-    [ -n "$sha" ] || return 1
-    printf '%s' "$sha"
 }
 
 fetch_latest_release_tag() {
@@ -443,137 +467,6 @@ fetch_latest_release_tag() {
     if is_github_repo_slug "$source_repo"; then
         fetch_latest_remote_release_tag "$source_repo"
     fi
-}
-
-release_contains_path() {
-    local source_repo="$1"
-    local latest_tag="$2"
-    local release_path="$3"
-
-    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" cat-file -e "${latest_tag}:${release_path}" 2>/dev/null
-}
-
-archive_release_paths() {
-    local source_repo="$1"
-    local latest_tag="$2"
-    local staging_dir="$3"
-    shift 3
-
-    GIT_TERMINAL_PROMPT=0 git -C "$source_repo" archive --format=tar "$latest_tag" "$@" 2>/dev/null \
-        | tar -xf - -C "$staging_dir" 2>/dev/null
-}
-
-export_local_release_to_staging() {
-    local source_repo="$1"
-    local latest_tag="$2"
-    local staging_dir="$3"
-
-    mkdir -p "$staging_dir"
-    archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" .claude-plugin install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin || return 1
-
-    if release_contains_path "$source_repo" "$latest_tag" "scripts/install-json-helper.js"; then
-        archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" scripts/install-json-helper.js || true
-    fi
-}
-
-remote_archive_top_dir() {
-    local unpack_dir="$1"
-    local count top_dir
-
-    count="$(find "$unpack_dir" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d '[:space:]')"
-    [ "$count" = "1" ] || return 1
-
-    top_dir="$(find "$unpack_dir" -mindepth 1 -maxdepth 1 -type d -print -quit)"
-    [ -n "$top_dir" ] || return 1
-    printf '%s' "$top_dir"
-}
-
-copy_remote_release_path() {
-    local top_dir="$1"
-    local staging_dir="$2"
-    local release_path="$3"
-
-    [ -e "$top_dir/$release_path" ] || return 1
-    cp -R "$top_dir/$release_path" "$staging_dir/"
-}
-
-export_remote_release_to_staging() {
-    local repo_slug="$1"
-    local latest_tag="$2"
-    local staging_dir="$3"
-    local source_sha archive_file unpack_dir top_dir
-
-    mkdir -p "$staging_dir"
-    source_sha="$(resolve_remote_commit_sha "$repo_slug" "$latest_tag")" || return 1
-    archive_file="$staging_dir/.remote-source.tar.gz"
-    unpack_dir="$staging_dir/.remote-unpack"
-    mkdir -p "$unpack_dir"
-
-    github_download "https://api.github.com/repos/${repo_slug}/tarball/${source_sha}" "$archive_file" || return 1
-    tar -xzf "$archive_file" -C "$unpack_dir" || return 1
-    top_dir="$(remote_archive_top_dir "$unpack_dir")" || return 1
-
-    copy_remote_release_path "$top_dir" "$staging_dir" install.sh || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" install.ps1 || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" .claude-plugin || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" compute-patch-revision.sh || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" settings-overlay.json || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" verbs || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" tips || return 1
-    copy_remote_release_path "$top_dir" "$staging_dir" plugin || return 1
-
-    if [ -f "$top_dir/scripts/install-json-helper.js" ]; then
-        mkdir -p "$staging_dir/scripts"
-        cp "$top_dir/scripts/install-json-helper.js" "$staging_dir/scripts/install-json-helper.js" || true
-    fi
-
-    rm -rf "$archive_file" "$unpack_dir" 2>/dev/null || true
-}
-
-export_release_to_staging() {
-    local source_repo="$1"
-    local latest_tag="$2"
-    local staging_dir="$3"
-
-    if is_local_source_repo "$source_repo"; then
-        export_local_release_to_staging "$source_repo" "$latest_tag" "$staging_dir"
-        return
-    fi
-
-    if is_github_repo_slug "$source_repo"; then
-        export_remote_release_to_staging "$source_repo" "$latest_tag" "$staging_dir"
-        return
-    fi
-
-    return 1
-}
-
-validate_staging_release() {
-    local staging_dir="$1"
-
-    [ -f "$staging_dir/install.sh" ] || return 1
-    [ -f "$staging_dir/.claude-plugin/marketplace.json" ] || return 1
-    [ -f "$staging_dir/settings-overlay.json" ] || return 1
-    [ -f "$staging_dir/plugin/manifest.json" ] || return 1
-    [ -f "$staging_dir/plugin/.claude-plugin/plugin.json" ] || return 1
-    [ -f "$staging_dir/plugin/patch-cli.sh" ] || return 1
-    [ -f "$staging_dir/plugin/patch-cli.js" ] || return 1
-    [ -f "$staging_dir/plugin/cli-translations.json" ] || return 1
-    [ -f "$staging_dir/plugin/bun-binary-io.js" ] || return 1
-    [ -f "$staging_dir/plugin/compute-patch-revision.sh" ] || return 1
-    [ -f "$staging_dir/compute-patch-revision.sh" ] || return 1
-    [ -f "$staging_dir/verbs/zh-CN.json" ] || return 1
-    [ -f "$staging_dir/tips/zh-CN.json" ] || return 1
-}
-
-run_update_only_install() {
-    local staging_dir="$1"
-    local source_repo="$2"
-
-    CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-    ZH_CN_SOURCE_REPO="$source_repo" \
-    ZH_CN_SKIP_BANNER=1 \
-    bash "$staging_dir/install.sh" --update-only >/dev/null 2>&1
 }
 
 validate_semver() {
@@ -682,16 +575,25 @@ NODE
 }
 
 update_official_marketplace_plugin() {
-    local claude_cli update_output
+    local claude_cli update_output update_output_file
 
     claude_cli="$(find_real_claude_binary)"
     [ -n "$claude_cli" ] || return 1
 
-    if ! "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1; then
+    if ! run_with_timeout_seconds "$PLUGIN_UPDATE_TIMEOUT_SECONDS" \
+        "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1; then
         return 1
     fi
 
-    update_output="$("$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user 2>&1)" || return 1
+    update_output_file="$(mktemp "${TMPDIR:-/tmp}/cczh-plugin-update.XXXXXX" 2>/dev/null || true)"
+    [ -n "$update_output_file" ] || return 1
+    if ! run_with_timeout_seconds "$PLUGIN_UPDATE_TIMEOUT_SECONDS" \
+        "$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user >"$update_output_file" 2>&1; then
+        rm -f "$update_output_file"
+        return 1
+    fi
+    update_output="$(cat "$update_output_file" 2>/dev/null || true)"
+    rm -f "$update_output_file"
     case "$update_output" in
         *"already at the latest"*|*"已是最新"*|*"latest version"*)
             write_update_status "noop marketplace $(date +%s)"
@@ -703,7 +605,8 @@ update_official_marketplace_plugin() {
     esac
 }
 
-# 自动更新：marketplace 安装交给 Claude plugin manager；旧独立安装继续只同步 Release tag。
+# 自动更新：正式插件交给 Claude plugin manager；旧独立安装只检查并提示，
+# 不在 SessionStart 中途原地覆盖自身，避免安装被打断后留下半份文件。
 AUTO_UPDATE_MSG=""
 if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
     if update_check_due; then
@@ -724,17 +627,11 @@ else
     if [ -n "${LATEST_TAG:-}" ] && [ -n "${LOCAL_VERSION:-}" ] && [ -n "${LATEST_VERSION:-}" ] \
         && validate_semver "$LOCAL_VERSION" && validate_semver "$LATEST_VERSION" \
         && version_is_newer "$LOCAL_VERSION" "$LATEST_VERSION"; then
-        STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cczh-update.XXXXXX")"
-
-        if ! export_release_to_staging "$SOURCE_REPO" "$LATEST_TAG" "$STAGING_DIR"; then
-            write_update_status "export_failed v${LATEST_VERSION} $(date +%s)"
-        elif ! validate_staging_release "$STAGING_DIR"; then
-            write_update_status "staging_invalid v${LATEST_VERSION} $(date +%s)"
-        elif ! run_update_only_install "$STAGING_DIR" "$SOURCE_REPO"; then
-            write_update_status "install_failed v${LATEST_VERSION} $(date +%s)"
+        write_update_status "available v${LATEST_VERSION} $(date +%s)"
+        if is_local_source_repo "$SOURCE_REPO"; then
+            AUTO_UPDATE_MSG="检测到插件 v${LATEST_VERSION}（当前 v${LOCAL_VERSION}）。为避免会话启动途中覆盖插件，本次未自动安装；会话结束后在源码目录运行 git pull && ./install.sh"
         else
-            write_update_status "ok v${LATEST_VERSION} $(date +%s)"
-            AUTO_UPDATE_MSG="插件已从 v${LOCAL_VERSION} 更新到 v${LATEST_VERSION}"
+            AUTO_UPDATE_MSG="检测到插件 v${LATEST_VERSION}（当前 v${LOCAL_VERSION}）。为避免会话启动途中覆盖插件，本次未自动安装；会话结束后重跑 README 中的远程安装命令"
         fi
     else
         write_update_status "noop v${LOCAL_VERSION:-unknown} $(date +%s)"
@@ -803,7 +700,20 @@ if [ -n "$NATIVE_BINARY" ]; then
             "${PATCH_REVISION:-unknown}" \
             "$PATCH_MODE" \
             "$NATIVE_PLATFORM"; then
-            if node "$PLUGIN_ROOT/bun-binary-io.js" check-deps 2>/dev/null | grep -q "ok"; then
+            if acquire_native_patch_lock "$NATIVE_BINARY"; then
+                # 另一个 SessionStart 可能刚完成同一文件；拿到锁后必须重新读取现场。
+                CURRENT_HASH=$(native_binary_hash "$NATIVE_BINARY")
+                PATCHED_VERSION=""
+                [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
+
+                if ! native_marker_is_current \
+                    "$PATCHED_VERSION" \
+                    "$CURRENT_VERSION" \
+                    "${CURRENT_HASH:-unknown}" \
+                    "${PATCH_REVISION:-unknown}" \
+                    "$PATCH_MODE" \
+                    "$NATIVE_PLATFORM"; then
+                    if node "$PLUGIN_ROOT/bun-binary-io.js" check-deps 2>/dev/null | grep -q "ok"; then
                 tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-repatch.$$.js"
                 status_file="${TMPDIR:-/tmp}/cczh-native-patch-status.$$.${RANDOM:-0}"
                 backup_path="${NATIVE_BINARY}.zh-cn-backup"
@@ -885,8 +795,11 @@ if [ -n "$NATIVE_BINARY" ]; then
                     fi
                 fi
                 rm -f "$tmp_js" "$status_file"
+                    fi
+                    # node-lief 不可用 → 静默跳过，保持 hook JSON 合法
+                fi
+                release_native_patch_lock
             fi
-            # node-lief 不可用 → 静默跳过，保持 hook JSON 合法
         fi
     fi
 elif [ -f "$CLI_FILE" ]; then

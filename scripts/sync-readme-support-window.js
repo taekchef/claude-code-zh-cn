@@ -175,6 +175,7 @@ function renderSupportSystems(config) {
     "",
     "> - **已验证窗口不是运行门禁**：同一 `major.minor` 版本线的新 native 版本会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。",
     "> - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。",
+    "> - **Windows 不热改运行中的 exe**：Claude Code 更新后先保持原版可用；关闭所有 Claude Code 窗口，再按 Windows 安装命令重跑 `install.ps1`，由安装器补丁并自检。",
     "> - **跨版本线保守处理**：例如从 `2.1.x` 升到 `2.2.x` 或 `3.x` 时，不做原生 Layer 4 patch，Layer 1~3 继续生效。",
     "> - **矩阵只记录证据**：纯上游兼容证据可以更新支持矩阵，不要求插件升版；只有插件代码、翻译或 manifest 变化才发布新版。",
     `> - **已验证版本完整清单**${hasExcluded ? "（含个别未收录版本）" : ""}见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。`,
@@ -204,7 +205,7 @@ function renderInstallAdvice(config) {
     "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | 同一版本线先本机自检再启用 CLI Patch；跨版本线只保留 Layer 1~3 |",
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
-          `| \`powershell -File install.ps1\` | Windows：旧 npm cli.js 最完整；native .exe \`${renderRange(windowsNativeExperimental)}\` 内已验证版本需 \`node-lief\` |`,
+          `| \`powershell -File install.ps1\` | Windows：旧 npm cli.js 最完整；native .exe \`${renderRange(windowsNativeExperimental)}\` 内已验证版本需 \`node-lief\`；Claude 更新后关闭所有窗口并重跑 |`,
         ]
       : [
           "| `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe 会跳过 CLI Patch |",
@@ -212,7 +213,7 @@ function renderInstallAdvice(config) {
     ...(macosNative && macosNative.unsupported !== true
       ? [
           "",
-          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)），同一 \`major.minor\` 新版可本机自检，需要 \`node-lief\`。`,
+          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)），同一 \`major.minor\` 新版可本机自检，需要 \`node-lief\`。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 \`install.ps1\`。`,
         ]
       : []),
     "",

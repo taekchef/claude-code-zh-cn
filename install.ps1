@@ -327,8 +327,8 @@ function select-safe-plugin-fallback {
 
     switch ($settingsState) {
         "enabled" {
-            $script:PluginRuntimeMode = "official-unverified"
-            Write-CN "官方插件 CLI 校验未完成（$Reason）；检测到已有启用记录，为避免重复 Hook，未注入备用 Hook。基础中文设置和 CLI Patch 继续生效。" Yellow
+            $script:PluginRuntimeMode = "standalone"
+            Write-CN "官方插件 CLI 校验未完成（$Reason）；已有启用记录无法证明插件实际已加载，将启用独立备用 Hook。基础中文设置和 CLI Patch 不受影响。" Yellow
         }
         "disabled" {
             $script:PluginRuntimeMode = "disabled"
@@ -1133,10 +1133,10 @@ function patch-native-bun {
         if ([int]$patchCount -gt 0) {
             node $helper repack $BinaryPath $tmpJs | Out-Null
             if ($LASTEXITCODE -ne 0) { throw "repack failed" }
+            Write-Host "  正在运行 --version 做启动自检..."
+            $verifiedVersion = get-native-version-from-execution $BinaryPath
+            if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }
             if ($patchMode -eq "provisional") {
-                Write-Host "  正在运行 --version 做本机自验证..."
-                $verifiedVersion = get-native-version-from-execution $BinaryPath
-                if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }
                 Write-CN "本机自验证通过，已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
                 $script:CliPatchStatusSummary = "Windows native 本机自验证中文化（${patchCount} 处硬编码文字，未纳入已发布支持窗口）"
             } else {
