@@ -44,13 +44,19 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
-function readManifestVersion(repoRoot) {
-  const manifestPath = path.join(repoRoot, "plugin", "manifest.json");
+function readPluginManifest(repoRoot, relativePath, label) {
+  const manifestPath = path.join(repoRoot, ...relativePath);
   const manifest = readJson(manifestPath);
-  if (!manifest.version || typeof manifest.version !== "string") {
-    fail("plugin/manifest.json must define a string version");
+  if (!manifest.name || typeof manifest.name !== "string") {
+    fail(`${label} must define a string name`);
   }
-  return manifest.version;
+  if (!manifest.version || typeof manifest.version !== "string") {
+    fail(`${label} must define a string version`);
+  }
+  return {
+    name: manifest.name,
+    version: manifest.version,
+  };
 }
 
 function readTopChangelogVersion(repoRoot) {
@@ -160,18 +166,40 @@ function checkGitHubRelease(repoRoot, tagName, githubRepo) {
 }
 
 function buildPayload(args) {
-  const manifestVersion = readManifestVersion(args.repoRoot);
+  const legacyManifest = readPluginManifest(
+    args.repoRoot,
+    ["plugin", "manifest.json"],
+    "plugin/manifest.json"
+  );
+  const officialManifest = readPluginManifest(
+    args.repoRoot,
+    ["plugin", ".claude-plugin", "plugin.json"],
+    "plugin/.claude-plugin/plugin.json"
+  );
+  const manifestVersion = legacyManifest.version;
   const changelogVersion = readTopChangelogVersion(args.repoRoot);
   const tagName = `v${manifestVersion}`;
+  const pluginManifestsMatch =
+    legacyManifest.name === officialManifest.name &&
+    legacyManifest.version === officialManifest.version;
   const versionMatch = manifestVersion === changelogVersion;
   const gitTag = checkGitTag(args.repoRoot, tagName);
   const githubRelease = checkGitHubRelease(args.repoRoot, tagName, args.githubRepo);
 
   return {
+    manifestName: legacyManifest.name,
     manifestVersion,
+    officialManifestName: officialManifest.name,
+    officialManifestVersion: officialManifest.version,
     changelogVersion,
     tagName,
     checks: {
+      pluginManifestsMatch: {
+        ok: pluginManifestsMatch,
+        detail: pluginManifestsMatch
+          ? null
+          : `legacy ${legacyManifest.name}@${legacyManifest.version} does not match official ${officialManifest.name}@${officialManifest.version}`,
+      },
       versionMatch: {
         ok: versionMatch,
         detail: versionMatch
@@ -198,12 +226,19 @@ function renderState(check) {
 }
 
 function printHuman(payload) {
+  const pluginManifestsMatch = payload.checks.pluginManifestsMatch;
   const versionMatch = payload.checks.versionMatch;
   const gitTag = payload.checks.gitTag;
   const githubRelease = payload.checks.githubRelease;
 
   console.log("release-state");
   console.log(`manifest: ${payload.manifestVersion}`);
+  console.log(`official manifest: ${payload.officialManifestVersion}`);
+  console.log(
+    pluginManifestsMatch.ok
+      ? "plugin manifests: OK"
+      : `plugin manifests: FAIL (${pluginManifestsMatch.detail})`
+  );
   console.log(`changelog: ${payload.changelogVersion}`);
   console.log(
     versionMatch.ok

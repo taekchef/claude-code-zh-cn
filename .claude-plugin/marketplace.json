@@ -1,0 +1,19 @@
+{
+  "name": "claude-code-zh-cn",
+  "owner": {
+    "name": "taekchef"
+  },
+  "description": "Claude Code 简体中文本地化插件",
+  "plugins": [
+    {
+      "name": "claude-code-zh-cn",
+      "source": "./plugin",
+      "description": "为 Claude Code 提供简体中文界面、本地化提示和安全的渐进式 CLI patch",
+      "homepage": "https://github.com/taekchef/claude-code-zh-cn",
+      "repository": "https://github.com/taekchef/claude-code-zh-cn",
+      "license": "MIT",
+      "category": "development",
+      "tags": ["localization", "chinese", "claude-code"]
+    }
+  ]
+}

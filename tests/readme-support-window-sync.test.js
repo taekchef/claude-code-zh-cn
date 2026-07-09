@@ -145,11 +145,16 @@ test("README support window sync rewrites badges, support table, and install adv
   assert.match(text, /macos%20native-2\.1\.121--2\.1\.130-green/);
   assert.match(text, /\| macOS · native binary（arm64） \| `2\.1\.121 - 2\.1\.130` 内的已验证版本 \|/);
   assert.match(text, /npm install -g @anthropic-ai\/claude-code@2\.1\.120/);
-  assert.match(text, /\*\*未验证版本不会坏\*\*/);
+  assert.match(text, /\*\*已验证窗口不是运行门禁\*\*/);
+  assert.match(text, /已有词条继续中文，新文案原样保留英文/);
+  assert.match(text, /\*\*失败不伤 CLI\*\*/);
+  assert.match(text, /\*\*跨版本线保守处理\*\*/);
+  assert.match(text, /纯上游兼容证据可以更新支持矩阵，不要求插件升版/);
   assert.match(text, /docs\/support-matrix\.md/);
   assert.match(text, /\| Windows · native \.exe（x64） \| 暂无已验证版本 \|/);
   assert.doesNotMatch(text, /experimental/);
   assert.doesNotMatch(text, /stable/);
+  assert.doesNotMatch(text, /已验证版本才启用 CLI Patch/);
 
   const checkResult = runSync([
     "--check",

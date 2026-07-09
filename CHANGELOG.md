@@ -6,6 +6,31 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.6.0] - 2026-07-10
+
+### 新增
+
+- 增加正式 marketplace / plugin 清单，安装器优先通过 Claude Code 插件管理器注册并验证；旧版 CLI 或注册失败时，使用一套不会重复加载的独立 Hook 兜底。
+- macOS arm64 与 Windows x64 native 在同一 `major.minor` 版本线内支持本机 provisional 自检：已知文案继续中文，新文案保持英文；跨版本线不自动改写二进制。
+
+### 改进
+
+- 插件状态移到持久数据目录，避免正式插件缓存随版本替换后丢失 patch 记录和设置修复信息。
+- native 候选验证把“运行安全”与“中文覆盖”分开：展示文案残留只记为 partial，不再把可用版本判成整套失败。
+- 纯上游兼容证据只更新支持矩阵，不再强制提升插件版本或创建 Release；插件代码、翻译或 manifest 真正变化时才发新版。
+- 正式安装态由 Claude Code 插件管理器更新；独立兜底安装继续只跟随已发布 Release。
+
+### 修复
+
+- native 补丁改为事务流程：提取、替换、重打包或真实 `--version` 自检任一步失败，都会保留或恢复原文件，Claude Code 本体继续可用。
+- Windows SessionStart 补齐 native 自修复，并用跨平台 Node Hook 入口统一调用 Bash / PowerShell；Hook 执行异常时返回合法的安全降级结果。
+- 卸载只移除本插件的正式注册、备用 Hook 和设置，不再因命令文案碰巧含插件名而误删用户 Hook。
+
+### 验证
+
+- 正式插件清单通过 `claude plugin validate --strict`，并在隔离配置中完成 marketplace add / install / list 验证。
+- 新增同版本线新 native 文案部分覆盖、跨版本线不改写、失败回滚、正式注册/备用 Hook/精准卸载和版本清单一致性回归测试。
+
 ## [2.5.1] - 2026-07-09
 
 ### 改进

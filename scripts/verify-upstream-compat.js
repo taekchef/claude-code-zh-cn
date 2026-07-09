@@ -578,19 +578,17 @@ function runNativeVerification(config, args, version, packageDir, kind) {
         }),
     });
 
-    const status =
-      patchCount <= 0 ||
-      residue.length > 0 ||
-      missingRequired.length > 0 ||
-      displayAudit?.status === "fail" ||
-      !versionOutput.includes(version)
-        ? "fail"
-        : "pass";
+    const assessment = assessCompatibility(
+      residue,
+      missingRequired,
+      displayAudit,
+      patchCount <= 0 || !versionOutput.includes(version)
+    );
 
     return {
       version,
       kind,
-      status,
+      ...assessment,
       patchCount,
       residue,
       missingRequired,
@@ -826,6 +824,10 @@ function auditDisplayText(output, audit, commandId) {
   return issues;
 }
 
+function isDisplayCoverageIssue(issue) {
+  return issue?.kind === "display" || issue?.kind === "display-untranslated-line";
+}
+
 function isolatedRuntimeEnv(tmpDir) {
   const home = path.join(tmpDir, "home");
   fs.mkdirSync(home, { recursive: true });
@@ -902,11 +904,14 @@ function runDisplayAudit(config, runtime) {
     }
 
     const commandIssues = auditDisplayText(output, audit, command.id);
+    const commandFailures = commandIssues.filter((issue) => !isDisplayCoverageIssue(issue));
+    const commandWarnings = commandIssues.filter(isDisplayCoverageIssue);
     issues.push(...commandIssues);
     commands.push({
       ...commandSummary,
-      audit: commandIssues.length > 0 ? "fail" : "pass",
+      audit: commandFailures.length > 0 ? "fail" : commandWarnings.length > 0 ? "partial" : "pass",
       issueCount: commandIssues.length,
+      warningCount: commandWarnings.length,
     });
   }
 
@@ -923,12 +928,47 @@ function runDisplayAudit(config, runtime) {
     });
   }
 
+  const warnings = issues.filter(isDisplayCoverageIssue);
+  const failures = issues.filter((issue) => !isDisplayCoverageIssue(issue));
+
   return {
-    status: issues.length > 0 ? "fail" : "pass",
+    status: failures.length > 0 ? "fail" : warnings.length > 0 ? "partial" : "pass",
     commandCount,
     issueCount: issues.length,
+    warningCount: warnings.length,
+    failureCount: failures.length,
     commands,
     issues,
+    warnings,
+    failures,
+  };
+}
+
+function assessCompatibility(residue, missingRequired, displayAudit, extraHardFailure = false) {
+  const residueWarnings = residue.filter((issue) => issue.kind === "sentinel" || issue.kind === "template");
+  const residueFailures = residue.filter((issue) => issue.kind !== "sentinel" && issue.kind !== "template");
+  const missingWarnings = missingRequired.filter((issue) => issue.rule === "translate");
+  const missingFailures = missingRequired.filter((issue) => issue.rule !== "translate");
+  const displayWarnings = displayAudit?.warnings || [];
+  const coverageIssues = [
+    ...residueWarnings.map((issue) => ({ source: "residue", ...issue })),
+    ...missingWarnings.map((issue) => ({ source: "upstream-text", ...issue })),
+    ...displayWarnings.map((issue) => ({ source: "display-audit", ...issue })),
+  ];
+  const hardFailure =
+    extraHardFailure ||
+    residueFailures.length > 0 ||
+    missingFailures.length > 0 ||
+    displayAudit?.status === "fail";
+
+  return {
+    status: hardFailure ? "fail" : "pass",
+    runtimeStatus: hardFailure ? "fail" : "pass",
+    coverage: {
+      status: coverageIssues.length > 0 ? "partial" : "complete",
+      issueCount: coverageIssues.length,
+      issues: coverageIssues,
+    },
   };
 }
 
@@ -962,10 +1002,11 @@ function evaluateVersion(config, args, version) {
       }),
   });
 
+  const assessment = assessCompatibility(residue, missingRequired, displayAudit);
   return {
     version,
     kind,
-    status: residue.length > 0 || missingRequired.length > 0 || displayAudit?.status === "fail" ? "fail" : "pass",
+    ...assessment,
     patchCount,
     residue,
     missingRequired,
@@ -977,9 +1018,12 @@ function buildSummary(results) {
   return results.reduce(
     (summary, result) => {
       summary[result.status] = (summary[result.status] || 0) + 1;
+      if (result.coverage?.status === "partial") {
+        summary.coveragePartial += 1;
+      }
       return summary;
     },
-    { pass: 0, fail: 0, skip: 0 }
+    { pass: 0, fail: 0, skip: 0, coveragePartial: 0 }
   );
 }
 
@@ -993,9 +1037,16 @@ function printHuman(payload) {
       ? result.missingRequired.map((entry) => `${entry.kind}:${entry.id}`).join(",")
       : "-";
     const skipSummary = result.skipReason ? `;skip=${result.skipReason}` : "";
-    console.log(`${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}${skipSummary}`);
+    const coverageSummary = result.coverage?.status === "partial"
+      ? `;coverage=partial(${result.coverage.issueCount})`
+      : "";
+    console.log(
+      `${result.version}\t${result.status}\t${result.patchCount}\t${residueSummary};missing=${missingSummary}${coverageSummary}${skipSummary}`
+    );
   }
-  console.log(`summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}\tskip=${payload.summary.skip}`);
+  console.log(
+    `summary\tpass=${payload.summary.pass}\tfail=${payload.summary.fail}\tskip=${payload.summary.skip}\tcoveragePartial=${payload.summary.coveragePartial}`
+  );
 }
 
 function main() {

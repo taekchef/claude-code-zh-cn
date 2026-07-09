@@ -173,7 +173,10 @@ function renderSupportSystems(config) {
         ]),
     "| Linux · 官方安装器 | 暂无已验证版本 | 仅 Layer 1~3 生效 |",
     "",
-    "> - **未验证版本不会坏**：插件会自动跳过或只翻译能匹配的部分（其余保持英文），CLI 始终可用；patch 结果不通过语法校验会自动放弃写入。",
+    "> - **已验证窗口不是运行门禁**：同一 `major.minor` 版本线的新 native 版本会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。",
+    "> - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。",
+    "> - **跨版本线保守处理**：例如从 `2.1.x` 升到 `2.2.x` 或 `3.x` 时，不做原生 Layer 4 patch，Layer 1~3 继续生效。",
+    "> - **矩阵只记录证据**：纯上游兼容证据可以更新支持矩阵，不要求插件升版；只有插件代码、翻译或 manifest 变化才发布新版。",
     `> - **已验证版本完整清单**${hasExcluded ? "（含个别未收录版本）" : ""}见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。`,
     `> - Claude Code 从 \`${nativeBoundary}\` 起 npm 主包切换为 native binary，不再包含旧的 \`cli.js\`；要最完整的翻译请用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
   ].join("\n");
@@ -196,9 +199,9 @@ function renderInstallAdvice(config) {
     "| 安装方式 | 中文化程度 |",
     "|---------|-----------|",
     `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 最完整（推荐） |`,
-    "| `npm install -g @anthropic-ai/claude-code`（latest） | 已验证版本完整翻译；未验证版本自动降级为部分/全英文，CLI 可用 |",
+    "| `npm install -g @anthropic-ai/claude-code`（latest） | 同一版本线先本机自检；已知文案继续中文，新文案保留英文 |",
     `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定已验证旧版本（需要 \`node-lief\`） |`,
-    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | 已验证版本才启用 CLI Patch，其余自动降级 |",
+    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | 同一版本线先本机自检再启用 CLI Patch；跨版本线只保留 Layer 1~3 |",
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
           `| \`powershell -File install.ps1\` | Windows：旧 npm cli.js 最完整；native .exe \`${renderRange(windowsNativeExperimental)}\` 内已验证版本需 \`node-lief\` |`,
@@ -209,7 +212,7 @@ function renderInstallAdvice(config) {
     ...(macosNative && macosNative.unsupported !== true
       ? [
           "",
-          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检，失败自动回滚。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)），需要 \`node-lief\`。`,
+          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)），同一 \`major.minor\` 新版可本机自检，需要 \`node-lief\`。`,
         ]
       : []),
     "",

@@ -173,8 +173,37 @@ function versionsBetweenExclusive(start, end) {
   return versions;
 }
 
+function isCoverageIssue(issue) {
+  return issue?.kind === "sentinel" ||
+    issue?.kind === "template" ||
+    (issue?.kind === "upstream-text" && issue?.rule === "translate") ||
+    issue?.kind === "display" ||
+    issue?.kind === "display-untranslated-line";
+}
+
+function observedCoverageIssues(result) {
+  return [
+    ...(Array.isArray(result.residue) ? result.residue.filter(isCoverageIssue) : []),
+    ...(Array.isArray(result.missingRequired) ? result.missingRequired.filter(isCoverageIssue) : []),
+    ...(Array.isArray(result.displayAudit?.issues) ? result.displayAudit.issues.filter(isCoverageIssue) : []),
+  ];
+}
+
+function coverageEvidence(result) {
+  const explicit = result.coverage;
+  const inferredIssues = observedCoverageIssues(result);
+  const issues = Array.isArray(explicit?.issues) ? explicit.issues : inferredIssues;
+  const status = explicit?.status || (result.displayAudit?.status === "partial" || issues.length > 0 ? "partial" : "complete");
+  const issueCount = Number.isInteger(explicit?.issueCount) ? explicit.issueCount : issues.length;
+  return { status, issueCount, issues };
+}
+
 function verificationEntry(result) {
   const displayCount = result.displayAudit.commandCount;
+  const coverage = coverageEvidence(result);
+  if (coverage.status === "partial") {
+    return `${result.version} PASS(native ${result.patchCount}, display runtime ${displayCount}/${displayCount}, coverage PARTIAL ${coverage.issueCount})`;
+  }
   return `${result.version} PASS(native ${result.patchCount}, display ${displayCount}/${displayCount})`;
 }
 
@@ -219,6 +248,10 @@ function validateCandidate(config, payload, platformName) {
     reasons.push(`native verification did not pass: status=${result.status || "unknown"}${skip}${error}`);
   }
 
+  if (result.runtimeStatus && result.runtimeStatus !== "pass") {
+    reasons.push(`native runtime boundary failed: runtimeStatus=${result.runtimeStatus}`);
+  }
+
   if (!platform.allowedKinds.includes(result.kind)) {
     reasons.push(
       `package shape boundary failed: expected ${platform.allowedKinds.join(" or ")}, got ${result.kind || "unknown"}`
@@ -229,15 +262,19 @@ function validateCandidate(config, payload, platformName) {
     reasons.push(`native patch boundary failed: patchCount=${result.patchCount || 0}`);
   }
 
-  if (Array.isArray(result.residue) && result.residue.length > 0) {
+  const hardResidue = Array.isArray(result.residue) ? result.residue.filter((entry) => !isCoverageIssue(entry)) : [];
+  if (hardResidue.length > 0) {
     reasons.push(
-      `translation residue boundary failed: ${describeList(result.residue, (entry) => `${entry.kind}:${entry.id}`)}`
+      `translation residue boundary failed: ${describeList(hardResidue, (entry) => `${entry.kind}:${entry.id}`)}`
     );
   }
 
-  if (Array.isArray(result.missingRequired) && result.missingRequired.length > 0) {
+  const hardMissingRequired = Array.isArray(result.missingRequired)
+    ? result.missingRequired.filter((entry) => !isCoverageIssue(entry))
+    : [];
+  if (hardMissingRequired.length > 0) {
     reasons.push(
-      `upstream text guard boundary failed: ${describeList(result.missingRequired, (entry) => `${entry.kind}:${entry.id}`)}`
+      `upstream text guard boundary failed: ${describeList(hardMissingRequired, (entry) => `${entry.kind}:${entry.id}`)}`
     );
   }
 
@@ -251,8 +288,8 @@ function validateCandidate(config, payload, platformName) {
     reasons.push(`native package boundary failed: expected ${expectedPackage}, got ${native.packageName}`);
   }
 
-  if (native.extract && native.extract !== "ok") {
-    reasons.push(`native extract boundary failed: ${native.extract}`);
+  if (native.extract !== "ok") {
+    reasons.push(`native extract boundary failed: ${native.extract || "unknown"}`);
   }
 
   if (native.repack !== "ok") {
@@ -270,10 +307,62 @@ function validateCandidate(config, payload, platformName) {
   }
 
   const audit = result.displayAudit;
-  if (!audit || audit.status !== "pass") {
+  if (!audit || !["pass", "partial"].includes(audit.status)) {
     reasons.push(`display audit did not pass: status=${audit?.status || "missing"}`);
-  } else if (!Number.isInteger(audit.commandCount) || audit.commandCount <= 0) {
-    reasons.push(`display audit did not pass: commandCount=${audit.commandCount || 0}`);
+  } else {
+    const configuredAudit = config.checks?.displayAudit || {};
+    const requiredCommandCount = Number.isInteger(configuredAudit.minCommandCount)
+      ? configuredAudit.minCommandCount
+      : Array.isArray(configuredAudit.commands)
+        ? configuredAudit.commands.length
+        : 1;
+    if (!Number.isInteger(audit.commandCount) || audit.commandCount < requiredCommandCount) {
+      reasons.push(
+        `display audit did not pass: commandCount=${audit.commandCount || 0}; expected at least ${requiredCommandCount}`
+      );
+    }
+
+    const hardDisplayIssues = Array.isArray(audit.issues)
+      ? audit.issues.filter((entry) => !isCoverageIssue(entry))
+      : [];
+    if (hardDisplayIssues.length > 0) {
+      reasons.push(
+        `display runtime boundary failed: ${describeList(hardDisplayIssues, (entry) => `${entry.kind}:${entry.id}`)}`
+      );
+    }
+  }
+
+  const coverage = coverageEvidence(result);
+  if (!["complete", "partial"].includes(coverage.status)) {
+    reasons.push(`display coverage evidence is invalid: status=${coverage.status || "missing"}`);
+  }
+  const observedCoverage = observedCoverageIssues(result);
+  const observedWarningCount = Math.max(
+    observedCoverage.length,
+    Number.isInteger(audit?.warningCount) ? audit.warningCount : 0
+  );
+  const observedPartial = audit?.status === "partial" || observedWarningCount > 0;
+  if (observedPartial && (coverage.status !== "partial" || coverage.issueCount < observedWarningCount)) {
+    reasons.push(
+      `display coverage evidence conflicts with ${observedWarningCount} observed warning${observedWarningCount === 1 ? "" : "s"}`
+    );
+  }
+  if (Array.isArray(result.coverage?.issues) && result.coverage.issueCount !== result.coverage.issues.length) {
+    reasons.push(
+      `display coverage evidence issueCount=${result.coverage.issueCount} does not match ${result.coverage.issues.length} issues`
+    );
+  }
+  if (coverage.status === "complete" && coverage.issueCount !== 0) {
+    reasons.push(`display coverage evidence is invalid: complete status has ${coverage.issueCount} warnings`);
+  }
+  const hardCoverageIssues = coverage.issues.filter((entry) => !isCoverageIssue(entry));
+  if (hardCoverageIssues.length > 0) {
+    reasons.push(
+      `display coverage evidence contains hard failures: ${describeList(hardCoverageIssues, (entry) => `${entry.kind}:${entry.id}`)}`
+    );
+  }
+  if (coverage.status === "partial" && coverage.issueCount <= 0) {
+    reasons.push("display coverage evidence is incomplete: partial status requires at least one warning");
   }
 
   if (nativeConfig?.ceiling && result.version && compareVersions(result.version, nativeConfig.ceiling) > 0) {
@@ -289,14 +378,19 @@ function validateCandidate(config, payload, platformName) {
   return { result, reasons };
 }
 
-function renderNotes(entry, displayCount, platformName) {
+function renderNotes(entry, result, platformName) {
   const platform = platformDescriptor(platformName);
   const verified = compactVersions(entry.representatives).join("、");
+  const displayCount = result.displayAudit.commandCount;
+  const coverage = coverageEvidence(result);
   const excluded = Array.isArray(entry.excluded) && entry.excluded.length > 0
     ? `${entry.excluded.join("、")} 未发布或未纳入支持；`
     : "";
+  const coverageNote = coverage.status === "partial"
+    ? `${result.version} 的运行边界通过，但展示文案覆盖为 PARTIAL（${coverage.issueCount} 个警告），不代表完整中文覆盖；`
+    : "";
 
-  return `${platform.notesSubject}；需要 node-lief；已验证 ${verified} 的 extract / patch / repack / --version 和 ${displayCount} 个稳定显示面审计；${excluded}${platform.notesSuffix}`;
+  return `${platform.notesSubject}；需要 node-lief；已验证 ${verified} 的 extract / patch / repack / --version 和 ${displayCount} 个稳定显示面的运行审计；${coverageNote}${excluded}${platform.notesSuffix}`;
 }
 
 function promote(config, result, platformName) {
@@ -332,7 +426,7 @@ function promote(config, result, platformName) {
     .map((version) => byVersion.get(version))
     .filter(Boolean)
     .join(" · ");
-  entry.notes = renderNotes(entry, result.displayAudit.commandCount, platformName);
+  entry.notes = renderNotes(entry, result, platformName);
 
   return entry;
 }
@@ -368,16 +462,20 @@ function main() {
 
   promote(config, result, args.platform);
   const platform = platformDescriptor(args.platform);
+  const coverage = coverageEvidence(result);
+  const evidence = coverage.status === "partial"
+    ? `runtime pass; display coverage partial: ${coverage.issueCount} warnings`
+    : "runtime pass; display coverage complete";
 
   if (args.write) {
     writeJson(args.config, config);
     process.stdout.write(
-      `promoted ${platform.label} native candidate ${result.version} into ${path.relative(repoRoot, args.config)}\n`
+      `promoted ${platform.label} native candidate ${result.version} into ${path.relative(repoRoot, args.config)} (${evidence})\n`
     );
     return;
   }
 
-  process.stdout.write(`${platform.label} native candidate ${result.version} is promotable\n`);
+  process.stdout.write(`${platform.label} native candidate ${result.version} is promotable (${evidence})\n`);
 }
 
 if (require.main === module) {

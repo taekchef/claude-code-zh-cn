@@ -106,6 +106,11 @@ test("support matrix includes separate macOS native experimental row", () => {
   assert.match(markdown, /2\.1\.113 PASS\(native 1358\)/);
   assert.match(markdown, /2\.1\.123 PASS\(native 1262\)/);
   assert.match(markdown, /Windows \/ native \.exe \/ latest \| unsupported/);
+  assert.match(markdown, /验证等级只表示公开证据和翻译覆盖程度，不是运行门禁/);
+  assert.match(markdown, /同一 major\.minor 新版先本机自检/);
+  assert.match(markdown, /跨 major\.minor 只跳过原生 Layer 4/);
+  assert.doesNotMatch(markdown, /只用已验证版本/);
+  assert.doesNotMatch(markdown, /当前不建议使用/);
 });
 
 test("support matrix shows display audit status beside patch count", () => {

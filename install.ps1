@@ -33,6 +33,9 @@ $SupportMatrixUrl = "https://github.com/taekchef/claude-code-zh-cn/blob/main/doc
 
 $CliPatchStatusSummary = "已跳过（未执行 CLI Patch）"
 $CliPatchStatusOk = $false
+$OfficialPluginId = "claude-code-zh-cn@claude-code-zh-cn"
+$OfficialMarketplaceName = "claude-code-zh-cn"
+$PluginRuntimeMode = "standalone"
 
 # ======== 帮助函数 ========
 function Write-CN {
@@ -121,6 +124,52 @@ for(var i=0;i<lines.length;i++){
 fs.writeFileSync(process.argv[3],updates.join("\n")+(updates.length?"\n":""));
 process.stdout.write(String(changed)+" "+String(lines.length)+" "+String(skipped));
 '@
+$JS_RECONCILE_STANDALONE_HOOKS = @'
+var fs=require("fs"),path=require("path");
+var settingsFile=process.argv[2],pluginRoot=process.argv[3],mode=process.argv[4];
+var standaloneArg="--standalone";
+function object(v){return v&&typeof v==="object"&&!Array.isArray(v)}
+function standalone(hook){
+  if(!object(hook))return false;
+  if(typeof hook.command==="string"&&hook.command.indexOf("ZH_CN_STANDALONE_HOOK=1")!==-1)return true;
+  if(hook.command!=="node"||!Array.isArray(hook.args)||hook.args.indexOf(standaloneArg)===-1)return false;
+  var script=String(hook.args[0]||"");
+  return script===path.join(pluginRoot,"hooks","session-start.js")||script===path.join(pluginRoot,"hooks","notification.js");
+}
+var raw=fs.readFileSync(settingsFile,"utf8").replace(/^\uFEFF/,"");
+var settings=raw.trim()?JSON.parse(raw):{};
+if(!object(settings))process.exit(2);
+var changed=false;
+if(object(settings.hooks)){
+  Object.keys(settings.hooks).forEach(function(eventName){
+    var entries=settings.hooks[eventName];
+    if(!Array.isArray(entries))return;
+    var next=[];
+    entries.forEach(function(entry){
+      if(!object(entry)||!Array.isArray(entry.hooks)){next.push(entry);return}
+      var hooks=entry.hooks.filter(function(hook){return !standalone(hook)});
+      if(hooks.length!==entry.hooks.length)changed=true;
+      if(hooks.length>0){
+        if(hooks.length===entry.hooks.length)next.push(entry);
+        else{var copy=Object.assign({},entry);copy.hooks=hooks;next.push(copy)}
+      }
+    });
+    if(next.length>0)settings.hooks[eventName]=next;else delete settings.hooks[eventName];
+  });
+  if(Object.keys(settings.hooks).length===0)delete settings.hooks;
+}
+if(mode==="standalone"){
+  if(!object(settings.hooks))settings.hooks={};
+  if(!Array.isArray(settings.hooks.SessionStart))settings.hooks.SessionStart=[];
+  if(!Array.isArray(settings.hooks.Notification))settings.hooks.Notification=[];
+  var session=path.join(pluginRoot,"hooks","session-start.js");
+  var notification=path.join(pluginRoot,"hooks","notification.js");
+  settings.hooks.SessionStart.push({matcher:"startup|resume|clear|compact",hooks:[{type:"command",command:"node",args:[session,standaloneArg],async:false}]});
+  settings.hooks.Notification.push({matcher:"",hooks:[{type:"command",command:"node",args:[notification,standaloneArg],async:false,timeout:10}]});
+  changed=true;
+}
+if(changed)fs.writeFileSync(settingsFile,JSON.stringify(settings,null,2)+"\n");
+'@
 
 # ======== 输出函数 ========
 function completion {
@@ -136,7 +185,11 @@ function completion {
     Write-CN "  √ 通知 Hook → 中文翻译（Windows PowerShell）" Green
     Write-CN "  √ 输出风格 → Chinese" Green
     Write-CN "  √ 自动重 patch → Claude Code 更新后首次会话自动修复（session-start 兜底）" Green
-    Write-CN "  √ 插件自动更新 → 只跟随本插件已发布 Release，同步中文插件文件" Green
+    switch ($PluginRuntimeMode) {
+        "standalone" { Write-CN "  ! 独立备用更新 → 跟随本插件已发布 Release" Yellow }
+        "disabled" { Write-CN "  ! 正式插件已停用 → 保留用户选择，不加载备用 Hook" Yellow }
+        default { Write-CN "  √ 正式插件更新 → 由 Claude plugin manager 管理" Green }
+    }
     write-updater-boundary-note
     if ($CliPatchStatusOk) {
         Write-CN "  √ CLI Patch → $CliPatchStatusSummary" Green
@@ -177,6 +230,217 @@ function find-real-claude {
         return $null
     } finally {
         $env:PATH = $oldPath
+    }
+}
+
+function official-marketplace-source {
+    if ($SourceRepoOverride -and (
+        $SourceRepoOverride -match '^(https?://|git@|ssh://)' -or
+        $SourceRepoOverride -match '^[^/\\]+/[^/\\]+$'
+    )) {
+        return $SourceRepoOverride
+    }
+    return $ScriptDir
+}
+
+function official-plugin-expected-version {
+    $manifest = "$PluginSrc\.claude-plugin\plugin.json"
+    if (-not (Test-Path $manifest)) { return "" }
+    try {
+        $value = Get-Content $manifest -Raw | ConvertFrom-Json
+        return [string]$value.version
+    } catch {
+        return ""
+    }
+}
+
+function verify-official-plugin-registration {
+    param([string]$ClaudeCli)
+    if (-not $ClaudeCli) { return $false }
+
+    try {
+        $marketplaceOutput = & $ClaudeCli plugin marketplace list --json 2>$null
+        if ($LASTEXITCODE -ne 0) { return $false }
+        $pluginOutput = & $ClaudeCli plugin list --json 2>$null
+        if ($LASTEXITCODE -ne 0) { return $false }
+
+        $marketplaces = @(($marketplaceOutput -join "`n") | ConvertFrom-Json)
+        $plugins = @(($pluginOutput -join "`n") | ConvertFrom-Json)
+        $expectedVersion = official-plugin-expected-version
+        $marketplaceOk = $false
+        $pluginOk = $false
+        foreach ($marketplace in $marketplaces) {
+            if ($marketplace -and [string]$marketplace.name -eq $OfficialMarketplaceName) {
+                $marketplaceOk = $true
+            }
+        }
+        foreach ($plugin in $plugins) {
+            if ($plugin -and
+                [string]$plugin.id -eq $OfficialPluginId -and
+                [string]$plugin.scope -eq "user" -and
+                $plugin.enabled -eq $true -and
+                (-not $expectedVersion -or [string]$plugin.version -eq $expectedVersion)) {
+                $pluginOk = $true
+            }
+        }
+        return $marketplaceOk -and $pluginOk
+    } catch {
+        return $false
+    }
+}
+
+function official-user-plugin-installed {
+    param([string]$ClaudeCli)
+    if (-not $ClaudeCli) { return $false }
+    try {
+        $pluginOutput = & $ClaudeCli plugin list --json 2>$null
+        if ($LASTEXITCODE -ne 0) { return $false }
+        $plugins = @(($pluginOutput -join "`n") | ConvertFrom-Json)
+        foreach ($plugin in $plugins) {
+            if ($plugin -and [string]$plugin.id -eq $OfficialPluginId -and [string]$plugin.scope -eq "user") {
+                return $true
+            }
+        }
+        return $false
+    } catch {
+        return $false
+    }
+}
+
+function official-plugin-settings-state {
+    if (-not (Test-Path $SettingsFile)) { return "absent" }
+    try {
+        $settings = Get-Content $SettingsFile -Raw | ConvertFrom-Json
+        if (-not $settings -or -not $settings.enabledPlugins) { return "absent" }
+        $property = $settings.enabledPlugins.PSObject.Properties[$OfficialPluginId]
+        if ($null -eq $property) { return "absent" }
+        if ($property.Value -eq $false) { return "disabled" }
+        return "enabled"
+    } catch {
+        return "absent"
+    }
+}
+
+function select-safe-plugin-fallback {
+    param([string]$Reason)
+    $settingsState = official-plugin-settings-state
+
+    switch ($settingsState) {
+        "enabled" {
+            $script:PluginRuntimeMode = "official-unverified"
+            Write-CN "官方插件 CLI 校验未完成（$Reason）；检测到已有启用记录，为避免重复 Hook，未注入备用 Hook。基础中文设置和 CLI Patch 继续生效。" Yellow
+        }
+        "disabled" {
+            $script:PluginRuntimeMode = "disabled"
+            Write-CN "官方插件已明确停用；保留用户选择，不加载备用 Hook。基础中文设置和 CLI Patch 继续生效。" Yellow
+        }
+        default {
+            $script:PluginRuntimeMode = "standalone"
+            Write-CN "官方插件注册未完成（$Reason）；将启用独立备用 Hook，基础中文设置和 CLI Patch 不受影响。" Yellow
+        }
+    }
+}
+
+function register-official-plugin {
+    $claudeCli = find-real-claude
+    if (-not $claudeCli) {
+        select-safe-plugin-fallback "未找到可用的 claude CLI"
+        return
+    }
+
+    $initialSettingsState = official-plugin-settings-state
+    if ($initialSettingsState -eq "disabled") {
+        if (Test-Path "$ScriptDir\.claude-plugin\marketplace.json") {
+            $marketplaceSource = official-marketplace-source
+            try { & $claudeCli plugin marketplace add --scope user $marketplaceSource *> $null } catch {}
+        }
+        try { & $claudeCli plugin marketplace update $OfficialMarketplaceName *> $null } catch {}
+        if (official-user-plugin-installed $claudeCli) {
+            try { & $claudeCli plugin update $OfficialPluginId --scope user *> $null } catch {}
+        }
+        $script:PluginRuntimeMode = "disabled"
+        Write-CN "官方插件已明确停用；已保留用户选择，不调用 install，也不加载备用 Hook。" Yellow
+        return
+    }
+
+    if ($UpdateOnly -and (verify-official-plugin-registration $claudeCli)) {
+        $script:PluginRuntimeMode = "official"
+        Write-CN "官方插件注册已验证（user scope）" Green
+        return
+    }
+
+    if (-not (Test-Path "$PluginSrc\.claude-plugin\plugin.json")) {
+        select-safe-plugin-fallback "安装包缺少官方插件清单"
+        return
+    }
+
+    if (-not (Test-Path "$ScriptDir\.claude-plugin\marketplace.json")) {
+        if (-not (official-user-plugin-installed $claudeCli)) {
+            select-safe-plugin-fallback "安装包缺少插件市场清单，且未检测到已安装的官方插件"
+            return
+        }
+        try { & $claudeCli plugin marketplace update $OfficialMarketplaceName *> $null } catch {}
+        try { & $claudeCli plugin update $OfficialPluginId --scope user *> $null } catch {}
+        if (verify-official-plugin-registration $claudeCli) {
+            $script:PluginRuntimeMode = "official"
+            Write-CN "官方插件注册已验证（user scope）" Green
+        } else {
+            select-safe-plugin-fallback "官方插件自动更新后校验失败"
+        }
+        return
+    }
+
+    $marketplaceSource = official-marketplace-source
+    $pluginWasInstalled = official-user-plugin-installed $claudeCli
+    $pluginInstallFailed = $false
+    try {
+        & $claudeCli plugin marketplace add --scope user $marketplaceSource *> $null
+        if ($LASTEXITCODE -ne 0) {
+            if (verify-official-plugin-registration $claudeCli) {
+                $script:PluginRuntimeMode = "official"
+                Write-CN "插件市场刷新失败，继续使用已验证的官方 user 插件。" Yellow
+            } else {
+                select-safe-plugin-fallback "插件市场注册失败"
+            }
+            return
+        }
+        & $claudeCli plugin marketplace update $OfficialMarketplaceName *> $null
+
+        & $claudeCli plugin install $OfficialPluginId --scope user *> $null
+        if ($LASTEXITCODE -ne 0) {
+            $pluginInstallFailed = $true
+            & $claudeCli plugin update $OfficialPluginId --scope user *> $null
+        } elseif ($pluginWasInstalled) {
+            & $claudeCli plugin update $OfficialPluginId --scope user *> $null
+        }
+    } catch {
+        if (-not (verify-official-plugin-registration $claudeCli)) {
+            select-safe-plugin-fallback "官方插件命令执行失败"
+            return
+        }
+    }
+
+    if (verify-official-plugin-registration $claudeCli) {
+        $script:PluginRuntimeMode = "official"
+        Write-CN "官方插件注册已验证（user scope）" Green
+    } else {
+        if ($pluginInstallFailed) {
+            select-safe-plugin-fallback "官方插件安装失败"
+        } else {
+            select-safe-plugin-fallback "安装后列表校验失败"
+        }
+    }
+}
+
+function reconcile-standalone-hooks {
+    try {
+        run-js $JS_RECONCILE_STANDALONE_HOOKS @($SettingsFile, $PluginDst, $PluginRuntimeMode) | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "hook reconciliation failed" }
+        if ($PluginRuntimeMode -eq "standalone") {
+            Write-CN "已启用独立备用 Hook（不会与官方插件 Hook 同时加载）" Yellow
+        }
+    } catch {
+        Write-CN "备用 Hook 写入失败；基础中文设置和 CLI Patch 仍保持可用。" Yellow
     }
 }
 
@@ -748,9 +1012,9 @@ function can-try-provisional-windows-native-version {
     if (-not $Version) { return $false }
     $support = get-support-window
     $entry = $support.windowsNativeExperimental
-    if (-not $entry -or -not $entry.ceiling) { return $false }
+    if (-not $entry -or -not $entry.floor) { return $false }
     if ($entry.platform -and [string]$entry.platform -ne "win32-x64") { return $false }
-    return (test-same-minor $Version ([string]$entry.ceiling)) -and ((compare-version $Version ([string]$entry.ceiling)) -gt 0)
+    return (test-same-minor $Version ([string]$entry.floor)) -and ((compare-version $Version ([string]$entry.floor)) -ge 0)
 }
 
 function get-native-version-from-execution {
@@ -974,8 +1238,10 @@ function Main {
     banner
     check-deps
     sync-plugin
+    register-official-plugin
     install-launcher
     merge-settings
+    reconcile-standalone-hooks
     write-metadata
     if (-not $UpdateOnly) {
         initial-patch

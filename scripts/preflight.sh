@@ -94,6 +94,8 @@ run bash -n plugin/profile/claude-code-zh-cn.sh
 step "JavaScript syntax check"
 run node --check bun-binary-io.js
 run node --check plugin/bun-binary-io.js
+run node --check plugin/hooks/notification.js
+run node --check plugin/hooks/session-start.js
 run node --check plugin/patch-cli.js
 run node --check plugin/scripts/zh-cn-doctor.js
 run node --check scripts/check-payload-sources.js

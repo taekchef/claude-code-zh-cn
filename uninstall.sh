@@ -11,6 +11,8 @@ LAUNCHER_FILE="$LAUNCHER_BIN_DIR/claude"
 PROFILE_FILES_OVERRIDE="${ZH_CN_PROFILE_FILES:-}"
 PROFILE_MARKER_START="# >>> claude-code-zh-cn launcher >>>"
 PROFILE_MARKER_END="# <<< claude-code-zh-cn launcher <<<"
+OFFICIAL_PLUGIN_ID="claude-code-zh-cn@claude-code-zh-cn"
+OFFICIAL_MARKETPLACE_NAME="claude-code-zh-cn"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -84,6 +86,77 @@ remove_launcher_artifacts() {
 
 remove_launcher_artifacts
 
+find_real_claude_for_plugin() {
+    if [ -n "${ZH_CN_REAL_CLAUDE:-}" ] && [ -x "${ZH_CN_REAL_CLAUDE:-}" ]; then
+        printf '%s' "$ZH_CN_REAL_CLAUDE"
+        return
+    fi
+
+    local filtered_path=""
+    local path_entry
+    local old_ifs="$IFS"
+    IFS=':'
+    for path_entry in ${PATH:-}; do
+        [ "${path_entry:-}" = "$LAUNCHER_BIN_DIR" ] && continue
+        if [ -z "$filtered_path" ]; then
+            filtered_path="$path_entry"
+        else
+            filtered_path="${filtered_path}:$path_entry"
+        fi
+    done
+    IFS="$old_ifs"
+
+    PATH="$filtered_path" command -v claude 2>/dev/null || true
+}
+
+official_registration_absent() {
+    local claude_cli="$1"
+    local marketplace_json plugin_json
+
+    marketplace_json="$("$claude_cli" plugin marketplace list --json 2>/dev/null)" || return 1
+    plugin_json="$("$claude_cli" plugin list --json 2>/dev/null)" || return 1
+
+    ZH_CN_MARKETPLACE_JSON="$marketplace_json" \
+    ZH_CN_PLUGIN_JSON="$plugin_json" \
+    ZH_CN_MARKETPLACE_NAME="$OFFICIAL_MARKETPLACE_NAME" \
+    ZH_CN_PLUGIN_ID="$OFFICIAL_PLUGIN_ID" \
+    node <<'NODE' >/dev/null 2>&1
+function parse(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+const marketplaces = parse(process.env.ZH_CN_MARKETPLACE_JSON);
+const plugins = parse(process.env.ZH_CN_PLUGIN_JSON);
+const marketplaceExists = marketplaces.some((entry) => entry && entry.name === process.env.ZH_CN_MARKETPLACE_NAME);
+const pluginExists = plugins.some((entry) =>
+  entry && entry.id === process.env.ZH_CN_PLUGIN_ID && entry.scope === "user"
+);
+process.exit(!marketplaceExists && !pluginExists ? 0 : 1);
+NODE
+}
+
+remove_official_plugin_registration() {
+    local claude_cli
+    claude_cli="$(find_real_claude_for_plugin)"
+    [ -n "$claude_cli" ] || return 0
+
+    "$claude_cli" plugin uninstall "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1 || true
+    "$claude_cli" plugin marketplace remove --scope user "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1 || true
+
+    if official_registration_absent "$claude_cli"; then
+        echo -e "${GREEN}官方插件注册已移除并验证${NC}"
+    else
+        echo -e "${YELLOW}官方插件 CLI 卸载未能完整验证；将继续精确清理本插件设置，不影响其他插件。${NC}"
+    fi
+}
+
+remove_official_plugin_registration
+
 # 精准移除插件注入的 settings 项（保留用户其他配置和 Hook）
 if [ -f "$SETTINGS_FILE" ]; then
     if command -v node &>/dev/null; then
@@ -108,6 +181,9 @@ function normalizePath(value) {
 const pluginRootNormalized = normalizePath(pluginRoot);
 let settings = readSettings(settingsFile);
 if (!isObject(settings)) settings = {};
+const legacyLocalRegistrationPresent =
+  (isObject(settings.enabledPlugins) && Object.prototype.hasOwnProperty.call(settings.enabledPlugins, 'claude-code-zh-cn@local-zh-cn')) ||
+  (isObject(settings.extraKnownMarketplaces) && Object.prototype.hasOwnProperty.call(settings.extraKnownMarketplaces, 'local-zh-cn'));
 
 let changed = false;
 for (const key of ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spinnerVerbs']) {
@@ -117,25 +193,53 @@ for (const key of ['language', 'spinnerTipsEnabled', 'spinnerTipsOverride', 'spi
   }
 }
 
-if (isObject(settings.enabledPlugins) && Object.prototype.hasOwnProperty.call(settings.enabledPlugins, 'claude-code-zh-cn@local-zh-cn')) {
-  delete settings.enabledPlugins['claude-code-zh-cn@local-zh-cn'];
+if (isObject(settings.enabledPlugins)) {
+  for (const pluginId of ['claude-code-zh-cn@claude-code-zh-cn', 'claude-code-zh-cn@local-zh-cn']) {
+    if (Object.prototype.hasOwnProperty.call(settings.enabledPlugins, pluginId)) {
+      delete settings.enabledPlugins[pluginId];
+      changed = true;
+    }
+  }
   if (Object.keys(settings.enabledPlugins).length === 0) delete settings.enabledPlugins;
-  changed = true;
 }
 
-if (isObject(settings.extraKnownMarketplaces) && Object.prototype.hasOwnProperty.call(settings.extraKnownMarketplaces, 'local-zh-cn')) {
-  delete settings.extraKnownMarketplaces['local-zh-cn'];
+if (isObject(settings.extraKnownMarketplaces)) {
+  for (const marketplaceName of ['claude-code-zh-cn', 'local-zh-cn']) {
+    if (Object.prototype.hasOwnProperty.call(settings.extraKnownMarketplaces, marketplaceName)) {
+      delete settings.extraKnownMarketplaces[marketplaceName];
+      changed = true;
+    }
+  }
   if (Object.keys(settings.extraKnownMarketplaces).length === 0) delete settings.extraKnownMarketplaces;
-  changed = true;
 }
 
-function commandBelongsToPlugin(command) {
-  if (typeof command !== 'string') return false;
-  const normalized = normalizePath(command);
-  return normalized.includes('claude-code-zh-cn') ||
-    normalized.includes('local-zh-cn') ||
-    (normalized.includes('CLAUDE_PLUGIN_ROOT') && normalized.includes('/hooks/')) ||
-    (pluginRootNormalized && normalized.includes(pluginRootNormalized));
+function hookBelongsToPlugin(hook) {
+  if (!isObject(hook)) return false;
+  const normalized = normalizePath(hook.command);
+  const args = Array.isArray(hook.args) ? hook.args : [];
+  const knownHookSuffixes = [
+    '/hooks/session-start',
+    '/hooks/notification',
+    '/hooks/session-start.js',
+    '/hooks/notification.js',
+    '/hooks/session-start.cmd',
+    '/hooks/notification.cmd',
+    '/hooks/session-start.ps1',
+    '/hooks/notification.ps1',
+    '/hooks-handlers/session-start.js',
+    '/hooks-handlers/notification.js',
+  ];
+  if (normalized.includes('ZH_CN_STANDALONE_HOOK=1')) return true;
+  if ((normalized === 'node' || normalized.endsWith('/node') || normalized.endsWith('/node.exe')) &&
+      args.includes('--standalone')) {
+    const script = normalizePath(args[0]);
+    if (pluginRootNormalized && knownHookSuffixes.some((suffix) => script === pluginRootNormalized + suffix)) return true;
+  }
+  if (legacyLocalRegistrationPresent && normalized.includes('CLAUDE_PLUGIN_ROOT') &&
+      knownHookSuffixes.some((suffix) => normalized.includes(suffix))) return true;
+  if (pluginRootNormalized && knownHookSuffixes.some((suffix) => normalized.includes(pluginRootNormalized + suffix))) return true;
+  return normalized.includes('/local-zh-cn/') &&
+    knownHookSuffixes.some((suffix) => normalized.includes(suffix));
 }
 
 function cleanHookEntry(entry) {
@@ -143,7 +247,7 @@ function cleanHookEntry(entry) {
     return { entry, changed: false, keep: true };
   }
 
-  const hooks = entry.hooks.filter((hook) => !(isObject(hook) && commandBelongsToPlugin(hook.command)));
+  const hooks = entry.hooks.filter((hook) => !hookBelongsToPlugin(hook));
   if (hooks.length === entry.hooks.length) {
     return { entry, changed: false, keep: true };
   }
@@ -184,37 +288,54 @@ if (changed) fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + 
 def normalize_path:
   tostring | gsub("\\\\"; "/") | sub("/+$"; "");
 
-def plugin_command:
-  if type != "string" then false
+def plugin_hook($legacyLocalRegistration):
+  if type != "object" then false
   else
-    (normalize_path) as $command |
-    ($command | contains("claude-code-zh-cn")) or
-    ($command | contains("local-zh-cn")) or
-    (($command | contains("CLAUDE_PLUGIN_ROOT")) and ($command | contains("/hooks/"))) or
-    (($pluginRoot | normalize_path | length) > 0 and ($command | contains($pluginRoot | normalize_path)))
+    ((.command? // "") | normalize_path) as $command |
+    (.args? // []) as $args |
+    ($pluginRoot | normalize_path) as $root |
+    (($args[0]? // "") | normalize_path) as $script |
+    (($command | contains("ZH_CN_STANDALONE_HOOK=1")) or
+    ((($command == "node") or ($command | endswith("/node")) or ($command | endswith("/node.exe"))) and
+      ($args | type) == "array" and ($args | index("--standalone")) != null and ($root | length) > 0 and
+      (($script == ($root + "/hooks/session-start.js")) or ($script == ($root + "/hooks/notification.js")))) or
+    ($legacyLocalRegistration and ($command | contains("CLAUDE_PLUGIN_ROOT")) and
+      (($command | contains("/hooks/session-start")) or ($command | contains("/hooks/notification")))) or
+    (($root | length) > 0 and
+      (($command | contains($root + "/hooks/session-start")) or
+       ($command | contains($root + "/hooks/notification")) or
+       ($command | contains($root + "/hooks-handlers/session-start.js")) or
+       ($command | contains($root + "/hooks-handlers/notification.js")))) or
+    (($command | contains("/local-zh-cn/")) and
+      (($command | contains("/hooks/session-start")) or
+       ($command | contains("/hooks/notification")) or
+       ($command | contains("/hooks-handlers/session-start.js")) or
+       ($command | contains("/hooks-handlers/notification.js")))))
   end;
 
-def clean_hook_entry:
+def clean_hook_entry($legacyLocalRegistration):
   if type == "object" and (.hooks | type) == "array" then
-    (.hooks |= map(select(((.command? // null) | plugin_command) | not)))
+    (.hooks |= map(select((plugin_hook($legacyLocalRegistration) | not))))
     | select((.hooks | length) > 0)
   else
     .
   end;
 
-del(.language, .spinnerTipsEnabled, .spinnerTipsOverride, .spinnerVerbs)
+(((.enabledPlugins | type) == "object" and (.enabledPlugins | has("claude-code-zh-cn@local-zh-cn"))) or
+ ((.extraKnownMarketplaces | type) == "object" and (.extraKnownMarketplaces | has("local-zh-cn")))) as $legacyLocalRegistration
+| del(.language, .spinnerTipsEnabled, .spinnerTipsOverride, .spinnerVerbs)
 | if (.enabledPlugins | type) == "object" then
-    .enabledPlugins |= del(."claude-code-zh-cn@local-zh-cn")
+    .enabledPlugins |= del(."claude-code-zh-cn@claude-code-zh-cn", ."claude-code-zh-cn@local-zh-cn")
     | if (.enabledPlugins | length) == 0 then del(.enabledPlugins) else . end
   else . end
 | if (.extraKnownMarketplaces | type) == "object" then
-    .extraKnownMarketplaces |= del(."local-zh-cn")
+    .extraKnownMarketplaces |= del(."claude-code-zh-cn", ."local-zh-cn")
     | if (.extraKnownMarketplaces | length) == 0 then del(.extraKnownMarketplaces) else . end
   else . end
 | if (.hooks | type) == "object" then
     .hooks |= with_entries(
       if (.value | type) == "array" then
-        (.value | map(clean_hook_entry)) as $next |
+        (.value | map(clean_hook_entry($legacyLocalRegistration))) as $next |
         if ($next == .value) then .
         elif ($next | length) > 0 then .value = $next
         else empty

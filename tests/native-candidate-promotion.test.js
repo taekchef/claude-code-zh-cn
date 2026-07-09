@@ -138,6 +138,125 @@ test("promote-native-candidate advances macOS native source-of-truth from a pass
   assert.match(native.notes, /不代表未来 latest 自动稳定/);
 });
 
+test("promote-native-candidate accepts runtime pass with partial display coverage without claiming full coverage", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  const coverageIssues = [
+    {
+      source: "display-audit",
+      kind: "display",
+      id: "new_help_copy",
+      command: "top_help",
+      match: "New upstream help copy",
+    },
+    {
+      source: "display-audit",
+      kind: "display-untranslated-line",
+      id: "top_help_line_4",
+      command: "top_help",
+      match: "--new  New upstream help copy",
+    },
+  ];
+  writeJson(
+    candidatePath,
+    candidateResult({
+      runtimeStatus: "pass",
+      coverage: { status: "partial", issueCount: 2, issues: coverageIssues },
+      displayAudit: {
+        status: "partial",
+        commandCount: 11,
+        issueCount: 2,
+        warningCount: 2,
+        failureCount: 0,
+        commands: [],
+        issues: coverageIssues.map(({ source, ...issue }) => issue),
+        warnings: coverageIssues.map(({ source, ...issue }) => issue),
+        failures: [],
+      },
+    })
+  );
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /runtime pass; display coverage partial: 2 warnings/);
+  const native = readJson(configPath).support.macosNativeExperimental;
+  assert.match(
+    native.verification,
+    new RegExp(
+      `${promotableCandidateVersion.replaceAll(".", "\\.")} PASS\\(native 1324, display runtime 11\\/11, coverage PARTIAL 2\\)`
+    )
+  );
+  assert.match(native.notes, /展示文案覆盖为 PARTIAL（2 个警告）/);
+  assert.match(native.notes, /不代表完整中文覆盖/);
+  assert.doesNotMatch(
+    native.verification,
+    new RegExp(`${promotableCandidateVersion.replaceAll(".", "\\.")} PASS\\(native 1324, display 11\\/11\\)`)
+  );
+});
+
+test("promote-native-candidate rejects coverage evidence that claims complete over observed warnings", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  const issue = {
+    kind: "display-untranslated-line",
+    id: "top_help_line_4",
+    command: "top_help",
+    match: "New upstream help copy",
+  };
+  writeJson(
+    candidatePath,
+    candidateResult({
+      runtimeStatus: "pass",
+      coverage: { status: "complete", issueCount: 0, issues: [] },
+      displayAudit: {
+        status: "partial",
+        commandCount: 11,
+        issueCount: 1,
+        warningCount: 1,
+        failureCount: 0,
+        commands: [],
+        issues: [issue],
+        warnings: [issue],
+        failures: [],
+      },
+    })
+  );
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /display coverage evidence conflicts with 1 observed warning/);
+  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, currentNativeCeiling);
+});
+
+test("promote-native-candidate accepts a visible template residue as partial coverage", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  const issue = {
+    source: "residue",
+    kind: "template",
+    id: "duration_worked",
+    match: "Worked for",
+  };
+  writeJson(
+    candidatePath,
+    candidateResult({
+      runtimeStatus: "pass",
+      residue: [{ kind: "template", id: "duration_worked", match: "Worked for" }],
+      coverage: { status: "partial", issueCount: 1, issues: [issue] },
+    })
+  );
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /runtime pass; display coverage partial: 1 warnings/);
+  const native = readJson(configPath).support.macosNativeExperimental;
+  assert.match(native.verification, /coverage PARTIAL 1/);
+  assert.match(native.notes, /展示文案覆盖为 PARTIAL（1 个警告）/);
+});
+
 test("promote-native-candidate rejects skipped candidates with a maintainer-readable boundary", () => {
   const configPath = copyConfig();
   const candidatePath = tmpFile("candidate.json");
@@ -216,6 +335,114 @@ test("promote-native-candidate requires display audit before support-window prom
   assert.equal(result.status, 1);
   assert.match(result.stderr, /display audit did not pass/);
   assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, currentNativeCeiling);
+});
+
+test("promote-native-candidate rejects partial coverage when required help surfaces were not audited", () => {
+  const configPath = copyConfig();
+  const candidatePath = tmpFile("candidate.json");
+  const issue = {
+    kind: "display-untranslated-line",
+    id: "top_help_line_4",
+    command: "top_help",
+    match: "New upstream help copy",
+  };
+  writeJson(
+    candidatePath,
+    candidateResult({
+      runtimeStatus: "pass",
+      coverage: { status: "partial", issueCount: 1, issues: [{ source: "display-audit", ...issue }] },
+      displayAudit: {
+        status: "partial",
+        commandCount: 10,
+        issueCount: 1,
+        warningCount: 1,
+        failureCount: 0,
+        commands: [],
+        issues: [issue],
+        warnings: [issue],
+        failures: [],
+      },
+    })
+  );
+
+  const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /commandCount=10; expected at least 11/);
+  assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, currentNativeCeiling);
+});
+
+test("promote-native-candidate keeps preserve and template translation rules as hard failures", () => {
+  const cases = [
+    {
+      name: "preserve rule",
+      overrides: {
+        missingRequired: [
+          { kind: "upstream-text", id: "advisor_dialog_title", rule: "preserve", match: 'title:"Advisor Tool"' },
+        ],
+      },
+      error: /upstream text guard boundary failed: upstream-text:advisor_dialog_title/,
+    },
+    {
+      name: "template translation rule",
+      overrides: {
+        missingRequired: [
+          {
+            kind: "upstream-text",
+            id: "ultrareview_launch_template",
+            rule: "template",
+            match: "translated template shape",
+          },
+        ],
+      },
+      error: /upstream text guard boundary failed: upstream-text:ultrareview_launch_template/,
+    },
+  ];
+
+  for (const item of cases) {
+    const configPath = copyConfig();
+    const candidatePath = tmpFile(`${item.name.replaceAll(" ", "-")}.json`);
+    writeJson(candidatePath, candidateResult({ runtimeStatus: "pass", ...item.overrides }));
+
+    const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+    assert.equal(result.status, 1, item.name);
+    assert.match(result.stderr, item.error, item.name);
+    assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, currentNativeCeiling, item.name);
+  }
+});
+
+test("promote-native-candidate keeps extract, repack, and version execution as hard failures", () => {
+  const validNative = candidateResult().results[0].nativeVerification;
+  const cases = [
+    {
+      name: "extract evidence missing",
+      nativeVerification: { ...validNative, extract: undefined },
+      error: /native extract boundary failed: unknown/,
+    },
+    {
+      name: "repack failed",
+      nativeVerification: { ...validNative, repack: "failed" },
+      error: /native repack boundary failed: failed/,
+    },
+    {
+      name: "version execution failed",
+      nativeVerification: { ...validNative, versionOutput: "claude unknown" },
+      error: /native runtime boundary failed: --version did not include/,
+    },
+  ];
+
+  for (const item of cases) {
+    const configPath = copyConfig();
+    const candidatePath = tmpFile(`${item.name.replaceAll(" ", "-")}.json`);
+    writeJson(candidatePath, candidateResult({ nativeVerification: item.nativeVerification }));
+
+    const result = runPromote(["--candidate", candidatePath, "--config", configPath, "--write"]);
+
+    assert.equal(result.status, 1, item.name);
+    assert.match(result.stderr, item.error, item.name);
+    assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, currentNativeCeiling, item.name);
+  }
 });
 
 test("promote-native-candidate requires codesign verification before support-window promotion", () => {

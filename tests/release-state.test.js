@@ -8,14 +8,31 @@ const { execFileSync, spawnSync } = require("node:child_process");
 const repoRoot = path.resolve(__dirname, "..");
 const releaseStateScript = path.join(repoRoot, "scripts", "verify-release-state.js");
 
-function writeRepoFiles(repo, manifestVersion, changelogVersion) {
-  fs.mkdirSync(path.join(repo, "plugin"), { recursive: true });
+function writeRepoFiles(
+  repo,
+  manifestVersion,
+  changelogVersion,
+  officialManifestVersion = manifestVersion,
+  officialManifestName = "claude-code-zh-cn"
+) {
+  fs.mkdirSync(path.join(repo, "plugin", ".claude-plugin"), { recursive: true });
   fs.writeFileSync(
     path.join(repo, "plugin", "manifest.json"),
     JSON.stringify(
       {
         name: "claude-code-zh-cn",
         version: manifestVersion,
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  fs.writeFileSync(
+    path.join(repo, "plugin", ".claude-plugin", "plugin.json"),
+    JSON.stringify(
+      {
+        name: officialManifestName,
+        version: officialManifestVersion,
       },
       null,
       2
@@ -38,10 +55,22 @@ function writeRepoFiles(repo, manifestVersion, changelogVersion) {
   );
 }
 
-function createFixtureRepo({ manifestVersion, changelogVersion, tagVersion }) {
+function createFixtureRepo({
+  manifestVersion,
+  officialManifestVersion = manifestVersion,
+  officialManifestName = "claude-code-zh-cn",
+  changelogVersion,
+  tagVersion,
+}) {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-release-state-repo-"));
 
-  writeRepoFiles(repo, manifestVersion, changelogVersion);
+  writeRepoFiles(
+    repo,
+    manifestVersion,
+    changelogVersion,
+    officialManifestVersion,
+    officialManifestName
+  );
   execFileSync("git", ["init", "-b", "main"], { cwd: repo, encoding: "utf8" });
   execFileSync("git", ["config", "user.name", "Test User"], { cwd: repo, encoding: "utf8" });
   execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: repo, encoding: "utf8" });
@@ -134,6 +163,43 @@ test("verify-release-state fails when manifest and top changelog versions differ
   assert.equal(result.status, 1, "version mismatch should fail release-state verification");
   assert.match(result.stdout, /version match: FAIL/);
   assert.match(result.stdout, /manifest 1\.2\.3 does not match top CHANGELOG 1\.2\.4/);
+});
+
+test("verify-release-state fails when legacy and official plugin manifest versions drift", () => {
+  const repo = createFixtureRepo({
+    manifestVersion: "1.2.3",
+    officialManifestVersion: "1.2.4",
+    changelogVersion: "1.2.3",
+    tagVersion: "1.2.3",
+  });
+
+  const result = runReleaseState(repo, { FAKE_GH_RELEASE_TAGS: "v1.2.3" });
+
+  assert.equal(result.status, 1, "plugin manifest mismatch should fail release-state verification");
+  assert.match(result.stdout, /official manifest: 1\.2\.4/);
+  assert.match(result.stdout, /plugin manifests: FAIL/);
+  assert.match(
+    result.stdout,
+    /legacy claude-code-zh-cn@1\.2\.3 does not match official claude-code-zh-cn@1\.2\.4/
+  );
+});
+
+test("verify-release-state fails when legacy and official plugin manifest names drift", () => {
+  const repo = createFixtureRepo({
+    manifestVersion: "1.2.3",
+    officialManifestName: "wrong-plugin",
+    changelogVersion: "1.2.3",
+    tagVersion: "1.2.3",
+  });
+
+  const result = runReleaseState(repo, { FAKE_GH_RELEASE_TAGS: "v1.2.3" });
+
+  assert.equal(result.status, 1, "plugin manifest mismatch should fail release-state verification");
+  assert.match(result.stdout, /plugin manifests: FAIL/);
+  assert.match(
+    result.stdout,
+    /legacy claude-code-zh-cn@1\.2\.3 does not match official wrong-plugin@1\.2\.3/
+  );
 });
 
 test("verify-release-state fails when the current version has no tag or GitHub release", () => {

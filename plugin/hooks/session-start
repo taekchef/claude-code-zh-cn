@@ -2,16 +2,32 @@
 # session-start hook for claude-code-zh-cn
 # 1. 注入中文上下文指令
 # 2. 检测插件 Release 更新并同步安装态
-# 3. 检测 cli.js 版本变更，自动重 patch（不恢复旧备份，直接 patch 当前版本）
+# 3. 检测 Claude Code 版本变更，从同版本干净备份安全重 patch
 
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
-MARKER_FILE="$PLUGIN_ROOT/.patched-version"
-SOURCE_REPO_FILE="$PLUGIN_ROOT/.source-repo"
-LAST_UPDATE_CHECK_FILE="$PLUGIN_ROOT/.last-update-check"
-SETTINGS_OVERLAY_CACHE_FILE="$PLUGIN_ROOT/.settings-overlay-cache.json"
+LEGACY_PLUGIN_ROOT="$HOME/.claude/plugins/claude-code-zh-cn"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$LEGACY_PLUGIN_ROOT}"
+STATE_ROOT="${CLAUDE_PLUGIN_DATA:-${CLAUDE_PLUGIN_ROOT:-$LEGACY_PLUGIN_ROOT}}"
+mkdir -p "$STATE_ROOT" 2>/dev/null || STATE_ROOT="$PLUGIN_ROOT"
+
+# 正式 marketplace 插件的安装目录会随版本变化，运行状态必须放在持久目录。
+# 首次迁移只带走本机 patch/设置状态；插件更新交给 Claude plugin manager。
+if [ -n "${CLAUDE_PLUGIN_DATA:-}" ] && [ "$STATE_ROOT" != "$LEGACY_PLUGIN_ROOT" ]; then
+    for state_file in .patched-version .settings-overlay-cache.json; do
+        if [ ! -f "$STATE_ROOT/$state_file" ] && [ -f "$LEGACY_PLUGIN_ROOT/$state_file" ]; then
+            cp "$LEGACY_PLUGIN_ROOT/$state_file" "$STATE_ROOT/$state_file" 2>/dev/null || true
+        fi
+    done
+fi
+
+MARKER_FILE="$STATE_ROOT/.patched-version"
+SOURCE_REPO_FILE="$STATE_ROOT/.source-repo"
+LAST_UPDATE_CHECK_FILE="$STATE_ROOT/.last-update-check"
+SETTINGS_OVERLAY_CACHE_FILE="$STATE_ROOT/.settings-overlay-cache.json"
 SETTINGS_FILE="$HOME/.claude/settings.json"
 UPDATE_CHECK_INTERVAL_SECONDS="${ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS:-21600}"
 LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
+OFFICIAL_PLUGIN_ID="claude-code-zh-cn@claude-code-zh-cn"
+OFFICIAL_MARKETPLACE_NAME="claude-code-zh-cn"
 STAGING_DIR=""
 
 source "$PLUGIN_ROOT/compute-patch-revision.sh"
@@ -106,8 +122,28 @@ native_binary_version_from_execution() {
     printf '%s' "$output" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
 }
 
+native_platform() {
+    if [ -n "${ZH_CN_NATIVE_PLATFORM:-}" ]; then
+        printf '%s' "$ZH_CN_NATIVE_PLATFORM"
+        return
+    fi
+
+    case "$(uname -s 2>/dev/null)-$(uname -m 2>/dev/null)" in
+        Darwin-arm64|Darwin-aarch64)
+            printf 'darwin-arm64'
+            ;;
+        MINGW64_NT-*|MSYS_NT-*|CYGWIN_NT-*)
+            printf 'win32-x64'
+            ;;
+        *)
+            printf ''
+            ;;
+    esac
+}
+
 is_supported_native_version() {
     local version="$1"
+    local platform="${2:-$(native_platform)}"
     local support_file="$PLUGIN_ROOT/support-window.json"
 
     if [ ! -f "$support_file" ]; then
@@ -121,17 +157,93 @@ is_supported_native_version() {
         esac
     fi
 
-    node - "$support_file" "$version" <<'NODE'
+    node - "$support_file" "$version" "$platform" <<'NODE'
 const fs = require("fs");
 const file = process.argv[2];
 const version = process.argv[3];
+const platform = process.argv[4] || "";
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
-const versions = [
-  ...(data.macosNativeOfficialInstallerExperimental?.versions || []),
-  ...(data.macosNativeExperimental?.versions || []),
-];
+const versions = [];
+for (const key of [
+  "macosNativeOfficialInstallerExperimental",
+  "macosNativeExperimental",
+  "windowsNativeExperimental",
+]) {
+  const entry = data[key];
+  if (!entry) continue;
+  if (platform && entry.platform && entry.platform !== platform) continue;
+  versions.push(...(entry.versions || []));
+}
 process.exit(versions.includes(version) ? 0 : 1);
 NODE
+}
+
+can_try_provisional_native_version() {
+    local version="$1"
+    local platform="${2:-$(native_platform)}"
+    local support_file="$PLUGIN_ROOT/support-window.json"
+
+    if [ -z "${version:-}" ] || [ -z "${platform:-}" ] || [ ! -f "$support_file" ]; then
+        return 1
+    fi
+
+    node - "$support_file" "$version" "$platform" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+const version = process.argv[3];
+const platform = process.argv[4];
+const data = JSON.parse(fs.readFileSync(file, "utf8"));
+
+function parse(value) {
+  const match = String(value || "").match(/^(\d+)\.(\d+)\.(\d+)$/);
+  return match ? match.slice(1).map(Number) : null;
+}
+
+function compare(left, right) {
+  for (let i = 0; i < 3; i += 1) {
+    if (left[i] > right[i]) return 1;
+    if (left[i] < right[i]) return -1;
+  }
+  return 0;
+}
+
+const candidate = parse(version);
+if (!candidate) process.exit(1);
+
+for (const key of [
+  "macosNativeOfficialInstallerExperimental",
+  "macosNativeExperimental",
+  "windowsNativeExperimental",
+]) {
+  const entry = data[key];
+  if (!entry || entry.platform !== platform) continue;
+  const floor = parse(entry.floor);
+  const ceiling = parse(entry.ceiling);
+  if (!floor || !ceiling) continue;
+  const sameReleaseLine = candidate[0] === ceiling[0] && candidate[1] === ceiling[1];
+  if (sameReleaseLine && compare(candidate, floor) >= 0) process.exit(0);
+}
+
+process.exit(1);
+NODE
+}
+
+native_marker_is_current() {
+    local marker="$1"
+    local version="$2"
+    local hash="$3"
+    local revision="$4"
+    local mode="$5"
+    local platform="$6"
+
+    if [ "$mode" = "provisional" ]; then
+        case "$marker" in
+            "native|${version}|${hash}|${revision}|provisional|${platform}|"*) return 0 ;;
+            *) return 1 ;;
+        esac
+    fi
+
+    [ "$marker" = "native|${version}|${hash}|${revision}" ]
 }
 
 native_binary_hash() {
@@ -161,15 +273,10 @@ touch_update_check_timestamp() {
     date +%s > "$LAST_UPDATE_CHECK_FILE" 2>/dev/null || true
 }
 
-should_check_for_update() {
-    local source_repo="$1"
+update_check_due() {
     local interval now last
 
     [ "${ZH_CN_DISABLE_AUTO_UPDATE:-0}" = "1" ] && return 1
-    [ -n "$source_repo" ] || return 1
-    if ! is_local_source_repo "$source_repo" && ! is_github_repo_slug "$source_repo"; then
-        return 1
-    fi
 
     interval="$UPDATE_CHECK_INTERVAL_SECONDS"
     case "$interval" in
@@ -193,6 +300,17 @@ should_check_for_update() {
     esac
 
     [ $((now - last)) -ge "$interval" ]
+}
+
+should_check_for_update() {
+    local source_repo="$1"
+
+    [ -n "$source_repo" ] || return 1
+    if ! is_local_source_repo "$source_repo" && ! is_github_repo_slug "$source_repo"; then
+        return 1
+    fi
+
+    update_check_due
 }
 
 fetch_latest_local_release_tag() {
@@ -351,7 +469,7 @@ export_local_release_to_staging() {
     local staging_dir="$3"
 
     mkdir -p "$staging_dir"
-    archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin || return 1
+    archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" .claude-plugin install.sh install.ps1 compute-patch-revision.sh settings-overlay.json verbs tips plugin || return 1
 
     if release_contains_path "$source_repo" "$latest_tag" "scripts/install-json-helper.js"; then
         archive_release_paths "$source_repo" "$latest_tag" "$staging_dir" scripts/install-json-helper.js || true
@@ -397,6 +515,7 @@ export_remote_release_to_staging() {
 
     copy_remote_release_path "$top_dir" "$staging_dir" install.sh || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" install.ps1 || return 1
+    copy_remote_release_path "$top_dir" "$staging_dir" .claude-plugin || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" compute-patch-revision.sh || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" settings-overlay.json || return 1
     copy_remote_release_path "$top_dir" "$staging_dir" verbs || return 1
@@ -433,8 +552,10 @@ validate_staging_release() {
     local staging_dir="$1"
 
     [ -f "$staging_dir/install.sh" ] || return 1
+    [ -f "$staging_dir/.claude-plugin/marketplace.json" ] || return 1
     [ -f "$staging_dir/settings-overlay.json" ] || return 1
     [ -f "$staging_dir/plugin/manifest.json" ] || return 1
+    [ -f "$staging_dir/plugin/.claude-plugin/plugin.json" ] || return 1
     [ -f "$staging_dir/plugin/patch-cli.sh" ] || return 1
     [ -f "$staging_dir/plugin/patch-cli.js" ] || return 1
     [ -f "$staging_dir/plugin/cli-translations.json" ] || return 1
@@ -460,7 +581,7 @@ validate_semver() {
 }
 
 write_update_status() {
-    echo "$1" > "$PLUGIN_ROOT/.last-update-status"
+    echo "$1" > "$STATE_ROOT/.last-update-status"
 }
 
 repair_settings_from_cache() {
@@ -560,10 +681,40 @@ process.exit(1);
 NODE
 }
 
-# 自动更新：只同步已发布的 Release tag，不修改源码仓库工作树
+update_official_marketplace_plugin() {
+    local claude_cli update_output
+
+    claude_cli="$(find_real_claude_binary)"
+    [ -n "$claude_cli" ] || return 1
+
+    if ! "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1; then
+        return 1
+    fi
+
+    update_output="$("$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user 2>&1)" || return 1
+    case "$update_output" in
+        *"already at the latest"*|*"已是最新"*|*"latest version"*)
+            write_update_status "noop marketplace $(date +%s)"
+            ;;
+        *)
+            write_update_status "ok marketplace $(date +%s)"
+            AUTO_UPDATE_MSG="插件更新已由 Claude plugin manager 下载，将在下次会话生效"
+            ;;
+    esac
+}
+
+# 自动更新：marketplace 安装交给 Claude plugin manager；旧独立安装继续只同步 Release tag。
 AUTO_UPDATE_MSG=""
-SOURCE_REPO="$(read_source_repo)"
-if should_check_for_update "$SOURCE_REPO"; then
+if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    if update_check_due; then
+        touch_update_check_timestamp
+        if ! update_official_marketplace_plugin; then
+            write_update_status "update_failed marketplace $(date +%s)"
+        fi
+    fi
+else
+    SOURCE_REPO="$(read_source_repo)"
+    if should_check_for_update "$SOURCE_REPO"; then
     touch_update_check_timestamp
 
     LOCAL_VERSION="$(read_manifest_version "$PLUGIN_ROOT/manifest.json" 2>/dev/null || true)"
@@ -587,6 +738,7 @@ if should_check_for_update "$SOURCE_REPO"; then
         fi
     else
         write_update_status "noop v${LOCAL_VERSION:-unknown} $(date +%s)"
+    fi
     fi
 fi
 
@@ -626,20 +778,34 @@ fi
 
 AUTO_PATCH_MSG=""
 if [ -n "$NATIVE_BINARY" ]; then
-    # 原生二进制：只对已验证的 macOS 官方安装器旧版本做 best-effort re-patch。
-    # 未验证版本（尤其 latest）静默跳过，避免误改用户二进制。
+    # support-window 只代表“发布前完整验证过”，不再充当 runtime 开关。
+    # 同一 release line 的新版本走 provisional：只替换仍能精确命中的文案，
+    # 未知文案保留英文；repack 或 --version 自检失败则恢复干净备份。
     CURRENT_VERSION=$(native_binary_version "$NATIVE_BINARY")
-    if is_supported_native_version "$CURRENT_VERSION"; then
+    NATIVE_PLATFORM=$(native_platform)
+    PATCH_MODE=""
+    if is_supported_native_version "$CURRENT_VERSION" "$NATIVE_PLATFORM"; then
+        PATCH_MODE="verified"
+    elif can_try_provisional_native_version "$CURRENT_VERSION" "$NATIVE_PLATFORM"; then
+        PATCH_MODE="provisional"
+    fi
+
+    if [ -n "$PATCH_MODE" ]; then
         PATCH_REVISION=$(compute_patch_revision "$PLUGIN_ROOT" 2>/dev/null || true)
         CURRENT_HASH=$(native_binary_hash "$NATIVE_BINARY")
-        CURRENT_MARKER="native|${CURRENT_VERSION}|${CURRENT_HASH:-unknown}"
-        [ -n "${PATCH_REVISION:-}" ] && CURRENT_MARKER="native|${CURRENT_VERSION}|${CURRENT_HASH:-unknown}|${PATCH_REVISION}"
         PATCHED_VERSION=""
         [ -f "$MARKER_FILE" ] && PATCHED_VERSION=$(cat "$MARKER_FILE")
 
-        if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ]; then
+        if ! native_marker_is_current \
+            "$PATCHED_VERSION" \
+            "$CURRENT_VERSION" \
+            "${CURRENT_HASH:-unknown}" \
+            "${PATCH_REVISION:-unknown}" \
+            "$PATCH_MODE" \
+            "$NATIVE_PLATFORM"; then
             if node "$PLUGIN_ROOT/bun-binary-io.js" check-deps 2>/dev/null | grep -q "ok"; then
                 tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-repatch.$$.js"
+                status_file="${TMPDIR:-/tmp}/cczh-native-patch-status.$$.${RANDOM:-0}"
                 backup_path="${NATIVE_BINARY}.zh-cn-backup"
                 backup_version=""
                 if [ -f "$backup_path" ]; then
@@ -647,32 +813,78 @@ if [ -n "$NATIVE_BINARY" ]; then
                 fi
 
                 # 同版本时恢复 backup 保证干净基底；版本变化时刷新 backup 为当前版本
+                BACKUP_READY=false
                 if [ -f "$backup_path" ] && [ -n "${CURRENT_VERSION:-}" ] && [ "${CURRENT_VERSION:-}" = "${backup_version:-}" ]; then
-                    cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                    if cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null; then
+                        BACKUP_READY=true
+                    fi
                 else
-                    cp "$NATIVE_BINARY" "$backup_path" 2>/dev/null || true
+                    if cp "$NATIVE_BINARY" "$backup_path" 2>/dev/null; then
+                        BACKUP_READY=true
+                    fi
                 fi
 
-                if node "$PLUGIN_ROOT/bun-binary-io.js" extract "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
-                    PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
-                    if [ "$PATCH_COUNT" != "0" ]; then
-                        if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
-                            VERIFIED_VERSION="$(native_binary_version_from_execution "$NATIVE_BINARY")"
-                            if [ "${VERIFIED_VERSION:-}" = "${CURRENT_VERSION:-}" ]; then
-                                FINAL_HASH=$(native_binary_hash "$NATIVE_BINARY")
-                                FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}"
-                                [ -n "${PATCH_REVISION:-}" ] && FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION}"
-                                echo "$FINAL_MARKER" > "$MARKER_FILE"
-                                AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字 — 官方安装器 native 已验证版本，启动自检通过）"
+                if [ "$BACKUP_READY" = true ]; then
+                    SOURCE_HASH=$(native_binary_hash "$NATIVE_BINARY")
+                    if node "$PLUGIN_ROOT/bun-binary-io.js" extract "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
+                        PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$tmp_js" \
+                            --status "$status_file" \
+                            --log "$STATE_ROOT/patch.log" 2>/dev/null || echo "0")
+                        PATCH_STATUS="$(cat "$status_file" 2>/dev/null || true)"
+                        if [ -z "$PATCH_STATUS" ]; then
+                            # 兼容旧版/自定义 patch helper：只有数字计数时仍按 best-effort 处理。
+                            if [ "$PATCH_COUNT" = "0" ]; then
+                                PATCH_STATUS="noop"
                             else
-                                cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                                PATCH_STATUS="ok"
                             fi
-                        else
+                        fi
+
+                        case "$PATCH_STATUS" in
+                            ok|partial|noop)
+                                NATIVE_PATCH_OK=true
+                                if [ "$PATCH_COUNT" != "0" ]; then
+                                    if node "$PLUGIN_ROOT/bun-binary-io.js" repack "$NATIVE_BINARY" "$tmp_js" 2>/dev/null; then
+                                        VERIFIED_VERSION="$(native_binary_version_from_execution "$NATIVE_BINARY")"
+                                        if [ "${VERIFIED_VERSION:-}" != "${CURRENT_VERSION:-}" ]; then
+                                            NATIVE_PATCH_OK=false
+                                        fi
+                                    else
+                                        NATIVE_PATCH_OK=false
+                                    fi
+                                fi
+
+                                if [ "$NATIVE_PATCH_OK" = true ]; then
+                                    FINAL_HASH=$(native_binary_hash "$NATIVE_BINARY")
+                                    FINAL_MARKER="native|${CURRENT_VERSION}|${FINAL_HASH:-unknown}|${PATCH_REVISION:-unknown}"
+                                    if [ "$PATCH_MODE" = "provisional" ]; then
+                                        FINAL_MARKER="${FINAL_MARKER}|provisional|${NATIVE_PLATFORM}|${SOURCE_HASH:-unknown}"
+                                    fi
+                                    echo "$FINAL_MARKER" > "$MARKER_FILE"
+
+                                    if [ "$PATCH_MODE" = "provisional" ]; then
+                                        AUTO_PATCH_MSG="（新版本已本机自验证，自动 patch ${PATCH_COUNT} 处；未覆盖文案继续显示英文）"
+                                    elif [ "$PATCH_STATUS" = "partial" ]; then
+                                        AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处；未覆盖文案继续显示英文）"
+                                    elif [ "$PATCH_COUNT" != "0" ]; then
+                                        AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字，启动自检通过）"
+                                    fi
+                                else
+                                    cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                                fi
+                                ;;
+                            *)
+                                # patch-cli 未写回二进制；保持干净英文版本可用。
+                                ;;
+                        esac
+                    else
+                        # 提取失败不触碰二进制；保留当前英文版本。
+                        if [ -f "$backup_path" ]; then
                             cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                         fi
                     fi
                 fi
-                rm -f "$tmp_js"
+                rm -f "$tmp_js" "$status_file"
             fi
             # node-lief 不可用 → 静默跳过，保持 hook JSON 合法
         fi

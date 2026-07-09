@@ -89,10 +89,12 @@ printf '%s\n' "\${ZH_CN_SOURCE_REPO:-}" > "$CLAUDE_PLUGIN_ROOT/.source-repo"
 `, 0o755);
   writeFile(path.join(root, 'install.ps1'), '# fake powershell installer\n');
   writeFile(path.join(root, 'settings-overlay.json'), '{}\n');
+  writeFile(path.join(root, '.claude-plugin', 'marketplace.json'), '{"name":"claude-code-zh-cn","plugins":[]}\n');
   writeFile(path.join(root, 'compute-patch-revision.sh'), 'compute_patch_revision() { printf fake-rev; }\n');
   writeFile(path.join(root, 'verbs', 'zh-CN.json'), '{}\n');
   writeFile(path.join(root, 'tips', 'zh-CN.json'), '{}\n');
   writeFile(path.join(root, 'plugin', 'manifest.json'), '{"version":"2.0.0"}\n');
+  writeFile(path.join(root, 'plugin', '.claude-plugin', 'plugin.json'), '{"name":"claude-code-zh-cn","version":"2.0.0"}\n');
   writeFile(path.join(root, 'plugin', 'patch-cli.sh'), '#!/usr/bin/env bash\necho 0\n', 0o755);
   writeFile(path.join(root, 'plugin', 'patch-cli.js'), 'console.log("fake patch")\n');
   writeFile(path.join(root, 'plugin', 'cli-translations.json'), '{}\n');
