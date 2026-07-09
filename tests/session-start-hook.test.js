@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { execFileSync, spawnSync } = require("node:child_process");
+const { execFileSync, spawn, spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const hookPath = path.join(repoRoot, "plugin", "hooks", "session-start");
@@ -39,7 +39,7 @@ function setManifestVersion(file, version) {
 function copyReleasePayload(sourceRepo, { includeInstallJsonHelper = true } = {}) {
   fs.mkdirSync(sourceRepo, { recursive: true });
 
-  for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
+  for (const relative of [".claude-plugin", "install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
   if (includeInstallJsonHelper) {
@@ -116,7 +116,7 @@ function createSourceRepoWithoutTags(tmpRoot) {
   const sourceRepo = path.join(tmpRoot, "source-repo-no-tags");
   fs.mkdirSync(sourceRepo, { recursive: true });
 
-  for (const relative of ["install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
+  for (const relative of [".claude-plugin", "install.sh", "install.ps1", "compute-patch-revision.sh", "settings-overlay.json"]) {
     copyTree(path.join(repoRoot, relative), path.join(sourceRepo, relative));
   }
   copyTree(
@@ -247,6 +247,61 @@ test("session-start repairs settings from cached overlay before emitting JSON", 
   assert.deepEqual(repaired.permissions, { allow: ["Bash(git status:*)"] });
 });
 
+test("marketplace session-start keeps mutable state outside the versioned plugin cache", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-state-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "cache", "claude-code-zh-cn", "2.5.1");
+  const pluginData = path.join(tmp, "data", "claude-code-zh-cn-claude-code-zh-cn");
+  const legacyRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const prefix = path.join(tmp, "npm-prefix");
+  const fakeBin = path.join(prefix, "bin");
+  const cliFile = path.join(prefix, "lib", "node_modules", "@anthropic-ai", "claude-code", "cli.js");
+  const settingsFile = path.join(home, ".claude", "settings.json");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(cliFile), { recursive: true });
+  fs.mkdirSync(legacyRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+
+  fs.writeFileSync(path.join(fakeBin, "claude"), "#!/usr/bin/env bash\nexit 0\n");
+  fs.chmodSync(path.join(fakeBin, "claude"), 0o755);
+  fs.writeFileSync(
+    cliFile,
+    '#!/usr/bin/env node\n// Version: 2.1.104\nconst waiting="Waiting for permission\\u2026";\n'
+  );
+  fs.writeFileSync(
+    path.join(legacyRoot, ".settings-overlay-cache.json"),
+    JSON.stringify({ language: "Chinese", spinnerTipsEnabled: true }) + "\n"
+  );
+  fs.writeFileSync(settingsFile, "{}\n");
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      CLAUDE_PLUGIN_DATA: pluginData,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(fs.readFileSync(cliFile, "utf8"), /等待权限确认…/);
+  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "cache must stay immutable");
+  assert.match(fs.readFileSync(path.join(pluginData, ".patched-version"), "utf8"), /^2\.1\.104\|/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(settingsFile, "utf8")), {
+    language: "Chinese",
+    spinnerTipsEnabled: true,
+  });
+});
+
 test("Windows session-start hook repairs settings from cached overlay", () => {
   const script = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
 
@@ -255,6 +310,193 @@ test("Windows session-start hook repairs settings from cached overlay", () => {
   assert.match(script, /spinnerTipsOverride/);
   assert.match(script, /fs\.writeFileSync\(settingsFile/);
   assert.match(script, /Repair-SettingsFromCache/);
+});
+
+test("Windows session-start hook never rewrites the running native exe and records a safe manual handoff", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
+
+  assert.match(script, /\$Kind -eq "native-bun"/);
+  assert.match(script, /\.native-patch-pending\.json/);
+  assert.match(script, /正在运行的 claude\.exe/);
+  assert.match(script, /关闭所有 Claude Code 窗口后.*重跑 install\.ps1/);
+  assert.match(script, /github\.com\/taekchef\/claude-code-zh-cn#windows-原生安装/);
+  assert.doesNotMatch(script, /\$AutoPatchMsg = Invoke-NativePatch \$Target/);
+});
+
+test("Unix session-start serializes native and npm patch transactions", () => {
+  const script = fs.readFileSync(hookPath, "utf8");
+
+  assert.match(script, /patch_lock_path\(\)/);
+  assert.match(script, /mkdir "\$PATCH_LOCK_DIR"/);
+  assert.match(script, /kill -0 "\$lock_pid"/);
+  assert.match(script, /acquire_patch_lock "\$NATIVE_BINARY"/);
+  assert.match(script, /acquire_patch_lock "\$CLI_FILE"/);
+  assert.match(script, /release_patch_lock/);
+  assert.match(script, /trap cleanup EXIT/);
+});
+
+test("concurrent Unix session-start hooks never patch the same native binary together", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-lock-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "plugin");
+  const nativeBinary = path.join(tmp, "claude");
+  const startedFile = path.join(tmp, "patch-started");
+  const repackCountFile = path.join(tmp, "repack-count");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
+  fs.writeFileSync(nativeBinary, nativeShellFixture(nativeSupport.ceiling));
+  fs.chmodSync(nativeBinary, 0o755);
+  // Keep the transaction open long enough to start a second hook against the same binary.
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+target="$1"
+shift
+status_file=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--status" ]; then status_file="$2"; shift 2; else shift; fi
+done
+printf started > ${JSON.stringify(startedFile)}
+sleep 1
+printf '\\nPATCHED\\n' >> "$target"
+printf ok > "$status_file"
+printf 1
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  // Count actual binary writes; only the lock owner may reach repack.
+  const helper = fs.readFileSync(path.join(pluginRoot, "bun-binary-io.js"), "utf8").replace(
+    '} else if (cmd === "repack") {\n  fs.copyFileSync(process.argv[4], process.argv[3]);',
+    `} else if (cmd === "repack") {\n  fs.appendFileSync(${JSON.stringify(repackCountFile)}, "1\\n");\n  fs.copyFileSync(process.argv[4], process.argv[3]);`
+  );
+  fs.writeFileSync(path.join(pluginRoot, "bun-binary-io.js"), helper);
+
+  const runHook = (stateRoot) => new Promise((resolve, reject) => {
+    const child = spawn("bash", [hookPath], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        HOME: home,
+        TMPDIR: tmp,
+        CLAUDE_PLUGIN_ROOT: pluginRoot,
+        CLAUDE_PLUGIN_DATA: stateRoot,
+        ZH_CN_REAL_CLAUDE: nativeBinary,
+        ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
+        ZH_CN_DISABLE_AUTO_UPDATE: "1",
+      },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, stdout, stderr }));
+    child.stdin.end("\n");
+  });
+
+  const first = runHook(path.join(tmp, "state-a"));
+  const waitDeadline = Date.now() + 3000;
+  while (!fs.existsSync(startedFile) && Date.now() < waitDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  assert.equal(fs.existsSync(startedFile), true, "first hook never entered the native patch transaction");
+  const second = runHook(path.join(tmp, "state-b"));
+  const [firstResult, secondResult] = await Promise.all([first, second]);
+
+  assert.equal(firstResult.status, 0, firstResult.stderr || firstResult.stdout);
+  assert.equal(secondResult.status, 0, secondResult.stderr || secondResult.stdout);
+  assert.doesNotThrow(() => JSON.parse(firstResult.stdout));
+  assert.doesNotThrow(() => JSON.parse(secondResult.stdout));
+  assert.equal(fs.readFileSync(repackCountFile, "utf8").trim().split("\n").length, 1);
+  assert.equal((fs.readFileSync(nativeBinary, "utf8").match(/PATCHED/g) || []).length, 1);
+  assert.equal(fs.readdirSync(tmp).some((name) => name.endsWith(".lock")), false, "native lock leaked after exit");
+});
+
+test("concurrent Unix session-start hooks invoke the npm patch transaction only once", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-npm-lock-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "plugin");
+  const fakeClaude = path.join(tmp, "claude");
+  const cliFile = path.join(tmp, "cli.js");
+  const startedFile = path.join(tmp, "patch-started");
+  const callsFile = path.join(tmp, "patch-calls");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\nprintf '2.1.112 (Claude Code)\\n'\n");
+  fs.chmodSync(fakeClaude, 0o755);
+  fs.writeFileSync(
+    cliFile,
+    '#!/usr/bin/env node\n// Version: 2.1.112\nconst waiting="Waiting for permission\\u2026";\n'
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    `#!/usr/bin/env node
+if (process.argv[2] === "detect") process.stdout.write("npm:" + ${JSON.stringify(cliFile)});
+else process.exit(1);
+`
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+shift
+status_file=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--status" ]; then status_file="$2"; shift 2; else shift; fi
+done
+printf '1\\n' >> ${JSON.stringify(callsFile)}
+printf started > ${JSON.stringify(startedFile)}
+sleep 1
+printf ok > "$status_file"
+printf 1
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  const runHook = (stateRoot) => new Promise((resolve, reject) => {
+    const child = spawn("bash", [hookPath], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        HOME: home,
+        TMPDIR: tmp,
+        CLAUDE_PLUGIN_ROOT: pluginRoot,
+        CLAUDE_PLUGIN_DATA: stateRoot,
+        ZH_CN_REAL_CLAUDE: fakeClaude,
+        ZH_CN_DISABLE_AUTO_UPDATE: "1",
+      },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, stdout, stderr }));
+    child.stdin.end("\n");
+  });
+
+  const first = runHook(path.join(tmp, "state-a"));
+  const waitDeadline = Date.now() + 3000;
+  while (!fs.existsSync(startedFile) && Date.now() < waitDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  assert.equal(fs.existsSync(startedFile), true, "first hook never entered the npm patch transaction");
+  const second = runHook(path.join(tmp, "state-b"));
+  const results = await Promise.all([first, second]);
+
+  for (const result of results) {
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.doesNotThrow(() => JSON.parse(result.stdout));
+  }
+  assert.equal(fs.readFileSync(callsFile, "utf8").trim().split("\n").length, 1);
+  assert.equal(fs.readdirSync(tmp).some((name) => name.endsWith(".lock")), false, "npm lock leaked after exit");
 });
 
 test("session-start context protects machine-readable configuration", () => {
@@ -269,15 +511,115 @@ test("session-start context protects machine-readable configuration", () => {
   }
 });
 
-test("session-start auto-update archives install-json-helper only as an optional payload file", () => {
+test("session-start bounds update checks and never runs a standalone installer mid-session", () => {
   const shellHook = fs.readFileSync(hookPath, "utf8");
   const psHook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
 
-  assert.match(shellHook, /scripts\/install-json-helper\.js/);
-  assert.match(shellHook, /validate_staging_release/);
-  assert.match(psHook, /scripts\/install-json-helper\.js/);
-  assert.doesNotMatch(shellHook, /\[ -f "\$staging_dir\/scripts\/install-json-helper\.js" \] \|\| return 1/);
-  assert.doesNotMatch(psHook, /\(Test-Path "\$stagingDir\\scripts\\install-json-helper\.js"\) -and/);
+  assert.match(psHook, /CLAUDE_PLUGIN_DATA/);
+  assert.match(psHook, /Invoke-CommandWithTimeout/);
+  assert.match(psHook, /@\("plugin", "marketplace", "update", \$OfficialMarketplaceName\)/);
+  assert.match(psHook, /@\("plugin", "update", \$OfficialPluginId, "--scope", "user"\)/);
+  assert.match(psHook, /WaitForExit\(\$TimeoutSeconds \* 1000\)/);
+  assert.match(psHook, /-FilePath "git"/);
+  assert.doesNotMatch(psHook, /^\s*git fetch --tags/m);
+  assert.doesNotMatch(psHook, /install\.ps1.*-UpdateOnly/);
+  assert.match(psHook, /本次未自动安装/);
+  assert.match(shellHook, /curl -fsSL --connect-timeout 5 --max-time/);
+  assert.doesNotMatch(shellHook, /install\.sh" --update-only/);
+  assert.match(shellHook, /本次未自动安装/);
+});
+
+test("marketplace session-start delegates plugin updates to Claude plugin manager", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-update-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "cache", "claude-code-zh-cn", "2.5.1");
+  const pluginData = path.join(tmp, "data", "claude-code-zh-cn-claude-code-zh-cn");
+  const fakeClaude = path.join(tmp, "claude");
+  const callsFile = path.join(tmp, "calls.log");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    '#!/usr/bin/env node\nif(process.argv[2]==="detect")process.stdout.write("unknown");\n'
+  );
+  fs.writeFileSync(
+    fakeClaude,
+    `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> ${JSON.stringify(callsFile)}
+if [ "$1 $2 $3" = "plugin marketplace update" ]; then exit 0; fi
+if [ "$1 $2" = "plugin update" ]; then printf 'already at the latest version\\n'; exit 0; fi
+printf '2.1.205 (Claude Code)\\n'
+`
+  );
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      CLAUDE_PLUGIN_DATA: pluginData,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+  const calls = fs.readFileSync(callsFile, "utf8");
+  assert.match(calls, /plugin marketplace update claude-code-zh-cn/);
+  assert.match(calls, /plugin update claude-code-zh-cn@claude-code-zh-cn --scope user/);
+  assert.match(fs.readFileSync(path.join(pluginData, ".last-update-status"), "utf8"), /^noop marketplace /);
+});
+
+test("marketplace session-start times out a stuck plugin-manager update without blocking the session", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-timeout-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "cache", "claude-code-zh-cn", "2.6.0");
+  const pluginData = path.join(tmp, "data", "claude-code-zh-cn-claude-code-zh-cn");
+  const fakeClaude = path.join(tmp, "claude");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    '#!/usr/bin/env node\nif(process.argv[2]==="detect")process.stdout.write("unknown");\n'
+  );
+  fs.writeFileSync(
+    fakeClaude,
+    `#!/usr/bin/env bash
+if [ "$1 $2 $3" = "plugin marketplace update" ]; then exec sleep 10; fi
+printf '2.1.205 (Claude Code)\\n'
+`
+  );
+  fs.chmodSync(fakeClaude, 0o755);
+
+  const startedAt = Date.now();
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      CLAUDE_PLUGIN_DATA: pluginData,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      ZH_CN_PLUGIN_UPDATE_TIMEOUT_SECONDS: "1",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+    timeout: 5000,
+  });
+  const elapsedMs = Date.now() - startedAt;
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.ok(elapsedMs < 4000, `stuck plugin update blocked the hook for ${elapsedMs}ms`);
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+  assert.match(fs.readFileSync(path.join(pluginData, ".last-update-status"), "utf8"), /^update_failed marketplace /);
 });
 
 test("session-start re-patches when plugin changed even if Claude Code version is unchanged", () => {
@@ -457,7 +799,7 @@ printf 'invoked' > ${JSON.stringify(invokedFile)}
   assert.equal(fs.existsSync(invokedFile), true, "hook should patch via the real claude path exported by launcher");
 });
 
-test("session-start auto-updates only to latest release tag without mutating source repo checkout", () => {
+test("standalone session-start announces the latest release without mutating the install or source checkout", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-autoupdate-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -497,8 +839,8 @@ test("session-start auto-updates only to latest release tag without mutating sou
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(pluginRoot, "manifest.json"), "utf8")).version,
-    "2.0.1",
-    "installed plugin should update to latest release tag instead of staying stale or following untagged worktree"
+    "2.0.0",
+    "standalone hook must not replace its own files while the session is starting"
   );
   assert.equal(
     fs.readFileSync(path.join(pluginRoot, ".source-repo"), "utf8").trim(),
@@ -508,16 +850,17 @@ test("session-start auto-updates only to latest release tag without mutating sou
   assert.equal(
     execFileSync("git", ["-C", sourceRepo, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim(),
     "main",
-    "auto update must not checkout a tag in the source repo worktree"
+    "release checks must not checkout a tag in the source repo worktree"
   );
-  assert.equal(
-    JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")).language,
-    "Chinese",
-    "update-only install should still merge the Chinese settings overlay"
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")), {});
+  assert.match(
+    fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
+    /^available v2\.0\.1 \d+$/
   );
+  assert.match(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, /检测到插件 v2\.0\.1.*本次未自动安装/s);
 });
 
-test("session-start auto-update accepts older release tags without install-json-helper", () => {
+test("standalone release check never executes a broken untagged installer from the source worktree", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-autoupdate-legacy-helperless-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -532,7 +875,7 @@ test("session-start auto-update accepts older release tags without install-json-
   assert.equal(
     fs.existsSync(path.join(sourceRepo, "scripts", "install-json-helper.js")),
     true,
-    "fixture worktree keeps a broken helper so this must exercise the staged release archive"
+    "fixture worktree keeps a broken helper that SessionStart must not execute"
   );
 
   fs.mkdirSync(pluginRoot, { recursive: true });
@@ -567,19 +910,16 @@ test("session-start auto-update accepts older release tags without install-json-
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(pluginRoot, "manifest.json"), "utf8")).version,
-    "2.0.1",
-    "helper-less release archive should still update through install.sh fallback logic"
+    "2.0.0",
+    "release notification must leave the installed plugin untouched"
   );
-  assert.equal(
-    JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")).language,
-    "Chinese",
-    "helper-less update should still merge the Chinese settings overlay"
-  );
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")), {});
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
-    /^ok v2\.0\.1 \d+$/,
-    "hook should record that the staged helper-less archive installed successfully"
+    /^available v2\.0\.1 \d+$/,
+    "hook should record the available release without running an installer"
   );
+  assert.match(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, /会话结束后在源码目录运行 git pull/);
 });
 
 test("session-start skips auto-update cleanly when source repo path is missing", () => {
@@ -711,7 +1051,7 @@ test("session-start returns valid JSON even when update fails", () => {
   assert.equal(output.hookSpecificOutput.hookEventName, "SessionStart");
 });
 
-test("session-start writes .last-update-status on successful update", () => {
+test("standalone session-start records an available release without claiming installation", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-update-status-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
@@ -751,10 +1091,11 @@ test("session-start writes .last-update-status on successful update", () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 
   const statusFile = path.join(pluginRoot, ".last-update-status");
-  assert.equal(fs.existsSync(statusFile), true, ".last-update-status should exist after update");
+  assert.equal(fs.existsSync(statusFile), true, ".last-update-status should exist after the release check");
   const status = fs.readFileSync(statusFile, "utf8").trim();
-  assert.ok(status.startsWith("ok "), `status should start with "ok ", got: ${status}`);
+  assert.ok(status.startsWith("available "), `status should start with "available ", got: ${status}`);
   assert.ok(status.includes("2.0.1"), `status should mention 2.0.1, got: ${status}`);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(pluginRoot, "manifest.json"), "utf8")).version, "2.0.0");
 });
 
 test("session-start native re-patch does not roll upgraded supported binary back to old backup version", () => {
@@ -1019,14 +1360,14 @@ printf '1'
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
-test("session-start skips native latest outside verified experimental window", () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-latest-skip-"));
+test("session-start provisionally patches newer native versions and leaves unknown copy in English", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-latest-provisional-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
   const fakeBin = path.join(tmp, "bin");
   const fakeBinary = path.join(tmp, "claude-native");
-  const invokedFile = path.join(tmp, "patch-invoked");
   const markerFile = path.join(pluginRoot, ".patched-version");
+  const provisionalVersion = bumpPatch(nativeSupport.ceiling, 1);
 
   fs.mkdirSync(pluginRoot, { recursive: true });
   fs.mkdirSync(fakeBin, { recursive: true });
@@ -1034,18 +1375,20 @@ test("session-start skips native latest outside verified experimental window", (
   copyTree(path.join(repoRoot, "plugin"), pluginRoot);
   fs.writeFileSync(path.join(pluginRoot, "manifest.json"), JSON.stringify({ version: "2.0.5" }));
   writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
-  fs.writeFileSync(
-    path.join(pluginRoot, "patch-cli.sh"),
-    `#!/usr/bin/env bash
-set -euo pipefail
-printf 'invoked' > ${JSON.stringify(invokedFile)}
-printf '1'
-`
-  );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  fs.writeFileSync(fakeBinary, `// Version: ${bumpPatch(nativeSupport.ceiling, 1)}\nLATEST\n`);
+  fs.writeFileSync(
+    fakeBinary,
+    nativeShellFixture(
+      provisionalVersion,
+      [
+        'const waiting="Waiting for permission\\u2026";',
+        'const newCopy="Brand new upstream wording";',
+      ].join("\n")
+    )
+  );
   fs.chmodSync(fakeBinary, 0o755);
+  const sourceHash = crypto.createHash("sha256").update(fs.readFileSync(fakeBinary)).digest("hex");
   fs.writeFileSync(markerFile, "2.1.112|stale-revision\n");
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
 
@@ -1056,6 +1399,7 @@ printf '1'
       HOME: home,
       CLAUDE_PLUGIN_ROOT: pluginRoot,
       PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
       ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
       GIT_TERMINAL_PROMPT: "0",
     },
@@ -1064,8 +1408,67 @@ printf '1'
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(fs.existsSync(invokedFile), false, "unverified native should not be patched yet");
-  assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "2.1.112|stale-revision");
+  const patchedBinary = fs.readFileSync(fakeBinary, "utf8");
+  assert.match(patchedBinary, /等待权限确认…/, "known copy should still be translated on a newer version");
+  assert.match(patchedBinary, /Brand new upstream wording/, "unknown copy should remain usable in English");
+  assert.match(
+    fs.readFileSync(markerFile, "utf8").trim(),
+    new RegExp(
+      `^native\\|${provisionalVersion.replaceAll(".", "\\.")}\\|[a-f0-9]{64}\\|[a-f0-9]{16,64}\\|provisional\\|darwin-arm64\\|${sourceHash}$`
+    ),
+    "newer native patch should be recorded as locally verified, not published support"
+  );
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+});
+
+test("session-start provisionally patches a future native release and leaves unknown copy in English", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-future-line-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeBinary = path.join(tmp, "claude-native");
+  const markerFile = path.join(pluginRoot, ".patched-version");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  const originalBinary = nativeShellFixture(
+    "2.2.0",
+    ['const waiting="Waiting for permission\\u2026";', 'const newCopy="Brand new upstream wording";'].join("\n")
+  );
+  const sourceHash = crypto.createHash("sha256").update(originalBinary).digest("hex");
+  fs.writeFileSync(fakeBinary, originalBinary);
+  fs.chmodSync(fakeBinary, 0o755);
+  fs.writeFileSync(markerFile, "native|2.1.205|stale|old-revision\n");
+  fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const patchedBinary = fs.readFileSync(fakeBinary, "utf8");
+  assert.match(patchedBinary, /等待权限确认…/, "known copy should stay Chinese across a future release line");
+  assert.match(patchedBinary, /Brand new upstream wording/, "new upstream copy should remain English");
+  assert.match(
+    fs.readFileSync(markerFile, "utf8").trim(),
+    new RegExp(`^native\\|2\\.2\\.0\\|[a-f0-9]{64}\\|[a-f0-9]{16,64}\\|provisional\\|darwin-arm64\\|${sourceHash}$`)
+  );
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 

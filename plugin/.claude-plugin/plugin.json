@@ -1,0 +1,16 @@
+{
+  "name": "claude-code-zh-cn",
+  "displayName": "Claude Code 中文本地化",
+  "version": "2.6.0",
+  "description": "为 Claude Code 提供简体中文界面、本地化提示和安全的渐进式 CLI patch",
+  "author": {
+    "name": "taekchef"
+  },
+  "homepage": "https://github.com/taekchef/claude-code-zh-cn",
+  "repository": "https://github.com/taekchef/claude-code-zh-cn",
+  "license": "MIT",
+  "keywords": ["localization", "chinese", "claude-code"],
+  "defaultEnabled": true,
+  "hooks": "./hooks.json",
+  "outputStyles": "./output-styles/"
+}

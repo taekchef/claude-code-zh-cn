@@ -9,7 +9,6 @@ const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
 const sessionStart = path.join(repoRoot, 'plugin', 'hooks', 'session-start');
-const fakeCommit = 'abcdef0123456789abcdef0123456789abcdef01';
 
 function tempDir(name) {
   return fs.mkdtempSync(path.join(os.tmpdir(), `cczh-auto-update-${name}-`));
@@ -18,11 +17,6 @@ function tempDir(name) {
 function writeFile(file, content, mode) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, content, mode === undefined ? undefined : { mode });
-}
-
-function packDirectory(tarball, parent, entry) {
-  const result = spawnSync('tar', ['-czf', tarball, '-C', parent, entry], { encoding: 'utf8' });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
 }
 
 function makeFakeCurl(binDir) {
@@ -54,54 +48,12 @@ case "$url" in
   */releases/latest)
     printf '{"tag_name":"v2.0.0"}'
     ;;
-  */commits/v2.0.0)
-    printf '{"sha":"%s"}' "$FAKE_COMMIT"
-    ;;
-  */tarball/*)
-    if [ -z "$out" ]; then
-      cat "$FAKE_TARBALL"
-    else
-      cp "$FAKE_TARBALL" "$out"
-    fi
-    ;;
   *)
     echo "unexpected fake curl url: $url" >&2
     exit 44
     ;;
 esac
 `, 0o755);
-}
-
-function makeRemoteReleaseTarball(baseDir) {
-  const sourceParent = path.join(baseDir, 'src');
-  const root = path.join(sourceParent, 'repo-root');
-
-  writeFile(path.join(root, 'install.sh'), `#!/usr/bin/env bash
-set -euo pipefail
-if [ "\${1:-}" != "--update-only" ]; then
-  echo "expected --update-only" >&2
-  exit 45
-fi
-printf 'updated from %s with args %s\n' "\${ZH_CN_SOURCE_REPO:-}" "$*" >> "$TEST_UPDATE_MARKER"
-mkdir -p "$CLAUDE_PLUGIN_ROOT"
-printf '{"version":"2.0.0"}\n' > "$CLAUDE_PLUGIN_ROOT/manifest.json"
-printf '%s\n' "\${ZH_CN_SOURCE_REPO:-}" > "$CLAUDE_PLUGIN_ROOT/.source-repo"
-`, 0o755);
-  writeFile(path.join(root, 'install.ps1'), '# fake powershell installer\n');
-  writeFile(path.join(root, 'settings-overlay.json'), '{}\n');
-  writeFile(path.join(root, 'compute-patch-revision.sh'), 'compute_patch_revision() { printf fake-rev; }\n');
-  writeFile(path.join(root, 'verbs', 'zh-CN.json'), '{}\n');
-  writeFile(path.join(root, 'tips', 'zh-CN.json'), '{}\n');
-  writeFile(path.join(root, 'plugin', 'manifest.json'), '{"version":"2.0.0"}\n');
-  writeFile(path.join(root, 'plugin', 'patch-cli.sh'), '#!/usr/bin/env bash\necho 0\n', 0o755);
-  writeFile(path.join(root, 'plugin', 'patch-cli.js'), 'console.log("fake patch")\n');
-  writeFile(path.join(root, 'plugin', 'cli-translations.json'), '{}\n');
-  writeFile(path.join(root, 'plugin', 'bun-binary-io.js'), 'process.exit(0)\n');
-  writeFile(path.join(root, 'plugin', 'compute-patch-revision.sh'), 'compute_patch_revision() { printf fake-rev; }\n');
-
-  const tarball = path.join(baseDir, 'release.tar.gz');
-  packDirectory(tarball, sourceParent, 'repo-root');
-  return tarball;
 }
 
 function makePluginRoot(baseDir, sourceRepo) {
@@ -113,7 +65,7 @@ function makePluginRoot(baseDir, sourceRepo) {
   return pluginRoot;
 }
 
-function makeEnv(baseDir, pluginRoot, tarball) {
+function makeEnv(baseDir, pluginRoot) {
   const fakeBin = path.join(baseDir, 'bin');
   fs.mkdirSync(fakeBin, { recursive: true });
   makeFakeCurl(fakeBin);
@@ -131,10 +83,7 @@ function makeEnv(baseDir, pluginRoot, tarball) {
     CLAUDE_PLUGIN_ROOT: pluginRoot,
     ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: '0',
     ZH_CN_LAUNCHER_BIN_DIR: path.join(baseDir, 'missing-launcher-bin'),
-    FAKE_COMMIT: fakeCommit,
-    FAKE_TARBALL: tarball,
     FAKE_CURL_LOG: path.join(baseDir, 'curl.log'),
-    TEST_UPDATE_MARKER: path.join(baseDir, 'update.marker'),
   };
 }
 
@@ -147,37 +96,30 @@ function runSessionStart(env) {
   });
 }
 
-test('SessionStart auto-updates when .source-repo is a GitHub repo slug', () => {
+test('SessionStart announces a remote release without replacing a standalone install', () => {
   const baseDir = tempDir('slug');
   const pluginRoot = makePluginRoot(baseDir, 'local/fake-repo');
-  const tarball = makeRemoteReleaseTarball(baseDir);
-  const env = makeEnv(baseDir, pluginRoot, tarball);
+  const env = makeEnv(baseDir, pluginRoot);
 
   const result = runSessionStart(env);
   assert.equal(result.status, 0, result.stderr || result.stdout);
 
   const curlLog = fs.readFileSync(env.FAKE_CURL_LOG, 'utf8');
   assert.match(curlLog, /api\.github\.com\/repos\/local\/fake-repo\/releases\/latest/);
-  assert.match(curlLog, /api\.github\.com\/repos\/local\/fake-repo\/commits\/v2\.0\.0/);
-  assert.match(curlLog, new RegExp(`api\\.github\\.com/repos/local/fake-repo/tarball/${fakeCommit}`));
-
-  const marker = fs.readFileSync(env.TEST_UPDATE_MARKER, 'utf8');
-  assert.match(marker, /updated from local\/fake-repo with args --update-only/);
-  assert.equal(fs.readFileSync(path.join(pluginRoot, 'manifest.json'), 'utf8').trim(), '{"version":"2.0.0"}');
+  assert.doesNotMatch(curlLog, /\/commits\/|\/tarball\//);
+  assert.equal(fs.readFileSync(path.join(pluginRoot, 'manifest.json'), 'utf8').trim(), '{"version":"1.0.0"}');
   assert.equal(fs.readFileSync(path.join(pluginRoot, '.source-repo'), 'utf8').trim(), 'local/fake-repo');
-  assert.match(fs.readFileSync(path.join(pluginRoot, '.last-update-status'), 'utf8'), /^ok v2\.0\.0 /);
-  assert.match(result.stdout, /插件已从 v1\.0\.0 更新到 v2\.0\.0/);
+  assert.match(fs.readFileSync(path.join(pluginRoot, '.last-update-status'), 'utf8'), /^available v2\.0\.0 /);
+  assert.match(result.stdout, /检测到插件 v2\.0\.0.*本次未自动安装/);
 });
 
 test('SessionStart keeps unsupported .source-repo values out of remote auto-update', () => {
   const baseDir = tempDir('unsupported-source');
   const pluginRoot = makePluginRoot(baseDir, 'not a repo slug');
-  const tarball = makeRemoteReleaseTarball(baseDir);
-  const env = makeEnv(baseDir, pluginRoot, tarball);
+  const env = makeEnv(baseDir, pluginRoot);
 
   const result = runSessionStart(env);
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(fs.existsSync(env.FAKE_CURL_LOG), false, 'unsupported .source-repo must not call GitHub');
-  assert.equal(fs.existsSync(env.TEST_UPDATE_MARKER), false, 'unsupported .source-repo must not run update installer');
   assert.equal(fs.readFileSync(path.join(pluginRoot, 'manifest.json'), 'utf8').trim(), '{"version":"1.0.0"}');
 });

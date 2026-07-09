@@ -173,7 +173,7 @@ printf '1'
   return sourceRepo;
 }
 
-test("install smoke skips unverified native binaries instead of pretending CLI Patch succeeded", { skip: unixShellRequired }, () => {
+test("install smoke provisionally self-verifies a future native release instead of hard-skipping it", { skip: unixShellRequired }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-unsupported-"));
   const home = path.join(tmp, "home");
   const fakeBin = path.join(tmp, "bin");
@@ -187,6 +187,7 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
   fs.mkdirSync(fakeBin, { recursive: true });
   fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${unsupportedNativeVersion} (Claude Code)'\n`);
   fs.chmodSync(fakeClaude, 0o755);
+  const sourceHash = crypto.createHash("sha256").update(fs.readFileSync(fakeClaude)).digest("hex");
 
   const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
     cwd: sourceRepo,
@@ -195,6 +196,7 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
       HOME: home,
       CLAUDE_PLUGIN_ROOT: pluginRoot,
       ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_NATIVE_PLATFORM: "darwin-arm64",
       ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
       ZH_CN_PROFILE_FILES: profileFile,
       GIT_TERMINAL_PROMPT: "0",
@@ -204,22 +206,15 @@ test("install smoke skips unverified native binaries instead of pretending CLI P
 
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
+  assert.match(output, /本机自验证/, "future releases should enter the transactional local verification path");
+  assert.match(output, /未纳入已发布支持窗口/, "future releases must not look like published support");
+  assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack");
   assert.match(
-    output,
-    new RegExp(escapeRegex(unsupportedNativeVersion)),
-    "the user-facing message should include the unsupported version"
+    fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
+    new RegExp(
+      `^native\\|${escapeRegex(unsupportedNativeVersion)}\\|[a-f0-9]+\\|[a-f0-9]{16}\\|provisional\\|darwin-arm64\\|${sourceHash}$`
+    )
   );
-  assert.match(output, /暂不支持 CLI Patch/, "the install path should clearly say CLI Patch is unsupported");
-  assert.match(output, /已跳过 CLI Patch/, "the install path should safely skip CLI Patch");
-  assert.match(
-    output,
-    new RegExp(escapeRegex(`${nativeSupport.floor} - ${nativeSupport.ceiling}`)),
-    "the message should show the verified native window"
-  );
-  assert.match(output, /不含 2\.1\.115.*2\.1\.125/, "the message should mention unsupported native gaps");
-  assert.match(output, /Claude Code 2\.1\.112/, "the message should point users to the stable pinned version");
-  assert.equal(fs.existsSync(invokedFile), false, "unsupported native should not call patch/extract/repack");
-  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "unsupported native should not write success marker");
 });
 
 test("install smoke can provisionally self-verify newer same-minor native binaries", { skip: unixShellRequired }, () => {
@@ -312,7 +307,7 @@ test("install smoke restores native backup when runtime self-check fails", { ski
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "failed self-check must not write success marker");
 });
 
-test("install smoke does not provisionally self-verify excluded in-window native binaries", { skip: unixShellRequired }, () => {
+test("install smoke provisionally self-verifies excluded in-window native binaries", { skip: unixShellRequired }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-excluded-"));
   const home = path.join(tmp, "home");
   const fakeBin = path.join(tmp, "bin");
@@ -326,6 +321,10 @@ test("install smoke does not provisionally self-verify excluded in-window native
   fs.mkdirSync(fakeBin, { recursive: true });
   fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${excludedNativeVersion} (Claude Code)'\n`);
   fs.chmodSync(fakeClaude, 0o755);
+  const sourceHash = crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(fakeClaude))
+    .digest("hex");
 
   const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
     cwd: sourceRepo,
@@ -344,10 +343,16 @@ test("install smoke does not provisionally self-verify excluded in-window native
 
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /暂不支持 CLI Patch/, "excluded native versions should still be skipped");
-  assert.doesNotMatch(output, /正在运行 --version|本机自验证通过|未纳入已发布支持窗口/, "excluded native versions must not enter provisional patching");
-  assert.equal(fs.existsSync(invokedFile), false, "excluded native should not extract or repack");
-  assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "excluded native should not write marker");
+  assert.match(output, /本机自验证/, "unverified same-minor gaps should enter transactional local verification");
+  assert.match(output, /未纳入已发布支持窗口/, "provisional gaps must not look like published support");
+  assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "excluded same-minor native should extract, patch, and repack");
+  assert.match(
+    fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
+    new RegExp(
+      `^native\\|${escapeRegex(excludedNativeVersion)}\\|[a-f0-9]+\\|[a-f0-9]{16}\\|provisional\\|darwin-arm64\\|${sourceHash}$`
+    ),
+    "excluded same-minor native should write an explicit provisional marker"
+  );
 });
 
 test("Windows PowerShell old-npm install smoke is wired into CI", () => {
@@ -396,6 +401,7 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /windowsNativeExperimental/);
   assert.match(script, /is-supported-windows-native-version/);
   assert.match(script, /can-try-provisional-windows-native-version/);
+  assert.match(script, /compare-version \$Version \(\[string\]\$entry\.floor\)/);
   assert.match(script, /\$SupportMatrixUrl = "https:\/\/github\.com\/taekchef\/claude-code-zh-cn\/blob\/main\/docs\/support-matrix\.md"/);
   assert.match(script, /function write-support-window-link \{/);
   assert.match(completion, /write-support-window-link/);
@@ -408,6 +414,14 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
   assert.match(script, /--version/);
+  const repackIndex = nativePatch.indexOf("node $helper repack $BinaryPath $tmpJs");
+  const runtimeCheckIndex = nativePatch.indexOf("$verifiedVersion = get-native-version-from-execution $BinaryPath");
+  const modeMessageIndex = nativePatch.indexOf('if ($patchMode -eq "provisional")', repackIndex);
+  assert.ok(repackIndex >= 0 && runtimeCheckIndex > repackIndex, "Windows native repack must be followed by a runtime check");
+  assert.ok(
+    runtimeCheckIndex < modeMessageIndex,
+    "verified and provisional Windows native patches must both pass the real --version check"
+  );
   assert.match(script, /DISABLE_AUTOUPDATER/);
   assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
   assert.match(script, /\.patched-version/);

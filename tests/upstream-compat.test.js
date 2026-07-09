@@ -44,6 +44,15 @@ function writePr10StyleTranslations() {
   return target;
 }
 
+function writeTranslationsWithout(englishFragment) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-missing-translation-"));
+  const target = path.join(dir, "cli-translations.json");
+  const entries = JSON.parse(fs.readFileSync(translationsFile, "utf8"))
+    .filter((entry) => !entry.en.includes(englishFragment));
+  fs.writeFileSync(target, `${JSON.stringify(entries, null, 2)}\n`);
+  return target;
+}
+
 test("verify-upstream-compat supports --baseline override without touching config", () => {
   const result = runCompat(["--baseline", "1.0.0", "--skip-latest", "--json"]);
 
@@ -57,24 +66,81 @@ test("verify-upstream-compat supports --baseline override without touching confi
   assert.equal(payload.summary.fail, 0);
 });
 
-test("verify-upstream-compat appends latest version and reports residue kind/id", () => {
+test("verify-upstream-compat appends latest version and reports display residue as partial coverage", () => {
   const result = runCompat(["--baseline", "1.0.0,1.0.1", "--latest-version", "1.0.2", "--json"]);
 
-  assert.equal(result.status, 1, "fixture 1.0.1 should fail because it leaves a sentinel residue");
+  assert.equal(result.status, 0, result.stderr || result.stdout);
   const payload = JSON.parse(result.stdout);
   assert.deepEqual(
     payload.results.map((entry) => entry.version),
     ["1.0.0", "1.0.1", "1.0.2"]
   );
 
-  const failing = payload.results.find((entry) => entry.version === "1.0.1");
-  assert.ok(failing, "expected 1.0.1 to be present in matrix output");
-  assert.equal(failing.status, "fail");
-  assert.deepEqual(failing.residue, [
+  const partial = payload.results.find((entry) => entry.version === "1.0.1");
+  assert.ok(partial, "expected 1.0.1 to be present in matrix output");
+  assert.equal(partial.status, "pass");
+  assert.equal(partial.runtimeStatus, "pass");
+  assert.equal(partial.coverage.status, "partial");
+  assert.deepEqual(partial.residue, [
     {
       kind: "sentinel",
       id: "future_probe",
       match: "Future untranslated probe",
+    },
+  ]);
+  assert.deepEqual(partial.coverage.issues, [
+    {
+      source: "residue",
+      kind: "sentinel",
+      id: "future_probe",
+      match: "Future untranslated probe",
+    },
+  ]);
+});
+
+test("verify-upstream-compat shows partial coverage in human-readable output", () => {
+  const result = runCompat(["--baseline", "1.0.1", "--skip-latest"]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /1\.0\.1\tpass[\s\S]*coverage=partial\(1\)/);
+  assert.match(result.stdout, /summary[\s\S]*coveragePartial=1/);
+});
+
+test("verify-upstream-compat reports a visible template residue as partial coverage", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-template-residue-"));
+  const fixtures = path.join(tmp, "packages");
+  const packageDir = path.join(fixtures, "1.0.1-template-residue", "package");
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "cli.js"),
+    "#!/usr/bin/env node\nconsole.log(`Dynamic duration for ${42}`);\n"
+  );
+
+  const configPath = path.join(tmp, "config.json");
+  const config = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  config.baseline = { versions: ["1.0.1-template-residue"], includeLatestFromNpm: false };
+  config.checks.templateResidues = [
+    { id: "dynamic_duration", pattern: "Dynamic duration for" },
+  ];
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixtures, "--skip-latest", "--json"],
+    { cwd: repoRoot, encoding: "utf8", env: process.env }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const [entry] = JSON.parse(result.stdout).results;
+  assert.equal(entry.status, "pass");
+  assert.equal(entry.runtimeStatus, "pass");
+  assert.equal(entry.coverage.status, "partial");
+  assert.deepEqual(entry.coverage.issues, [
+    {
+      source: "residue",
+      kind: "template",
+      id: "dynamic_duration",
+      match: "Dynamic duration for",
     },
   ]);
 });
@@ -90,6 +156,42 @@ test("verify-upstream-compat passes the 2.1.112 high-risk upstream text sample",
   assert.equal(risk.status, "pass");
   assert.deepEqual(risk.residue, []);
   assert.deepEqual(risk.missingRequired, []);
+});
+
+test("verify-upstream-compat reports a missing translate rule as partial coverage", () => {
+  const translations = writeTranslationsWithout("Stop ultrareview");
+  const result = runCompat([
+    "--baseline",
+    "2.1.112-risk",
+    "--skip-latest",
+    "--translations",
+    translations,
+    "--json",
+  ]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const [risk] = JSON.parse(result.stdout).results;
+
+  assert.equal(risk.status, "pass");
+  assert.equal(risk.runtimeStatus, "pass");
+  assert.equal(risk.coverage.status, "partial");
+  assert.deepEqual(risk.missingRequired, [
+    {
+      kind: "upstream-text",
+      id: "stop_ultrareview_label",
+      rule: "translate",
+      match: 'label:"停止 ultrareview"',
+    },
+  ]);
+  assert.deepEqual(risk.coverage.issues, [
+    {
+      source: "upstream-text",
+      kind: "upstream-text",
+      id: "stop_ultrareview_label",
+      rule: "translate",
+      match: 'label:"停止 ultrareview"',
+    },
+  ]);
 });
 
 test("verify-upstream-compat catches PR #10-style high-risk text regressions", () => {
@@ -503,7 +605,7 @@ test("verify-upstream-compat verifies Windows native-wrapper packages", () => {
   assert.equal(native.nativeVerification.platform, "win32-x64");
 });
 
-test("verify-upstream-compat fails when audited display output leaves user-visible English", () => {
+test("verify-upstream-compat keeps runtime green and reports partial coverage for user-visible English", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-audit-config-"));
   const configPath = path.join(tmp, "config.json");
   const fixtureConfigJson = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
@@ -533,13 +635,19 @@ test("verify-upstream-compat fails when audited display output leaves user-visib
     }
   );
 
-  assert.equal(result.status, 1, "display audit should block release-quality verification");
+  assert.equal(result.status, 0, result.stderr || result.stdout);
   const payload = JSON.parse(result.stdout);
   const [entry] = payload.results;
 
   assert.equal(entry.version, "1.0.3-display");
-  assert.equal(entry.status, "fail");
-  assert.equal(entry.displayAudit.status, "fail");
+  assert.equal(entry.status, "pass");
+  assert.equal(entry.runtimeStatus, "pass");
+  assert.equal(entry.coverage.status, "partial");
+  assert.equal(payload.summary.pass, 1);
+  assert.equal(payload.summary.fail, 0);
+  assert.equal(payload.summary.coveragePartial, 1);
+  assert.equal(entry.displayAudit.status, "partial");
+  assert.equal(entry.displayAudit.warningCount, 3);
   assert.deepEqual(entry.displayAudit.issues, [
     {
       kind: "display",
@@ -560,6 +668,75 @@ test("verify-upstream-compat fails when audited display output leaves user-visib
       match: "--mixed                                           Load MCP 服务器 from JSON files or strings",
     },
   ]);
+});
+
+test("verify-upstream-compat hard-fails when syntax prevents a required help command from running", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-command-failure-"));
+  const fixtures = path.join(tmp, "packages");
+  const packageDir = path.join(fixtures, "1.0.4-help-failure", "package");
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "cli.js"),
+    "#!/usr/bin/env node\nif (process.argv.includes('--help')) {\n"
+  );
+
+  const configPath = path.join(tmp, "config.json");
+  const config = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  config.baseline = { versions: ["1.0.4-help-failure"], includeLatestFromNpm: false };
+  config.checks.displayAudit = {
+    commands: [{ id: "top_help", args: ["--help"] }],
+    maxUntranslatedLines: 0,
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixtures, "--skip-latest", "--json"],
+    { cwd: repoRoot, encoding: "utf8", env: process.env }
+  );
+
+  assert.equal(result.status, 1);
+  const [entry] = JSON.parse(result.stdout).results;
+  assert.equal(entry.status, "fail");
+  assert.equal(entry.runtimeStatus, "fail");
+  assert.equal(entry.coverage.status, "complete");
+  assert.equal(entry.displayAudit.status, "fail");
+  assert.equal(entry.displayAudit.issues[0].kind, "display-command");
+});
+
+test("verify-upstream-compat hard-fails when a must-preserve display term disappears", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-display-preserve-failure-"));
+  const fixtures = path.join(tmp, "packages");
+  const packageDir = path.join(fixtures, "1.0.4-preserve-failure", "package");
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "cli.js"),
+    "#!/usr/bin/env node\nconsole.log('用法：claude [选项]');\nprocess.exit(0);\n"
+  );
+
+  const configPath = path.join(tmp, "config.json");
+  const config = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  config.baseline = { versions: ["1.0.4-preserve-failure"], includeLatestFromNpm: false };
+  config.checks.displayAudit = {
+    commands: [{ id: "top_help", args: ["--help"] }],
+    mustPreserve: [{ id: "top_model_flag", command: "top_help", pattern: "--model" }],
+    maxUntranslatedLines: 0,
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--fixtures-dir", fixtures, "--skip-latest", "--json"],
+    { cwd: repoRoot, encoding: "utf8", env: process.env }
+  );
+
+  assert.equal(result.status, 1);
+  const [entry] = JSON.parse(result.stdout).results;
+  assert.equal(entry.status, "fail");
+  assert.equal(entry.runtimeStatus, "fail");
+  assert.equal(entry.coverage.status, "complete");
+  assert.equal(entry.displayAudit.status, "fail");
+  assert.equal(entry.displayAudit.issues[0].kind, "display-preserve");
 });
 
 test("verify-upstream-compat fails when display audit silently skips expected surfaces", () => {
@@ -611,6 +788,8 @@ test("verify-upstream-compat fails when display audit silently skips expected su
   const [entry] = payload.results;
 
   assert.equal(entry.status, "fail");
+  assert.equal(entry.runtimeStatus, "fail");
+  assert.equal(entry.coverage.status, "complete");
   assert.equal(entry.displayAudit.status, "fail");
   assert.equal(entry.displayAudit.commandCount, 1);
   assert.match(entry.displayAudit.issues[0].match, /expected at least 2 audited surfaces, got 1/);
@@ -707,7 +886,7 @@ test("production upstream compat config guards issue #80 visible native residues
   );
 });
 
-test("verify-upstream-compat catches unpatched issue #70 native UI source residues", () => {
+test("verify-upstream-compat reports unpatched issue #70 native UI source residues as partial coverage", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-ui-guard-config-"));
   const fixtures = path.join(tmp, "packages");
   const packageDir = path.join(fixtures, "9.9.70-native-ui", "package");
@@ -747,12 +926,14 @@ test("verify-upstream-compat catches unpatched issue #70 native UI source residu
     }
   );
 
-  assert.equal(result.status, 1, "native UI source residues should block release-quality verification");
+  assert.equal(result.status, 0, result.stderr || result.stdout);
   const payload = JSON.parse(result.stdout);
   const [entry] = payload.results;
   const residueIds = entry.residue.map((item) => item.id);
 
-  assert.equal(entry.status, "fail");
+  assert.equal(entry.status, "pass");
+  assert.equal(entry.runtimeStatus, "pass");
+  assert.equal(entry.coverage.status, "partial");
   assert.deepEqual(residueIds, [
     "native_permission_title_unsandboxed_residue",
   ]);

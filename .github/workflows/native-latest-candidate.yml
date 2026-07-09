@@ -217,6 +217,12 @@ jobs:
             exit "$PROMOTE_STATUS"
           fi
           printf '%s\n' "$PROMOTE_OUTPUT"
+          {
+            echo "## Native candidate promotion evidence"
+            printf '%s\n' "$PROMOTE_OUTPUT"
+            echo
+            echo "Runtime compatibility and display-copy coverage are recorded separately; coverage partial is a warning, not a claim of complete Chinese coverage."
+          } >> "$GITHUB_STEP_SUMMARY"
           node scripts/generate-plugin-support-window.js --write
           node scripts/generate-support-matrix.js
           node scripts/sync-readme-support-window.js --write
@@ -225,51 +231,43 @@ jobs:
           node scripts/sync-readme-support-window.js --check
           node scripts/sync-doc-derived-counts.js --check
 
-      - name: Detect native closeout changes
-        id: closeout_changes
+      - name: Detect native support changes
+        id: support_changes
         if: success()
         shell: bash
         run: |
           if git diff --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             {
-              echo "## Native latest closeout"
+              echo "## Native latest support evidence"
               echo "No source-of-truth or generated support changes; latest is already covered."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Prepare plugin release metadata
-        id: release
-        if: success() && steps.closeout_changes.outputs.changed == 'true'
-        shell: bash
-        run: |
-          node scripts/prepare-native-release-closeout.js --native-version "${{ steps.version.outputs.version }}" --date "$(date -u +%F)"
-          PLUGIN_VERSION="$(node -p 'require("./plugin/manifest.json").version')"
-          echo "plugin_version=${PLUGIN_VERSION}" >> "$GITHUB_OUTPUT"
-          node --test tests/native-latest-workflow.test.js tests/native-release-closeout.test.js
-
-      - name: Create native candidate closeout PR
-        if: success() && steps.closeout_changes.outputs.changed == 'true'
+      - name: Create native support evidence PR
+        if: success() && steps.support_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: codex/native-latest-${{ steps.version.outputs.version }}
           draft: true
           delete-branch: true
-          commit-message: "chore: promote macOS native ${{ steps.version.outputs.version }} and prepare v${{ steps.release.outputs.plugin_version }}"
-          title: "chore: promote macOS native ${{ steps.version.outputs.version }} and prepare v${{ steps.release.outputs.plugin_version }}"
+          commit-message: "chore: verify macOS native ${{ steps.version.outputs.version }} compatibility"
+          title: "chore: verify macOS native ${{ steps.version.outputs.version }} compatibility"
           body: |
-            Automated closeout for a verified macOS arm64 native Claude Code candidate.
+            Automated support-evidence update for a runtime-compatible macOS arm64 native Claude Code candidate.
 
-            This PR is generated only after native extract / patch / repack / --version and display audit pass. It updates the source-of-truth support config plus generated support surfaces, bumps plugin/manifest.json and CHANGELOG.md to v${{ steps.release.outputs.plugin_version }}, and keeps unverified latest versions outside the public support claim.
+            运行硬边界已通过：native extract / patch / repack / codesign / --version，以及要求执行的帮助命令和稳定术语检查均已通过。展示文案覆盖可能是 `complete` 或 `partial`；具体状态和警告数量以本 PR 的 support verification、工作流摘要及候选 JSON 为准，`partial` 不代表完整中文覆盖。
+
+            This PR updates only the source-of-truth support config and generated support surfaces. It does not bump the plugin version or CHANGELOG: same-line Claude Code updates are handled by runtime self-verification, while unknown copy stays in English.
 
             Candidate JSON is attached to the workflow run as `native-latest-candidate-${{ steps.version.outputs.version }}`.
 
             Text diff report artifact: `native-latest-text-diff-${{ steps.version.outputs.version }}`.
 
-            After this PR merges, publish the prepared plugin version with tag `v${{ steps.release.outputs.plugin_version }}` and a GitHub Release, then run `bash scripts/preflight.sh --release-state`.
+            No plugin release is required after this PR merges. A plugin release is reserved for actual payload, translation, or runtime changes.
 
   verify-windows:
     name: Verify Windows native candidate
@@ -447,6 +445,28 @@ jobs:
           $ArtifactDir = Join-Path $env:RUNNER_TEMP "windows-native-support-promotion-$Version"
           New-Item -ItemType Directory -Force -Path $ArtifactDir | Out-Null
           $PromotionLog = Join-Path $ArtifactDir "promotion.log"
+          $Candidate = Get-Content "${{ steps.verify.outputs.json_path }}" -Raw | ConvertFrom-Json
+          $CandidateResult = $Candidate.results[0]
+          $RuntimeStatus = if ($CandidateResult.runtimeStatus) { $CandidateResult.runtimeStatus } else { $CandidateResult.status }
+          $CoverageStatus = if ($CandidateResult.coverage.status) {
+            $CandidateResult.coverage.status
+          } elseif ($CandidateResult.displayAudit.status -eq "partial") {
+            "partial"
+          } else {
+            "complete"
+          }
+          $CoverageWarningCount = if ($null -ne $CandidateResult.coverage.issueCount) {
+            $CandidateResult.coverage.issueCount
+          } elseif ($null -ne $CandidateResult.displayAudit.warningCount) {
+            $CandidateResult.displayAudit.warningCount
+          } else {
+            0
+          }
+          $CoverageScope = if ($CoverageStatus -eq "partial") {
+            "PARTIAL does not claim complete Chinese coverage."
+          } else {
+            "Coverage evidence is complete for the audited surfaces."
+          }
 
           function Invoke-LoggedNode {
             param([string[]] $NodeArgs)
@@ -473,6 +493,9 @@ jobs:
             "# Windows native support promotion preview",
             "",
             "- Candidate: $Version",
+            "- Runtime status: $RuntimeStatus",
+            "- Display coverage: $CoverageStatus ($CoverageWarningCount warnings)",
+            "- Coverage scope: $CoverageScope",
             "- Changed support surfaces: $Changed",
             '- Guard: `node scripts/check-support-boundary.js` passed',
             '- Follow-up: review `windows-native-support-promotion.diff` before opening a support promotion PR.'

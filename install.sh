@@ -32,6 +32,10 @@ CLI_PATCH_STATUS_SUMMARY="已跳过（未执行 CLI Patch）"
 CLI_PATCH_STATUS_OK=false
 LAUNCHER_STATUS_SUMMARY="已跳过（未执行 launcher 安装）"
 LAUNCHER_STATUS_OK=false
+OFFICIAL_PLUGIN_ID="claude-code-zh-cn@claude-code-zh-cn"
+OFFICIAL_MARKETPLACE_NAME="claude-code-zh-cn"
+OFFICIAL_FALLBACK_MARKER="$PLUGIN_DST/.official-fallback-disabled"
+PLUGIN_RUNTIME_MODE="standalone"
 
 print_updater_boundary_note() {
     echo -e "  ${YELLOW}!${NC} Claude Code 本体自动升级 → DISABLE_AUTOUPDATER 不归本插件兜底；请以 claude doctor 的 Updates 段为准"
@@ -89,7 +93,17 @@ print_completion() {
     else
         echo -e "  ${YELLOW}!${NC} npm 启动前自修复 → ${LAUNCHER_STATUS_SUMMARY}"
     fi
-    echo -e "  ${GREEN}✓${NC} 插件自动更新 → 只跟随本插件已发布 Release，同步中文插件文件"
+    case "$PLUGIN_RUNTIME_MODE" in
+        standalone)
+            echo -e "  ${YELLOW}!${NC} 独立备用更新 → 限时检查 Release，会话结束后按提示手动更新"
+            ;;
+        disabled)
+            echo -e "  ${YELLOW}!${NC} 正式插件已停用 → 保留用户选择，不加载备用 Hook"
+            ;;
+        *)
+            echo -e "  ${GREEN}✓${NC} 正式插件更新 → 由 Claude plugin manager 管理"
+            ;;
+    esac
     print_updater_boundary_note
 
     if [ "$CLI_PATCH_STATUS_OK" = true ]; then
@@ -102,7 +116,7 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 按已验证版本窗口执行；新同版本线会在安装时本机自验证"
+        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch：已验证版本有公开证据；更高可识别版本会在安装时本机自验证"
     fi
 
     echo ""
@@ -156,7 +170,7 @@ check_dependencies() {
             fi
         elif can_try_provisional_native_version "$native_version"; then
             if [ "$dep_status" != "ok" ]; then
-                echo -e "${YELLOW}检测到新原生二进制版本 ${native_version:-unknown}，同版本线可在安装时本机自验证；需要 node-lief${NC}"
+                echo -e "${YELLOW}检测到新原生二进制版本 ${native_version:-unknown}，可在安装时本机自验证；需要 node-lief${NC}"
                 echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
             else
                 echo -e "${YELLOW}检测到新原生二进制版本 ${native_version}，将尝试本机自验证；通过才启用 CLI Patch${NC}"
@@ -290,17 +304,11 @@ function compare(a, b) {
   return 0;
 }
 
-function sameMinor(a, b) {
-  const left = parse(a);
-  const right = parse(b);
-  return left[0] === right[0] && left[1] === right[1];
-}
-
 const keys = ["macosNativeExperimental"];
 for (const key of keys) {
   const entry = data[key];
-  if (!entry || entry.platform !== platform || !entry.ceiling) continue;
-  if (sameMinor(version, entry.ceiling) && compare(version, entry.ceiling) > 0) {
+  if (!entry || entry.platform !== platform || !entry.floor) continue;
+  if (compare(version, entry.floor) >= 0) {
     process.exit(0);
   }
 }
@@ -394,6 +402,371 @@ base.spinnerVerbs = verbs;
 base.spinnerTipsOverride = { excludeDefault: true, tips: (tips.tips || []).map(t => t.text) };
 process.stdout.write(JSON.stringify(base));
 "
+}
+
+official_marketplace_source() {
+    case "${SOURCE_REPO_OVERRIDE:-}" in
+        http://*|https://*|git@*|ssh://*|*/*)
+            printf '%s' "$SOURCE_REPO_OVERRIDE"
+            ;;
+        *)
+            printf '%s' "$SCRIPT_DIR"
+            ;;
+    esac
+}
+
+verify_official_plugin_registration() {
+    local claude_cli="$1"
+    local marketplace_json plugin_json expected_version
+
+    marketplace_json="$("$claude_cli" plugin marketplace list --json 2>/dev/null)" || return 1
+    plugin_json="$("$claude_cli" plugin list --json 2>/dev/null)" || return 1
+    expected_version="$(official_plugin_expected_version)"
+
+    ZH_CN_MARKETPLACE_JSON="$marketplace_json" \
+    ZH_CN_PLUGIN_JSON="$plugin_json" \
+    ZH_CN_MARKETPLACE_NAME="$OFFICIAL_MARKETPLACE_NAME" \
+    ZH_CN_PLUGIN_ID="$OFFICIAL_PLUGIN_ID" \
+    ZH_CN_PLUGIN_EXPECTED_VERSION="$expected_version" \
+    node <<'NODE' >/dev/null 2>&1
+function parse(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+const marketplaces = parse(process.env.ZH_CN_MARKETPLACE_JSON);
+const plugins = parse(process.env.ZH_CN_PLUGIN_JSON);
+const expectedVersion = process.env.ZH_CN_PLUGIN_EXPECTED_VERSION || "";
+const marketplaceOk = marketplaces.some((entry) => entry && entry.name === process.env.ZH_CN_MARKETPLACE_NAME);
+const pluginOk = plugins.some((entry) =>
+  entry &&
+  entry.id === process.env.ZH_CN_PLUGIN_ID &&
+  entry.scope === "user" &&
+  entry.enabled === true &&
+  (!expectedVersion || entry.version === expectedVersion)
+);
+
+process.exit(marketplaceOk && pluginOk ? 0 : 1);
+NODE
+}
+
+official_plugin_expected_version() {
+    local manifest="$PLUGIN_SRC/.claude-plugin/plugin.json"
+    [ -f "$manifest" ] || return 0
+    node -e 'try{const value=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(String(value.version||""))}catch{}' "$manifest" 2>/dev/null || true
+}
+
+official_user_plugin_installed() {
+    local claude_cli="$1"
+    local plugin_json
+
+    plugin_json="$("$claude_cli" plugin list --json 2>/dev/null)" || return 1
+    ZH_CN_PLUGIN_JSON="$plugin_json" ZH_CN_PLUGIN_ID="$OFFICIAL_PLUGIN_ID" node <<'NODE' >/dev/null 2>&1
+try {
+  const parsed = JSON.parse(process.env.ZH_CN_PLUGIN_JSON || "[]");
+  const plugins = Array.isArray(parsed) ? parsed : [];
+  process.exit(plugins.some((entry) => entry && entry.id === process.env.ZH_CN_PLUGIN_ID && entry.scope === "user") ? 0 : 1);
+} catch {
+  process.exit(1);
+}
+NODE
+}
+
+official_plugin_settings_state() {
+    [ -f "$SETTINGS_FILE" ] || { printf 'absent'; return; }
+
+    ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_PLUGIN_ID="$OFFICIAL_PLUGIN_ID" node <<'NODE' 2>/dev/null || printf 'absent'
+const fs = require("fs");
+try {
+  const raw = fs.readFileSync(process.env.ZH_CN_SETTINGS, "utf8").replace(/^\uFEFF/, "");
+  const settings = raw.trim() ? JSON.parse(raw) : {};
+  const plugins = settings && settings.enabledPlugins;
+  if (!plugins || !Object.prototype.hasOwnProperty.call(plugins, process.env.ZH_CN_PLUGIN_ID)) {
+    process.stdout.write("absent");
+  } else {
+    process.stdout.write(plugins[process.env.ZH_CN_PLUGIN_ID] === false ? "disabled" : "enabled");
+  }
+} catch {
+  process.stdout.write("absent");
+}
+NODE
+}
+
+activate_standalone_fallback() {
+    local reason="$1"
+
+    PLUGIN_RUNTIME_MODE="standalone"
+    echo -e "${YELLOW}官方插件 CLI 校验未完成（${reason}）；将停用未确认的官方入口，并启用一套独立备用 Hook。基础中文设置和 CLI Patch 不受影响。${NC}"
+}
+
+mark_official_plugin_verified() {
+    PLUGIN_RUNTIME_MODE="official"
+    rm -f "$OFFICIAL_FALLBACK_MARKER" 2>/dev/null || true
+}
+
+select_safe_plugin_fallback() {
+    local reason="$1"
+    local settings_state
+    settings_state="$(official_plugin_settings_state)"
+
+    case "$settings_state" in
+        enabled)
+            activate_standalone_fallback "$reason"
+            ;;
+        disabled)
+            if [ -f "$OFFICIAL_FALLBACK_MARKER" ]; then
+                activate_standalone_fallback "$reason"
+            else
+                PLUGIN_RUNTIME_MODE="disabled"
+                echo -e "${YELLOW}官方插件已明确停用；保留用户选择，不加载备用 Hook。基础中文设置和 CLI Patch 继续生效。${NC}"
+            fi
+            ;;
+        *)
+            activate_standalone_fallback "$reason"
+            ;;
+    esac
+}
+
+register_official_plugin() {
+    local claude_cli marketplace_source
+    local plugin_was_installed=false
+    local plugin_install_failed=false
+    local initial_settings_state
+
+    claude_cli="$(find_real_claude_binary)"
+    if [ -z "$claude_cli" ]; then
+        select_safe_plugin_fallback "未找到可用的 claude CLI"
+        return 0
+    fi
+
+    initial_settings_state="$(official_plugin_settings_state)"
+    if [ "$initial_settings_state" = "disabled" ] && [ -f "$OFFICIAL_FALLBACK_MARKER" ]; then
+        PLUGIN_RUNTIME_MODE="official-retry"
+        if reconcile_standalone_hooks && [ "$(official_plugin_settings_state)" = "enabled" ]; then
+            initial_settings_state="enabled"
+            echo -e "${YELLOW}上次因校验失败临时停用了官方入口；本次重新尝试正式插件注册。${NC}"
+        else
+            select_safe_plugin_fallback "无法安全切换到正式插件重试状态"
+            return 0
+        fi
+    fi
+    if [ "$initial_settings_state" = "disabled" ]; then
+        if [ -f "$SCRIPT_DIR/.claude-plugin/marketplace.json" ]; then
+            marketplace_source="$(official_marketplace_source)"
+            "$claude_cli" plugin marketplace add --scope user "$marketplace_source" >/dev/null 2>&1 || true
+        fi
+        "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1 || true
+        if official_user_plugin_installed "$claude_cli"; then
+            "$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1 || true
+        fi
+        PLUGIN_RUNTIME_MODE="disabled"
+        echo -e "${YELLOW}官方插件已明确停用；已保留用户选择，不调用 install，也不加载备用 Hook。${NC}"
+        return 0
+    fi
+
+    if [ "$UPDATE_ONLY" = true ] && verify_official_plugin_registration "$claude_cli"; then
+        mark_official_plugin_verified
+        echo -e "${GREEN}官方插件注册已验证（user scope）${NC}"
+        return 0
+    fi
+
+    if [ ! -f "$PLUGIN_SRC/.claude-plugin/plugin.json" ]; then
+        select_safe_plugin_fallback "安装包缺少官方插件清单"
+        return 0
+    fi
+
+    if [ ! -f "$SCRIPT_DIR/.claude-plugin/marketplace.json" ]; then
+        if ! official_user_plugin_installed "$claude_cli"; then
+            select_safe_plugin_fallback "安装包缺少插件市场清单，且未检测到已安装的官方插件"
+            return 0
+        fi
+        "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1 || true
+        "$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1 || true
+        if verify_official_plugin_registration "$claude_cli"; then
+            mark_official_plugin_verified
+            echo -e "${GREEN}官方插件注册已验证（user scope）${NC}"
+        else
+            select_safe_plugin_fallback "官方插件自动更新后校验失败"
+        fi
+        return 0
+    fi
+
+    marketplace_source="$(official_marketplace_source)"
+    if official_user_plugin_installed "$claude_cli"; then
+        plugin_was_installed=true
+    fi
+
+    if ! "$claude_cli" plugin marketplace add --scope user "$marketplace_source" >/dev/null 2>&1; then
+        if verify_official_plugin_registration "$claude_cli"; then
+            mark_official_plugin_verified
+            echo -e "${YELLOW}插件市场刷新失败，继续使用已验证的官方 user 插件。${NC}"
+        else
+            select_safe_plugin_fallback "插件市场注册失败"
+        fi
+        return 0
+    fi
+    "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1 || true
+
+    if "$claude_cli" plugin install "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1; then
+        if [ "$plugin_was_installed" = true ]; then
+            "$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1 || true
+        fi
+    else
+        plugin_install_failed=true
+        "$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1 || true
+    fi
+
+    if verify_official_plugin_registration "$claude_cli"; then
+        mark_official_plugin_verified
+        echo -e "${GREEN}官方插件注册已验证（user scope）${NC}"
+        return 0
+    fi
+
+    if [ "$plugin_install_failed" = true ]; then
+        select_safe_plugin_fallback "官方插件安装失败"
+    else
+        select_safe_plugin_fallback "安装后列表校验失败"
+    fi
+}
+
+reconcile_standalone_hooks() {
+    local fallback_marker_created=false
+
+    if [ "$PLUGIN_RUNTIME_MODE" = "standalone" ] && [ ! -f "$OFFICIAL_FALLBACK_MARKER" ]; then
+        mkdir -p "$PLUGIN_DST" 2>/dev/null || true
+        if printf '%s\n' "standalone" > "$OFFICIAL_FALLBACK_MARKER" 2>/dev/null; then
+            fallback_marker_created=true
+        else
+            PLUGIN_RUNTIME_MODE="official-unverified"
+            echo -e "${YELLOW}无法写入正式插件重试标记；为避免重复 Hook，本次不注入备用 Hook。${NC}"
+        fi
+    fi
+
+    if ! ZH_CN_SETTINGS="$SETTINGS_FILE" \
+    ZH_CN_PLUGIN_DST="$PLUGIN_DST" \
+    ZH_CN_PLUGIN_RUNTIME_MODE="$PLUGIN_RUNTIME_MODE" \
+    ZH_CN_OFFICIAL_PLUGIN_ID="$OFFICIAL_PLUGIN_ID" \
+    node <<'NODE'; then
+const fs = require("fs");
+const path = require("path");
+const settingsFile = process.env.ZH_CN_SETTINGS;
+const pluginRoot = process.env.ZH_CN_PLUGIN_DST;
+const mode = process.env.ZH_CN_PLUGIN_RUNTIME_MODE;
+const officialPluginId = process.env.ZH_CN_OFFICIAL_PLUGIN_ID;
+const standaloneArg = "--standalone";
+
+function isObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStandaloneHook(hook) {
+  if (!isObject(hook)) return false;
+  if (typeof hook.command === "string" && hook.command.includes("ZH_CN_STANDALONE_HOOK=1")) return true;
+  if (hook.command !== "node" || !Array.isArray(hook.args) || !hook.args.includes(standaloneArg)) return false;
+  const script = String(hook.args[0] || "");
+  return script === path.join(pluginRoot, "hooks", "session-start.js") ||
+    script === path.join(pluginRoot, "hooks", "notification.js");
+}
+
+function resolveCommitTarget(file) {
+  try {
+    return fs.realpathSync(file);
+  } catch {}
+  try {
+    const stat = fs.lstatSync(file);
+    if (stat.isSymbolicLink()) {
+      const link = fs.readlinkSync(file);
+      return path.isAbsolute(link) ? link : path.resolve(path.dirname(file), link);
+    }
+  } catch {}
+  return path.resolve(file);
+}
+
+function commitSettings(file, content) {
+  const target = resolveCommitTarget(file);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  let mode = 0o600;
+  try { mode = fs.statSync(target).mode & 0o777; } catch {}
+  const temp = path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.zh-cn-hooks.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`
+  );
+  try {
+    fs.writeFileSync(temp, content, { mode });
+    fs.chmodSync(temp, mode);
+    fs.renameSync(temp, target);
+  } finally {
+    try { fs.unlinkSync(temp); } catch {}
+  }
+}
+
+const raw = fs.readFileSync(settingsFile, "utf8").replace(/^\uFEFF/, "");
+const settings = raw.trim() ? JSON.parse(raw) : {};
+if (!isObject(settings)) process.exit(2);
+
+let changed = false;
+if (isObject(settings.hooks)) {
+  for (const eventName of Object.keys(settings.hooks)) {
+    const entries = settings.hooks[eventName];
+    if (!Array.isArray(entries)) continue;
+    const nextEntries = [];
+    for (const entry of entries) {
+      if (!isObject(entry) || !Array.isArray(entry.hooks)) {
+        nextEntries.push(entry);
+        continue;
+      }
+      const hooks = entry.hooks.filter((hook) => !isStandaloneHook(hook));
+      if (hooks.length !== entry.hooks.length) changed = true;
+      if (hooks.length > 0) nextEntries.push(hooks.length === entry.hooks.length ? entry : { ...entry, hooks });
+    }
+    if (nextEntries.length > 0) settings.hooks[eventName] = nextEntries;
+    else delete settings.hooks[eventName];
+  }
+  if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+}
+
+if (mode === "standalone") {
+  if (!isObject(settings.enabledPlugins)) settings.enabledPlugins = {};
+  settings.enabledPlugins[officialPluginId] = false;
+  if (!isObject(settings.hooks)) settings.hooks = {};
+  const sessionScript = path.join(pluginRoot, "hooks", "session-start.js");
+  const notificationScript = path.join(pluginRoot, "hooks", "notification.js");
+  if (!Array.isArray(settings.hooks.SessionStart)) settings.hooks.SessionStart = [];
+  if (!Array.isArray(settings.hooks.Notification)) settings.hooks.Notification = [];
+  settings.hooks.SessionStart.push({
+    matcher: "startup|resume|clear|compact",
+    hooks: [{ type: "command", command: "node", args: [sessionScript, standaloneArg], async: false }],
+  });
+  settings.hooks.Notification.push({
+    matcher: "",
+    hooks: [{ type: "command", command: "node", args: [notificationScript, standaloneArg], async: false, timeout: 10 }],
+  });
+  changed = true;
+}
+
+if (mode === "official-retry") {
+  if (!isObject(settings.enabledPlugins)) settings.enabledPlugins = {};
+  settings.enabledPlugins[officialPluginId] = true;
+  changed = true;
+}
+
+if (changed) commitSettings(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
+NODE
+        if [ "$fallback_marker_created" = true ]; then
+            rm -f "$OFFICIAL_FALLBACK_MARKER" 2>/dev/null || true
+        fi
+        PLUGIN_RUNTIME_MODE="official-unverified"
+        echo -e "${YELLOW}备用 Hook 安全写入失败；为避免重复 Hook，本次保留官方入口。基础中文设置和 CLI Patch 仍保持可用。${NC}"
+        return 0
+    fi
+
+    if [ "$PLUGIN_RUNTIME_MODE" = "standalone" ]; then
+        echo -e "${YELLOW}已启用独立备用 Hook（不会与官方插件 Hook 同时加载）${NC}"
+    fi
 }
 
 ccswitch_manual_steps() {
@@ -1342,8 +1715,10 @@ main() {
     detect_platform
     check_dependencies
     sync_plugin_payload
+    register_official_plugin
     install_launcher
     merge_settings
+    reconcile_standalone_hooks
     write_install_metadata
 
     if [ "$UPDATE_ONLY" != true ]; then

@@ -114,19 +114,36 @@ function prepareReleaseCloseout({ repoRoot, nativeVersion, date }) {
   }
 
   const manifestPath = path.join(repoRoot, "plugin", "manifest.json");
+  const officialManifestPath = path.join(repoRoot, "plugin", ".claude-plugin", "plugin.json");
   const changelogPath = path.join(repoRoot, "CHANGELOG.md");
   const manifest = readJson(manifestPath);
+  const officialManifest = readJson(officialManifestPath);
   const changelog = fs.readFileSync(changelogPath, "utf8");
+  const currentName = manifest.name;
+  const officialManifestName = officialManifest.name;
   const currentVersion = manifest.version;
+  const officialManifestVersion = officialManifest.version;
   const topVersion = topChangelogVersion(changelog);
 
+  if (officialManifestName !== currentName) {
+    fail(
+      `plugin manifest name ${currentName || "unknown"} does not match official plugin manifest ${officialManifestName || "unknown"}`
+    );
+  }
+  if (officialManifestVersion !== currentVersion) {
+    fail(
+      `plugin manifest version ${currentVersion || "unknown"} does not match official plugin manifest ${officialManifestVersion || "unknown"}`
+    );
+  }
   if (topVersion !== currentVersion) {
     fail(`manifest version ${currentVersion || "unknown"} does not match top CHANGELOG ${topVersion || "unknown"}`);
   }
 
   const pluginVersion = bumpPatch(currentVersion);
   manifest.version = pluginVersion;
+  officialManifest.version = pluginVersion;
   writeJson(manifestPath, manifest);
+  writeJson(officialManifestPath, officialManifest);
   fs.writeFileSync(
     changelogPath,
     prependChangelogEntry(changelog, changelogEntry({ pluginVersion, nativeVersion, date }))

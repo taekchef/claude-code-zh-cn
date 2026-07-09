@@ -8,12 +8,22 @@ const { spawnSync } = require("node:child_process");
 const repoRoot = path.resolve(__dirname, "..");
 const closeoutScript = path.join(repoRoot, "scripts", "prepare-native-release-closeout.js");
 
-function fixtureRepo({ manifestVersion = "2.4.14", changelogVersion = "2.4.14" } = {}) {
+function fixtureRepo({
+  manifestName = "claude-code-zh-cn",
+  officialManifestName = manifestName,
+  manifestVersion = "2.4.14",
+  officialManifestVersion = manifestVersion,
+  changelogVersion = "2.4.14",
+} = {}) {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-release-closeout-"));
-  fs.mkdirSync(path.join(repo, "plugin"), { recursive: true });
+  fs.mkdirSync(path.join(repo, "plugin", ".claude-plugin"), { recursive: true });
   fs.writeFileSync(
     path.join(repo, "plugin", "manifest.json"),
-    `${JSON.stringify({ name: "claude-code-zh-cn", version: manifestVersion }, null, 2)}\n`
+    `${JSON.stringify({ name: manifestName, version: manifestVersion }, null, 2)}\n`
+  );
+  fs.writeFileSync(
+    path.join(repo, "plugin", ".claude-plugin", "plugin.json"),
+    `${JSON.stringify({ name: officialManifestName, version: officialManifestVersion }, null, 2)}\n`
   );
   fs.writeFileSync(
     path.join(repo, "CHANGELOG.md"),
@@ -48,7 +58,7 @@ function runCloseout(repo, args = []) {
   );
 }
 
-test("prepare-native-release-closeout bumps plugin patch version and prepends changelog", () => {
+test("prepare-native-release-closeout bumps both plugin manifests and prepends changelog", () => {
   const repo = fixtureRepo();
 
   const result = runCloseout(repo);
@@ -56,6 +66,10 @@ test("prepare-native-release-closeout bumps plugin patch version and prepends ch
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /prepared plugin release 2\.4\.15/);
   assert.equal(readJson(path.join(repo, "plugin", "manifest.json")).version, "2.4.15");
+  assert.equal(
+    readJson(path.join(repo, "plugin", ".claude-plugin", "plugin.json")).version,
+    "2.4.15"
+  );
 
   const changelog = fs.readFileSync(path.join(repo, "CHANGELOG.md"), "utf8");
   assert.match(changelog, /^## \[2\.4\.15\] - 2026-05-17/m);
@@ -73,6 +87,43 @@ test("prepare-native-release-closeout fails when manifest and changelog drift", 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /manifest version 2\.4\.14 does not match top CHANGELOG 2\.4\.13/);
   assert.equal(readJson(path.join(repo, "plugin", "manifest.json")).version, "2.4.14");
+});
+
+test("prepare-native-release-closeout fails before writing when plugin manifest versions drift", () => {
+  const repo = fixtureRepo({
+    manifestVersion: "2.4.14",
+    officialManifestVersion: "2.4.13",
+  });
+
+  const result = runCloseout(repo);
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /plugin manifest version 2\.4\.14 does not match official plugin manifest 2\.4\.13/
+  );
+  assert.equal(readJson(path.join(repo, "plugin", "manifest.json")).version, "2.4.14");
+  assert.equal(
+    readJson(path.join(repo, "plugin", ".claude-plugin", "plugin.json")).version,
+    "2.4.13"
+  );
+});
+
+test("prepare-native-release-closeout fails before writing when plugin manifest names drift", () => {
+  const repo = fixtureRepo({ officialManifestName: "wrong-plugin" });
+
+  const result = runCloseout(repo);
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /plugin manifest name claude-code-zh-cn does not match official plugin manifest wrong-plugin/
+  );
+  assert.equal(readJson(path.join(repo, "plugin", "manifest.json")).version, "2.4.14");
+  assert.equal(
+    readJson(path.join(repo, "plugin", ".claude-plugin", "plugin.json")).version,
+    "2.4.14"
+  );
 });
 
 test("prepare-native-release-closeout rejects non-semver native versions", () => {

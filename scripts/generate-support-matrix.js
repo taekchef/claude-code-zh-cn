@@ -93,10 +93,10 @@ function renderCoverageForChannel(tier, verification) {
 }
 
 function renderAction(tier, notes) {
-  if (tier === "stable") return "推荐";
-  if (tier === "experimental") return "只用已验证版本";
-  if (/不支持|unsupported|跳过/.test(notes || "")) return "不建议";
-  return "看备注";
+  if (tier === "stable") return "完整证据";
+  if (tier === "experimental") return "新版可本机自检";
+  if (/不支持|unsupported|跳过/.test(notes || "")) return "仅 Layer 1~3";
+  return "按备注降级";
 }
 
 function buildMarkdown(config, compat) {
@@ -173,9 +173,10 @@ function buildMarkdown(config, compat) {
     "",
     "## Tier Definition",
     "",
+    "- 验证等级只表示公开证据和翻译覆盖程度，不是运行门禁。",
     "- `stable`：代表版本段已通过 compat matrix，且 npm 路径具备启动前自修复。",
-    "- `experimental`：已有局部验证或手动路径，但仍不承诺和 npm stable 同等级体验。",
-    "- `unsupported`：当前不建议使用，文档只保留明确边界，不承诺修复路径。",
+    "- `experimental`：已有 native 运行和显示面证据；更高可识别版本也会先本机自检，已知文案继续中文，未知文案保留英文。",
+    "- `unsupported`：该平台或二进制格式不执行原生 Layer 4；正式插件的 Layer 1~3 继续可用。",
     "",
     "## Current Support",
     "",

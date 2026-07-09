@@ -68,7 +68,7 @@ test("native latest candidate workflow resolves the requested or current latest 
   assert.match(workflow, /npm\s+view\s+@anthropic-ai\/claude-code\s+version/);
 });
 
-test("native latest candidate workflow promotes passing candidates into a PR-ready branch", () => {
+test("native latest candidate workflow promotes support evidence without forcing a plugin release", () => {
   const workflow = readWorkflow();
 
   assert.match(
@@ -84,20 +84,38 @@ test("native latest candidate workflow promotes passing candidates into a PR-rea
   assert.match(workflow, /scripts\/generate-support-matrix\.js/);
   assert.match(workflow, /scripts\/sync-readme-support-window\.js\s+--write/);
   assert.match(workflow, /scripts\/sync-doc-derived-counts\.js\s+--write/);
-  assert.match(workflow, /Detect native closeout changes/);
+  assert.match(workflow, /Detect native support changes/);
   assert.match(workflow, /git\s+diff\s+--quiet/);
   assert.match(workflow, /changed=false/);
-  assert.match(workflow, /Prepare plugin release metadata/);
-  assert.match(workflow, /scripts\/prepare-native-release-closeout\.js\s+--native-version/);
-  assert.match(workflow, /plugin\/manifest\.json/);
+  assert.doesNotMatch(workflow, /Prepare plugin release metadata/);
+  assert.doesNotMatch(workflow, /scripts\/prepare-native-release-closeout\.js\s+--native-version/);
+  assert.doesNotMatch(workflow, /plugin_version/);
   assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
   assert.match(workflow, /codex\/native-latest-/);
   assert.match(workflow, /draft:\s*true/);
-  assert.match(workflow, /commit-message:\s*"chore: promote macOS native \$\{\{ steps\.version\.outputs\.version \}\} and prepare v\$\{\{ steps\.release\.outputs\.plugin_version \}\}"/);
-  assert.match(workflow, /steps\.closeout_changes\.outputs\.changed == 'true'/);
-  assert.match(workflow, /CHANGELOG\.md to v\$\{\{ steps\.release\.outputs\.plugin_version \}\}/);
-  assert.match(workflow, /bash scripts\/preflight\.sh --release-state/);
+  assert.match(workflow, /commit-message:\s*"chore: verify macOS native \$\{\{ steps\.version\.outputs\.version \}\} compatibility"/);
+  assert.match(workflow, /steps\.support_changes\.outputs\.changed == 'true'/);
+  assert.match(workflow, /does not bump the plugin version or CHANGELOG/);
+  assert.match(workflow, /No plugin release is required/);
   assert.doesNotMatch(workflow, /\bgh\s+release\b/);
+});
+
+test("native latest candidate workflow records runtime and display coverage evidence without overclaiming", () => {
+  const workflow = readWorkflow();
+
+  assert.match(workflow, /## Native candidate promotion evidence/);
+  assert.match(workflow, /printf '%s\\n' "\$PROMOTE_OUTPUT"[\s\S]*GITHUB_STEP_SUMMARY/);
+  assert.match(workflow, /运行硬边界已通过/);
+  assert.match(workflow, /展示文案覆盖可能是 `complete` 或 `partial`/);
+  assert.match(workflow, /`partial` 不代表完整中文覆盖/);
+  assert.doesNotMatch(workflow, /display audit pass/);
+
+  assert.match(workflow, /ConvertFrom-Json/);
+  assert.match(workflow, /\$RuntimeStatus/);
+  assert.match(workflow, /\$CoverageStatus/);
+  assert.match(workflow, /\$CoverageWarningCount/);
+  assert.match(workflow, /Display coverage: \$CoverageStatus \(\$CoverageWarningCount warnings\)/);
+  assert.match(workflow, /PARTIAL does not claim complete Chinese coverage/);
 });
 
 test("native latest candidate workflow publishes an upstream text diff report", () => {

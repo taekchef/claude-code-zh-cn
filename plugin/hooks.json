@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "'${CLAUDE_PLUGIN_ROOT}/hooks/session-start'",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/session-start.js"],
             "async": false
           }
         ]
@@ -18,7 +19,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "'${CLAUDE_PLUGIN_ROOT}/hooks/notification'",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/notification.js"],
             "async": false,
             "timeout": 10
           }

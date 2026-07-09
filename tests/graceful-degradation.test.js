@@ -8,7 +8,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawn } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const patchCli = path.join(repoRoot, "patch-cli.js");
@@ -81,6 +81,47 @@ test("re-patch restores from same-version backup instead of patching on top of p
   // 幂等：第二次结果与第一次完全一致（基于备份重建，而非叠加）
   assert.equal(fs.readFileSync(ctx.cliFile, "utf8"), firstPass);
   assert.ok(["ok", "noop"].includes(second.status), second.status);
+});
+
+test("concurrent patch processes use unique swap files and leave a complete CLI", async () => {
+  const ctx = makeContext();
+  fs.writeFileSync(ctx.cliFile, englishCli());
+
+  const runConcurrent = (suffix) => new Promise((resolve, reject) => {
+    const statusFile = `${ctx.statusFile}-${suffix}`;
+    const child = spawn("node", [
+      patchCli,
+      ctx.cliFile,
+      translations,
+      "--backup",
+      ctx.backupFile,
+      "--status",
+      statusFile,
+      "--log",
+      ctx.logFile,
+    ]);
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, statusFile }));
+  });
+
+  const results = await Promise.all([runConcurrent("a"), runConcurrent("b")]);
+  for (const result of results) {
+    assert.equal(result.status, 0);
+    assert.ok(["ok", "noop", "partial"].includes(fs.readFileSync(result.statusFile, "utf8").trim()));
+  }
+  const finalCli = fs.readFileSync(ctx.cliFile, "utf8");
+  assert.match(finalCli, /等待权限确认…/);
+  assert.match(finalCli, /^\/\/ Version: 1\.0\.0/m);
+  assert.equal(
+    fs.readdirSync(ctx.dir).some((name) => name.includes(".zh-cn-tmp.") || name.includes(".zh-cn-swap-backup.")),
+    false,
+    "temporary swap files must be cleaned"
+  );
+
+  const source = fs.readFileSync(patchCli, "utf8");
+  assert.match(source, /const uniqueSuffix =/);
+  assert.match(source, /zh-cn-swap-backup\.\$\{uniqueSuffix\}/);
+  assert.doesNotMatch(source, /cliFile \+ "\.zh-cn-tmp"/);
 });
 
 test("version change refreshes backup from the new unpatched upstream", () => {

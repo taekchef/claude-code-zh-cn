@@ -1174,14 +1174,46 @@ if (!validateSyntax(original, s)) {
     process.exit(0);
 }
 
-const tmp = cliFile + ".zh-cn-tmp";
-fs.writeFileSync(tmp, s);
-const origMode = fs.statSync(cliFile).mode;
-fs.chmodSync(tmp, origMode);
-if (process.platform === "win32") {
-    try { fs.unlinkSync(cliFile); } catch (e) {}
+const uniqueSuffix = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+const tmp = `${cliFile}.zh-cn-tmp.${uniqueSuffix}`;
+let commitError = null;
+try {
+    fs.writeFileSync(tmp, s);
+    const origMode = fs.statSync(cliFile).mode;
+    fs.chmodSync(tmp, origMode);
+
+    if (process.platform === "win32") {
+        // NTFS 不能直接 rename 覆盖目标；先把原文件挪到唯一回滚位，再提交新文件。
+        const rollback = `${cliFile}.zh-cn-swap-backup.${uniqueSuffix}`;
+        fs.renameSync(cliFile, rollback);
+        try {
+            fs.renameSync(tmp, cliFile);
+        } catch (error) {
+            try {
+                fs.renameSync(rollback, cliFile);
+            } catch {
+                // rename 回滚仍失败时用 copy 兜底，不能让 cli.js 消失。
+                fs.copyFileSync(rollback, cliFile);
+                try { fs.unlinkSync(rollback); } catch {}
+            }
+            throw error;
+        }
+        try { fs.unlinkSync(rollback); } catch {}
+    } else {
+        // 同目录 rename 在 POSIX 上是原子替换；并发进程最多最后一次写入胜出。
+        fs.renameSync(tmp, cliFile);
+    }
+} catch (error) {
+    commitError = error;
+} finally {
+    try { fs.unlinkSync(tmp); } catch {}
 }
-fs.renameSync(tmp, cliFile);
+if (commitError) {
+    logEvent(`commit-failed ${cliFile}: ${commitError.message}`);
+    writeStatus("error");
+    console.log("0");
+    process.exit(0);
+}
 
 writeStatus(residueStatus(s));
 console.log(count);

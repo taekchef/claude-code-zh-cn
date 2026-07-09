@@ -2,28 +2,60 @@
 # session-start hook for claude-code-zh-cn (Windows PowerShell 版本)
 # 1. 注入中文上下文指令
 # 2. 检测插件 Release 更新并同步安装态
-# 3. 检测 cli.js 版本变更，自动重 patch
+# 3. npm cli.js 可自动重 patch；Windows native 记录安全交接，避免改写正在运行的 exe
 
 $ErrorActionPreference = "SilentlyContinue"
 
+$LegacyPluginRoot = "$env:USERPROFILE\.claude\plugins\claude-code-zh-cn"
 $PluginRoot = if ($env:CLAUDE_PLUGIN_ROOT) {
     $env:CLAUDE_PLUGIN_ROOT
 } else {
-    "$env:USERPROFILE\.claude\plugins\claude-code-zh-cn"
+    $LegacyPluginRoot
 }
-$MarkerFile = Join-Path $PluginRoot ".patched-version"
-$SourceRepoFile = Join-Path $PluginRoot ".source-repo"
-$LastUpdateCheckFile = Join-Path $PluginRoot ".last-update-check"
-$SettingsOverlayCacheFile = Join-Path $PluginRoot ".settings-overlay-cache.json"
+$StateRoot = if ($env:CLAUDE_PLUGIN_DATA) {
+    $env:CLAUDE_PLUGIN_DATA
+} elseif ($env:CLAUDE_PLUGIN_ROOT) {
+    $env:CLAUDE_PLUGIN_ROOT
+} else {
+    $LegacyPluginRoot
+}
+New-Item -Force -ItemType Directory -Path $StateRoot | Out-Null
+
+# Marketplace 插件目录按版本缓存，状态写入持久目录；首次加载迁移旧安装的本机状态。
+if ($env:CLAUDE_PLUGIN_DATA -and $StateRoot -ne $LegacyPluginRoot) {
+    foreach ($stateName in @(".patched-version", ".settings-overlay-cache.json")) {
+        $stateTarget = Join-Path $StateRoot $stateName
+        $legacyState = Join-Path $LegacyPluginRoot $stateName
+        if (-not (Test-Path $stateTarget) -and (Test-Path $legacyState)) {
+            Copy-Item $legacyState $stateTarget -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+$MarkerFile = Join-Path $StateRoot ".patched-version"
+$SourceRepoFile = Join-Path $StateRoot ".source-repo"
+$LastUpdateCheckFile = Join-Path $StateRoot ".last-update-check"
+$SettingsOverlayCacheFile = Join-Path $StateRoot ".settings-overlay-cache.json"
+$NativePatchPendingFile = Join-Path $StateRoot ".native-patch-pending.json"
 $SettingsFile = "$env:USERPROFILE\.claude\settings.json"
 $UpdateCheckInterval = if ($env:ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS) {
     [int]$env:ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS
 } else { 21600 }
+$PluginUpdateTimeoutSeconds = 20
+if ($env:ZH_CN_PLUGIN_UPDATE_TIMEOUT_SECONDS) {
+    [int]$parsedPluginUpdateTimeout = 0
+    if ([int]::TryParse($env:ZH_CN_PLUGIN_UPDATE_TIMEOUT_SECONDS, [ref]$parsedPluginUpdateTimeout) -and
+        $parsedPluginUpdateTimeout -gt 0) {
+        $PluginUpdateTimeoutSeconds = $parsedPluginUpdateTimeout
+    }
+}
 $LauncherBinDir = if ($env:ZH_CN_LAUNCHER_BIN_DIR) {
     $env:ZH_CN_LAUNCHER_BIN_DIR
 } else {
     "$env:USERPROFILE\.claude\bin"
 }
+$OfficialPluginId = "claude-code-zh-cn@claude-code-zh-cn"
+$OfficialMarketplaceName = "claude-code-zh-cn"
 $TmpDir = "$env:TEMP\cczh-hook-$PID"
 
 # ======== helper: write JS to temp file, execute with node, return stdout ========
@@ -65,18 +97,6 @@ process.exit(cmp(parse(process.argv[2]),parse(process.argv[3]))>0?0:1)
     return ($LASTEXITCODE -eq 0)
 }
 
-function Test-ReleasePath {
-    param([string]$Ref, [string]$Path)
-    git cat-file -e "${Ref}:$Path" 2>$null
-    return ($LASTEXITCODE -eq 0)
-}
-
-function Export-ReleasePaths {
-    param([string]$Ref, [string]$Destination, [string[]]$Paths)
-    git archive --format=tar $Ref @Paths 2>$null | tar -xf - -C $Destination 2>$null
-    return ($LASTEXITCODE -eq 0)
-}
-
 function Find-RealClaudeBinary {
     if ($env:ZH_CN_REAL_CLAUDE -and (Get-Command $env:ZH_CN_REAL_CLAUDE -ErrorAction SilentlyContinue)) {
         return $env:ZH_CN_REAL_CLAUDE
@@ -88,6 +108,53 @@ function Find-RealClaudeBinary {
         return (Get-Command claude -ErrorAction SilentlyContinue).Source
     } finally {
         $env:PATH = $oldPath
+    }
+}
+
+function Invoke-CommandWithTimeout {
+    param(
+        [string]$FilePath,
+        [string[]]$Arguments,
+        [int]$TimeoutSeconds
+    )
+
+    # 始终交给当前 PowerShell 子进程执行，因此 native exe、npm 的 .ps1/.cmd shim 都可用。
+    $tokens = @($FilePath) + @($Arguments) | ForEach-Object {
+        "'" + ([string]$_).Replace("'", "''") + "'"
+    }
+    $command = '$ErrorActionPreference="Stop"; try { & ' + ($tokens -join ' ') +
+        '; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }; exit 0 } catch { [Console]::Error.WriteLine($_); exit 1 }'
+    $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    $startInfo.Arguments = "-NoProfile -NonInteractive -EncodedCommand $encodedCommand"
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    try {
+        if (-not $process.Start()) {
+            return [PSCustomObject]@{ Success = $false; TimedOut = $false; Output = "" }
+        }
+        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+            try { $process.Kill() } catch {}
+            try { $process.WaitForExit() } catch {}
+            return [PSCustomObject]@{ Success = $false; TimedOut = $true; Output = "" }
+        }
+        $output = $process.StandardOutput.ReadToEnd() + $process.StandardError.ReadToEnd()
+        return [PSCustomObject]@{
+            Success = ($process.ExitCode -eq 0)
+            TimedOut = $false
+            Output = $output
+        }
+    } catch {
+        return [PSCustomObject]@{ Success = $false; TimedOut = $false; Output = "" }
+    } finally {
+        $process.Dispose()
     }
 }
 
@@ -128,6 +195,89 @@ function Get-InstallInfo($ClaudeBin) {
     node $helperFile detect "$ClaudeBin" 2>$null
 }
 
+function Read-NativeVersion($BinaryPath) {
+    $helperFile = Join-Path $PluginRoot "bun-binary-io.js"
+    if (-not (Test-Path $helperFile)) { return "" }
+    return ((node $helperFile version "$BinaryPath" 2>$null) | Out-String).Trim()
+}
+
+function Read-NativeVersionFromExecution($BinaryPath) {
+    try {
+        $output = ((& $BinaryPath --version 2>$null) | Out-String)
+        $match = [regex]::Match($output, "\d+\.\d+\.\d+")
+        if ($match.Success) { return $match.Value }
+    } catch {}
+    return ""
+}
+
+function Get-NativePlatform {
+    if ($env:ZH_CN_NATIVE_PLATFORM) { return $env:ZH_CN_NATIVE_PLATFORM }
+    return "win32-x64"
+}
+
+function Test-SupportedNativeVersion($Version, $Platform) {
+    $supportFile = Join-Path $PluginRoot "support-window.json"
+    if (-not (Test-Path $supportFile)) {
+        return @("2.1.110", "2.1.111", "2.1.112") -contains $Version
+    }
+
+    $code = @'
+const fs=require("fs");
+const data=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+const version=process.argv[3], platform=process.argv[4]||"";
+const versions=[];
+for(const key of ["macosNativeOfficialInstallerExperimental","macosNativeExperimental","windowsNativeExperimental"]){
+  const entry=data[key];
+  if(!entry) continue;
+  if(platform&&entry.platform&&entry.platform!==platform) continue;
+  versions.push(...(entry.versions||[]));
+}
+process.exit(versions.includes(version)?0:1);
+'@
+    Invoke-JsScript -Code $code -Args @($supportFile, $Version, $Platform) | Out-Null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Test-ProvisionalNativeVersion($Version, $Platform) {
+    $supportFile = Join-Path $PluginRoot "support-window.json"
+    if (-not $Version -or -not $Platform -or -not (Test-Path $supportFile)) { return $false }
+
+    $code = @'
+const fs=require("fs");
+const data=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+const version=process.argv[3], platform=process.argv[4];
+function parse(value){const m=String(value||"").match(/^(\d+)\.(\d+)\.(\d+)$/);return m?m.slice(1).map(Number):null}
+function compare(a,b){for(let i=0;i<3;i++){if(a[i]>b[i])return 1;if(a[i]<b[i])return -1}return 0}
+const candidate=parse(version);
+if(!candidate) process.exit(1);
+for(const key of ["macosNativeOfficialInstallerExperimental","macosNativeExperimental","windowsNativeExperimental"]){
+  const entry=data[key];
+  if(!entry||entry.platform!==platform) continue;
+  const floor=parse(entry.floor);
+  if(!floor) continue;
+  if(compare(candidate,floor)>=0) process.exit(0);
+}
+process.exit(1);
+'@
+    Invoke-JsScript -Code $code -Args @($supportFile, $Version, $Platform) | Out-Null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Get-NativeHash($BinaryPath) {
+    $helperFile = Join-Path $PluginRoot "bun-binary-io.js"
+    if (-not (Test-Path $helperFile)) { return "unknown" }
+    $value = ((node $helperFile hash "$BinaryPath" 2>$null) | Out-String).Trim()
+    if ($value) { return $value }
+    return "unknown"
+}
+
+function Test-NativeMarkerCurrent($Marker, $Version, $Hash, $Revision, $Mode, $Platform) {
+    if ($Mode -eq "provisional") {
+        return $Marker -like "native|${Version}|${Hash}|${Revision}|provisional|${Platform}|*"
+    }
+    return $Marker -eq "native|${Version}|${Hash}|${Revision}"
+}
+
 function Repair-SettingsFromCache {
     if (-not (Test-Path $SettingsOverlayCacheFile)) { return }
 
@@ -153,8 +303,134 @@ if(changed){fs.writeFileSync(settingsFile,JSON.stringify(merged,null,2)+"\n")}
     Invoke-JsScript -Code $code -Args @($SettingsFile, $SettingsOverlayCacheFile) | Out-Null
 }
 
+function Invoke-NativePatch($Target) {
+    $helperFile = Join-Path $PluginRoot "bun-binary-io.js"
+    $patchFile = Join-Path $PluginRoot "patch-cli.js"
+    if (-not (Test-Path $helperFile) -or -not (Test-Path $patchFile)) { return "" }
+
+    $version = Read-NativeVersion $Target
+    $platform = Get-NativePlatform
+    $mode = ""
+    if (Test-SupportedNativeVersion $version $platform) {
+        $mode = "verified"
+    } elseif (Test-ProvisionalNativeVersion $version $platform) {
+        $mode = "provisional"
+    }
+    if (-not $mode) { return "" }
+
+    $revision = Get-PatchRevision $PluginRoot
+    if (-not $revision) { $revision = "unknown" }
+    $currentHash = Get-NativeHash $Target
+    $marker = ""
+    if (Test-Path $MarkerFile) {
+        $marker = [System.IO.File]::ReadAllText($MarkerFile, [System.Text.Encoding]::UTF8).Trim()
+    }
+    if (Test-NativeMarkerCurrent $marker $version $currentHash $revision $mode $platform) { return "" }
+
+    $depStatus = ((node $helperFile check-deps 2>$null) | Out-String).Trim()
+    if ($depStatus -ne "ok") { return "" }
+
+    $backupFile = "${Target}.zh-cn-backup"
+    $backupVersion = if (Test-Path $backupFile) { Read-NativeVersion $backupFile } else { "" }
+    try {
+        if ((Test-Path $backupFile) -and $backupVersion -eq $version) {
+            Copy-Item $backupFile $Target -Force -ErrorAction Stop
+        } else {
+            Copy-Item $Target $backupFile -Force -ErrorAction Stop
+        }
+    } catch {
+        return ""
+    }
+
+    $sourceHash = Get-NativeHash $Target
+    $tmpJs = Join-Path ([System.IO.Path]::GetTempPath()) ("claude-zh-cn-repatch-" + [System.IO.Path]::GetRandomFileName() + ".js")
+    $statusFile = Join-Path ([System.IO.Path]::GetTempPath()) ("cczh-native-patch-status-" + [System.IO.Path]::GetRandomFileName())
+    $logFile = Join-Path $StateRoot "patch.log"
+
+    try {
+        node $helperFile extract "$Target" "$tmpJs" 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Copy-Item $backupFile $Target -Force -ErrorAction SilentlyContinue
+            return ""
+        }
+
+        $patchCountText = ((node $patchFile "$tmpJs" "$PluginRoot\cli-translations.json" --status "$statusFile" --log "$logFile" 2>$null) | Out-String).Trim()
+        $patchCount = 0
+        [int]::TryParse($patchCountText, [ref]$patchCount) | Out-Null
+        $patchStatus = ""
+        if (Test-Path $statusFile) { $patchStatus = (Get-Content $statusFile -Raw).Trim() }
+        if (-not $patchStatus) { $patchStatus = if ($patchCount -gt 0) { "ok" } else { "noop" } }
+        if (@("ok", "partial", "noop") -notcontains $patchStatus) { return "" }
+
+        if ($patchCount -gt 0) {
+            node $helperFile repack "$Target" "$tmpJs" 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0 -or (Read-NativeVersionFromExecution $Target) -ne $version) {
+                Copy-Item $backupFile $Target -Force -ErrorAction SilentlyContinue
+                return ""
+            }
+        }
+
+        $finalHash = Get-NativeHash $Target
+        $finalMarker = "native|${version}|${finalHash}|${revision}"
+        if ($mode -eq "provisional") {
+            $finalMarker = "${finalMarker}|provisional|${platform}|${sourceHash}"
+        }
+        $finalMarker | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+
+        if ($mode -eq "provisional") {
+            return "（新版本已本机自验证，自动 patch ${patchCount} 处；未覆盖文案继续显示英文）"
+        }
+        if ($patchStatus -eq "partial") {
+            return "（已自动 patch ${patchCount} 处；未覆盖文案继续显示英文）"
+        }
+        if ($patchCount -gt 0) {
+            return "（已自动 patch ${patchCount} 处硬编码文字，启动自检通过）"
+        }
+        return ""
+    } finally {
+        Remove-Item $tmpJs, $statusFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # ======== Auto Update ========
 $AutoUpdateMsg = ""
+
+if ($env:CLAUDE_PLUGIN_DATA -and $env:ZH_CN_DISABLE_AUTO_UPDATE -ne "1") {
+    $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+    $last = 0
+    if (Test-Path $LastUpdateCheckFile) {
+        $raw = [System.IO.File]::ReadAllText($LastUpdateCheckFile, [System.Text.Encoding]::UTF8) -replace '\r?\n', ''
+        [int]::TryParse($raw, [ref]$last) | Out-Null
+    }
+    $shouldCheck = ($UpdateCheckInterval -eq 0) -or (($now - $last) -ge $UpdateCheckInterval)
+    if ($shouldCheck) {
+        [string]$now | Out-File -FilePath $LastUpdateCheckFile -Encoding ascii -NoNewline
+        $pluginCli = Find-RealClaudeBinary
+        $updated = $false
+        if ($pluginCli) {
+            $marketplaceResult = Invoke-CommandWithTimeout `
+                -FilePath $pluginCli `
+                -Arguments @("plugin", "marketplace", "update", $OfficialMarketplaceName) `
+                -TimeoutSeconds $PluginUpdateTimeoutSeconds
+            if ($marketplaceResult.Success) {
+                $pluginUpdateResult = Invoke-CommandWithTimeout `
+                    -FilePath $pluginCli `
+                    -Arguments @("plugin", "update", $OfficialPluginId, "--scope", "user") `
+                    -TimeoutSeconds $PluginUpdateTimeoutSeconds
+                if ($pluginUpdateResult.Success) {
+                    $updateOutput = $pluginUpdateResult.Output
+                    $updated = $true
+                    if ($updateOutput -notmatch "already at the latest|latest version|已是最新") {
+                        $AutoUpdateMsg = "插件更新已由 Claude plugin manager 下载，将在下次会话生效"
+                    }
+                }
+            }
+        }
+        $updateStatus = if ($updated) { "ok marketplace ${now}" } else { "update_failed marketplace ${now}" }
+        $updateStatus | Out-File -FilePath (Join-Path $StateRoot ".last-update-status") -Encoding ascii -NoNewline
+    }
+}
+
 $SourceRepo = $null
 if (Test-Path $SourceRepoFile) {
     $SourceRepo = [System.IO.File]::ReadAllText($SourceRepoFile, [System.Text.Encoding]::UTF8) -replace '\r?\n', ''
@@ -173,41 +449,18 @@ if ($SourceRepo -and (Test-Path "$SourceRepo\.git") -and $env:ZH_CN_DISABLE_AUTO
 
         $LocalVersion = Read-ManifestVersion "$PluginRoot\manifest.json"
         if ($LocalVersion) {
-            Push-Location $SourceRepo
-            try {
-                git fetch --tags --quiet 2>$null
-                $LatestTag = (git tag -l 'v*' --sort=-version:refname 2>$null | Select-Object -First 1)
-            } finally {
-                Pop-Location
-            }
+            $null = Invoke-CommandWithTimeout `
+                -FilePath "git" `
+                -Arguments @("-C", $SourceRepo, "fetch", "--tags", "--quiet") `
+                -TimeoutSeconds $PluginUpdateTimeoutSeconds
+            # 拉取超时仍可使用本地已有 tag；不会让 SessionStart 一直等待网络。
+            $LatestTag = (git -C $SourceRepo tag -l 'v*' --sort=-version:refname 2>$null | Select-Object -First 1)
             $LatestVersion = $LatestTag -replace '^v', ''
             if ($LatestTag -and $LatestVersion -and $LocalVersion -match '^\d+\.\d+\.\d+' -and $LatestVersion -match '^\d+\.\d+\.\d+') {
                 if (Test-VersionIsNewer $LocalVersion $LatestVersion) {
-                    # 原生 PowerShell 自动更新：调用 install.ps1 -UpdateOnly -SkipBanner
-                    $stagingDir = Join-Path ([System.IO.Path]::GetTempPath()) "cczh-update-${PID}"
-                    try {
-                        New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
-                        Push-Location $SourceRepo
-                        try {
-                            $requiredArchivePaths = @("install.ps1", "install.sh", "compute-patch-revision.sh", "settings-overlay.json", "verbs", "tips", "plugin")
-                            Export-ReleasePaths -Ref $LatestTag -Destination $stagingDir -Paths $requiredArchivePaths | Out-Null
-                            if (Test-ReleasePath -Ref $LatestTag -Path "scripts/install-json-helper.js") {
-                                Export-ReleasePaths -Ref $LatestTag -Destination $stagingDir -Paths @("scripts/install-json-helper.js") | Out-Null
-                            }
-                        } finally { Pop-Location }
-                        if ((Test-Path "$stagingDir\install.ps1") -and (Test-Path "$stagingDir\settings-overlay.json") -and (Test-Path "$stagingDir\plugin\manifest.json")) {
-                            $env:CLAUDE_PLUGIN_ROOT = $PluginRoot
-                            $env:ZH_CN_SOURCE_REPO = $SourceRepo
-                            $env:ZH_CN_SKIP_BANNER = "1"
-                            powershell -NoProfile -ExecutionPolicy Bypass -File "$stagingDir\install.ps1" -UpdateOnly -SkipBanner 2>$null
-                            Remove-Item Env:\CLAUDE_PLUGIN_ROOT, Env:\ZH_CN_SOURCE_REPO, Env:\ZH_CN_SKIP_BANNER -ErrorAction SilentlyContinue
-                            $AutoUpdateMsg = "插件已从 v${LocalVersion} 更新到 v${LatestVersion}"
-                        }
-                    } catch {} finally {
-                        if (Test-Path $stagingDir) {
-                            Remove-Item -Recurse -Force $stagingDir -ErrorAction SilentlyContinue
-                        }
-                    }
+                    "available v${LatestVersion} ${now}" | Out-File `
+                        -FilePath (Join-Path $StateRoot ".last-update-status") -Encoding ascii -NoNewline
+                    $AutoUpdateMsg = "检测到插件 v${LatestVersion}（当前 v${LocalVersion}）。为避免会话启动途中覆盖插件，本次未自动安装；会话结束后在源码目录运行 git pull，再重跑 install.ps1"
                 }
             }
         }
@@ -224,7 +477,50 @@ if ($ClaudeBin) {
 
 if ($InstallInfo) {
     $Kind, $Target = $InstallInfo -split ':', 2
-    if ($Kind -eq "npm" -and $Target -and (Test-Path $Target)) {
+    if ($Kind -eq "native-bun" -and $Target -and (Test-Path $Target)) {
+        # Windows 会锁住正在运行的 claude.exe；SessionStart 现场写回必然失败，
+        # 因此这里只记录明确交接。关闭 Claude 后由 install.ps1 完成同一套自检与回滚事务。
+        $pendingVersion = Read-NativeVersion $Target
+        $pendingPlatform = Get-NativePlatform
+        $pendingMode = ""
+        if (Test-SupportedNativeVersion $pendingVersion $pendingPlatform) {
+            $pendingMode = "verified"
+        } elseif (Test-ProvisionalNativeVersion $pendingVersion $pendingPlatform) {
+            $pendingMode = "provisional"
+        }
+
+        if ($pendingMode) {
+            $pendingRevision = Get-PatchRevision $PluginRoot
+            if (-not $pendingRevision) { $pendingRevision = "unknown" }
+            $pendingHash = Get-NativeHash $Target
+            $stateMarker = if (Test-Path $MarkerFile) {
+                [System.IO.File]::ReadAllText($MarkerFile, [System.Text.Encoding]::UTF8).Trim()
+            } else { "" }
+            $legacyMarkerFile = Join-Path $LegacyPluginRoot ".patched-version"
+            $legacyMarker = if (Test-Path $legacyMarkerFile) {
+                [System.IO.File]::ReadAllText($legacyMarkerFile, [System.Text.Encoding]::UTF8).Trim()
+            } else { "" }
+
+            if ((Test-NativeMarkerCurrent $stateMarker $pendingVersion $pendingHash $pendingRevision $pendingMode $pendingPlatform) -or
+                (Test-NativeMarkerCurrent $legacyMarker $pendingVersion $pendingHash $pendingRevision $pendingMode $pendingPlatform)) {
+                if ($legacyMarker -and $stateMarker -ne $legacyMarker) {
+                    $legacyMarker | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
+                }
+                Remove-Item $NativePatchPendingFile -Force -ErrorAction SilentlyContinue
+            } else {
+                @{
+                    version = $pendingVersion
+                    target = $Target
+                    reason = "running-executable-locked"
+                    recordedAt = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+                } | ConvertTo-Json -Compress | Out-File -FilePath $NativePatchPendingFile -Encoding utf8
+                $AutoPatchMsg = "（Windows 不改写正在运行的 claude.exe；本次保持原版可用。关闭所有 Claude Code 窗口后，按 https://github.com/taekchef/claude-code-zh-cn#windows-原生安装 重跑 install.ps1，即可安全补上仍能匹配的中文文案）"
+            }
+        } else {
+            Remove-Item $NativePatchPendingFile -Force -ErrorAction SilentlyContinue
+            $AutoPatchMsg = "（Windows native 当前格式或版本无法进入本机自验证；本次不改写正在运行的 claude.exe，Layer 1~3 继续生效）"
+        }
+    } elseif ($Kind -eq "npm" -and $Target -and (Test-Path $Target)) {
         $CurrentVersion = Read-CliVersion $Target
         $PatchRevision = Get-PatchRevision $PluginRoot
         $CurrentMarker = $CurrentVersion
