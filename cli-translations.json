@@ -7554,6 +7554,18 @@
     "zh": "Claude 工作流文件已存在："
   },
   {
+    "en": "Check the health of your Claude Code installation. Reads settings files in the current directory without a trust prompt. For a full checkup that can also fix issues, run /doctor in a session.",
+    "zh": "检查 Claude Code 安装健康状态。会读取当前目录中的设置文件且不触发信任提示。要执行可修复问题的完整检查，请在会话中运行 /doctor。"
+  },
+  {
+    "en": "Run the enterprise auth/telemetry gateway",
+    "zh": "运行企业认证/遥测网关"
+  },
+  {
+    "en": "Run eval cases (evals/**/case.yaml or evals/**/prompt.md + graders/*.md) against a plugin and report scored results. Target is a path, a plugin name, or omitted; project, user, and skills-dir plugins both resolve (and add a no-plugin baseline arm)",
+    "zh": "针对插件运行评测用例（evals/**/case.yaml 或 evals/**/prompt.md + graders/*.md），并报告评分结果。目标可以是路径、插件名或省略；项目、用户和 skills-dir 插件都会解析（并添加无插件基线分支）"
+  },
+  {
     "en": "2. Your workflow file was kept unchanged",
     "zh": "2. 你的工作流文件保持不变"
   },
