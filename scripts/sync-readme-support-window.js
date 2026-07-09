@@ -173,10 +173,10 @@ function renderSupportSystems(config) {
         ]),
     "| Linux · 官方安装器 | 暂无已验证版本 | 仅 Layer 1~3 生效 |",
     "",
-    "> - **已验证窗口不是运行门禁**：同一 `major.minor` 版本线的新 native 版本会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。",
+    "> - **版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。",
     "> - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。",
     "> - **Windows 不热改运行中的 exe**：Claude Code 更新后先保持原版可用；关闭所有 Claude Code 窗口，再按 Windows 安装命令重跑 `install.ps1`，由安装器补丁并自检。",
-    "> - **跨版本线保守处理**：例如从 `2.1.x` 升到 `2.2.x` 或 `3.x` 时，不做原生 Layer 4 patch，Layer 1~3 继续生效。",
+    "> - **格式变化才停手**：如果未来版本不再是可识别的 native 格式、依赖缺失、提取失败或启动自检失败，只跳过 Layer 4，Layer 1~3 继续生效。",
     "> - **矩阵只记录证据**：纯上游兼容证据可以更新支持矩阵，不要求插件升版；只有插件代码、翻译或 manifest 变化才发布新版。",
     `> - **已验证版本完整清单**${hasExcluded ? "（含个别未收录版本）" : ""}见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。`,
     `> - Claude Code 从 \`${nativeBoundary}\` 起 npm 主包切换为 native binary，不再包含旧的 \`cli.js\`；要最完整的翻译请用 \`npm install -g @anthropic-ai/claude-code@${stablePinned}\`。`,
@@ -200,9 +200,9 @@ function renderInstallAdvice(config) {
     "| 安装方式 | 中文化程度 |",
     "|---------|-----------|",
     `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 最完整（推荐） |`,
-    "| `npm install -g @anthropic-ai/claude-code`（latest） | 同一版本线先本机自检；已知文案继续中文，新文案保留英文 |",
+    "| `npm install -g @anthropic-ai/claude-code`（latest） | 新版先本机自检；已知文案继续中文，新文案保留英文 |",
     `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定已验证旧版本（需要 \`node-lief\`） |`,
-    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | 同一版本线先本机自检再启用 CLI Patch；跨版本线只保留 Layer 1~3 |",
+    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | 新版先本机自检再启用 CLI Patch；格式或自检失败时只保留 Layer 1~3 |",
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
       ? [
           `| \`powershell -File install.ps1\` | Windows：旧 npm cli.js 最完整；native .exe \`${renderRange(windowsNativeExperimental)}\` 内已验证版本需 \`node-lief\`；Claude 更新后关闭所有窗口并重跑 |`,
@@ -213,7 +213,7 @@ function renderInstallAdvice(config) {
     ...(macosNative && macosNative.unsupported !== true
       ? [
           "",
-          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)），同一 \`major.minor\` 新版可本机自检，需要 \`node-lief\`。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 \`install.ps1\`。`,
+          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高版本也会本机自检，需要 \`node-lief\`。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 \`install.ps1\`。`,
         ]
       : []),
     "",

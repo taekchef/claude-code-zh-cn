@@ -29,18 +29,18 @@ PLUGIN_UPDATE_TIMEOUT_SECONDS="${ZH_CN_PLUGIN_UPDATE_TIMEOUT_SECONDS:-20}"
 LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
 OFFICIAL_PLUGIN_ID="claude-code-zh-cn@claude-code-zh-cn"
 OFFICIAL_MARKETPLACE_NAME="claude-code-zh-cn"
-NATIVE_LOCK_DIR=""
-NATIVE_LOCK_HELD=false
+PATCH_LOCK_DIR=""
+PATCH_LOCK_HELD=false
 
 source "$PLUGIN_ROOT/compute-patch-revision.sh"
 
 cleanup() {
-    release_native_patch_lock
+    release_patch_lock
 }
 
 trap cleanup EXIT
 
-native_patch_lock_path() {
+patch_lock_path() {
     local binary_path="$1"
 
     node - "$binary_path" <<'NODE'
@@ -55,33 +55,33 @@ try {
   binary = path.resolve(binary);
 }
 const id = crypto.createHash("sha256").update(binary).digest("hex").slice(0, 20);
-process.stdout.write(path.join(process.env.TMPDIR || "/tmp", `claude-zh-cn-native-${id}.lock`));
+process.stdout.write(path.join(process.env.TMPDIR || "/tmp", `claude-zh-cn-patch-${id}.lock`));
 NODE
 }
 
-acquire_native_patch_lock() {
+acquire_patch_lock() {
     local binary_path="$1"
     local lock_pid=""
 
-    NATIVE_LOCK_DIR="$(native_patch_lock_path "$binary_path" 2>/dev/null || true)"
-    [ -n "$NATIVE_LOCK_DIR" ] || return 1
+    PATCH_LOCK_DIR="$(patch_lock_path "$binary_path" 2>/dev/null || true)"
+    [ -n "$PATCH_LOCK_DIR" ] || return 1
 
-    if mkdir "$NATIVE_LOCK_DIR" 2>/dev/null; then
-        printf '%s' "$$" > "$NATIVE_LOCK_DIR/pid"
-        NATIVE_LOCK_HELD=true
+    if mkdir "$PATCH_LOCK_DIR" 2>/dev/null; then
+        printf '%s' "$$" > "$PATCH_LOCK_DIR/pid"
+        PATCH_LOCK_HELD=true
         return 0
     fi
 
-    lock_pid="$(cat "$NATIVE_LOCK_DIR/pid" 2>/dev/null || true)"
+    lock_pid="$(cat "$PATCH_LOCK_DIR/pid" 2>/dev/null || true)"
     case "$lock_pid" in
         ''|*[!0-9]*) return 1 ;;
     esac
 
     if ! kill -0 "$lock_pid" 2>/dev/null; then
-        rm -rf "$NATIVE_LOCK_DIR" 2>/dev/null || return 1
-        if mkdir "$NATIVE_LOCK_DIR" 2>/dev/null; then
-            printf '%s' "$$" > "$NATIVE_LOCK_DIR/pid"
-            NATIVE_LOCK_HELD=true
+        rm -rf "$PATCH_LOCK_DIR" 2>/dev/null || return 1
+        if mkdir "$PATCH_LOCK_DIR" 2>/dev/null; then
+            printf '%s' "$$" > "$PATCH_LOCK_DIR/pid"
+            PATCH_LOCK_HELD=true
             return 0
         fi
     fi
@@ -89,17 +89,17 @@ acquire_native_patch_lock() {
     return 1
 }
 
-release_native_patch_lock() {
+release_patch_lock() {
     local lock_pid=""
 
-    if [ "${NATIVE_LOCK_HELD:-false}" = true ] && [ -n "${NATIVE_LOCK_DIR:-}" ]; then
-        lock_pid="$(cat "$NATIVE_LOCK_DIR/pid" 2>/dev/null || true)"
+    if [ "${PATCH_LOCK_HELD:-false}" = true ] && [ -n "${PATCH_LOCK_DIR:-}" ]; then
+        lock_pid="$(cat "$PATCH_LOCK_DIR/pid" 2>/dev/null || true)"
         if [ "$lock_pid" = "$$" ]; then
-            rm -rf "$NATIVE_LOCK_DIR" 2>/dev/null || true
+            rm -rf "$PATCH_LOCK_DIR" 2>/dev/null || true
         fi
     fi
-    NATIVE_LOCK_HELD=false
-    NATIVE_LOCK_DIR=""
+    PATCH_LOCK_HELD=false
+    PATCH_LOCK_DIR=""
 }
 
 run_with_timeout_seconds() {
@@ -307,10 +307,8 @@ for (const key of [
   const entry = data[key];
   if (!entry || entry.platform !== platform) continue;
   const floor = parse(entry.floor);
-  const ceiling = parse(entry.ceiling);
-  if (!floor || !ceiling) continue;
-  const sameReleaseLine = candidate[0] === ceiling[0] && candidate[1] === ceiling[1];
-  if (sameReleaseLine && compare(candidate, floor) >= 0) process.exit(0);
+  if (!floor) continue;
+  if (compare(candidate, floor) >= 0) process.exit(0);
 }
 
 process.exit(1);
@@ -676,7 +674,7 @@ fi
 AUTO_PATCH_MSG=""
 if [ -n "$NATIVE_BINARY" ]; then
     # support-window 只代表“发布前完整验证过”，不再充当 runtime 开关。
-    # 同一 release line 的新版本走 provisional：只替换仍能精确命中的文案，
+    # 高于已知下限的可识别新版本走 provisional：只替换仍能精确命中的文案，
     # 未知文案保留英文；repack 或 --version 自检失败则恢复干净备份。
     CURRENT_VERSION=$(native_binary_version "$NATIVE_BINARY")
     NATIVE_PLATFORM=$(native_platform)
@@ -700,7 +698,7 @@ if [ -n "$NATIVE_BINARY" ]; then
             "${PATCH_REVISION:-unknown}" \
             "$PATCH_MODE" \
             "$NATIVE_PLATFORM"; then
-            if acquire_native_patch_lock "$NATIVE_BINARY"; then
+            if acquire_patch_lock "$NATIVE_BINARY"; then
                 # 另一个 SessionStart 可能刚完成同一文件；拿到锁后必须重新读取现场。
                 CURRENT_HASH=$(native_binary_hash "$NATIVE_BINARY")
                 PATCHED_VERSION=""
@@ -798,7 +796,7 @@ if [ -n "$NATIVE_BINARY" ]; then
                     fi
                     # node-lief 不可用 → 静默跳过，保持 hook JSON 合法
                 fi
-                release_native_patch_lock
+                release_patch_lock
             fi
         fi
     fi
@@ -822,6 +820,7 @@ elif [ -f "$CLI_FILE" ]; then
     fi
 
     if [ "$CURRENT_MARKER" != "$PATCHED_VERSION" ] || [ -n "$NPM_PROBE_RESIDUE" ]; then
+        if acquire_patch_lock "$CLI_FILE"; then
         PATCH_STATUS_FILE="${TMPDIR:-/tmp}/cczh-patch-status.$$.${RANDOM:-0}"
         PATCH_COUNT=$("$PLUGIN_ROOT/patch-cli.sh" "$CLI_FILE" \
             --backup "${CLI_FILE}.zh-cn-backup" \
@@ -844,6 +843,8 @@ elif [ -f "$CLI_FILE" ]; then
                 # validation-failed / error：未写盘，CLI 保持原样可用；详情见 patch.log
                 ;;
         esac
+            release_patch_lock
+        fi
     fi
 fi
 

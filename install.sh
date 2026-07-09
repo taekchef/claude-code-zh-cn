@@ -34,6 +34,7 @@ LAUNCHER_STATUS_SUMMARY="已跳过（未执行 launcher 安装）"
 LAUNCHER_STATUS_OK=false
 OFFICIAL_PLUGIN_ID="claude-code-zh-cn@claude-code-zh-cn"
 OFFICIAL_MARKETPLACE_NAME="claude-code-zh-cn"
+OFFICIAL_FALLBACK_MARKER="$PLUGIN_DST/.official-fallback-disabled"
 PLUGIN_RUNTIME_MODE="standalone"
 
 print_updater_boundary_note() {
@@ -94,7 +95,7 @@ print_completion() {
     fi
     case "$PLUGIN_RUNTIME_MODE" in
         standalone)
-            echo -e "  ${YELLOW}!${NC} 独立备用更新 → 跟随本插件已发布 Release"
+            echo -e "  ${YELLOW}!${NC} 独立备用更新 → 限时检查 Release，会话结束后按提示手动更新"
             ;;
         disabled)
             echo -e "  ${YELLOW}!${NC} 正式插件已停用 → 保留用户选择，不加载备用 Hook"
@@ -115,7 +116,7 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch 按已验证版本窗口执行；新同版本线会在安装时本机自验证"
+        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch：已验证版本有公开证据；更高可识别版本会在安装时本机自验证"
     fi
 
     echo ""
@@ -169,7 +170,7 @@ check_dependencies() {
             fi
         elif can_try_provisional_native_version "$native_version"; then
             if [ "$dep_status" != "ok" ]; then
-                echo -e "${YELLOW}检测到新原生二进制版本 ${native_version:-unknown}，同版本线可在安装时本机自验证；需要 node-lief${NC}"
+                echo -e "${YELLOW}检测到新原生二进制版本 ${native_version:-unknown}，可在安装时本机自验证；需要 node-lief${NC}"
                 echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
             else
                 echo -e "${YELLOW}检测到新原生二进制版本 ${native_version}，将尝试本机自验证；通过才启用 CLI Patch${NC}"
@@ -303,17 +304,11 @@ function compare(a, b) {
   return 0;
 }
 
-function sameMinor(a, b) {
-  const left = parse(a);
-  const right = parse(b);
-  return left[0] === right[0] && left[1] === right[1];
-}
-
 const keys = ["macosNativeExperimental"];
 for (const key of keys) {
   const entry = data[key];
   if (!entry || entry.platform !== platform || !entry.floor) continue;
-  if (sameMinor(version, entry.floor) && compare(version, entry.floor) >= 0) {
+  if (compare(version, entry.floor) >= 0) {
     process.exit(0);
   }
 }
@@ -501,6 +496,18 @@ try {
 NODE
 }
 
+activate_standalone_fallback() {
+    local reason="$1"
+
+    PLUGIN_RUNTIME_MODE="standalone"
+    echo -e "${YELLOW}官方插件 CLI 校验未完成（${reason}）；将停用未确认的官方入口，并启用一套独立备用 Hook。基础中文设置和 CLI Patch 不受影响。${NC}"
+}
+
+mark_official_plugin_verified() {
+    PLUGIN_RUNTIME_MODE="official"
+    rm -f "$OFFICIAL_FALLBACK_MARKER" 2>/dev/null || true
+}
+
 select_safe_plugin_fallback() {
     local reason="$1"
     local settings_state
@@ -508,16 +515,18 @@ select_safe_plugin_fallback() {
 
     case "$settings_state" in
         enabled)
-            PLUGIN_RUNTIME_MODE="standalone"
-            echo -e "${YELLOW}官方插件 CLI 校验未完成（${reason}）；已有启用记录无法证明插件实际已加载，将启用独立备用 Hook。基础中文设置和 CLI Patch 不受影响。${NC}"
+            activate_standalone_fallback "$reason"
             ;;
         disabled)
-            PLUGIN_RUNTIME_MODE="disabled"
-            echo -e "${YELLOW}官方插件已明确停用；保留用户选择，不加载备用 Hook。基础中文设置和 CLI Patch 继续生效。${NC}"
+            if [ -f "$OFFICIAL_FALLBACK_MARKER" ]; then
+                activate_standalone_fallback "$reason"
+            else
+                PLUGIN_RUNTIME_MODE="disabled"
+                echo -e "${YELLOW}官方插件已明确停用；保留用户选择，不加载备用 Hook。基础中文设置和 CLI Patch 继续生效。${NC}"
+            fi
             ;;
         *)
-            PLUGIN_RUNTIME_MODE="standalone"
-            echo -e "${YELLOW}官方插件注册未完成（${reason}）；将启用独立备用 Hook，基础中文设置和 CLI Patch 不受影响。${NC}"
+            activate_standalone_fallback "$reason"
             ;;
     esac
 }
@@ -535,6 +544,16 @@ register_official_plugin() {
     fi
 
     initial_settings_state="$(official_plugin_settings_state)"
+    if [ "$initial_settings_state" = "disabled" ] && [ -f "$OFFICIAL_FALLBACK_MARKER" ]; then
+        PLUGIN_RUNTIME_MODE="official-retry"
+        if reconcile_standalone_hooks && [ "$(official_plugin_settings_state)" = "enabled" ]; then
+            initial_settings_state="enabled"
+            echo -e "${YELLOW}上次因校验失败临时停用了官方入口；本次重新尝试正式插件注册。${NC}"
+        else
+            select_safe_plugin_fallback "无法安全切换到正式插件重试状态"
+            return 0
+        fi
+    fi
     if [ "$initial_settings_state" = "disabled" ]; then
         if [ -f "$SCRIPT_DIR/.claude-plugin/marketplace.json" ]; then
             marketplace_source="$(official_marketplace_source)"
@@ -550,7 +569,7 @@ register_official_plugin() {
     fi
 
     if [ "$UPDATE_ONLY" = true ] && verify_official_plugin_registration "$claude_cli"; then
-        PLUGIN_RUNTIME_MODE="official"
+        mark_official_plugin_verified
         echo -e "${GREEN}官方插件注册已验证（user scope）${NC}"
         return 0
     fi
@@ -568,7 +587,7 @@ register_official_plugin() {
         "$claude_cli" plugin marketplace update "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1 || true
         "$claude_cli" plugin update "$OFFICIAL_PLUGIN_ID" --scope user >/dev/null 2>&1 || true
         if verify_official_plugin_registration "$claude_cli"; then
-            PLUGIN_RUNTIME_MODE="official"
+            mark_official_plugin_verified
             echo -e "${GREEN}官方插件注册已验证（user scope）${NC}"
         else
             select_safe_plugin_fallback "官方插件自动更新后校验失败"
@@ -583,7 +602,7 @@ register_official_plugin() {
 
     if ! "$claude_cli" plugin marketplace add --scope user "$marketplace_source" >/dev/null 2>&1; then
         if verify_official_plugin_registration "$claude_cli"; then
-            PLUGIN_RUNTIME_MODE="official"
+            mark_official_plugin_verified
             echo -e "${YELLOW}插件市场刷新失败，继续使用已验证的官方 user 插件。${NC}"
         else
             select_safe_plugin_fallback "插件市场注册失败"
@@ -602,7 +621,7 @@ register_official_plugin() {
     fi
 
     if verify_official_plugin_registration "$claude_cli"; then
-        PLUGIN_RUNTIME_MODE="official"
+        mark_official_plugin_verified
         echo -e "${GREEN}官方插件注册已验证（user scope）${NC}"
         return 0
     fi
@@ -615,15 +634,29 @@ register_official_plugin() {
 }
 
 reconcile_standalone_hooks() {
-    ZH_CN_SETTINGS="$SETTINGS_FILE" \
+    local fallback_marker_created=false
+
+    if [ "$PLUGIN_RUNTIME_MODE" = "standalone" ] && [ ! -f "$OFFICIAL_FALLBACK_MARKER" ]; then
+        mkdir -p "$PLUGIN_DST" 2>/dev/null || true
+        if printf '%s\n' "standalone" > "$OFFICIAL_FALLBACK_MARKER" 2>/dev/null; then
+            fallback_marker_created=true
+        else
+            PLUGIN_RUNTIME_MODE="official-unverified"
+            echo -e "${YELLOW}无法写入正式插件重试标记；为避免重复 Hook，本次不注入备用 Hook。${NC}"
+        fi
+    fi
+
+    if ! ZH_CN_SETTINGS="$SETTINGS_FILE" \
     ZH_CN_PLUGIN_DST="$PLUGIN_DST" \
     ZH_CN_PLUGIN_RUNTIME_MODE="$PLUGIN_RUNTIME_MODE" \
-    node <<'NODE'
+    ZH_CN_OFFICIAL_PLUGIN_ID="$OFFICIAL_PLUGIN_ID" \
+    node <<'NODE'; then
 const fs = require("fs");
 const path = require("path");
 const settingsFile = process.env.ZH_CN_SETTINGS;
 const pluginRoot = process.env.ZH_CN_PLUGIN_DST;
 const mode = process.env.ZH_CN_PLUGIN_RUNTIME_MODE;
+const officialPluginId = process.env.ZH_CN_OFFICIAL_PLUGIN_ID;
 const standaloneArg = "--standalone";
 
 function isObject(value) {
@@ -637,6 +670,38 @@ function isStandaloneHook(hook) {
   const script = String(hook.args[0] || "");
   return script === path.join(pluginRoot, "hooks", "session-start.js") ||
     script === path.join(pluginRoot, "hooks", "notification.js");
+}
+
+function resolveCommitTarget(file) {
+  try {
+    return fs.realpathSync(file);
+  } catch {}
+  try {
+    const stat = fs.lstatSync(file);
+    if (stat.isSymbolicLink()) {
+      const link = fs.readlinkSync(file);
+      return path.isAbsolute(link) ? link : path.resolve(path.dirname(file), link);
+    }
+  } catch {}
+  return path.resolve(file);
+}
+
+function commitSettings(file, content) {
+  const target = resolveCommitTarget(file);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  let mode = 0o600;
+  try { mode = fs.statSync(target).mode & 0o777; } catch {}
+  const temp = path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.zh-cn-hooks.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`
+  );
+  try {
+    fs.writeFileSync(temp, content, { mode });
+    fs.chmodSync(temp, mode);
+    fs.renameSync(temp, target);
+  } finally {
+    try { fs.unlinkSync(temp); } catch {}
+  }
 }
 
 const raw = fs.readFileSync(settingsFile, "utf8").replace(/^\uFEFF/, "");
@@ -665,6 +730,8 @@ if (isObject(settings.hooks)) {
 }
 
 if (mode === "standalone") {
+  if (!isObject(settings.enabledPlugins)) settings.enabledPlugins = {};
+  settings.enabledPlugins[officialPluginId] = false;
   if (!isObject(settings.hooks)) settings.hooks = {};
   const sessionScript = path.join(pluginRoot, "hooks", "session-start.js");
   const notificationScript = path.join(pluginRoot, "hooks", "notification.js");
@@ -681,8 +748,21 @@ if (mode === "standalone") {
   changed = true;
 }
 
-if (changed) fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
+if (mode === "official-retry") {
+  if (!isObject(settings.enabledPlugins)) settings.enabledPlugins = {};
+  settings.enabledPlugins[officialPluginId] = true;
+  changed = true;
+}
+
+if (changed) commitSettings(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
 NODE
+        if [ "$fallback_marker_created" = true ]; then
+            rm -f "$OFFICIAL_FALLBACK_MARKER" 2>/dev/null || true
+        fi
+        PLUGIN_RUNTIME_MODE="official-unverified"
+        echo -e "${YELLOW}备用 Hook 安全写入失败；为避免重复 Hook，本次保留官方入口。基础中文设置和 CLI Patch 仍保持可用。${NC}"
+        return 0
+    fi
 
     if [ "$PLUGIN_RUNTIME_MODE" = "standalone" ]; then
         echo -e "${YELLOW}已启用独立备用 Hook（不会与官方插件 Hook 同时加载）${NC}"

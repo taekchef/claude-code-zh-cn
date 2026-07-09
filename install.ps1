@@ -35,6 +35,7 @@ $CliPatchStatusSummary = "已跳过（未执行 CLI Patch）"
 $CliPatchStatusOk = $false
 $OfficialPluginId = "claude-code-zh-cn@claude-code-zh-cn"
 $OfficialMarketplaceName = "claude-code-zh-cn"
+$OfficialFallbackMarker = "$PluginDst\.official-fallback-disabled"
 $PluginRuntimeMode = "standalone"
 
 # ======== 帮助函数 ========
@@ -126,7 +127,7 @@ process.stdout.write(String(changed)+" "+String(lines.length)+" "+String(skipped
 '@
 $JS_RECONCILE_STANDALONE_HOOKS = @'
 var fs=require("fs"),path=require("path");
-var settingsFile=process.argv[2],pluginRoot=process.argv[3],mode=process.argv[4];
+var settingsFile=process.argv[2],pluginRoot=process.argv[3],mode=process.argv[4],officialPluginId=process.argv[5];
 var standaloneArg="--standalone";
 function object(v){return v&&typeof v==="object"&&!Array.isArray(v)}
 function standalone(hook){
@@ -159,6 +160,8 @@ if(object(settings.hooks)){
   if(Object.keys(settings.hooks).length===0)delete settings.hooks;
 }
 if(mode==="standalone"){
+  if(!object(settings.enabledPlugins))settings.enabledPlugins={};
+  settings.enabledPlugins[officialPluginId]=false;
   if(!object(settings.hooks))settings.hooks={};
   if(!Array.isArray(settings.hooks.SessionStart))settings.hooks.SessionStart=[];
   if(!Array.isArray(settings.hooks.Notification))settings.hooks.Notification=[];
@@ -168,7 +171,12 @@ if(mode==="standalone"){
   settings.hooks.Notification.push({matcher:"",hooks:[{type:"command",command:"node",args:[notification,standaloneArg],async:false,timeout:10}]});
   changed=true;
 }
-if(changed)fs.writeFileSync(settingsFile,JSON.stringify(settings,null,2)+"\n");
+if(mode==="official-retry"){
+  if(!object(settings.enabledPlugins))settings.enabledPlugins={};
+  settings.enabledPlugins[officialPluginId]=true;
+  changed=true;
+}
+if(changed)process.stdout.write(JSON.stringify(settings,null,2)+"\n");
 '@
 
 # ======== 输出函数 ========
@@ -186,7 +194,7 @@ function completion {
     Write-CN "  √ 输出风格 → Chinese" Green
     Write-CN "  √ 自动重 patch → Claude Code 更新后首次会话自动修复（session-start 兜底）" Green
     switch ($PluginRuntimeMode) {
-        "standalone" { Write-CN "  ! 独立备用更新 → 跟随本插件已发布 Release" Yellow }
+        "standalone" { Write-CN "  ! 独立备用更新 → 限时检查 Release，会话结束后按提示手动更新" Yellow }
         "disabled" { Write-CN "  ! 正式插件已停用 → 保留用户选择，不加载备用 Hook" Yellow }
         default { Write-CN "  √ 正式插件更新 → 由 Claude plugin manager 管理" Green }
     }
@@ -321,23 +329,76 @@ function official-plugin-settings-state {
     }
 }
 
+function activate-standalone-fallback {
+    param([string]$Reason)
+
+    $script:PluginRuntimeMode = "standalone"
+    Write-CN "官方插件 CLI 校验未完成（$Reason）；将停用未确认的官方入口，并启用一套独立备用 Hook。基础中文设置和 CLI Patch 不受影响。" Yellow
+}
+
+function mark-official-plugin-verified {
+    $script:PluginRuntimeMode = "official"
+    Remove-Item $OfficialFallbackMarker -Force -ErrorAction SilentlyContinue
+}
+
 function select-safe-plugin-fallback {
     param([string]$Reason)
     $settingsState = official-plugin-settings-state
 
     switch ($settingsState) {
         "enabled" {
-            $script:PluginRuntimeMode = "standalone"
-            Write-CN "官方插件 CLI 校验未完成（$Reason）；已有启用记录无法证明插件实际已加载，将启用独立备用 Hook。基础中文设置和 CLI Patch 不受影响。" Yellow
+            activate-standalone-fallback $Reason
         }
         "disabled" {
-            $script:PluginRuntimeMode = "disabled"
-            Write-CN "官方插件已明确停用；保留用户选择，不加载备用 Hook。基础中文设置和 CLI Patch 继续生效。" Yellow
+            if (Test-Path $OfficialFallbackMarker) {
+                activate-standalone-fallback $Reason
+            } else {
+                $script:PluginRuntimeMode = "disabled"
+                Write-CN "官方插件已明确停用；保留用户选择，不加载备用 Hook。基础中文设置和 CLI Patch 继续生效。" Yellow
+            }
         }
         default {
-            $script:PluginRuntimeMode = "standalone"
-            Write-CN "官方插件注册未完成（$Reason）；将启用独立备用 Hook，基础中文设置和 CLI Patch 不受影响。" Yellow
+            activate-standalone-fallback $Reason
         }
+    }
+}
+
+function commit-settings-json-safely {
+    param([string]$Json)
+
+    $resolveCode = @'
+const fs=require("fs"),path=require("path");
+const file=process.argv[2];
+try{process.stdout.write(fs.realpathSync(file));process.exit(0)}catch(e){}
+try{const stat=fs.lstatSync(file);if(stat.isSymbolicLink()){const link=fs.readlinkSync(file);process.stdout.write(path.isAbsolute(link)?link:path.resolve(path.dirname(file),link));process.exit(0)}}catch(e){}
+process.stdout.write(path.resolve(file));
+'@
+    $target = ((run-js $resolveCode @($SettingsFile)) | Out-String).Trim()
+    if (-not $target) { throw "settings target resolution failed" }
+
+    $directory = Split-Path -Parent $target
+    New-Item -Force -ItemType Directory -Path $directory | Out-Null
+    $suffix = "$PID-$((Get-Random).ToString('x'))"
+    $temp = Join-Path $directory ("." + [System.IO.Path]::GetFileName($target) + ".zh-cn-hooks.$suffix.tmp")
+    $rollback = Join-Path $directory ("." + [System.IO.Path]::GetFileName($target) + ".zh-cn-hooks.$suffix.rollback")
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+
+    try {
+        [System.IO.File]::WriteAllText($temp, $Json, $utf8NoBom)
+        if (Test-Path $target) {
+            # Windows ReplaceFile 保留目标文件的 ACL，并在失败时保留原目标。
+            [System.IO.File]::Replace($temp, $target, $rollback, $true)
+            Remove-Item $rollback -Force -ErrorAction SilentlyContinue
+        } else {
+            [System.IO.File]::Move($temp, $target)
+        }
+    } catch {
+        if ((Test-Path $rollback) -and -not (Test-Path $target)) {
+            try { [System.IO.File]::Move($rollback, $target) } catch {}
+        }
+        throw
+    } finally {
+        Remove-Item $temp -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -349,6 +410,17 @@ function register-official-plugin {
     }
 
     $initialSettingsState = official-plugin-settings-state
+    if ($initialSettingsState -eq "disabled" -and (Test-Path $OfficialFallbackMarker)) {
+        $script:PluginRuntimeMode = "official-retry"
+        reconcile-standalone-hooks
+        if ((official-plugin-settings-state) -eq "enabled") {
+            $initialSettingsState = "enabled"
+            Write-CN "上次因校验失败临时停用了官方入口；本次重新尝试正式插件注册。" Yellow
+        } else {
+            select-safe-plugin-fallback "无法安全切换到正式插件重试状态"
+            return
+        }
+    }
     if ($initialSettingsState -eq "disabled") {
         if (Test-Path "$ScriptDir\.claude-plugin\marketplace.json") {
             $marketplaceSource = official-marketplace-source
@@ -364,7 +436,7 @@ function register-official-plugin {
     }
 
     if ($UpdateOnly -and (verify-official-plugin-registration $claudeCli)) {
-        $script:PluginRuntimeMode = "official"
+        mark-official-plugin-verified
         Write-CN "官方插件注册已验证（user scope）" Green
         return
     }
@@ -382,7 +454,7 @@ function register-official-plugin {
         try { & $claudeCli plugin marketplace update $OfficialMarketplaceName *> $null } catch {}
         try { & $claudeCli plugin update $OfficialPluginId --scope user *> $null } catch {}
         if (verify-official-plugin-registration $claudeCli) {
-            $script:PluginRuntimeMode = "official"
+            mark-official-plugin-verified
             Write-CN "官方插件注册已验证（user scope）" Green
         } else {
             select-safe-plugin-fallback "官方插件自动更新后校验失败"
@@ -397,7 +469,7 @@ function register-official-plugin {
         & $claudeCli plugin marketplace add --scope user $marketplaceSource *> $null
         if ($LASTEXITCODE -ne 0) {
             if (verify-official-plugin-registration $claudeCli) {
-                $script:PluginRuntimeMode = "official"
+                mark-official-plugin-verified
                 Write-CN "插件市场刷新失败，继续使用已验证的官方 user 插件。" Yellow
             } else {
                 select-safe-plugin-fallback "插件市场注册失败"
@@ -421,7 +493,7 @@ function register-official-plugin {
     }
 
     if (verify-official-plugin-registration $claudeCli) {
-        $script:PluginRuntimeMode = "official"
+        mark-official-plugin-verified
         Write-CN "官方插件注册已验证（user scope）" Green
     } else {
         if ($pluginInstallFailed) {
@@ -433,14 +505,33 @@ function register-official-plugin {
 }
 
 function reconcile-standalone-hooks {
+    $fallbackMarkerCreated = $false
+    if ($PluginRuntimeMode -eq "standalone" -and -not (Test-Path $OfficialFallbackMarker)) {
+        try {
+            New-Item -Force -ItemType Directory -Path $PluginDst | Out-Null
+            "standalone" | Out-File -FilePath $OfficialFallbackMarker -Encoding ascii -NoNewline
+            $fallbackMarkerCreated = $true
+        } catch {
+            $script:PluginRuntimeMode = "official-unverified"
+            Write-CN "无法写入正式插件重试标记；为避免重复 Hook，本次不注入备用 Hook。" Yellow
+        }
+    }
+
     try {
-        run-js $JS_RECONCILE_STANDALONE_HOOKS @($SettingsFile, $PluginDst, $PluginRuntimeMode) | Out-Null
+        $reconciledJson = ((run-js $JS_RECONCILE_STANDALONE_HOOKS @($SettingsFile, $PluginDst, $PluginRuntimeMode, $OfficialPluginId)) | Out-String).Trim()
         if ($LASTEXITCODE -ne 0) { throw "hook reconciliation failed" }
+        if ($reconciledJson) {
+            commit-settings-json-safely $reconciledJson
+        }
         if ($PluginRuntimeMode -eq "standalone") {
             Write-CN "已启用独立备用 Hook（不会与官方插件 Hook 同时加载）" Yellow
         }
     } catch {
-        Write-CN "备用 Hook 写入失败；基础中文设置和 CLI Patch 仍保持可用。" Yellow
+        if ($fallbackMarkerCreated) {
+            Remove-Item $OfficialFallbackMarker -Force -ErrorAction SilentlyContinue
+        }
+        $script:PluginRuntimeMode = "official-unverified"
+        Write-CN "备用 Hook 安全写入失败；为避免重复 Hook，本次保留官方入口。基础中文设置和 CLI Patch 仍保持可用。" Yellow
     }
 }
 
@@ -982,13 +1073,6 @@ function compare-version {
     return 0
 }
 
-function test-same-minor {
-    param([string]$Left, [string]$Right)
-    $leftParts = @($Left -split '\.')
-    $rightParts = @($Right -split '\.')
-    return $leftParts.Count -ge 2 -and $rightParts.Count -ge 2 -and $leftParts[0] -eq $rightParts[0] -and $leftParts[1] -eq $rightParts[1]
-}
-
 function test-version-in-entry {
     param($Entry, [string]$Version)
     if (-not $Entry -or -not $Version) { return $false }
@@ -1014,7 +1098,7 @@ function can-try-provisional-windows-native-version {
     $entry = $support.windowsNativeExperimental
     if (-not $entry -or -not $entry.floor) { return $false }
     if ($entry.platform -and [string]$entry.platform -ne "win32-x64") { return $false }
-    return (test-same-minor $Version ([string]$entry.floor)) -and ((compare-version $Version ([string]$entry.floor)) -ge 0)
+    return (compare-version $Version ([string]$entry.floor)) -ge 0
 }
 
 function get-native-version-from-execution {

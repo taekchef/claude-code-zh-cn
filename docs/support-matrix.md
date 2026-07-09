@@ -17,8 +17,8 @@
 
 - 验证等级只表示公开证据和翻译覆盖程度，不是运行门禁。
 - `stable`：代表版本段已通过 compat matrix，且 npm 路径具备启动前自修复。
-- `experimental`：已有 native 运行和显示面证据；同一 major.minor 新版先本机自检，已知文案继续中文，未知文案保留英文。
-- `unsupported`：不执行该平台的原生 Layer 4；跨 major.minor 只跳过原生 Layer 4，正式插件的 Layer 1~3 继续可用。
+- `experimental`：已有 native 运行和显示面证据；更高可识别版本也会先本机自检，已知文案继续中文，未知文案保留英文。
+- `unsupported`：该平台或二进制格式不执行原生 Layer 4；正式插件的 Layer 1~3 继续可用。
 
 ## Current Support
 

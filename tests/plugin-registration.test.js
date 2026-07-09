@@ -275,11 +275,51 @@ test("install replaces a stale enabled record with standalone hooks when officia
   const result = runInstall(context);
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /已有启用记录无法证明插件实际已加载.*启用独立备用 Hook/);
+  assert.match(output, /将停用未确认的官方入口.*启用一套独立备用 Hook/);
+
+  const settings = JSON.parse(fs.readFileSync(context.settingsFile, "utf8"));
+  assert.equal(settings.enabledPlugins["claude-code-zh-cn@claude-code-zh-cn"], false);
+  assert.equal(standaloneHooks(settings, context.pluginRoot).length, 2);
+  assert.equal(fs.existsSync(path.join(context.pluginRoot, ".official-fallback-disabled")), true);
+});
+
+test("standalone fallback preserves a symlinked settings file and its target mode", { skip: unixShellRequired }, () => {
+  const context = createInstallContext("install-fails");
+  const realSettingsFile = path.join(context.home, "settings-target.json");
+  const before = JSON.parse(fs.readFileSync(context.settingsFile, "utf8"));
+  before.enabledPlugins = { "claude-code-zh-cn@claude-code-zh-cn": true };
+  writeJson(realSettingsFile, before);
+  fs.chmodSync(realSettingsFile, 0o600);
+  fs.unlinkSync(context.settingsFile);
+  fs.symlinkSync(realSettingsFile, context.settingsFile);
+
+  const result = runInstall(context);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
+
+  assert.equal(fs.lstatSync(context.settingsFile).isSymbolicLink(), true);
+  assert.equal(fs.statSync(realSettingsFile).mode & 0o777, 0o600);
+  const settings = JSON.parse(fs.readFileSync(realSettingsFile, "utf8"));
+  assert.equal(settings.enabledPlugins["claude-code-zh-cn@claude-code-zh-cn"], false);
+  assert.equal(standaloneHooks(settings, context.pluginRoot).length, 2);
+});
+
+test("reinstall retries official registration after a temporary fallback and removes duplicate hooks", { skip: unixShellRequired }, () => {
+  const context = createInstallContext("install-fails");
+  const first = runInstall(context);
+  assert.equal(first.status, 0, `${first.stdout}\n${first.stderr}`);
+
+  context.env.ZH_CN_FAKE_CLAUDE_MODE = "success";
+  const second = runInstall(context);
+  const output = `${second.stdout}\n${second.stderr}`;
+  assert.equal(second.status, 0, output);
+  assert.match(output, /重新尝试正式插件注册/);
+  assert.match(output, /官方插件注册已验证/);
 
   const settings = JSON.parse(fs.readFileSync(context.settingsFile, "utf8"));
   assert.equal(settings.enabledPlugins["claude-code-zh-cn@claude-code-zh-cn"], true);
-  assert.equal(standaloneHooks(settings, context.pluginRoot).length, 2);
+  assert.equal(standaloneHooks(settings, context.pluginRoot).length, 0);
+  assert.equal(fs.existsSync(path.join(context.pluginRoot, ".official-fallback-disabled")), false);
 });
 
 test("install respects an explicitly disabled official plugin without enabling fallback hooks", { skip: unixShellRequired }, () => {
@@ -307,7 +347,7 @@ test("install falls back to one standalone hook set when official plugin install
   const firstOutput = `${first.stdout}\n${first.stderr}`;
 
   assert.equal(first.status, 0, firstOutput);
-  assert.match(firstOutput, /官方插件注册未完成（官方插件安装失败）/);
+  assert.match(firstOutput, /官方插件 CLI 校验未完成（官方插件安装失败）/);
   assert.match(firstOutput, /已启用独立备用 Hook/);
 
   const second = runInstall(context);
@@ -507,6 +547,13 @@ test("Windows install and uninstall scripts mirror the verified official-plugin 
   assert.match(install, /plugin marketplace list --json/);
   assert.match(install, /plugin list --json/);
   assert.match(install, /function reconcile-standalone-hooks \{/);
+  assert.match(install, /\.official-fallback-disabled/);
+  assert.match(install, /function commit-settings-json-safely \{/);
+  assert.match(install, /\[System\.IO\.File\]::Replace/);
+  assert.match(install, /fs\.realpathSync\(file\)/);
+  assert.match(install, /official-retry/);
+  assert.doesNotMatch(install, /set-official-plugin-enabled-state/);
+  assert.match(install, /为避免重复 Hook，本次不注入备用 Hook/);
   assert.match(install, /--standalone/);
   assert.match(install, /path\.join\(pluginRoot,"hooks","session-start\.js"\)/);
   assert.match(install, /path\.join\(pluginRoot,"hooks","notification\.js"\)/);

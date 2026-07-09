@@ -253,10 +253,9 @@ if(!candidate) process.exit(1);
 for(const key of ["macosNativeOfficialInstallerExperimental","macosNativeExperimental","windowsNativeExperimental"]){
   const entry=data[key];
   if(!entry||entry.platform!==platform) continue;
-  const floor=parse(entry.floor), ceiling=parse(entry.ceiling);
-  if(!floor||!ceiling) continue;
-  const sameLine=candidate[0]===ceiling[0]&&candidate[1]===ceiling[1];
-  if(sameLine&&compare(candidate,floor)>=0) process.exit(0);
+  const floor=parse(entry.floor);
+  if(!floor) continue;
+  if(compare(candidate,floor)>=0) process.exit(0);
 }
 process.exit(1);
 '@
@@ -519,7 +518,7 @@ if ($InstallInfo) {
             }
         } else {
             Remove-Item $NativePatchPendingFile -Force -ErrorAction SilentlyContinue
-            $AutoPatchMsg = "（Windows native 已跨出当前验证版本线，本次不改写正在运行的 claude.exe；Layer 1~3 继续生效）"
+            $AutoPatchMsg = "（Windows native 当前格式或版本无法进入本机自验证；本次不改写正在运行的 claude.exe，Layer 1~3 继续生效）"
         }
     } elseif ($Kind -eq "npm" -and $Target -and (Test-Path $Target)) {
         $CurrentVersion = Read-CliVersion $Target

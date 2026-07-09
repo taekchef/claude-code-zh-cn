@@ -323,14 +323,15 @@ test("Windows session-start hook never rewrites the running native exe and recor
   assert.doesNotMatch(script, /\$AutoPatchMsg = Invoke-NativePatch \$Target/);
 });
 
-test("Unix native session-start serializes the whole binary patch transaction", () => {
+test("Unix session-start serializes native and npm patch transactions", () => {
   const script = fs.readFileSync(hookPath, "utf8");
 
-  assert.match(script, /native_patch_lock_path\(\)/);
-  assert.match(script, /mkdir "\$NATIVE_LOCK_DIR"/);
+  assert.match(script, /patch_lock_path\(\)/);
+  assert.match(script, /mkdir "\$PATCH_LOCK_DIR"/);
   assert.match(script, /kill -0 "\$lock_pid"/);
-  assert.match(script, /acquire_native_patch_lock "\$NATIVE_BINARY"/);
-  assert.match(script, /release_native_patch_lock/);
+  assert.match(script, /acquire_patch_lock "\$NATIVE_BINARY"/);
+  assert.match(script, /acquire_patch_lock "\$CLI_FILE"/);
+  assert.match(script, /release_patch_lock/);
   assert.match(script, /trap cleanup EXIT/);
 });
 
@@ -414,6 +415,88 @@ printf 1
   assert.equal(fs.readFileSync(repackCountFile, "utf8").trim().split("\n").length, 1);
   assert.equal((fs.readFileSync(nativeBinary, "utf8").match(/PATCHED/g) || []).length, 1);
   assert.equal(fs.readdirSync(tmp).some((name) => name.endsWith(".lock")), false, "native lock leaked after exit");
+});
+
+test("concurrent Unix session-start hooks invoke the npm patch transaction only once", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-npm-lock-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "plugin");
+  const fakeClaude = path.join(tmp, "claude");
+  const cliFile = path.join(tmp, "cli.js");
+  const startedFile = path.join(tmp, "patch-started");
+  const callsFile = path.join(tmp, "patch-calls");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.writeFileSync(fakeClaude, "#!/usr/bin/env bash\nprintf '2.1.112 (Claude Code)\\n'\n");
+  fs.chmodSync(fakeClaude, 0o755);
+  fs.writeFileSync(
+    cliFile,
+    '#!/usr/bin/env node\n// Version: 2.1.112\nconst waiting="Waiting for permission\\u2026";\n'
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    `#!/usr/bin/env node
+if (process.argv[2] === "detect") process.stdout.write("npm:" + ${JSON.stringify(cliFile)});
+else process.exit(1);
+`
+  );
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash
+shift
+status_file=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--status" ]; then status_file="$2"; shift 2; else shift; fi
+done
+printf '1\\n' >> ${JSON.stringify(callsFile)}
+printf started > ${JSON.stringify(startedFile)}
+sleep 1
+printf ok > "$status_file"
+printf 1
+`
+  );
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  const runHook = (stateRoot) => new Promise((resolve, reject) => {
+    const child = spawn("bash", [hookPath], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        HOME: home,
+        TMPDIR: tmp,
+        CLAUDE_PLUGIN_ROOT: pluginRoot,
+        CLAUDE_PLUGIN_DATA: stateRoot,
+        ZH_CN_REAL_CLAUDE: fakeClaude,
+        ZH_CN_DISABLE_AUTO_UPDATE: "1",
+      },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, stdout, stderr }));
+    child.stdin.end("\n");
+  });
+
+  const first = runHook(path.join(tmp, "state-a"));
+  const waitDeadline = Date.now() + 3000;
+  while (!fs.existsSync(startedFile) && Date.now() < waitDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  assert.equal(fs.existsSync(startedFile), true, "first hook never entered the npm patch transaction");
+  const second = runHook(path.join(tmp, "state-b"));
+  const results = await Promise.all([first, second]);
+
+  for (const result of results) {
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.doesNotThrow(() => JSON.parse(result.stdout));
+  }
+  assert.equal(fs.readFileSync(callsFile, "utf8").trim().split("\n").length, 1);
+  assert.equal(fs.readdirSync(tmp).some((name) => name.endsWith(".lock")), false, "npm lock leaked after exit");
 });
 
 test("session-start context protects machine-readable configuration", () => {
@@ -1338,13 +1421,12 @@ test("session-start provisionally patches newer native versions and leaves unkno
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
-test("session-start keeps a future native release line untouched for manual compatibility review", () => {
+test("session-start provisionally patches a future native release and leaves unknown copy in English", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-future-line-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
   const fakeBin = path.join(tmp, "bin");
   const fakeBinary = path.join(tmp, "claude-native");
-  const invokedFile = path.join(tmp, "patch-invoked");
   const markerFile = path.join(pluginRoot, ".patched-version");
 
   fs.mkdirSync(pluginRoot, { recursive: true });
@@ -1352,17 +1434,13 @@ test("session-start keeps a future native release line untouched for manual comp
 
   copyTree(path.join(repoRoot, "plugin"), pluginRoot);
   writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
-  fs.writeFileSync(
-    path.join(pluginRoot, "patch-cli.sh"),
-    `#!/usr/bin/env bash
-set -euo pipefail
-printf 'invoked' > ${JSON.stringify(invokedFile)}
-printf '1'
-`
-  );
   fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
 
-  const originalBinary = nativeShellFixture("2.2.0", 'const waiting="Waiting for permission\\u2026";');
+  const originalBinary = nativeShellFixture(
+    "2.2.0",
+    ['const waiting="Waiting for permission\\u2026";', 'const newCopy="Brand new upstream wording";'].join("\n")
+  );
+  const sourceHash = crypto.createHash("sha256").update(originalBinary).digest("hex");
   fs.writeFileSync(fakeBinary, originalBinary);
   fs.chmodSync(fakeBinary, 0o755);
   fs.writeFileSync(markerFile, "native|2.1.205|stale|old-revision\n");
@@ -1384,9 +1462,13 @@ printf '1'
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(fs.existsSync(invokedFile), false, "a new release line must not be modified automatically");
-  assert.equal(fs.readFileSync(fakeBinary, "utf8"), originalBinary, "the upstream binary must stay byte-for-byte intact");
-  assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "native|2.1.205|stale|old-revision");
+  const patchedBinary = fs.readFileSync(fakeBinary, "utf8");
+  assert.match(patchedBinary, /等待权限确认…/, "known copy should stay Chinese across a future release line");
+  assert.match(patchedBinary, /Brand new upstream wording/, "new upstream copy should remain English");
+  assert.match(
+    fs.readFileSync(markerFile, "utf8").trim(),
+    new RegExp(`^native\\|2\\.2\\.0\\|[a-f0-9]{64}\\|[a-f0-9]{16,64}\\|provisional\\|darwin-arm64\\|${sourceHash}$`)
+  );
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
