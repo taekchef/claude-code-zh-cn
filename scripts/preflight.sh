@@ -79,6 +79,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
+step "No packaging artifacts committed (pack-staging/*.tgz)"
+# 打包/下载残留（pack-staging/、*.tgz）绝不该进仓库
+if git ls-files | grep -qE '(^|/)(pack-staging/|.*\.tgz$)'; then
+  echo "  误提交了打包残留（pack-staging/ 或 *.tgz），请 git rm --cached 后重试：" >&2
+  git ls-files | grep -E '(^|/)(pack-staging/|.*\.tgz$)' | sed 's/^/    /' >&2
+  exit 1
+fi
+
 step "Shell syntax check"
 run bash -n install.sh
 run bash -n uninstall.sh
@@ -90,13 +98,14 @@ run bash -n plugin/bin/claude-launcher
 run bash -n plugin/hooks/session-start
 run bash -n plugin/hooks/notification
 run bash -n plugin/profile/claude-code-zh-cn.sh
+run bash -n plugin/skill-i18n/translate-skills.sh
 
 step "JavaScript syntax check"
 run node --check bun-binary-io.js
 run node --check plugin/bun-binary-io.js
+run node --check plugin/patch-cli.js
 run node --check plugin/hooks/notification.js
 run node --check plugin/hooks/session-start.js
-run node --check plugin/patch-cli.js
 run node --check plugin/scripts/zh-cn-doctor.js
 run node --check scripts/check-payload-sources.js
 run node --check scripts/check-pr-autoclose-keywords.js
@@ -114,6 +123,15 @@ run node --check scripts/sync-readme-support-window.js
 run node --check scripts/verify-release-state.js
 run node --check scripts/verify-upstream-compat.js
 run node --check scripts/zh-cn-doctor.js
+run node --check plugin/skill-i18n/scan.js
+run node --check plugin/skill-i18n/translate.js
+run node --check plugin/skill-i18n/apply.js
+run node --check plugin/skill-i18n/restore.js
+run node --check plugin/skill-i18n/lib/frontmatter.js
+run node --check plugin/skill-i18n/lib/collect.js
+run node --check plugin/skill-i18n/lib/cjk.js
+run node --check plugin/skill-i18n/lib/cache.js
+run node --check plugin/skill-i18n/lib/metadata.js
 
 if [ "$SKIP_PAYLOAD_SOURCE" -eq 1 ]; then
   step "Check payload source edits"

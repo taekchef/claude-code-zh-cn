@@ -380,6 +380,12 @@ if (-not $RESTORED) {
     }
 }
 
+# 还原 skill/插件命令说明为英文（必须在移除插件目录前，否则 restore.js 已不存在）
+if ((Test-Path "$PluginDst/skill-i18n/restore.js") -and (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Host "还原 skill/插件命令说明为英文..." -ForegroundColor Blue
+    & node "$PluginDst/skill-i18n/restore.js" --all 2>$null | Out-Null
+}
+
 # 5. 移除插件目录
 if (Test-Path $PluginDst) {
     Remove-Item -Recurse -Force $PluginDst
