@@ -1541,3 +1541,9 @@ printf 'invoked' > ${JSON.stringify(invokedFile)}
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "2.1.92|stale-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
+
+test("skill-i18n 默认禁用，需 ZH_CN_SKILL_I18N_ENABLE=1 才触发，HOOK=1 防递归（review #1/#3）", () => {
+  const hook = fs.readFileSync(hookPath, "utf8");
+  assert.match(hook, /ZH_CN_SKILL_I18N_ENABLE:-0\}.*=.*"1".*translate-skills/, "hook 必须用 ENABLE=1 作为 translate-skills 触发条件");
+  assert.match(hook, /ZH_CN_SKILL_I18N_HOOK.*!=.*1.*translate-skills/, "hook 必须在 HOOK=1 时跳过 translate-skills（防递归）");
+});
