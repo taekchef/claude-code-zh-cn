@@ -854,13 +854,15 @@ repair_settings_from_cache
 # 默认禁用：会消耗用户 token/额度 + 修改本机文件，需用户显式 ZH_CN_SKILL_I18N_ENABLE=1 开启
 # HOOK=1 跳过：翻译子进程（translate spawn 的 claude CLI）不再触发同一 hook（防递归，review #3）
 if [ "${ZH_CN_SKILL_I18N_ENABLE:-0}" = "1" ] && [ "${ZH_CN_SKILL_I18N_HOOK:-0}" != "1" ] && [ -x "$PLUGIN_ROOT/skill-i18n/translate-skills.sh" ]; then
+    # `( ) &` subshell 自身是新进程组的 leader，subshell PID == PGID。
+    # kill -- -PID 杀整个进程组（subshell + node + claude），25s 超时真的能停（review #3）。
     (
         ZH_CN_SKILL_I18N_HOOK=1 \
         CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
         bash "$PLUGIN_ROOT/skill-i18n/translate-skills.sh" >/dev/null 2>&1
     ) &
     SKILL_I18N_PID=$!
-    ( sleep "${ZH_CN_SKILL_I18N_TIMEOUT:-25}"; kill "$SKILL_I18N_PID" 2>/dev/null ) &
+    ( sleep "${ZH_CN_SKILL_I18N_TIMEOUT:-25}"; kill -- -"$SKILL_I18N_PID" 2>/dev/null ) &
     disown "$SKILL_I18N_PID" 2>/dev/null || true
 fi
 

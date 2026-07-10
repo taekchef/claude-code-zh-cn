@@ -1547,3 +1547,9 @@ test("skill-i18n 默认禁用，需 ZH_CN_SKILL_I18N_ENABLE=1 才触发，HOOK=1
   assert.match(hook, /ZH_CN_SKILL_I18N_ENABLE:-0\}.*=.*"1".*translate-skills/, "hook 必须用 ENABLE=1 作为 translate-skills 触发条件");
   assert.match(hook, /ZH_CN_SKILL_I18N_HOOK.*!=.*1.*translate-skills/, "hook 必须在 HOOK=1 时跳过 translate-skills（防递归）");
 });
+
+test("skill-i18n 超时用 kill -- -PID 杀进程组，subshell+node+claude 孙子都停（review）", () => {
+  const hook = fs.readFileSync(hookPath, "utf8");
+  // 必须用负数 PGID kill（杀整组），不能只 kill 正数 PID（只杀 subshell，node/claude 孙子继续跑）
+  assert.match(hook, /kill\s+--\s+-"?\$\{?SKILL_I18N_PID/, "hook 25s 超时必须 kill -- -PID（进程组 kill，subshell+孙子都停）");
+});
