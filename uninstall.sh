@@ -397,7 +397,7 @@ if [ "$RESTORED" = false ]; then
 fi
 
 # 还原 skill/插件命令说明为英文（必须在移除插件目录前，否则 restore.js 已不存在）
-if [ -x "$PLUGIN_DST/skill-i18n/restore.js" ] && command -v node >/dev/null 2>&1; then
+if [ -f "$PLUGIN_DST/skill-i18n/restore.js" ] && command -v node >/dev/null 2>&1; then
     echo -e "${BLUE}还原 skill/插件命令说明为英文...${NC}"
     node "$PLUGIN_DST/skill-i18n/restore.js" --all >/dev/null 2>&1 || true
 fi
