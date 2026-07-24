@@ -50,7 +50,7 @@ jobs:
 
       - name: PowerShell install smoke
         shell: powershell
-        run: node --test tests/install-smoke.test.js
+        run: node --test tests/install-smoke.test.js tests/hook-entrypoints.test.js
 
   windows-native-compat:
     name: windows-native-compat
