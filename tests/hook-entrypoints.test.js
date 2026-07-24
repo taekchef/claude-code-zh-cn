@@ -42,6 +42,63 @@ printf '%s\\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additiona
   assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, "forwarded");
 });
 
+test("Windows session-start hook preserves UTF-8 Chinese in redirected stdout", { skip: process.platform !== "win32" }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-windows-utf8-"));
+  const pluginRoot = path.join(tmp, "plugin");
+  const hooksDir = path.join(pluginRoot, "hooks");
+  const userProfile = path.join(tmp, "home");
+  const pluginData = path.join(tmp, "data");
+  fs.mkdirSync(hooksDir, { recursive: true });
+  fs.mkdirSync(userProfile, { recursive: true });
+  fs.mkdirSync(pluginData, { recursive: true });
+  fs.copyFileSync(
+    path.join(repoRoot, "plugin", "hooks", "session-start.ps1"),
+    path.join(hooksDir, "session-start.ps1")
+  );
+
+  const systemRoot = process.env.SystemRoot || "C:\\Windows";
+  const commands = [
+    path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
+    path.join(process.env.ProgramFiles || "C:\\Program Files", "PowerShell", "7", "pwsh.exe"),
+  ].filter((command) => fs.existsSync(command));
+  assert.ok(commands.some((command) => path.basename(command).toLowerCase() === "powershell.exe"));
+
+  const env = {
+    ...process.env,
+    USERPROFILE: userProfile,
+    HOME: userProfile,
+    TEMP: tmp,
+    TMP: tmp,
+    CLAUDE_PLUGIN_ROOT: pluginRoot,
+    CLAUDE_PLUGIN_DATA: pluginData,
+    ZH_CN_DISABLE_AUTO_UPDATE: "1",
+    PATH: [
+      path.join(systemRoot, "System32"),
+      path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0"),
+    ].join(path.delimiter),
+  };
+  delete env.ZH_CN_REAL_CLAUDE;
+
+  for (const command of commands) {
+    const result = spawnSync(
+      command,
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path.join(hooksDir, "session-start.ps1")],
+      { input: "{}\n", env, timeout: 30_000 }
+    );
+
+    assert.equal(result.status, 0, result.stderr.toString("utf8") || result.stdout.toString("utf8"));
+    assert.equal(result.signal, null, `${command} timed out`);
+    assert.equal(result.stdout.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf])), false);
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(result.stdout);
+    const output = JSON.parse(text);
+    const context = output.hookSpecificOutput.additionalContext;
+    assert.equal(output.hookSpecificOutput.hookEventName, "SessionStart");
+    assert.match(context, /^## 中文本地化提示/);
+    assert.match(context, /你正在使用中文本地化版本/);
+    assert.doesNotMatch(context, /�/);
+  }
+});
+
 test("standalone session entrypoint injects its own plugin root into the child hook", { skip: process.platform === "win32" }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-standalone-root-"));
   const pluginRoot = path.join(tmp, "custom-plugin-root");

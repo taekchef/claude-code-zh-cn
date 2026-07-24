@@ -1,10 +1,11 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # session-start hook for claude-code-zh-cn (Windows PowerShell 版本)
 # 1. 注入中文上下文指令
 # 2. 检测插件 Release 更新并同步安装态
 # 3. npm cli.js 可自动重 patch；Windows native 记录安全交接，避免改写正在运行的 exe
 
 $ErrorActionPreference = "SilentlyContinue"
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 $LegacyPluginRoot = "$env:USERPROFILE\.claude\plugins\claude-code-zh-cn"
 $PluginRoot = if ($env:CLAUDE_PLUGIN_ROOT) {
