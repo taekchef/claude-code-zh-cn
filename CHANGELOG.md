@@ -6,6 +6,16 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.6.1] - 2026-07-26
+
+### 修复
+
+- Windows 上 `session-start.ps1` 在 stdout 被重定向时按系统代码页（如 CP936）输出，导致注入 Claude 的中文上下文变成乱码。脚本改为 UTF-8 with BOM 存储（兼容 Windows PowerShell 5.1 按代码页解析无 BOM 脚本的行为），并显式将 stdout 设为无 BOM 的 UTF-8，与 Node 包装器的 UTF-8 解码对齐。(#190)
+
+### 验证
+
+- 新增 Windows 回归测试，同时覆盖 `powershell.exe`（5.1）和 `pwsh.exe`（7，若存在），断言 stdout 不含 BOM、可被严格 UTF-8 解码、中文上下文正确、无替代字符 `�`；并接入 Windows CI。
+
 ## [2.6.0] - 2026-07-10
 
 ### 新增
