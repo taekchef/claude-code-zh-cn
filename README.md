@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 <!-- readme-support-window:badges:start -->
 [![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
-[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.216-green)](./docs/support-matrix.md)
+[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
 [![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.216-green)](./docs/support-matrix.md)
 <!-- readme-support-window:badges:end -->
 [![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
@@ -65,7 +65,7 @@ Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面�
 |------|-----------|------|
 | macOS / Linux / WSL · npm 全局安装 | `2.1.92 - 2.1.112` | 翻译最完整；launcher 启动前自修复 + `session-start` 兜底 |
 | macOS · 官方安装器（native） | `2.1.110 - 2.1.112` | 需要 `node-lief` |
-| macOS · native binary（arm64） | `2.1.113 - 2.1.216` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| macOS · native binary（arm64） | `2.1.113 - 2.1.220` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
 | Windows · native .exe（x64） | `2.1.113 - 2.1.216` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Linux · 官方安装器 | 暂无已验证版本 | 仅 Layer 1~3 生效 |
@@ -157,7 +157,7 @@ Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被�
 | `curl -fsSL https://claude.ai/install.sh \| sh`（latest） | 新版先本机自检再启用 CLI Patch；格式或自检失败时只保留 Layer 1~3 |
 | `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.216` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
 
-> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 `2.1.113 - 2.1.216` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高版本也会本机自检，需要 `node-lief`。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 `install.ps1`。
+> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 `2.1.113 - 2.1.220` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高版本也会本机自检，需要 `node-lief`。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 `install.ps1`。
 
 安装脚本会自动检测安装方式，无需手动选择。
 <!-- readme-support-window:install-advice:end -->
