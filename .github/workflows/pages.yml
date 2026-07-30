@@ -2,7 +2,7 @@ name: Deploy website to GitHub Pages
 
 on:
   push:
-    branches: [main, codex/readme-growth-site]
+    branches: [main]
     paths:
       - "site/**"
       - ".github/workflows/pages.yml"
