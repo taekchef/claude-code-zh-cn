@@ -1,6 +1,10 @@
 <div align="center">
 
-# Claude Code 中文本地化
+# claude-code-zh-cn
+
+**Claude Code 简体中文本地化插件**
+
+让终端里的 AI 编程助手说中文 🇨🇳
 
 **一条命令，把 Claude Code 的终端界面、等待提示、系统通知和默认回复切换为简体中文。**
 
