@@ -10,16 +10,55 @@
 
 187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化；另有 1895 条界面翻译。
 
-[![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
+[![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+<!-- readme-support-window:badges:start -->
+[![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
+[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
+[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
+<!-- readme-support-window:badges:end -->
+[![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
 
 **macOS · Linux · WSL · Windows**
 
+**一行远程安装 · 更新后自动修复 · 卸载不丢配置**
+
 </div>
+
+---
+
+## 效果预览
 
 ![Claude Code 中文本地化演示](./docs/assets/claude-code-zh-cn-demo.gif)
 
 > **真实 Ghostty 录制**：同一台 Mac、同一个 Claude Code `2.1.211`，先运行安装前备份的原版可执行文件，再运行当前中文补丁版。动图只做缩放和前后切换，没有重绘或仿造终端内容。
+
+**安装前：**
+
+```text
+⠙ Photosynthesizing...
+
+  Tip: Press Shift+Tab to switch between default, auto-accept edits, and plan modes
+```
+
+**安装后：**
+
+```text
+⠙ 光合作用中...
+
+  💡 按 Shift+Tab 在默认模式、自动接受编辑模式和 Plan 模式之间切换
+```
+
+更多画风：
+
+```text
+⠙ 蹦迪中...          ⠙ 七荤八素中...         ⠙ 搞事情中...
+⠙ 瞎忙活中...        ⠙ 花里胡哨中...         ⠙ 变魔术中...
+
+  琢磨了 1分23秒
+```
+
+187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化，AI 默认中文回复。**装完即用。**
 
 ## 30 秒安装
 
@@ -39,7 +78,7 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 
 Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面。UI 文字主要硬编码在一个 13MB 的 `cli.js` 里，没有 i18n 基础设施。
 
-这个插件通过设置、Hook、插件系统和 CLI Patch 实现中文化，并自动检测安装方式。Claude Code 更新后会重新检查补丁；无法安全处理的内容保持英文。
+官方短期内不太可能加中文支持。所以我做了这个插件，通过四层机制（设置注入 + Hook 系统 + 插件系统 + CLI Patch）实现中文化，**自动检测安装方式，更新后自动修复**。遇到还没验证过的新版本也不怕：插件会自动降级，翻不了的部分保持英文，CLI 绝不会坏。
 
 ## 安装说明
 
@@ -145,12 +184,6 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 本地源码安装用户运行 `./uninstall.sh`（Windows：`powershell -File uninstall.ps1`）。精准移除插件注入的设置，保留你的其他配置不变。
 
 ## 支持范围
-
-<!-- readme-support-window:badges:start -->
-[![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
-[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
-[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
-<!-- readme-support-window:badges:end -->
 
 <!-- readme-support-window:support-systems:start -->
 | 平台 / 安装形态 | 已验证版本窗口 | 说明 |
