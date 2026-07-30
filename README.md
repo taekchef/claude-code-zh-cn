@@ -11,6 +11,7 @@
 187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化；另有 1895 条界面翻译。
 
 [![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
+[![官方网站](https://img.shields.io/badge/官方网站-GitHub%20Pages-222?logo=githubpages)](https://taekchef.github.io/claude-code-zh-cn/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 <!-- readme-support-window:badges:start -->
 [![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)

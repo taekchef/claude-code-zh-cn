@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { CopyInstallButton } from "./copy-install-button";
+import { GitHubStats } from "./github-stats";
 import projectData from "./project-data.json";
 import { TerminalDemo } from "./terminal-demo";
 
@@ -59,6 +60,7 @@ export default function Home() {
             <strong>{projectData.spinnerTips}</strong>
             <span>条中文提示</span>
           </div>
+          <GitHubStats />
           <div className="platform-metric">
             <strong>4</strong>
             <span>macOS / Linux / WSL / Windows</span>

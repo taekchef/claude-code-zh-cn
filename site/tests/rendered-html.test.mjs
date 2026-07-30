@@ -30,7 +30,7 @@ test("server-renders the official Chinese product site", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="zh-CN">/i);
-  assert.match(html, /Claude Code 中文本地化/);
+  assert.match(html, /Claude Code 简体中文本地化插件/);
   assert.match(html, /让终端里的/);
   assert.match(html, /为什么做这个/);
   assert.match(html, /交互终端模拟/);
@@ -40,6 +40,10 @@ test("server-renders the official Chinese product site", async () => {
   assert.match(html, /1895/);
   assert.match(html, /187/);
   assert.match(html, /41/);
+  assert.match(html, /GitHub Stars/);
+  assert.match(html, /GitHub Forks/);
+  assert.match(html, /rel="canonical"/);
+  assert.match(html, /name="twitter:card"/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|Your site is taking shape/);
 });
 

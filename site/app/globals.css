@@ -427,7 +427,7 @@ button {
 
 .metric-track {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.35fr;
+  grid-template-columns: repeat(5, 1fr) 1.35fr;
 }
 
 .metric-track > div {
@@ -1023,7 +1023,7 @@ button {
     grid-template-columns: 1fr 1fr;
   }
 
-  .metric-track > div:nth-child(2) {
+  .metric-track > div:nth-child(even) {
     border-right: 0;
   }
 
@@ -1032,7 +1032,7 @@ button {
     padding-left: 24px;
   }
 
-  .metric-track > div:nth-child(-n + 2) {
+  .metric-track > div:nth-child(-n + 4) {
     border-bottom: 1px solid var(--line);
   }
 
