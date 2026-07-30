@@ -1,112 +1,45 @@
 <div align="center">
 
-# claude-code-zh-cn
+# Claude Code 中文本地化
 
-**Claude Code 简体中文本地化插件**
+**一条命令，把 Claude Code 的终端界面、等待提示、系统通知和默认回复切换为简体中文。**
 
-让终端里的 AI 编程助手说中文 🇨🇳
+187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化；另有 1895 条界面翻译。
 
-[![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-<!-- readme-support-window:badges:start -->
-[![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
-[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
-[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
-<!-- readme-support-window:badges:end -->
 [![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-**一行远程安装 · 更新后自动修复 · 卸载不丢配置**
+**macOS · Linux · WSL · Windows**
 
 </div>
 
----
+![Claude Code 中文本地化演示](./docs/assets/claude-code-zh-cn-demo.gif)
 
-## 为什么做这个？
+> **真实 Ghostty 录制**：同一台 Mac、同一个 Claude Code `2.1.211`，先运行安装前备份的原版可执行文件，再运行当前中文补丁版。动图只做缩放和前后切换，没有重绘或仿造终端内容。
 
-Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面。UI 文字主要硬编码在一个 13MB 的 `cli.js` 里，没有 i18n 基础设施。
+## 30 秒安装
 
-官方短期内不太可能加中文支持。所以我做了这个插件，通过四层机制（设置注入 + Hook 系统 + 插件系统 + CLI Patch）实现中文化，**自动检测安装方式，更新后自动修复**。遇到还没验证过的新版本也不怕：插件会自动降级——翻不了的部分保持英文，CLI 绝不会坏。
-
-## 效果预览
-
-**安装前：**
-
-```
-⠙ Photosynthesizing...
-
-  Tip: Press Shift+Tab to switch between default, auto-accept edits, and plan modes
-```
-
-**安装后：**
-
-```
-⠙ 光合作用中...
-
-  💡 按 Shift+Tab 在默认模式、自动接受编辑模式和 Plan 模式之间切换
-```
-
-更多画风：
-
-```
-⠙ 蹦迪中...          ⠙ 七荤八素中...         ⠙ 搞事情中...
-⠙ 瞎忙活中...        ⠙ 花里胡哨中...         ⠙ 变魔术中...
-```
-
-```
-  琢磨了 1分23秒
-```
-
-187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化，AI 默认中文回复。**装完即用。**
-
-## 支持范围
-
-<!-- readme-support-window:support-systems:start -->
-| 平台 / 安装形态 | 已验证版本窗口 | 说明 |
-|------|-----------|------|
-| macOS / Linux / WSL · npm 全局安装 | `2.1.92 - 2.1.112` | 翻译最完整；launcher 启动前自修复 + `session-start` 兜底 |
-| macOS · 官方安装器（native） | `2.1.110 - 2.1.112` | 需要 `node-lief` |
-| macOS · native binary（arm64） | `2.1.113 - 2.1.220` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
-| Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
-| Windows · native .exe（x64） | `2.1.113 - 2.1.220` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
-| Linux · 官方安装器 | 暂无已验证版本 | 仅 Layer 1~3 生效 |
-
-> - **版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。
-> - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。
-> - **Windows 不热改运行中的 exe**：Claude Code 更新后先保持原版可用；关闭所有 Claude Code 窗口，再按 Windows 安装命令重跑 `install.ps1`，由安装器补丁并自检。
-> - **格式变化才停手**：如果未来版本不再是可识别的 native 格式、依赖缺失、提取失败或启动自检失败，只跳过 Layer 4，Layer 1~3 继续生效。
-> - **矩阵只记录证据**：纯上游兼容证据可以更新支持矩阵，不要求插件升版；只有插件代码、翻译或 manifest 变化才发布新版。
-> - **已验证版本完整清单**（含个别未收录版本）见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。
-> - Claude Code 从 `2.1.113` 起 npm 主包切换为 native binary，不再包含旧的 `cli.js`；要最完整的翻译请用 `npm install -g @anthropic-ai/claude-code@2.1.112`。
-<!-- readme-support-window:support-systems:end -->
-
-> **自动更新边界**：正式安装态由 Claude Code 插件管理器更新；旧环境的独立兜底安装只跟随本插件已发布 Release。Claude Code 本体升级不要求中文插件同步升版本；`DISABLE_AUTOUPDATER` / `DISABLE_UPDATER` 仍由 Claude Code 本体处理。
-
-## Skill / 插件命令说明自动汉化
-
-除了 cli.js 界面文字，本插件还能**汉化用户安装的 skill 和插件 `/` 命令的功能说明**——安装新 skill/插件后，开启本功能，下次启动 Claude Code 时，它们在 `/` 命令列表、`/skill`、`/plugin` 界面里的描述会翻译成简体中文。
-
-> ⚠ **开启前请知情**：本功能会**修改本机文件**——改写 `~/.claude/` 下 skill 的 `SKILL.md`、command 的 `.md`、插件的 `plugin.json`/`marketplace.json` 的 `description` 字段。原文备份到 `description_en`（JSON 为 `_description_en`），可用 `node plugin/skill-i18n/restore.js --all` 一键还原，卸载时也会自动还原。`description` 同时用于 model 自动触发 skill，翻译会影响触发判断（现代多语言 LLM 对中文描述触发良好）。
-
-- **默认禁用，需显式开启**：设 `ZH_CN_SKILL_I18N_ENABLE=1` 后，SessionStart hook 才会后台增量扫描（默认不跑，不消耗 token/额度）。
-- **覆盖范围**：用户与插件的 skill/command（递归扫描 `~/.claude/{skills,commands}` + `plugins/{cache,marketplaces}`）、插件元数据（`plugin.json` / `marketplace.json`）。
-- **翻译引擎**：默认用 `claude` CLI（零配置）；可配 OpenAI / Anthropic 兼容 API 加速。
-- **可逆**：原文备份（`description_en` + 标记），`restore.js --all` 一键还原，卸载时自动还原。
-
-详细配置（环境变量、API 接入、权衡说明）见 [`plugin/skill-i18n/README.md`](plugin/skill-i18n/README.md)。
-
-> **职责边界**：本功能只翻译**用户安装的** skill/插件说明。CC 自带命令（`/cd`、`/help` 等）的汉化仍由 cli.js patch（上方翻译表）覆盖。
-
-## 快速开始
-
-### 安装
-
-一行安装最新发布版：
+已经安装 Claude Code？运行：
 
 ```bash
 curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/install-remote.sh | bash
 ```
 
-这条命令会从本项目最新 GitHub Release 下载源码包，然后执行同一套 `install.sh`。它和官方安装器的区别：
+重启 Claude Code，看到“思考中”“光合作用中”等中文提示即安装成功。还没有 `claude` 命令，请先安装 [Claude Code](https://github.com/anthropics/claude-code)。
+
+> **安全边界**：安装前会备份原文件。补丁、重打包或启动自检失败时会保留或恢复原文件；遇到暂未适配的新文案时，对应内容保持英文，不影响 Claude Code 正常启动。
+
+如果它让你的 Claude Code 更顺手，欢迎点一下右上角 **Star**，这会帮助更多中文用户发现它。
+
+## 为什么做这个？
+
+Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面。UI 文字主要硬编码在一个 13MB 的 `cli.js` 里，没有 i18n 基础设施。
+
+这个插件通过设置、Hook、插件系统和 CLI Patch 实现中文化，并自动检测安装方式。Claude Code 更新后会重新检查补丁；无法安全处理的内容保持英文。
+
+## 安装说明
+
+首屏命令会从本项目最新 GitHub Release 下载源码包，然后执行同一套 `install.sh`。它和官方安装器的区别：
 
 | 命令 | 装什么 | 什么时候用 |
 |------|--------|------------|
@@ -207,6 +140,35 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 
 本地源码安装用户运行 `./uninstall.sh`（Windows：`powershell -File uninstall.ps1`）。精准移除插件注入的设置，保留你的其他配置不变。
 
+## 支持范围
+
+<!-- readme-support-window:badges:start -->
+[![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
+[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
+[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
+<!-- readme-support-window:badges:end -->
+
+<!-- readme-support-window:support-systems:start -->
+| 平台 / 安装形态 | 已验证版本窗口 | 说明 |
+|------|-----------|------|
+| macOS / Linux / WSL · npm 全局安装 | `2.1.92 - 2.1.112` | 翻译最完整；launcher 启动前自修复 + `session-start` 兜底 |
+| macOS · 官方安装器（native） | `2.1.110 - 2.1.112` | 需要 `node-lief` |
+| macOS · native binary（arm64） | `2.1.113 - 2.1.220` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
+| Windows · native .exe（x64） | `2.1.113 - 2.1.220` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| Linux · 官方安装器 | 暂无已验证版本 | 仅 Layer 1~3 生效 |
+
+> - **版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。
+> - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。
+> - **Windows 不热改运行中的 exe**：Claude Code 更新后先保持原版可用；关闭所有 Claude Code 窗口，再按 Windows 安装命令重跑 `install.ps1`，由安装器补丁并自检。
+> - **格式变化才停手**：如果未来版本不再是可识别的 native 格式、依赖缺失、提取失败或启动自检失败，只跳过 Layer 4，Layer 1~3 继续生效。
+> - **矩阵只记录证据**：纯上游兼容证据可以更新支持矩阵，不要求插件升版；只有插件代码、翻译或 manifest 变化才发布新版。
+> - **已验证版本完整清单**（含个别未收录版本）见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。
+> - Claude Code 从 `2.1.113` 起 npm 主包切换为 native binary，不再包含旧的 `cli.js`；要最完整的翻译请用 `npm install -g @anthropic-ai/claude-code@2.1.112`。
+<!-- readme-support-window:support-systems:end -->
+
+> **发布边界**：正式安装态由 Claude Code 插件管理器更新；旧环境的独立兜底安装只跟随本插件已发布 Release，不会跟随 `main` 上未发布的提交。Claude Code 本体升级不要求中文插件同步升版本；`DISABLE_AUTOUPDATER` / `DISABLE_UPDATER` 仍由 Claude Code 本体处理。
+
 ## 特色：187 个趣味动词翻译
 
 原版 Claude Code 的 spinner 有一堆故意搞怪的英文动词（`Flibbertigibbeting`、`Photosynthesizing`、`Moonwalking`...），我们全部按**原味**翻译了：
@@ -244,20 +206,20 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 
 Claude Code CLI 是一个 13MB 的单文件压缩包（`cli.js`，或 native 二进制内嵌 JS），UI 文字硬编码其中，没有 i18n 基础设施。本项目通过四层机制实现中文化：
 
-### Layer 1 — 内置设置（稳定，更新后不丢失）
+### Layer 1：内置设置（稳定，更新后不丢失）
 - `language`: 控制 AI 回复语言
 - `spinnerTipsOverride`: 替换等待提示文字
 - `spinnerVerbs`: 替换 spinner 动词
 
-### Layer 2 — Hook 系统（稳定，更新后不丢失）
+### Layer 2：Hook 系统（稳定，更新后不丢失）
 - `SessionStart`: 会话启动时注入中文上下文指令 + 委托插件管理器检查更新 + 检测版本自动重 patch
 - `Notification`: 拦截系统通知并翻译
 
-### Layer 3 — 插件系统（稳定，更新后不丢失）
+### Layer 3：插件系统（稳定，更新后不丢失）
 - 标准 Claude Code 插件格式
 - 提供 Chinese Output Style
 
-### Layer 4 — CLI Patch（自动维护，优雅降级）
+### Layer 4：CLI Patch（自动维护，优雅降级）
 - 基于 Node.js 的**字符串字面量扫描器**，先扫描真实双引号字符串 token，再逐条替换
 - 显式排除注释、模板字符串、正则字面量中的 `"`，避免误改代码结构
 - 从 `cli-translations.json` 读取翻译，按长度降序批量替换
@@ -278,6 +240,19 @@ Layer 1~3 完全不受 Claude Code 更新影响。Layer 4 的优雅降级闭环�
 
 </details>
 
+## 高级功能：Skill / 插件命令说明自动汉化
+
+除了 CLI 界面文字，本插件还能汉化用户安装的 Skill 和插件 `/` 命令说明。安装新 Skill 或插件后，开启本功能，下次启动 Claude Code 时，相关描述会显示为简体中文。
+
+> **开启前请知情**：本功能会修改本机文件，包括 `~/.claude/` 下 Skill 的 `SKILL.md`、Command 的 `.md`，以及插件 `plugin.json`、`marketplace.json` 中的 `description` 字段。原文会备份到 `description_en`，JSON 中备份到 `_description_en`。运行 `node plugin/skill-i18n/restore.js --all` 可一键还原，卸载时也会自动还原。`description` 同时用于模型自动触发 Skill，翻译可能影响触发判断。
+
+- **默认禁用，需显式开启**：设置 `ZH_CN_SKILL_I18N_ENABLE=1` 后，SessionStart Hook 才会后台增量扫描，默认不运行，也不消耗 token 或额度。
+- **覆盖范围**：递归扫描 `~/.claude/{skills,commands}`、`plugins/{cache,marketplaces}`，处理用户与插件的 Skill、Command 及插件元数据。
+- **翻译引擎**：默认使用 `claude` CLI，也可以配置 OpenAI 或 Anthropic 兼容 API。
+- **可逆**：保留原文备份，可用还原命令撤销，卸载时也会自动还原。
+
+详细配置和权衡说明见 [Skill 汉化说明](plugin/skill-i18n/README.md)。本功能只处理用户安装的 Skill 和插件说明；Claude Code 自带命令仍由 CLI Patch 汉化。
+
 ## 自定义
 
 想调整翻译？直接编辑对应的 JSON 文件：
@@ -297,7 +272,7 @@ vim verbs/zh-CN.json
 <details>
 <summary><b>Claude Code 更新后会失效吗？会不会把 CLI 弄坏？</b></summary>
 
-Layer 1~3（设置、Hook、插件）完全不受影响。Layer 4 会自动检测版本变更：新版在本机自检通过后，只翻译仍能精确匹配的文案；新文案保留英文。版本号本身不再关闭 native 补丁；格式、依赖、提取、重打包或启动自检失败时会保留或恢复原文件——**CLI 始终可用**。已验证证据见 [docs/support-matrix.md](./docs/support-matrix.md)。
+Layer 1~3（设置、Hook、插件）完全不受影响。Layer 4 会自动检测版本变更：新版在本机自检通过后，只翻译仍能精确匹配的文案；新文案保留英文。版本号本身不再关闭 native 补丁；格式、依赖、提取、重打包或启动自检失败时会保留或恢复原文件，Claude Code 本体仍可使用。已验证证据见 [docs/support-matrix.md](./docs/support-matrix.md)。
 
 这不等于本插件能阻止 Claude Code 本体升级。`DISABLE_AUTOUPDATER` / `DISABLE_UPDATER` 归 Claude Code 自己处理，是否生效请看 `claude doctor` 的 Updates 段。
 </details>
@@ -381,7 +356,7 @@ Windows：现已支持通过 `install.ps1` 在 PowerShell 5.1+ 中原生安装�
 
 ## English
 
-**claude-code-zh-cn** is a Simplified Chinese localization plugin for [Claude Code CLI](https://github.com/anthropics/claude-code). It translates 187 spinner verbs, 41 spinner tips, 1895 UI translations, notification messages, and more, with graceful degradation on unverified CLI versions (untranslated strings stay in English; the CLI never breaks). Verified version windows are documented in [docs/support-matrix.md](./docs/support-matrix.md).
+**claude-code-zh-cn** is a Simplified Chinese localization plugin for [Claude Code CLI](https://github.com/anthropics/claude-code). It translates 187 spinner verbs, 41 spinner tips, 1895 UI translations, notification messages, and more. On unverified CLI versions, unmatched strings stay in English, and failed patches restore or preserve the original CLI. Verified version windows are documented in [docs/support-matrix.md](./docs/support-matrix.md).
 
 ```bash
 curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/install-remote.sh | bash
@@ -392,13 +367,3 @@ See full documentation above (in Chinese). PRs and issues welcome!
 ---
 
 *本项目不是 Anthropic 官方产品。Claude Code 是 Anthropic Inc. 的商标。*
-
-## Star History
-
-<a href="https://star-history.com/#taekchef/claude-code-zh-cn&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=taekchef/claude-code-zh-cn&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=taekchef/claude-code-zh-cn&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=taekchef/claude-code-zh-cn&type=Date" />
-  </picture>
-</a>
