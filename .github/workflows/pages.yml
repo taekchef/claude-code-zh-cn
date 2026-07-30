@@ -37,6 +37,8 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Use stable npm
+        run: npm install --global npm@10.8.2
       - name: Install dependencies
         run: npm ci
       - name: Build static website
