@@ -1,33 +1,28 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import { CopyInstallButton } from "./copy-install-button";
+import projectData from "./project-data.json";
+import { TerminalDemo } from "./terminal-demo";
 
 const repository = "https://github.com/taekchef/claude-code-zh-cn";
 const installCommand =
   "curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/install-remote.sh | bash";
-
-export const metadata: Metadata = {
-  title: "Claude Code 中文本地化",
-  description:
-    "一条命令，把 Claude Code 的终端界面、等待提示、系统通知和默认回复切换为简体中文。",
-};
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function Home() {
   return (
     <main>
+      <div className="ambient" aria-hidden="true" />
       <nav className="nav shell" aria-label="主导航">
         <a className="brand" href="#top" aria-label="返回顶部">
-          <span className="brand-mark" aria-hidden="true">
-            中
-          </span>
+          <span className="brand-glyph">中</span>
           <span>claude-code-zh-cn</span>
         </a>
         <div className="nav-links">
-          <a href="#why">为什么做</a>
-          <a href="#proof">真实效果</a>
-          <a href={`${repository}#安装说明`}>安装说明</a>
-          <a className="nav-github" href={repository}>
-            GitHub ↗
+          <a href="#demo">效果</a>
+          <a href="#mechanism">原理</a>
+          <a href={`${repository}#安装说明`}>文档</a>
+          <a className="nav-cta" href={repository}>
+            GitHub
           </a>
         </div>
       </nav>
@@ -36,186 +31,190 @@ export default function Home() {
         <div className="hero-copy">
           <p className="eyebrow">Claude Code 简体中文本地化插件</p>
           <h1>
-            让终端里的
-            <br />
-            AI 编程助手
-            <br />
-            <em>说中文。</em>
+            <span className="hero-line">让 Claude Code</span>
+            <span className="hero-accent">真正说中文。</span>
           </h1>
           <p className="hero-lead">
-            一条命令，把终端界面、等待提示、系统通知和默认回复切换为简体中文。
-            装完即用，更新后自动修复。
+            终端界面、等待提示、系统通知和默认回复，一条命令切换为简体中文。
           </p>
-          <div className="install-box" aria-label="一行安装命令">
-            <code>{installCommand}</code>
-            <CopyInstallButton command={installCommand} />
+          <div className="hero-actions">
+            <CopyInstallButton command={installCommand} prominent />
+            <a href={`${repository}#30-秒安装`}>安装文档</a>
           </div>
-          <p className="hero-note">
-            一行远程安装 · 更新后自动修复 · 卸载不丢配置
-          </p>
         </div>
-
-        <aside className="hero-aside" aria-label="项目数据">
-          <div className="seal">
-            <span>开源</span>
-            <strong>MIT</strong>
-          </div>
-          <dl className="hero-stats">
-            <div>
-              <dt>UI 翻译</dt>
-              <dd>1895</dd>
-            </div>
-            <div>
-              <dt>趣味动词</dt>
-              <dd>187</dd>
-            </div>
-            <div>
-              <dt>中文提示</dt>
-              <dd>41</dd>
-            </div>
-          </dl>
-          <p className="platforms">macOS · Linux · WSL · Windows</p>
-        </aside>
+        <TerminalDemo />
       </header>
 
-      <section className="ticker" aria-label="真实中文词库片段">
-        <div>
-          <span>光合作用中</span>
-          <span>蹦迪中</span>
-          <span>七荤八素中</span>
-          <span>搞事情中</span>
-          <span>瞎忙活中</span>
-          <span>花里胡哨中</span>
-          <span>琢磨了 1分23秒</span>
+      <section className="proof-strip" aria-label="项目真实数据">
+        <div className="shell metric-track">
+          <div>
+            <strong>{projectData.uiTranslations}</strong>
+            <span>条 UI 翻译</span>
+          </div>
+          <div>
+            <strong>{projectData.spinnerVerbs}</strong>
+            <span>个趣味动词</span>
+          </div>
+          <div>
+            <strong>{projectData.spinnerTips}</strong>
+            <span>条中文提示</span>
+          </div>
+          <div className="platform-metric">
+            <strong>4</strong>
+            <span>macOS / Linux / WSL / Windows</span>
+          </div>
         </div>
       </section>
 
-      <section className="proof shell section" id="proof">
-        <div className="section-head">
-          <p className="index">01 / 真实效果</p>
-          <h2>不是网页重绘，是真的 Claude Code。</h2>
+      <section className="real-demo shell reveal" id="demo">
+        <div className="demo-heading">
+          <p className="eyebrow">真实录屏证据</p>
+          <h2>同一台 Mac。<br />同一个 Claude Code。</h2>
+          <p>
+            先运行安装前备份的原版，再运行当前中文补丁版。没有重绘，也没有仿造终端内容。
+          </p>
         </div>
-        <figure className="demo-frame">
+        <figure className="ghostty-frame">
+          <div className="frame-bar">
+            <span>Ghostty</span>
+            <span>Claude Code 2.1.211</span>
+          </div>
           <Image
-            src="/claude-code-zh-cn-demo.gif"
+            src={`${basePath}/claude-code-zh-cn-demo.gif`}
             alt="真实 Ghostty 窗口中，同一版本 Claude Code 安装中文插件前后的运行对比"
             width={1200}
             height={825}
             unoptimized
+            priority
           />
           <figcaption>
-            <strong>真实 Ghostty 录制</strong>
-            <span>
-              同一台 Mac、同一个 Claude Code 2.1.211。先运行安装前备份的原版，
-              再运行当前中文补丁版；动图只做缩放和前后切换。
-            </span>
+            真实 Ghostty 录制。动图只做缩放和前后切换。
           </figcaption>
         </figure>
       </section>
 
-      <section className="why section" id="why">
-        <div className="shell why-grid">
-          <div className="section-head">
-            <p className="index">02 / 为什么做这个</p>
-            <h2>好工具，不该隔着一层语言。</h2>
-          </div>
-          <div className="why-copy">
-            <p>
-              Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面。UI
-              文字主要硬编码在一个 13MB 的 <code>cli.js</code> 里，没有 i18n
-              基础设施。
-            </p>
-            <p>
-              官方短期内不太可能加中文支持。所以我做了这个插件，通过四层机制实现中文化，
-              自动检测安装方式，更新后自动修复。
-            </p>
-          </div>
-        </div>
-
-        <div className="shell layers" aria-label="四层中文化机制">
+      <section className="verb-marquee" aria-label="真实中文词库片段">
+        <div>
           {[
-            ["01", "设置注入", "默认使用中文回复，保留你原来的个人配置。"],
-            ["02", "Hook 系统", "会话启动时检查状态，Claude Code 更新后自动修复。"],
-            ["03", "插件系统", "使用正式插件能力安装、启用与跟随 Release 更新。"],
-            ["04", "CLI Patch", "替换硬编码界面文案，并在启动前完成安全自检。"],
-          ].map(([number, title, body]) => (
-            <article className="layer" key={number}>
-              <span>{number}</span>
-              <h3>{title}</h3>
-              <p>{body}</p>
-            </article>
+            "光合作用中",
+            "蹦迪中",
+            "七荤八素中",
+            "搞事情中",
+            "瞎忙活中",
+            "花里胡哨中",
+            "琢磨中",
+            "光合作用中",
+            "蹦迪中",
+            "七荤八素中",
+          ].map((verb, index) => (
+            <span key={`${verb}-${index}`}>✻ {verb}</span>
           ))}
         </div>
       </section>
 
-      <section className="safety shell section">
-        <div className="section-head">
-          <p className="index">03 / 安全边界</p>
-          <h2>能翻译就翻译，不能安全处理就停手。</h2>
+      <section className="story shell reveal">
+        <div className="story-title">
+          <span>为什么做这个？</span>
+          <h2>一个很棒的工具，<br />不该隔着语言使用。</h2>
         </div>
-        <div className="safety-grid">
-          <div className="safety-statement">
+        <div className="story-copy">
+          <p>
+            Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面。UI
+            文字主要硬编码在一个 13MB 的 <code>cli.js</code> 里，没有 i18n
+            基础设施。
+          </p>
+          <p>
+            官方短期内不太可能加中文支持。所以我做了这个插件，通过四层机制实现中文化，
+            自动检测安装方式，更新后自动修复。
+          </p>
+        </div>
+      </section>
+
+      <section className="mechanism" id="mechanism">
+        <div className="shell mechanism-layout">
+          <div className="mechanism-intro">
+            <h2>不是简单替换。<br />是四层协同。</h2>
             <p>
-              遇到还没验证过的新版本，插件会先在本机完成提取、补丁、重打包和启动自检。
+              设置、Hook、插件系统与 CLI Patch 各自负责一层。更新时重新检查，异常时安全停手。
             </p>
-            <strong>翻不了的部分保持英文，Claude Code 绝不会因为汉化而坏掉。</strong>
           </div>
-          <ul>
-            <li>
-              <span>01</span>安装前备份原文件
-            </li>
-            <li>
-              <span>02</span>失败时保留或恢复原文件
-            </li>
-            <li>
-              <span>03</span>未知新文案原样保留英文
-            </li>
-            <li>
-              <span>04</span>卸载时保留你的其他配置
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="support section">
-        <div className="shell support-grid">
-          <div>
-            <p className="index">04 / 跨平台</p>
-            <h2>你在哪写代码，它就在哪说中文。</h2>
-          </div>
-          <div className="system-list">
+          <div className="mechanism-stack">
             {[
-              ["macOS", "npm / native"],
-              ["Linux", "npm / WSL"],
-              ["Windows", "PowerShell / native"],
-            ].map(([name, detail]) => (
-              <div key={name}>
-                <strong>{name}</strong>
-                <span>{detail}</span>
-              </div>
+              ["设置注入", "让 AI 默认使用中文回复，同时保留你的个人设置。", "LANGUAGE"],
+              ["Hook 系统", "每次会话启动时检查版本变化，必要时自动修复。", "SESSION"],
+              ["插件系统", "通过正式插件能力安装、启用并跟随 Release 更新。", "PLUGIN"],
+              ["CLI Patch", "处理硬编码界面文案，替换前后都执行安全自检。", "PATCH"],
+            ].map(([title, body, code]) => (
+              <article className="mechanism-card" key={title}>
+                <span>{code}</span>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </article>
             ))}
-            <a href={`${repository}/blob/main/docs/support-matrix.md`}>
-              查看实时生成的完整支持矩阵 ↗
-            </a>
           </div>
         </div>
       </section>
 
-      <section className="final shell section">
-        <p className="eyebrow">Claude Code 中文本地化</p>
-        <h2>少一点理解界面的消耗，<br />多一点专注写代码的时间。</h2>
-        <div className="final-actions">
-          <CopyInstallButton command={installCommand} prominent />
-          <a href={repository}>在 GitHub 查看源码 ↗</a>
+      <section className="safety shell reveal">
+        <div className="safety-copy">
+          <p className="eyebrow">安全降级</p>
+          <h2>翻不了的部分保持英文。<br />CLI 绝不会坏。</h2>
+          <p>
+            新版本会先在本机完成提取、翻译、重打包和启动自检。任一步失败都保留或恢复原文件。
+          </p>
         </div>
-        <p>
-          如果它让你的 Claude Code 更顺手，欢迎点一下 Star，帮助更多中文用户发现它。
-        </p>
+        <div className="safety-orbit" aria-hidden="true">
+          <span className="orbit-core">SAFE</span>
+          <span className="orbit-ring ring-one" />
+          <span className="orbit-ring ring-two" />
+          <span className="orbit-label label-backup">备份</span>
+          <span className="orbit-label label-verify">自检</span>
+          <span className="orbit-label label-restore">恢复</span>
+        </div>
+      </section>
+
+      <section className="install shell reveal">
+        <div className="install-copy">
+          <h2>装完即用。</h2>
+          <p>一行远程安装。更新后自动修复。卸载不丢配置。</p>
+        </div>
+        <div className="command-panel">
+          <div className="command-topline">
+            <span>TERMINAL</span>
+            <span>macOS / Linux / WSL</span>
+          </div>
+          <code>
+            <span>$</span> {installCommand}
+          </code>
+          <CopyInstallButton command={installCommand} />
+        </div>
+        <div className="install-links">
+          <a href={`${repository}#windows-原生安装`}>Windows 安装说明</a>
+          <a href={`${repository}/blob/main/docs/support-matrix.md`}>
+            完整支持矩阵
+          </a>
+          <a href={`${repository}/releases/latest`}>最新 Release</a>
+        </div>
+      </section>
+
+      <section className="final-cta">
+        <div className="shell final-inner">
+          <h2>让终端里的 AI 编程助手说中文 🇨🇳</h2>
+          <p>
+            如果它让你的 Claude Code 更顺手，点一下 Star，帮助更多中文用户发现它。
+          </p>
+          <div className="final-actions">
+            <a className="star-button" href={repository}>
+              前往 GitHub Star
+            </a>
+            <span>MIT License</span>
+          </div>
+        </div>
       </section>
 
       <footer className="footer shell">
-        <span>claude-code-zh-cn · MIT License</span>
-        <span>不是 Claude 官方项目</span>
+        <span>claude-code-zh-cn</span>
+        <span>当前插件 {projectData.version}，社区项目，非 Claude 官方产品</span>
       </footer>
     </main>
   );

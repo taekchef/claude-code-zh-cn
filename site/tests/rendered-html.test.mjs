@@ -33,8 +33,13 @@ test("server-renders the official Chinese product site", async () => {
   assert.match(html, /Claude Code 中文本地化/);
   assert.match(html, /让终端里的/);
   assert.match(html, /为什么做这个/);
+  assert.match(html, /交互终端模拟/);
+  assert.match(html, /不是录屏证据/);
   assert.match(html, /真实 Ghostty 录制/);
   assert.match(html, /翻不了的部分保持英文/);
+  assert.match(html, /1895/);
+  assert.match(html, /187/);
+  assert.match(html, /41/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|Your site is taking shape/);
 });
 

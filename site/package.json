@@ -7,10 +7,14 @@
   },
   "scripts": {
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
+    "prebuild": "npm run sync:data",
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
+    "prepages:build": "npm run sync:data",
+    "pages:build": "next build",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "sync:data": "node scripts/sync-project-data.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
