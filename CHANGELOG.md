@@ -6,6 +6,23 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.7.1] - 2026-08-01
+
+### 新增
+
+- **翻译表新增 112 条 UI 文案**（1895 → 2007），覆盖此前未翻译的面向用户界面文字，包括：
+  - 会话/认证消息：`Sign-in failed`、`Your session has expired. Please run /login to sign in again.`、`Login successful` 等
+  - 使用量/额度：`Usage credits`、`You're out of usage credits`、`Buy usage credits` 等
+  - 云会话/规划：`Cloud sessions`、`Plan ready for review`、`Open in Claude Code on the web` 等
+  - 权限安全注释：`Note: may discard uncommitted changes`、`Note: will restart the computer` 等
+  - Hook/工具反馈：`Hook cancelled`、`Blocked by hook`、`MCP tool returned an error` 等
+  - 引导提示：`Check the Claude Code changelog for updates`、`Let Claude decide`、`Available commands` 等
+
+### 验证
+
+- 对 2.1.211 binary 提取的 JS 做真实 patch 验证：110/112 命中，语法校验通过，代码逻辑字符串未被误伤。
+- translations-quality / translations-schema / doc-derived-counts / patch-cli 测试全绿。
+
 ## [2.7.0] - 2026-07-31
 
 ### 新增

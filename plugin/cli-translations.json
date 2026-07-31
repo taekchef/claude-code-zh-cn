@@ -7588,5 +7588,453 @@
   {
     "en": "Add Claude Code GitHub Workflow",
     "zh": "添加 Claude Code GitHub 工作流"
+  },
+  {
+    "en": "Agents view",
+    "zh": "Agent 视图"
+  },
+  {
+    "en": "Allow unsandboxed fallback",
+    "zh": "允许非沙箱回退"
+  },
+  {
+    "en": "Another Claude session sent a message",
+    "zh": "另一个 Claude 会话发来了一条消息"
+  },
+  {
+    "en": "Another Claude session sent a message while you were working:",
+    "zh": "您工作时,另一个 Claude 会话发来了一条消息:"
+  },
+  {
+    "en": "Authenticate with `/mcp` in the terminal.",
+    "zh": "在终端中使用 `/mcp` 进行认证。"
+  },
+  {
+    "en": "Author name cannot be empty",
+    "zh": "作者名称不能为空"
+  },
+  {
+    "en": "Available commands",
+    "zh": "可用命令"
+  },
+  {
+    "en": "Background dialog dismissed",
+    "zh": "后台对话框已关闭"
+  },
+  {
+    "en": "Background this session?",
+    "zh": "将此会话转入后台?"
+  },
+  {
+    "en": "Blocked by hook",
+    "zh": "被 Hook 拦截"
+  },
+  {
+    "en": "Buy usage credits",
+    "zh": "购买使用额度"
+  },
+  {
+    "en": "By confirming, you allow Anthropic to charge your card in the amount above.",
+    "zh": "确认后,即表示您授权 Anthropic 按上述金额从您的银行卡扣款。"
+  },
+  {
+    "en": "Catch you later!",
+    "zh": "回见!"
+  },
+  {
+    "en": "Check in from your phone",
+    "zh": "在手机上签到"
+  },
+  {
+    "en": "Check its config with `/mcp` in the terminal.",
+    "zh": "在终端中使用 `/mcp` 检查其配置。"
+  },
+  {
+    "en": "Check the Claude Code changelog for updates",
+    "zh": "查看 Claude Code 更新日志以了解最新更新"
+  },
+  {
+    "en": "Claude Code needs your input",
+    "zh": "Claude Code 需要您的输入"
+  },
+  {
+    "en": "Claude in Chrome requires permission.",
+    "zh": "Claude in Chrome 需要权限。"
+  },
+  {
+    "en": "Cloud session",
+    "zh": "云端会话"
+  },
+  {
+    "en": "Cloud session details dismissed",
+    "zh": "云端会话详情已关闭"
+  },
+  {
+    "en": "Cloud sessions",
+    "zh": "云端会话"
+  },
+  {
+    "en": "Cloud sessions are only available on the first-party Anthropic API provider.",
+    "zh": "云端会话仅在第一方 Anthropic API 提供商上可用。"
+  },
+  {
+    "en": "Command cannot be empty",
+    "zh": "命令不能为空"
+  },
+  {
+    "en": "Command configuration",
+    "zh": "命令配置"
+  },
+  {
+    "en": "Design login was interrupted.",
+    "zh": "设计平台登录已中断。"
+  },
+  {
+    "en": "Disable auto mode",
+    "zh": "关闭自动模式"
+  },
+  {
+    "en": "Don't Ask",
+    "zh": "不再询问"
+  },
+  {
+    "en": "Draft restored",
+    "zh": "草稿已恢复"
+  },
+  {
+    "en": "Elicitation denied by hook",
+    "zh": "信息采集被 Hook 拒绝"
+  },
+  {
+    "en": "Enter an amount",
+    "zh": "请输入金额"
+  },
+  {
+    "en": "Enterprise managed settings",
+    "zh": "企业托管设置"
+  },
+  {
+    "en": "Error submitting feedback / bug report",
+    "zh": "提交反馈 / 错误报告失败"
+  },
+  {
+    "en": "File does not exist",
+    "zh": "文件不存在"
+  },
+  {
+    "en": "Fix with Claude",
+    "zh": "用 Claude 修复"
+  },
+  {
+    "en": "GitHub App installed!",
+    "zh": "GitHub App 已安装!"
+  },
+  {
+    "en": "Hook cancelled",
+    "zh": "Hook 已取消"
+  },
+  {
+    "en": "IDE selection cancelled",
+    "zh": "IDE 选择已取消"
+  },
+  {
+    "en": "Input & controls",
+    "zh": "输入与控制"
+  },
+  {
+    "en": "Installation cancelled by user",
+    "zh": "安装已被用户取消"
+  },
+  {
+    "en": "Interactive planning on the web where you can edit and leave targeted comments on Claude's plan.",
+    "zh": "在网页上进行交互式规划,您可以对 Claude 的方案进行编辑并留下针对性的评论。"
+  },
+  {
+    "en": "Leave it",
+    "zh": "保留原样"
+  },
+  {
+    "en": "Let Claude decide",
+    "zh": "由 Claude 决定"
+  },
+  {
+    "en": "Login successful",
+    "zh": "登录成功"
+  },
+  {
+    "en": "MCP server not connected",
+    "zh": "MCP 服务器未连接"
+  },
+  {
+    "en": "MCP tool returned an error",
+    "zh": "MCP 工具返回了错误"
+  },
+  {
+    "en": "Marketplace must have a name",
+    "zh": "市场必须有一个名称"
+  },
+  {
+    "en": "Model & output",
+    "zh": "模型与输出"
+  },
+  {
+    "en": "Multi-file Changes",
+    "zh": "多文件改动"
+  },
+  {
+    "en": "Neither — skip setup",
+    "zh": "都不需要 — 跳过设置"
+  },
+  {
+    "en": "No IDE selected.",
+    "zh": "未选择 IDE。"
+  },
+  {
+    "en": "No URL configured for this server",
+    "zh": "未为此服务器配置 URL"
+  },
+  {
+    "en": "Not authenticated with a claude.ai account.",
+    "zh": "未通过 claude.ai 账号认证。"
+  },
+  {
+    "en": "Note: may discard all working tree changes",
+    "zh": "注意:可能会丢弃所有工作区更改"
+  },
+  {
+    "en": "Note: may discard uncommitted changes",
+    "zh": "注意:可能会丢弃未提交的更改"
+  },
+  {
+    "en": "Note: may drop or truncate database objects",
+    "zh": "注意:可能会删除或截断数据库对象"
+  },
+  {
+    "en": "Note: may force-remove files",
+    "zh": "注意:可能会强制删除文件"
+  },
+  {
+    "en": "Note: may overwrite remote history",
+    "zh": "注意:可能会覆盖远程历史"
+  },
+  {
+    "en": "Note: may permanently delete untracked files",
+    "zh": "注意:可能会永久删除未跟踪的文件"
+  },
+  {
+    "en": "Note: may permanently remove stashed changes",
+    "zh": "注意:可能会永久移除暂存的更改"
+  },
+  {
+    "en": "Note: may recursively force-remove files",
+    "zh": "注意:可能会递归强制删除文件"
+  },
+  {
+    "en": "Note: may recursively remove files",
+    "zh": "注意:可能会递归删除文件"
+  },
+  {
+    "en": "Note: will restart the computer",
+    "zh": "注意:将会重启计算机"
+  },
+  {
+    "en": "Open in Claude Code on the web",
+    "zh": "在 Claude Code 网页版中打开"
+  },
+  {
+    "en": "Permission denied",
+    "zh": "权限被拒绝"
+  },
+  {
+    "en": "Pick which to remove",
+    "zh": "选择要移除的内容"
+  },
+  {
+    "en": "Plan ready for review",
+    "zh": "方案已就绪,待审阅"
+  },
+  {
+    "en": "Please revise your plan",
+    "zh": "请修改您的方案"
+  },
+  {
+    "en": "Plugin name cannot be empty",
+    "zh": "插件名称不能为空"
+  },
+  {
+    "en": "Project local settings",
+    "zh": "项目本地设置"
+  },
+  {
+    "en": "Resume session",
+    "zh": "恢复会话"
+  },
+  {
+    "en": "Review and improve",
+    "zh": "审阅并改进"
+  },
+  {
+    "en": "Review and improve it",
+    "zh": "审阅并改进"
+  },
+  {
+    "en": "See ya!",
+    "zh": "回头见!"
+  },
+  {
+    "en": "Session complete!",
+    "zh": "会话已完成!"
+  },
+  {
+    "en": "Session paused",
+    "zh": "会话已暂停"
+  },
+  {
+    "en": "Shared project settings",
+    "zh": "共享项目设置"
+  },
+  {
+    "en": "Shell details dismissed",
+    "zh": "Shell 详情已关闭"
+  },
+  {
+    "en": "Should I proceed?",
+    "zh": "是否继续?"
+  },
+  {
+    "en": "Sign-in complete",
+    "zh": "登录完成"
+  },
+  {
+    "en": "Sign-in failed",
+    "zh": "登录失败"
+  },
+  {
+    "en": "Skill execution blocked by permission rules",
+    "zh": "技能执行被权限规则阻止"
+  },
+  {
+    "en": "Skills dialog dismissed",
+    "zh": "技能对话框已关闭"
+  },
+  {
+    "en": "Start fresh",
+    "zh": "重新开始"
+  },
+  {
+    "en": "Summarize the key points",
+    "zh": "总结要点"
+  },
+  {
+    "en": "Summarize up to here",
+    "zh": "总结到此处"
+  },
+  {
+    "en": "Tap to answer",
+    "zh": "轻点以回答"
+  },
+  {
+    "en": "Teach mode is not active. Call request_teach_access first.",
+    "zh": "教学模式未激活。请先调用 request_teach_access。"
+  },
+  {
+    "en": "This field is required",
+    "zh": "此字段为必填项"
+  },
+  {
+    "en": "This session only",
+    "zh": "仅此会话"
+  },
+  {
+    "en": "This session requires a trusted device. Run /login to enroll this device, then retry.",
+    "zh": "此会话需要受信任的设备。请运行 /login 注册本设备,然后重试。"
+  },
+  {
+    "en": "Tool name cannot be empty",
+    "zh": "工具名称不能为空"
+  },
+  {
+    "en": "Try rephrasing the request in a new session or change your model.",
+    "zh": "请尝试在新会话中重新表述请求,或更换模型。"
+  },
+  {
+    "en": "Usage credits",
+    "zh": "使用额度"
+  },
+  {
+    "en": "Usage credits are required for long context",
+    "zh": "长上下文需要使用额度"
+  },
+  {
+    "en": "Viewing leader",
+    "zh": "正在查看 leader"
+  },
+  {
+    "en": "Viewing teammate",
+    "zh": "正在查看 teammate"
+  },
+  {
+    "en": "Voice connection failed. Check your network and try again.",
+    "zh": "语音连接失败。请检查网络后重试。"
+  },
+  {
+    "en": "Yes, remove",
+    "zh": "是,移除"
+  },
+  {
+    "en": "You can close this tab and return to Claude Code.",
+    "zh": "您可以关闭此标签页并返回 Claude Code。"
+  },
+  {
+    "en": "You can continue to work while the plan is generated remotely.",
+    "zh": "在远程生成方案的同时,您可以继续工作。"
+  },
+  {
+    "en": "You're now using extra usage",
+    "zh": "您正在使用额外用量"
+  },
+  {
+    "en": "You're now using usage credits",
+    "zh": "您正在使用使用额度"
+  },
+  {
+    "en": "You're now using your usage allocation",
+    "zh": "您正在使用您的使用配额"
+  },
+  {
+    "en": "You're out of extra usage",
+    "zh": "您的额外用量已用完"
+  },
+  {
+    "en": "You're out of usage credits",
+    "zh": "您的使用额度已用完"
+  },
+  {
+    "en": "Your group's usage limit is set to $0",
+    "zh": "您所在群组的使用额度上限已设为 $0"
+  },
+  {
+    "en": "Your seat type doesn't include extra usage",
+    "zh": "您的席位类型不包含额外用量"
+  },
+  {
+    "en": "Your seat type doesn't include usage",
+    "zh": "您的席位类型不包含用量"
+  },
+  {
+    "en": "Your seat type doesn't include usage credits",
+    "zh": "您的席位类型不包含使用额度"
+  },
+  {
+    "en": "Your session has expired for the trusted-device check. Run /login to re-authenticate, then retry.",
+    "zh": "您的会话在受信任设备校验时已过期。请运行 /login 重新认证,然后重试。"
+  },
+  {
+    "en": "Your session has expired. Please run /login to sign in again.",
+    "zh": "您的会话已过期。请运行 /login 重新登录。"
+  },
+  {
+    "en": "Your usage allocation has been disabled by your admin",
+    "zh": "您的使用配额已被管理员禁用"
   }
 ]
