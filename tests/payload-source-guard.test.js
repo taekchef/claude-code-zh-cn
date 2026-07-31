@@ -59,3 +59,30 @@ test("payload source guard fails when source files change without synced payload
   assert.match(result.stdout, /sync plugin\/scripts\/zh-cn-doctor\.js/);
   assert.match(result.stdout, /bash scripts\/sync-payload\.sh/);
 });
+
+test("payload source guard unit checkPayloadSourceEdits allows mirroring an already-existing source", () => {
+  // 首次把已存在的源镜像进 plugin/：源内容没变(不在 diff)，只新增镜像。
+  // sourceExistsInBase 返回 true 时应放行，不算「镜像无源」违规。
+  const { checkPayloadSourceEdits } = require(guardScript);
+
+  const result = checkPayloadSourceEdits(
+    ["plugin/verbs/zh-CN.json", "plugin/tips/zh-CN.json"],
+    undefined,
+    { sourceExistsInBase: () => true }
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.violations.length, 0);
+});
+
+test("payload source guard unit checkPayloadSourceEdits still flags mirror-without-source when source is new", () => {
+  // 源文件在 base 里不存在（全新文件），只加镜像不加源 → 仍应判违规。
+  const { checkPayloadSourceEdits } = require(guardScript);
+
+  const result = checkPayloadSourceEdits(
+    ["plugin/verbs/zh-CN.json"],
+    undefined,
+    { sourceExistsInBase: () => false }
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.violations[0].type, "mirror-without-source");
+});

@@ -97,13 +97,20 @@ function readChangedFilesFromGit(repoRoot, base, head) {
   return result.stdout.split("\n").map(normalizeRepoPath).filter(Boolean);
 }
 
-function checkPayloadSourceEdits(changedFiles, pairs = payloadPairs) {
+function checkPayloadSourceEdits(changedFiles, pairs = payloadPairs, options = {}) {
   const changedSet = new Set(changedFiles.map(normalizeRepoPath).filter(Boolean));
   const violations = [];
 
+  // sourceExistsInBase:判断某个源文件在 base commit 里是否已存在。
+  // 用于放行「把早已存在的源文件首次镜像进 plugin/」这种合法初始化场景:
+  // 源内容没变(不在 diff 里),只是新增了镜像,不应算「镜像无源」违规。
+  const sourceExistsInBase = options.sourceExistsInBase || (() => false);
+
   for (const pair of pairs) {
     if (changedSet.has(pair.mirror) && !changedSet.has(pair.source)) {
-      violations.push({ ...pair, type: "mirror-without-source" });
+      if (!sourceExistsInBase(pair.source)) {
+        violations.push({ ...pair, type: "mirror-without-source" });
+      }
     }
 
     if (changedSet.has(pair.source) && !changedSet.has(pair.mirror)) {
@@ -146,7 +153,19 @@ function main() {
     const changedFiles = args.changedFiles.length
       ? args.changedFiles
       : readChangedFilesFromGit(args.repoRoot, args.base, args.head);
-    const payload = checkPayloadSourceEdits(changedFiles);
+
+    // 仅在 git base 模式下放行「首次镜像已存在的源」：查 base tree 里源文件是否存在。
+    // --changed-file 列表模式不提供 base，保持原有的严格判定。
+    const options = {};
+    if (args.base) {
+      options.sourceExistsInBase = (source) => {
+        const result = spawnSync("git", ["-C", args.repoRoot, "cat-file", "-e", `${args.base}:${source}`], {
+          encoding: "utf8",
+        });
+        return result.status === 0;
+      };
+    }
+    const payload = checkPayloadSourceEdits(changedFiles, payloadPairs, options);
 
     if (args.json) {
       process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
