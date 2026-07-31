@@ -476,11 +476,12 @@ write_update_status() {
 }
 
 repair_settings_from_cache() {
-    [ -f "$SETTINGS_OVERLAY_CACHE_FILE" ] || return 0
-
     mkdir -p "$(dirname "$SETTINGS_FILE")" 2>/dev/null || return 0
 
-    ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY_CACHE="$SETTINGS_OVERLAY_CACHE_FILE" node <<'NODE' >/dev/null 2>&1 || true
+    # 旧安装路径：install.sh 会预生成 .settings-overlay-cache.json，直接合并。
+    # 这是兼容路径；merge 时用 overlay 的值（与历史行为一致）。
+    if [ -f "$SETTINGS_OVERLAY_CACHE_FILE" ]; then
+        ZH_CN_SETTINGS="$SETTINGS_FILE" ZH_CN_OVERLAY_CACHE="$SETTINGS_OVERLAY_CACHE_FILE" node <<'NODE' >/dev/null 2>&1 || true
 const fs = require("fs");
 
 const settingsFile = process.env.ZH_CN_SETTINGS;
@@ -521,6 +522,15 @@ const merged = deepMerge(base, overlay);
 
 fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2) + "\n");
 NODE
+        return 0
+    fi
+
+    # 纯 marketplace 安装：没有 install 脚本预生成的 cache。
+    # 从 plugin 内置的 verbs/tips/settings-overlay 数据现场构建 overlay，
+    # 只补齐 settings 里确实缺失的 spinner 配置，绝不覆盖用户已有的手动配置。
+    local overlay_helper="$PLUGIN_ROOT/scripts/build-overlay.js"
+    [ -f "$overlay_helper" ] || return 0
+    CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" node "$overlay_helper" ensure-settings "$SETTINGS_FILE" >/dev/null 2>&1 || true
 }
 
 find_real_claude_binary() {

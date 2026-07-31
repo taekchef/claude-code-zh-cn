@@ -11,11 +11,19 @@ FILES=(
   "cli-translations.json"
   "bun-binary-io.js"
   "compute-patch-revision.sh"
+  "settings-overlay.json"
 )
 
 for file in "${FILES[@]}"; do
   cp "$REPO_ROOT/$file" "$REPO_ROOT/plugin/$file"
 done
+
+# spinner 动词/提示是 settings 合并的唯一数据源。它们必须打进 plugin/ 包，
+# 否则纯 marketplace 安装（claude plugin install）后 session-start hook 读不到数据，
+# spinner 中文化会是空的。
+mkdir -p "$REPO_ROOT/plugin/verbs" "$REPO_ROOT/plugin/tips"
+cp "$REPO_ROOT/verbs/zh-CN.json" "$REPO_ROOT/plugin/verbs/zh-CN.json"
+cp "$REPO_ROOT/tips/zh-CN.json" "$REPO_ROOT/plugin/tips/zh-CN.json"
 
 mkdir -p "$REPO_ROOT/plugin/bin" "$REPO_ROOT/plugin/scripts"
 cp "$REPO_ROOT/doctor.sh" "$REPO_ROOT/plugin/bin/doctor"

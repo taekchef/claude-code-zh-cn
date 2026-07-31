@@ -6,6 +6,29 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.7.0] - 2026-07-31
+
+### 新增
+
+- **插件市场安装成为推荐的主力入口**（macOS / Linux / Windows 通用）：`claude plugin marketplace add` + `claude plugin install` 两条命令即可安装，不再需要 clone 仓库或运行本地安装脚本。(#201)
+- **spinner 动词/提示数据随插件包分发**：`verbs/zh-CN.json`、`tips/zh-CN.json`、`settings-overlay.json` 纳入 `plugin/` payload 同步（由 `sync-payload.sh` / `check-payload-sources.js` 守护）。纯插件市场安装后 session-start hook 可直接读取内置数据。
+- **跨平台增强安装 skill `zh-cn-setup`**：封装首次安装后需要人工确认的步骤——补齐缺失的 spinner 配置、检测并同步 CC Switch 通用配置（需授权）、报告 CLI patch 状态。不调用 `claude plugin install/update`，避免“插件装自己”循环。
+
+### 改进
+
+- **session-start hook 首次自补齐**：纯插件市场安装（没有 install 脚本预生成的 `.settings-overlay-cache.json`）时，hook 从插件内置 verbs/tips 现场构建 overlay，**只补齐 settings 中缺失的 spinner 配置，绝不覆盖用户已有的手动配置**。`build-overlay.js` 共享模块被 bash hook、PowerShell hook 和 setup skill 三处复用，单一数据源。
+- **Windows PowerShell hook 不再无条件改写 settings**：cache 路径保持原合并语义；无 cache 时走与 bash 版一致的“仅缺失补齐”逻辑。
+
+### 修复
+
+- 修正纯 `claude plugin install` 安装后 spinner 动词/提示为空（中文化残缺）的根因：数据未随插件包分发且无 cache。
+
+### 验证
+
+- 新增 `build-overlay` 模块单元测试（9 例）、setup.js 集成测试（7 例）、纯插件市场安装自补齐与“不覆盖已有配置”回归测试（2 例）。
+- 扩展 `plugin-payload` 测试覆盖 verbs/tips/settings-overlay 三对镜像。
+- 345 个测试全绿，preflight 全绿。
+
 ## [2.6.1] - 2026-07-26
 
 ### 修复

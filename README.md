@@ -83,6 +83,32 @@ Claude Code 是一个很棒的终端 AI 编程助手，但它没有中文界面�
 
 ## 安装说明
 
+### 推荐：插件市场安装（macOS / Linux / Windows 通用）
+
+最快的方式——不依赖本地仓库，两条命令搞定。**三平台通用**，只要已经有 `claude` 命令：
+
+```bash
+# 1. 添加本项目的插件市场
+claude plugin marketplace add --scope user https://github.com/taekchef/claude-code-zh-cn
+
+# 2. 安装中文本地化插件
+claude plugin install claude-code-zh-cn@claude-code-zh-cn --scope user
+```
+
+装好后**重启一次 Claude Code**：session-start hook 会自动把 spinner 动词/提示/界面中文化配置合并进 `settings.json`，并自动 patch 已验证版本的 CLI 硬编码文字。
+
+> **spinner/界面已是英文？** 如果重启后 spinner 仍是英文，运行增强安装 skill 补齐配置：在 Claude Code 里说「帮我运行 zh-cn-setup」或手动执行：
+>
+> ```bash
+> node "${CLAUDE_PLUGIN_ROOT}/skills/zh-cn-setup/scripts/setup.js"
+> ```
+>
+> 该脚本会从插件内置数据补齐缺失的 spinner 配置、检测并同步 CC Switch 通用配置（需授权）、报告 patch 状态。**只补齐缺失项，绝不覆盖你已有的手动配置。**
+
+> **Windows native .exe 用户**：如果当前 Claude Code 是 2.1.113+ native `.exe`，patch 需要先 `npm install -g node-lief`。未安装时 Layer 4 CLI Patch 会跳过（spinner/界面中文化等 Layer 1~3 不受影响）。
+
+### 完整安装脚本（本地开发 / 离线 / 旧版 Claude Code）
+
 首屏命令会从本项目最新 GitHub Release 下载源码包，然后执行同一套 `install.sh`。它和官方安装器的区别：
 
 | 命令 | 装什么 | 什么时候用 |
@@ -109,7 +135,7 @@ cd claude-code-zh-cn
 - ✅ 已验证版本直接使用公开证据；更高 native 版本也先本机自检。可 patch 硬编码文字（1895 条翻译；代表版本 `2.1.112` 实测 1595 处有效 patch）
 - ✅ 缺少 `node-lief`、native 格式变化、提取失败或自检失败时，只跳过 Layer 4；Layer 1~3 和 Claude Code 本体继续可用
 
-### Windows 原生安装
+### Windows 原生安装（完整脚本）
 
 ```powershell
 git clone https://github.com/taekchef/claude-code-zh-cn.git
@@ -122,6 +148,7 @@ install.ps1 会自动完成与 install.sh 相同的步骤：正式插件注册�
 > **Windows native .exe 用户先装 node-lief**：如果当前 Claude Code 是 2.1.113+ native `.exe`，请先运行 `npm install -g node-lief` 再装插件。未安装时 Layer 4 CLI Patch 会跳过，Layer 1~3 不受影响。也可以继续通过 [WSL](https://learn.microsoft.com/zh-cn/windows/wsl/install) 使用 `install.sh`。
 
 Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被系统锁定的 `claude.exe`。先照常使用；方便时关闭所有 Claude Code 窗口，再回到本项目目录重跑上面的 `install.ps1`，安装器会完成补丁、启动自检和失败回滚。
+
 
 ### 各安装方式的中文化程度
 

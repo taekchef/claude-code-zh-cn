@@ -4,6 +4,7 @@ node_modules/
 *.log
 .omx/
 .claude/
+.zcode/
 WINDOWS-ADAPTATION.md
 _part1.ps1
 

@@ -312,6 +312,115 @@ test("Windows session-start hook repairs settings from cached overlay", () => {
   assert.match(script, /Repair-SettingsFromCache/);
 });
 
+test("pure marketplace install (no cache) self-seeds spinner settings from bundled data", () => {
+  // 纯 `claude plugin install` 安装：没有 install 脚本预生成 .settings-overlay-cache.json。
+  // session-start hook 应从 plugin 内置的 verbs/tips/settings-overlay 现场补齐缺失的 spinner 配置。
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-nocache-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "cache", "claude-code-zh-cn", "2.6.1");
+  const fakeBin = path.join(tmp, "bin");
+  const settingsFile = path.join(home, ".claude", "settings.json");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+  fs.chmodSync(path.join(pluginRoot, "compute-patch-revision.sh"), 0o755);
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.writeFileSync(path.join(fakeBin, "claude"), "#!/usr/bin/env bash\nexit 0\n");
+  fs.chmodSync(path.join(fakeBin, "claude"), 0o755);
+
+  // 关键：没有 .settings-overlay-cache.json（模拟纯 marketplace 安装）
+  assert.equal(
+    fs.existsSync(path.join(pluginRoot, ".settings-overlay-cache.json")),
+    false,
+    "test fixture must not ship a cache file"
+  );
+  // 但 plugin 内置了 verbs/tips（块1 同步进来）
+  assert.equal(fs.existsSync(path.join(pluginRoot, "verbs", "zh-CN.json")), true);
+  assert.equal(fs.existsSync(path.join(pluginRoot, "tips", "zh-CN.json")), true);
+
+  fs.writeFileSync(settingsFile, JSON.stringify({ theme: "dark" }) + "\n");
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const repaired = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
+  assert.equal(repaired.language, "Chinese");
+  assert.equal(repaired.spinnerTipsEnabled, true);
+  assert.ok(Array.isArray(repaired.spinnerVerbs), "spinnerVerbs should be seeded as an array");
+  assert.ok(repaired.spinnerVerbs.length >= 100, "spinnerVerbs should contain the bundled verbs");
+  assert.ok(
+    Array.isArray(repaired.spinnerTipsOverride?.tips),
+    "spinnerTipsOverride.tips should be seeded as an array"
+  );
+  assert.ok(repaired.spinnerTipsOverride.tips.length >= 40, "spinnerTipsOverride.tips should contain bundled tips");
+  assert.equal(repaired.spinnerTipsOverride.excludeDefault, true);
+  // 其它配置保留
+  assert.equal(repaired.theme, "dark");
+});
+
+test("self-seed does not overwrite user's existing spinner config", () => {
+  // 用户已有自定义 spinnerVerbs → hook 必须保留，只补齐缺失的非冲突 key。
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-preserve-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "cache", "claude-code-zh-cn", "2.6.1");
+  const fakeBin = path.join(tmp, "bin");
+  const settingsFile = path.join(home, ".claude", "settings.json");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.writeFileSync(path.join(fakeBin, "claude"), "#!/usr/bin/env bash\nexit 0\n");
+  fs.chmodSync(path.join(fakeBin, "claude"), 0o755);
+
+  const userVerbs = ["我的自定义动词"];
+  fs.writeFileSync(
+    settingsFile,
+    JSON.stringify({
+      spinnerVerbs: userVerbs,
+      theme: "dark",
+    }) + "\n"
+  );
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const repaired = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
+  // 用户已有的 spinnerVerbs 必须原样保留，绝不被内置数据覆盖
+  assert.deepEqual(repaired.spinnerVerbs, userVerbs);
+  // 缺失的 key 仍被补齐
+  assert.equal(repaired.language, "Chinese");
+  assert.equal(repaired.spinnerTipsEnabled, true);
+  assert.equal(repaired.theme, "dark");
+});
+
 test("Windows session-start hook never rewrites the running native exe and records a safe manual handoff", () => {
   const script = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start.ps1"), "utf8");
 
@@ -852,7 +961,11 @@ test("standalone session-start announces the latest release without mutating the
     "main",
     "release checks must not checkout a tag in the source repo worktree"
   );
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")), {});
+  // 设置的 spinner 自补齐是预期副作用（纯插件安装无 cache 时从内置数据补齐）；
+  // 这两个测试关注的是 update-check 不改插件文件、不跑安装器，不约束 settings 形态。
+  const seededSettings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
+  assert.equal(seededSettings.language, "Chinese");
+  assert.ok(Array.isArray(seededSettings.spinnerVerbs) && seededSettings.spinnerVerbs.length >= 100);
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
     /^available v2\.0\.1 \d+$/
@@ -913,7 +1026,10 @@ test("standalone release check never executes a broken untagged installer from t
     "2.0.0",
     "release notification must leave the installed plugin untouched"
   );
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8")), {});
+  // 设置的 spinner 自补齐是预期副作用；此测试关注 update-check 行为，不约束 settings 形态。
+  const seededSettings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
+  assert.equal(seededSettings.language, "Chinese");
+  assert.ok(Array.isArray(seededSettings.spinnerVerbs) && seededSettings.spinnerVerbs.length >= 100);
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
     /^available v2\.0\.1 \d+$/,

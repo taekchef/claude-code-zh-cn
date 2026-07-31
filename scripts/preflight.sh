@@ -107,6 +107,8 @@ run node --check plugin/patch-cli.js
 run node --check plugin/hooks/notification.js
 run node --check plugin/hooks/session-start.js
 run node --check plugin/scripts/zh-cn-doctor.js
+run node --check plugin/scripts/build-overlay.js
+run node --check plugin/skills/zh-cn-setup/scripts/setup.js
 run node --check scripts/check-payload-sources.js
 run node --check scripts/check-pr-autoclose-keywords.js
 run node --check scripts/check-support-boundary.js

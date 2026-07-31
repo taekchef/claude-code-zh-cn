@@ -1,0 +1,168 @@
+{
+  "tips": [
+    {
+      "id": "new-user-warmup",
+      "text": "从小功能或 bug 修复开始，让 Claude 先提出方案，然后验证它的修改建议"
+    },
+    {
+      "id": "plan-mode-for-complex-tasks",
+      "text": "处理复杂任务前，先用 Plan 模式准备方案。连按两次 Shift+Tab 即可启用"
+    },
+    {
+      "id": "default-permission-mode-config",
+      "text": "使用 /config 修改默认权限模式（包括 Plan 模式）"
+    },
+    {
+      "id": "git-worktrees",
+      "text": "使用 git worktree 可以同时运行多个 Claude 会话"
+    },
+    {
+      "id": "color-when-multi-clauding",
+      "text": "同时运行多个 Claude 会话？用 /color 和 /rename 来区分它们"
+    },
+    {
+      "id": "terminal-setup",
+      "text": "运行 /terminal-setup 启用便捷终端集成，比如 Shift+Enter 换行等"
+    },
+    {
+      "id": "shift-enter",
+      "text": "按 Shift+Enter 可以发送多行消息"
+    },
+    {
+      "id": "shift-enter-setup",
+      "text": "运行 /terminal-setup 启用 Shift+Enter 换行功能"
+    },
+    {
+      "id": "memory-command",
+      "text": "使用 /memory 查看和管理 Claude 的记忆"
+    },
+    {
+      "id": "theme-command",
+      "text": "使用 /theme 切换颜色主题"
+    },
+    {
+      "id": "colorterm-truecolor",
+      "text": "试试设置环境变量 COLORTERM=truecolor 获得更丰富的颜色"
+    },
+    {
+      "id": "powershell-tool-env",
+      "text": "设置 CLAUDE_CODE_USE_POWERSHELL_TOOL=1 启用 PowerShell 工具（预览版）"
+    },
+    {
+      "id": "status-line",
+      "text": "使用 /statusline 设置自定义状态栏，显示在输入框下方"
+    },
+    {
+      "id": "prompt-queue",
+      "text": "Claude 工作时按 Enter 可以排队发送后续消息"
+    },
+    {
+      "id": "enter-to-steer-in-relatime",
+      "text": "Claude 工作时随时发送消息来实时引导方向"
+    },
+    {
+      "id": "todo-list",
+      "text": "复杂任务时让 Claude 创建待办列表，跟踪进度不跑偏"
+    },
+    {
+      "id": "vscode-command-install",
+      "text": "打开命令面板 (Cmd+Shift+P)，运行 \"Shell Command: Install 'code' command in PATH\" 启用 IDE 集成"
+    },
+    {
+      "id": "ide-upsell-external-terminal",
+      "text": "通过 /ide 将 Claude 连接到你的 IDE"
+    },
+    {
+      "id": "install-github-app",
+      "text": "运行 /install-github-app，在 GitHub Issues 和 PR 中直接 @claude"
+    },
+    {
+      "id": "install-slack-app",
+      "text": "运行 /install-slack-app 在 Slack 中使用 Claude"
+    },
+    {
+      "id": "permissions",
+      "text": "使用 /permissions 预先批准或拒绝 bash、编辑和 MCP 工具"
+    },
+    {
+      "id": "drag-and-drop-images",
+      "text": "你知道可以直接把图片文件拖拽到终端里吗？"
+    },
+    {
+      "id": "paste-images-mac",
+      "text": "在 Claude Code 中粘贴图片用 control+v（不是 cmd+v！）"
+    },
+    {
+      "id": "double-esc",
+      "text": "快速双击 esc 可以回退对话到之前的某个时间点"
+    },
+    {
+      "id": "double-esc-code-restore",
+      "text": "快速双击 esc 可以同时回退代码和对话到之前的某个时间点"
+    },
+    {
+      "id": "continue",
+      "text": "运行 claude --continue 或 claude --resume 恢复之前的对话"
+    },
+    {
+      "id": "rename-conversation",
+      "text": "用 /rename 给对话命名，方便在 /resume 中快速找到"
+    },
+    {
+      "id": "custom-commands",
+      "text": "在项目的 .claude/skills/ 或全局的 ~/.claude/skills/ 添加 .md 文件来创建自定义技能"
+    },
+    {
+      "id": "shift-tab",
+      "text": "按 Shift+Tab 在默认模式、自动接受编辑模式和 Plan 模式之间切换"
+    },
+    {
+      "id": "image-paste",
+      "text": "使用 Ctrl+V 从剪贴板粘贴图片"
+    },
+    {
+      "id": "custom-agents",
+      "text": "使用 /agents 优化特定任务，如软件架构师、代码编写者、代码审查者"
+    },
+    {
+      "id": "agent-flag",
+      "text": "使用 --agent <agent_name> 直接启动与子代理的对话"
+    },
+    {
+      "id": "desktop-app",
+      "text": "通过 Claude 桌面应用在本地或远程运行 Claude Code：clau.de/desktop"
+    },
+    {
+      "id": "desktop-shortcut",
+      "text": "使用 /desktop 在 Claude Code 桌面版中继续当前会话"
+    },
+    {
+      "id": "web-app",
+      "text": "通过 clau.de/web 在云端运行任务，同时本地继续编码"
+    },
+    {
+      "id": "mobile-app",
+      "text": "使用 /mobile 在手机上的 Claude 应用中使用 Claude Code"
+    },
+    {
+      "id": "effort-high-nudge",
+      "text": "使用 /effort high 获得更好的一次性回答。Claude 会先深思熟虑"
+    },
+    {
+      "id": "subagent-fanout-nudge",
+      "text": "大任务可以让 Claude 用子代理并行处理，保持主线程清爽"
+    },
+    {
+      "id": "loop-command-nudge",
+      "text": "/loop 可以定时循环执行任何提示。适合监控部署、跟进 PR 或轮询状态"
+    },
+    {
+      "id": "guest-passes",
+      "text": "你有免费的访客通行证可以通过 /passes 分享"
+    },
+    {
+      "id": "feedback-command",
+      "text": "使用 /feedback 帮助我们改进！"
+    }
+  ]
+}
