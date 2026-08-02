@@ -113,6 +113,36 @@ test("support matrix includes separate macOS native experimental row", () => {
   assert.doesNotMatch(markdown, /当前不建议使用/);
 });
 
+test("support matrix limits Linux native to x64 glibc 2.1.220", () => {
+  const { buildMarkdown } = loadGeneratorWithDate(Date);
+  const markdown = buildMarkdown(
+    {
+      support: {
+        npm: { stable: { representatives: [] } },
+        macosOfficialInstaller: { unsupported: true },
+        linuxOfficialInstaller: { unsupported: true },
+        linuxNativeExperimental: {
+          floor: "2.1.220",
+          ceiling: "2.1.220",
+          representatives: ["2.1.220"],
+          platform: "linux-x64",
+          libc: "glibc",
+          verification: "2.1.220 PASS(native ELF x64 glibc)",
+          requires: ["node-lief >=1.3.0"],
+          allowProvisional: false,
+          notes: "Linux x64 glibc native binary experimental；仅发布 2.1.220；不支持 arm64、musl 或 provisional latest。",
+        },
+      },
+    },
+    { results: [], summary: { pass: 0, fail: 0, skip: 0 } }
+  );
+
+  assert.match(markdown, /Linux native binary \(x64 glibc\) \| 2\.1\.220 - 2\.1\.220 \| experimental/);
+  assert.match(markdown, /2\.1\.220 PASS\(native ELF x64 glibc\)/);
+  assert.match(markdown, /Linux 仅启用已发布的 x64 glibc 版本，不尝试 provisional latest/);
+  assert.doesNotMatch(markdown, /Linux[^\n]*新版可本机自检/);
+});
+
 test("support matrix shows display audit status beside patch count", () => {
   const { buildMarkdown } = loadGeneratorWithDate(Date);
   const markdown = buildMarkdown(

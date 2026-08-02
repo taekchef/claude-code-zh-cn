@@ -82,6 +82,17 @@ function fixtureConfig() {
         unsupported: true,
         notes: "当前不支持 Linux 官方安装器；请改用 npm 路径。",
       },
+      linuxNativeExperimental: {
+        platform: "linux-x64",
+        libc: "glibc",
+        packageName: "@anthropic-ai/claude-code-linux-x64",
+        floor: "2.1.220",
+        ceiling: "2.1.220",
+        representatives: ["2.1.220"],
+        requires: ["node-lief >=1.3.0"],
+        allowProvisional: false,
+        notes: "Linux x64 glibc native experimental; 2.1.220 only.",
+      },
       windowsNpmPowerShell: {
         stable: {
           floor: "2.1.90",
@@ -143,10 +154,15 @@ test("README support window sync rewrites badges, support table, and install adv
   const text = fs.readFileSync(readmePath, "utf8");
   assert.match(text, /npm-2\.1\.90--2\.1\.120-green/);
   assert.match(text, /macos%20native-2\.1\.121--2\.1\.130-green/);
+  assert.match(text, /linux%20native-2\.1\.220--2\.1\.220-green/);
   assert.match(text, /\| macOS · native binary（arm64） \| `2\.1\.121 - 2\.1\.130` 内的已验证版本 \|/);
+  assert.match(text, /\| Linux · native binary（x64 glibc） \| `2\.1\.220 - 2\.1\.220` \| 需要 `node-lief >=1\.3\.0`；仅该版本，不含 arm64、musl 或 latest \|/);
   assert.match(text, /npm install -g @anthropic-ai\/claude-code@2\.1\.120/);
-  assert.match(text, /\*\*版本号不是运行门禁\*\*/);
+  assert.match(text, /\*\*macOS \/ Windows 版本号不是运行门禁\*\*/);
   assert.match(text, /已有词条继续中文，新文案原样保留英文/);
+  assert.match(text, /\*\*Linux 不走 provisional\*\*/);
+  assert.match(text, /Linux x64 glibc 仅启用已发布的 `2\.1\.220`/);
+  assert.match(text, /claude\.ai\/install\.sh \\?\| bash -s 2\.1\.220/);
   assert.match(text, /\*\*失败不伤 CLI\*\*/);
   assert.match(text, /\*\*格式变化才停手\*\*/);
   assert.match(text, /纯上游兼容证据可以更新支持矩阵，不要求插件升版/);

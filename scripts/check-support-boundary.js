@@ -81,13 +81,25 @@ function readBoundary(config) {
 }
 
 function isNegatedBoundaryLine(line) {
-  return /不支持|暂不支持|暂不承诺|不承诺|不属于|不代表|unsupported|not\s+supported|not\s+currently\s+supported|not\s+stable|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|不再包含|未纳入|才启用|自动降级|graceful degradation/i.test(line);
+  return /不支持|暂不支持|暂不承诺|不承诺|不属于|不代表|unsupported|not\s+supported|not\s+currently\s+supported|not\s+stable|skipped?|detected and skipped|跳过|未验证|不会|仅启用|只启用|只保留|仅对.*已验证|不再包含|未纳入|才启用|自动降级|graceful degradation/i.test(line);
+}
+
+function isAllowedLinuxNativeExperimentalLine(line) {
+  const exactScope =
+    /Linux/i.test(line) &&
+    /x64/i.test(line) &&
+    /glibc/i.test(line) &&
+    /2\.1\.220/.test(line) &&
+    /experimental|实验|已验证|仅/.test(line);
+  const mentionsExcludedShape = /arm64|musl|latest|最新版|最新版本|provisional/i.test(line);
+  const explicitlyExcludesShape = /不含|不支持|不尝试|不执行/.test(line);
+  return exactScope && (!mentionsExcludedShape || explicitlyExcludesShape);
 }
 
 // 统一「已验证版本」口径后，native 行只要明确限定在已验证窗口内（已验证 / experimental 措辞），
 // 且不宣称 latest / stable 全量支持，就是合法表述。
 function isAllowedNativeExperimentalLine(line) {
-  const mentionsPlatform = /macOS|darwin|Windows|win32/i.test(line);
+  const mentionsPlatform = /macOS|darwin|Windows|win32|Linux/i.test(line);
   const mentionsNative = /native|原生|二进制|binary/i.test(line);
   const verifiedScope = /experimental|实验|已验证/i.test(line);
   const stableClaim = /\bstable\b|稳定支持|stable CLI Patch/i.test(line);
@@ -127,6 +139,7 @@ function findSupportClaim(line, boundary) {
     hasSupportVerb &&
     !isNegatedBoundaryLine(line) &&
     !isAllowedNativeExperimentalLine(line) &&
+    !isAllowedLinuxNativeExperimentalLine(line) &&
     !isAllowedMixedStableExperimentalLine(line) &&
     !isSupportMatrixScopedLine(line)
   ) {
@@ -161,6 +174,23 @@ function findWindowsNativeClaim(line) {
   return null;
 }
 
+function findLinuxNativeClaim(line) {
+  const mentionsLinux = /Linux/i.test(line);
+  const mentionsNative = /native|原生|二进制|binary/i.test(line);
+  const hasSupportBehavior = /已支持|支持|可用|support|pass|本机自检|provisional/i.test(line);
+  if (!mentionsLinux || !mentionsNative || !hasSupportBehavior || isNegatedBoundaryLine(line)) {
+    return null;
+  }
+
+  if (isAllowedLinuxNativeExperimentalLine(line)) return null;
+
+  if (!isSupportMatrixScopedLine(line)) {
+    return "Linux native 仅允许 x64 glibc 2.1.220，不能宣称 arm64 / musl / provisional latest";
+  }
+
+  return null;
+}
+
 function addTextFindings(findings, repoRoot, relative, boundary) {
   const file = path.join(repoRoot, relative);
   const text = readTextIfExists(file);
@@ -169,7 +199,8 @@ function addTextFindings(findings, repoRoot, relative, boundary) {
   text.split(/\r?\n/).forEach((line, index) => {
     const supportClaim = findSupportClaim(line, boundary);
     const windowsClaim = findWindowsNativeClaim(line);
-    const message = supportClaim || windowsClaim;
+    const linuxClaim = findLinuxNativeClaim(line);
+    const message = windowsClaim || linuxClaim || supportClaim;
     if (!message) return;
 
     findings.push({
@@ -232,13 +263,42 @@ function addSupportEntryFindings(findings, node, relative, pathParts, boundary) 
     const pathText = entryPath.toLowerCase();
     const isMacosInstaller = pathText.includes("macosofficialinstaller");
     const isMacosNativeExperimental = pathText.includes("macosnativeexperimental");
+    const isLinuxNativeExperimental = pathText.includes("linuxnativeexperimental");
     const isWindowsNativeExperimental = pathText.includes("windowsnativeexperimental");
     const isWindowsNative =
       pathText.includes("windows") &&
       (pathText.includes("native") || pathText.includes("exe") || pathText.includes("binary") || pathText.includes("official"));
-    const ceilingLimit = isMacosNativeExperimental || isWindowsNativeExperimental || !boundary.validStableRange
+    const ceilingLimit = isMacosNativeExperimental || isLinuxNativeExperimental || isWindowsNativeExperimental || !boundary.validStableRange
       ? null
       : boundary.stableCeiling;
+
+    if (isLinuxNativeExperimental) {
+      const exactVersion =
+        node.floor === "2.1.220" &&
+        node.ceiling === "2.1.220" &&
+        Array.isArray(node.representatives) &&
+        node.representatives.length === 1 &&
+        node.representatives[0] === "2.1.220";
+      if (!exactVersion) {
+        findings.push({
+          file: relative,
+          line: 1,
+          message: "Linux native 仅允许 x64 glibc 2.1.220",
+          text: `${entryPath}: ${JSON.stringify(node)}`,
+        });
+      }
+      for (const [valid, message] of [
+        [node.platform === "linux-x64", "linuxNativeExperimental platform 必须是 linux-x64"],
+        [node.libc === "glibc", "linuxNativeExperimental libc 必须是 glibc"],
+        [node.packageName === "@anthropic-ai/claude-code-linux-x64", "linuxNativeExperimental packageName 必须是 @anthropic-ai/claude-code-linux-x64"],
+        [Array.isArray(node.requires) && node.requires.includes("node-lief >=1.3.0"), "linuxNativeExperimental requires 必须包含 node-lief >=1.3.0"],
+        [node.allowProvisional === false, "linuxNativeExperimental 必须禁用 provisional"],
+      ]) {
+        if (!valid) {
+          findings.push({ file: relative, line: 1, message, text: `${entryPath}: ${JSON.stringify(node)}` });
+        }
+      }
+    }
 
     if (isWindowsNative && !isWindowsNativeExperimental && node.unsupported !== true) {
       findings.push({
@@ -317,7 +377,8 @@ function buildFindings(repoRoot) {
 function printOk(boundary) {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${boundary.stableRange}`);
-  console.log(`native CLI Patch: only explicitly verified macOS / Windows experimental versions; no latest stable claim`);
+  console.log(`native CLI Patch: only explicitly verified macOS / Windows / Linux experimental versions; no latest stable claim`);
+  console.log(`Linux native CLI Patch: x64 glibc 2.1.220 only; no provisional latest`);
 }
 
 function printFail(findings, boundary) {
@@ -326,6 +387,7 @@ function printFail(findings, boundary) {
   console.log(`- stable CLI Patch: ${boundary.stableRange}`);
   console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；native 只能写已验证 experimental 窗口`);
   console.log("- Windows native 只能写成 explicit experimental，不能写成 stable");
+  console.log("- Linux native 仅发布 x64 glibc 2.1.220，不含 arm64 / musl / provisional latest");
   console.log("");
 
   for (const finding of findings) {

@@ -228,6 +228,63 @@ test("support boundary guard still rejects latest in macOS native experimental r
   assert.match(result.stdout, /latest/);
 });
 
+test("support boundary guard allows only the published Linux x64 glibc version", () => {
+  const repo = createFixture({
+    "README.md": [
+      "Linux x64 glibc native binary experimental：仅支持已验证版本 2.1.220。",
+      "Linux arm64、musl 和 provisional latest 不支持 CLI Patch。",
+    ].join("\n"),
+  }, {
+    support: {
+      linuxNativeExperimental: {
+        floor: "2.1.220",
+        ceiling: "2.1.220",
+        representatives: ["2.1.220"],
+        platform: "linux-x64",
+        libc: "glibc",
+        packageName: "@anthropic-ai/claude-code-linux-x64",
+        requires: ["node-lief >=1.3.0"],
+        allowProvisional: false,
+      },
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /x64 glibc 2\.1\.220/);
+  assert.match(result.stdout, /no provisional latest/);
+});
+
+test("support boundary guard rejects Linux native scope drift", () => {
+  const repo = createFixture({
+    "README.md": "Linux x64 glibc native latest 已支持 CLI Patch，不含 arm64。\n",
+  }, {
+    support: {
+      linuxNativeExperimental: {
+        floor: "2.1.220",
+        ceiling: "latest",
+        representatives: ["2.1.220", "latest"],
+        platform: "linux-arm64",
+        libc: "musl",
+        packageName: "@anthropic-ai/claude-code-linux-arm64",
+        requires: ["node-lief"],
+        allowProvisional: true,
+      },
+    },
+  });
+
+  const result = runGuard(repo);
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.match(result.stdout, /Linux native 仅允许 x64 glibc 2\.1\.220/);
+  assert.match(result.stdout, /linuxNativeExperimental platform 必须是 linux-x64/);
+  assert.match(result.stdout, /linuxNativeExperimental libc 必须是 glibc/);
+  assert.match(result.stdout, /linuxNativeExperimental packageName 必须是 @anthropic-ai\/claude-code-linux-x64/);
+  assert.match(result.stdout, /linuxNativeExperimental requires 必须包含 node-lief >=1\.3\.0/);
+  assert.match(result.stdout, /linuxNativeExperimental 必须禁用 provisional/);
+});
+
 test("support boundary guard allows PowerShell old-npm wording and skipped native latest", () => {
   const repo = createFixture({
     "README.md": [
