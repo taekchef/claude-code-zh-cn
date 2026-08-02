@@ -41,6 +41,7 @@ function compactError(error) {
 function parseArgs(argv) {
   const args = {
     config: defaultConfigPath,
+    failOnSkip: false,
     json: false,
     skipLatest: false,
     nativeMacosArm64: false,
@@ -71,6 +72,9 @@ function parseArgs(argv) {
         break;
       case "--skip-latest":
         args.skipLatest = true;
+        break;
+      case "--fail-on-skip":
+        args.failOnSkip = true;
         break;
       case "--native-macos-arm64":
         args.nativeMacosArm64 = true;
@@ -1077,7 +1081,7 @@ function main() {
     printHuman(payload);
   }
 
-  process.exit(payload.summary.fail > 0 ? 1 : 0);
+  process.exit(payload.summary.fail > 0 || (args.failOnSkip && payload.summary.skip > 0) ? 1 : 0);
 }
 
 main();

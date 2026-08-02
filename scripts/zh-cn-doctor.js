@@ -104,9 +104,16 @@ function nativeSupportLists(support) {
   return lists;
 }
 
-function nativePlatformForTarget(target, runtimePlatform = process.platform, runtimeArch = process.arch) {
+function nativePlatformForTarget(
+  target,
+  runtimePlatform = process.platform,
+  runtimeArch = process.arch,
+  runtimeLibc = ""
+) {
   if (runtimePlatform === "linux") {
-    return `linux-${runtimeArch}`;
+    const report = runtimeLibc ? null : process.report?.getReport?.();
+    const libc = runtimeLibc || (report?.header?.glibcVersionRuntime ? "glibc" : "musl");
+    return `linux-${runtimeArch}${libc === "glibc" ? "" : "-musl"}`;
   }
   if (runtimePlatform === "win32" || /\.exe$/i.test(String(target || ""))) {
     return "win32-x64";

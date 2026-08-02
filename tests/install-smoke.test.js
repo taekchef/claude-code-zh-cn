@@ -194,9 +194,10 @@ test("Linux native install prompt requires node-lief 1.3.0 or newer", () => {
 
 test("install smoke supports verified Linux x64 but rejects arm64 and provisional latest", { skip: unixShellRequired }, () => {
   const cases = [
-    { version: "2.1.220", arch: "x86_64", patched: true },
-    { version: "2.1.220", arch: "aarch64", patched: false },
-    { version: "2.1.221", arch: "x86_64", patched: false },
+    { version: "2.1.220", arch: "x86_64", platform: "linux-x64", patched: true },
+    { version: "2.1.220", arch: "aarch64", platform: "linux-arm64", patched: false },
+    { version: "2.1.221", arch: "x86_64", platform: "linux-x64", patched: false },
+    { version: "2.1.220", arch: "x86_64", platform: "linux-x64-musl", forcePlatform: true, patched: false },
   ];
 
   for (const item of cases) {
@@ -225,6 +226,9 @@ test("install smoke supports verified Linux x64 but rejects arm64 and provisiona
         PATH: `${fakeBin}:${process.env.PATH}`,
         CLAUDE_PLUGIN_ROOT: pluginRoot,
         ZH_CN_REAL_CLAUDE: fakeClaude,
+        ...(process.platform === "linux" && !item.forcePlatform
+          ? {}
+          : { ZH_CN_NATIVE_PLATFORM: item.platform }),
         ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
         ZH_CN_PROFILE_FILES: path.join(home, ".zshrc"),
         GIT_TERMINAL_PROMPT: "0",
@@ -453,9 +457,21 @@ test("native compat and Windows install smoke are wired into CI", () => {
   assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Linux native compat should pin node-lief");
   assert.match(
     workflow,
-    /--baseline 2\.1\.220 --skip-latest --native-linux-x64 --json/,
-    "CI should verify the fixed Linux native baseline"
+    /--baseline 2\.1\.220 --skip-latest --native-linux-x64 --fail-on-skip --json/,
+    "CI should require the fixed Linux native baseline to run instead of skipping"
   );
+});
+
+test("native rollback surfaces atomic restore failures", () => {
+  const installer = fs.readFileSync(path.join(repoRoot, "install.sh"), "utf8");
+  const hook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start"), "utf8");
+
+  assert.match(installer, /glibcVersionRuntime/);
+  assert.match(hook, /glibcVersionRuntime/);
+  assert.doesNotMatch(installer, /replace_native_binary_from_file[^\n]+\|\| true/);
+  assert.doesNotMatch(hook, /replace_native_binary_from_file[^\n]+\|\| true/);
+  assert.match(installer, /自动恢复失败；原始备份仍保留/);
+  assert.match(hook, /自动 patch 失败且无法恢复；原始备份已保留/);
 });
 
 test("install.ps1 gates launcher injection to Windows old npm cli.js installs", () => {

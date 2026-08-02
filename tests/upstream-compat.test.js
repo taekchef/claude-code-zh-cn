@@ -272,13 +272,12 @@ test("verify-upstream-compat accepts native macOS flag and skips on non-macOS ar
 });
 
 test("verify-upstream-compat reports missing node-lief as native dependency skip", () => {
-  const result = runCompat(
-    ["--baseline", "2.1.123-native-fixture", "--skip-latest", "--native-macos-arm64", "--json"],
-    {
-      CCZH_NATIVE_VERIFY_PLATFORM: "darwin-arm64",
-      CCZH_NATIVE_FORCE_DEPS: "missing",
-    }
-  );
+  const env = {
+    CCZH_NATIVE_VERIFY_PLATFORM: "darwin-arm64",
+    CCZH_NATIVE_FORCE_DEPS: "missing",
+  };
+  const args = ["--baseline", "2.1.123-native-fixture", "--skip-latest", "--native-macos-arm64", "--json"];
+  const result = runCompat(args, env);
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const payload = JSON.parse(result.stdout);
@@ -287,6 +286,9 @@ test("verify-upstream-compat reports missing node-lief as native dependency skip
   assert.equal(native.kind, "native");
   assert.equal(native.status, "skip");
   assert.match(native.skipReason, /node-lief/);
+
+  const strictResult = runCompat([...args, "--fail-on-skip"], env);
+  assert.equal(strictResult.status, 1, strictResult.stderr || strictResult.stdout);
 });
 
 test("verify-upstream-compat patches and audits the Linux platform package", () => {

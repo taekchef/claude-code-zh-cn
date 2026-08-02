@@ -267,20 +267,29 @@ native_platform() {
         return
     fi
 
-    case "$(uname -s 2>/dev/null)-$(uname -m 2>/dev/null)" in
+    local system_arch linux_arch=""
+    system_arch="$(uname -s 2>/dev/null)-$(uname -m 2>/dev/null)"
+    case "$system_arch" in
         Darwin-arm64|Darwin-aarch64)
             printf 'darwin-arm64'
+            return
             ;;
         Linux-x86_64|Linux-amd64)
-            printf 'linux-x64'
+            linux_arch="x64"
             ;;
         Linux-arm64|Linux-aarch64)
-            printf 'linux-arm64'
+            linux_arch="arm64"
             ;;
         *)
-            printf ''
+            return
             ;;
     esac
+
+    if node -e 'const r=process.report&&process.report.getReport?process.report.getReport():null;process.exit(r&&r.header&&r.header.glibcVersionRuntime?0:1)' >/dev/null 2>&1; then
+        printf 'linux-%s' "$linux_arch"
+    else
+        printf 'linux-%s-musl' "$linux_arch"
+    fi
 }
 
 is_supported_native_version() {
@@ -1713,8 +1722,12 @@ patch_native_binary() {
     if [ "$patch_count" != "0" ]; then
         node "$PLUGIN_SRC/bun-binary-io.js" repack "$binary_path" "$tmp_js" || {
             echo -e "${RED}写回二进制失败，正在从备份恢复...${NC}"
-            replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null || true
-            CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制写回失败）"
+            if replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null; then
+                CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制写回失败，已恢复原文件）"
+            else
+                echo -e "${RED}自动恢复失败；原始备份仍保留在 ${backup_path}${NC}"
+                CLI_PATCH_STATUS_SUMMARY="失败（原生二进制写回及自动恢复均失败；请从 ${backup_path} 手动恢复）"
+            fi
             rm -f "$tmp_js"
             return
         }
@@ -1723,8 +1736,12 @@ patch_native_binary() {
         verified_version="$(native_binary_version_from_execution "$binary_path")"
         if [ "${verified_version:-}" != "${current_version:-}" ]; then
             echo -e "${RED}本机启动自检失败，正在从备份恢复...${NC}"
-            replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null || true
-            CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机启动自检失败）"
+            if replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null; then
+                CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机启动自检失败，已恢复原文件）"
+            else
+                echo -e "${RED}自动恢复失败；原始备份仍保留在 ${backup_path}${NC}"
+                CLI_PATCH_STATUS_SUMMARY="失败（原生二进制启动自检及自动恢复均失败；请从 ${backup_path} 手动恢复）"
+            fi
             rm -f "$tmp_js"
             return
         fi

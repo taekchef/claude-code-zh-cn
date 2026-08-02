@@ -532,11 +532,13 @@ test("doctor maps Linux architectures and reads the Linux x64 support window", (
     },
   };
 
-  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "x64"), "linux-x64");
-  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "arm64"), "linux-arm64");
-  assert.equal(nativePlatformForTarget("/nvm/bin/claude.exe", "linux", "x64"), "linux-x64");
+  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "x64", "glibc"), "linux-x64");
+  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "arm64", "glibc"), "linux-arm64");
+  assert.equal(nativePlatformForTarget("/nvm/bin/claude.exe", "linux", "x64", "glibc"), "linux-x64");
+  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "x64", "musl"), "linux-x64-musl");
   assert.equal(isSupportedNativeVersion("2.1.220", support, "linux-x64"), true);
   assert.equal(isSupportedNativeVersion("2.1.220", support, "linux-arm64"), false);
+  assert.equal(isSupportedNativeVersion("2.1.220", support, "linux-x64-musl"), false);
 });
 
 test("runDoctor reports supported Windows native as needing node-lief or patch", () => {
