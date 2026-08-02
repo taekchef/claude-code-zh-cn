@@ -731,6 +731,41 @@ test("runDoctor requires native marker hash to match current binary", () => {
   assert.equal(result.layer4Status, "needed");
 });
 
+test("doctor --json accepts GitHub source slugs and still warns for missing local paths", () => {
+  const { home, pluginRoot, claudeBin } = createHealthyRuntimeDoctorFixture();
+  const sourceRepoFile = path.join(pluginRoot, ".source-repo");
+  const runCli = () => spawnSync(process.execPath, [
+    path.join(repoRoot, "scripts", "zh-cn-doctor.js"),
+    "--json",
+  ], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ZH_CN_DOCTOR_HOME: home,
+      ZH_CN_DOCTOR_PLUGIN_ROOT: pluginRoot,
+      ZH_CN_DOCTOR_CLAUDE: claudeBin,
+      NO_COLOR: "1",
+    },
+  });
+
+  fs.writeFileSync(sourceRepoFile, "taekchef/claude-code-zh-cn\n");
+  const remoteResult = runCli();
+  assert.equal(remoteResult.status, 0, remoteResult.stderr || remoteResult.stdout);
+  const remotePayload = JSON.parse(remoteResult.stdout);
+  const remoteUpdate = remotePayload.checks.find((item) => item.id === "auto-update");
+  assert.equal(remoteUpdate.status, "ok");
+  assert.match(remoteUpdate.detail, /taekchef\/claude-code-zh-cn/);
+
+  const missingLocalPath = path.join(home, "missing-source-repo");
+  fs.writeFileSync(sourceRepoFile, `${missingLocalPath}\n`);
+  const localResult = runCli();
+  assert.equal(localResult.status, 0, localResult.stderr || localResult.stdout);
+  const localPayload = JSON.parse(localResult.stdout);
+  const localUpdate = localPayload.checks.find((item) => item.id === "auto-update");
+  assert.equal(localUpdate.status, "warn");
+  assert.match(localUpdate.detail, /路径不存在/);
+});
+
 test("doctor.sh --json surfaces env overrides", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-cli-"));
   const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");

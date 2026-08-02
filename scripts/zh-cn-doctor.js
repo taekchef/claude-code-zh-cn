@@ -854,6 +854,8 @@ function runDoctor(options = {}) {
     const sourceRepo = fs.readFileSync(sourceRepoFile, "utf8").trim();
     if (sourceRepo && fs.existsSync(sourceRepo)) {
       add("auto-update", "插件自动更新", "ok", `源码目录 ${sourceRepo}`);
+    } else if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(sourceRepo)) {
+      add("auto-update", "插件自动更新", "ok", `GitHub 仓库 ${sourceRepo}`);
     } else {
       add("auto-update", "插件自动更新", "warn", `.source-repo 指向的路径不存在：${sourceRepo || "(空)"}`);
       recommendations.push("保留安装时的 git 仓库路径，或设置 ZH_CN_SOURCE_REPO 后重新 install");
