@@ -415,7 +415,7 @@ $env:ZH_CN_CCSWITCH_SYNC = "1"; .\install.ps1
 <details>
 <summary><b>会不会破坏 Claude Code 原有功能？</b></summary>
 
-不会。安装脚本在修改前先备份；native 补丁还必须通过重打包和真实启动自检，失败就恢复原文件。单条新文案匹配不上时只保留英文，不会连累整套插件。如果仍要移除，运行 `./uninstall.sh`。
+不会。安装脚本在修改前先备份；native 补丁还必须通过重打包和真实启动自检，失败就恢复原文件。单条新文案匹配不上时只保留英文，不会连累整套插件。如果仍要移除，按[临时切回英文或卸载](#back-to-english)选择对应安装方式。
 </details>
 
 <details>
