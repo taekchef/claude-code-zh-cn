@@ -7603,7 +7603,7 @@
   },
   {
     "en": "Another Claude session sent a message while you were working:",
-    "zh": "您工作时,另一个 Claude 会话发来了一条消息:"
+    "zh": "您工作时，另一个 Claude 会话发来了一条消息："
   },
   {
     "en": "Authenticate with `/mcp` in the terminal.",
@@ -7623,7 +7623,7 @@
   },
   {
     "en": "Background this session?",
-    "zh": "将此会话转入后台?"
+    "zh": "将此会话转入后台？"
   },
   {
     "en": "Blocked by hook",
@@ -7635,15 +7635,15 @@
   },
   {
     "en": "By confirming, you allow Anthropic to charge your card in the amount above.",
-    "zh": "确认后,即表示您授权 Anthropic 按上述金额从您的银行卡扣款。"
+    "zh": "确认后，即表示您授权 Anthropic 按上述金额从您的银行卡扣款。"
   },
   {
     "en": "Catch you later!",
-    "zh": "回见!"
+    "zh": "回见！"
   },
   {
     "en": "Check in from your phone",
-    "zh": "在手机上签到"
+    "zh": "从手机端查看"
   },
   {
     "en": "Check its config with `/mcp` in the terminal.",
@@ -7727,7 +7727,7 @@
   },
   {
     "en": "GitHub App installed!",
-    "zh": "GitHub App 已安装!"
+    "zh": "GitHub App 已安装！"
   },
   {
     "en": "Hook cancelled",
@@ -7747,7 +7747,7 @@
   },
   {
     "en": "Interactive planning on the web where you can edit and leave targeted comments on Claude's plan.",
-    "zh": "在网页上进行交互式规划,您可以对 Claude 的方案进行编辑并留下针对性的评论。"
+    "zh": "在网页上进行交互式规划，您可以对 Claude 的方案进行编辑并留下针对性的评论。"
   },
   {
     "en": "Leave it",
@@ -7799,43 +7799,43 @@
   },
   {
     "en": "Note: may discard all working tree changes",
-    "zh": "注意:可能会丢弃所有工作区更改"
+    "zh": "注意：可能会丢弃所有工作区更改"
   },
   {
     "en": "Note: may discard uncommitted changes",
-    "zh": "注意:可能会丢弃未提交的更改"
+    "zh": "注意：可能会丢弃未提交的更改"
   },
   {
     "en": "Note: may drop or truncate database objects",
-    "zh": "注意:可能会删除或截断数据库对象"
+    "zh": "注意：可能会删除或截断数据库对象"
   },
   {
     "en": "Note: may force-remove files",
-    "zh": "注意:可能会强制删除文件"
+    "zh": "注意：可能会强制删除文件"
   },
   {
     "en": "Note: may overwrite remote history",
-    "zh": "注意:可能会覆盖远程历史"
+    "zh": "注意：可能会覆盖远程历史"
   },
   {
     "en": "Note: may permanently delete untracked files",
-    "zh": "注意:可能会永久删除未跟踪的文件"
+    "zh": "注意：可能会永久删除未跟踪的文件"
   },
   {
     "en": "Note: may permanently remove stashed changes",
-    "zh": "注意:可能会永久移除暂存的更改"
+    "zh": "注意：可能会永久移除暂存的更改"
   },
   {
     "en": "Note: may recursively force-remove files",
-    "zh": "注意:可能会递归强制删除文件"
+    "zh": "注意：可能会递归强制删除文件"
   },
   {
     "en": "Note: may recursively remove files",
-    "zh": "注意:可能会递归删除文件"
+    "zh": "注意：可能会递归删除文件"
   },
   {
     "en": "Note: will restart the computer",
-    "zh": "注意:将会重启计算机"
+    "zh": "注意：将会重启计算机"
   },
   {
     "en": "Open in Claude Code on the web",
@@ -7851,7 +7851,7 @@
   },
   {
     "en": "Plan ready for review",
-    "zh": "方案已就绪,待审阅"
+    "zh": "方案已就绪，待审阅"
   },
   {
     "en": "Please revise your plan",
@@ -7879,11 +7879,11 @@
   },
   {
     "en": "See ya!",
-    "zh": "回头见!"
+    "zh": "回头见！"
   },
   {
     "en": "Session complete!",
-    "zh": "会话已完成!"
+    "zh": "会话已完成！"
   },
   {
     "en": "Session paused",
@@ -7899,7 +7899,7 @@
   },
   {
     "en": "Should I proceed?",
-    "zh": "是否继续?"
+    "zh": "是否继续？"
   },
   {
     "en": "Sign-in complete",
@@ -7947,7 +7947,7 @@
   },
   {
     "en": "This session requires a trusted device. Run /login to enroll this device, then retry.",
-    "zh": "此会话需要受信任的设备。请运行 /login 注册本设备,然后重试。"
+    "zh": "此会话需要受信任的设备。请运行 /login 注册本设备，然后重试。"
   },
   {
     "en": "Tool name cannot be empty",
@@ -7955,7 +7955,7 @@
   },
   {
     "en": "Try rephrasing the request in a new session or change your model.",
-    "zh": "请尝试在新会话中重新表述请求,或更换模型。"
+    "zh": "请尝试在新会话中重新表述请求，或更换模型。"
   },
   {
     "en": "Usage credits",
@@ -7979,7 +7979,7 @@
   },
   {
     "en": "Yes, remove",
-    "zh": "是,移除"
+    "zh": "是，移除"
   },
   {
     "en": "You can close this tab and return to Claude Code.",
@@ -7987,7 +7987,7 @@
   },
   {
     "en": "You can continue to work while the plan is generated remotely.",
-    "zh": "在远程生成方案的同时,您可以继续工作。"
+    "zh": "在远程生成方案的同时，您可以继续工作。"
   },
   {
     "en": "You're now using extra usage",
@@ -7995,7 +7995,7 @@
   },
   {
     "en": "You're now using usage credits",
-    "zh": "您正在使用使用额度"
+    "zh": "当前正在消耗使用额度"
   },
   {
     "en": "You're now using your usage allocation",
@@ -8027,7 +8027,7 @@
   },
   {
     "en": "Your session has expired for the trusted-device check. Run /login to re-authenticate, then retry.",
-    "zh": "您的会话在受信任设备校验时已过期。请运行 /login 重新认证,然后重试。"
+    "zh": "您的会话在受信任设备校验时已过期。请运行 /login 重新认证，然后重试。"
   },
   {
     "en": "Your session has expired. Please run /login to sign in again.",
