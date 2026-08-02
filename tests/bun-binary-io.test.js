@@ -148,6 +148,56 @@ exports.parse = function parse(binaryPath) {
   );
 }
 
+function writeFakeElfNodeLief(root) {
+  const moduleDir = path.join(root, "node_modules", "node-lief");
+  fs.mkdirSync(moduleDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(moduleDir, "index.js"),
+    `
+const fs = require("node:fs");
+
+exports.logging = { disable() {} };
+exports.parse = function parse(binaryPath) {
+  let content = fs.readFileSync(binaryPath).subarray(4);
+  let capacity = content.length;
+  const section = {
+    name: ".bun",
+    size: BigInt(content.length),
+    fileOffset: 4n,
+    get content() { return content; },
+    set content(value) {
+      const next = Buffer.from(value);
+      if (next.length > capacity) throw new Error("ELF section exceeds LOAD segment capacity");
+      content = next;
+      this.size = BigInt(content.length);
+    },
+  };
+  const segment = {
+    type: "LOAD",
+    flags: 6,
+    fileOffset: 0n,
+    fileSize: BigInt(4 + content.length),
+  };
+  return {
+    format: "ELF",
+    getSection(name) { return name === ".bun" ? section : null; },
+    sections() { return [section]; },
+    segments() { return [segment]; },
+    pageSize() { return 4096n; },
+    extend(target, amount) {
+      target.fileSize += amount;
+      capacity += Number(amount);
+      return target;
+    },
+    write(outputPath) {
+      fs.writeFileSync(outputPath, Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46]), section.content]));
+    },
+  };
+};
+`
+  );
+}
+
 function createFakeElfBinary(filePath) {
   const prefix = Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00]);
   const padding = Buffer.alloc(64, 0x42);
@@ -266,7 +316,7 @@ test("detect returns unknown for plain files that are neither Bun binaries nor n
   assert.equal(output, "unknown");
 });
 
-test("detect keeps ELF binaries out of native-bun path", () => {
+test("detect treats ELF binaries with Bun trailer as native-bun", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-detect-elf-"));
   const elfPath = path.join(tmp, "claude-elf");
   createFakeElfBinary(elfPath);
@@ -276,7 +326,7 @@ test("detect keeps ELF binaries out of native-bun path", () => {
     npm_config_prefix: path.join(tmp, "npm-prefix"),
   });
 
-  assert.equal(output, "unknown");
+  assert.equal(output, `native-bun:${fs.realpathSync(elfPath)}`);
 });
 
 test("resolve returns the real path for symlinks", () => {
@@ -345,6 +395,40 @@ test("extract, version, and repack can run through a PE node-lief adapter", () =
   assert.equal(repack.status, 0, repack.stderr);
   assert.equal(repack.stdout.trim(), "ok");
 
+  assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
+  assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
+});
+
+test("extract, version, and repack can run through an ELF node-lief adapter", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-elf-repack-"));
+  const binaryPath = path.join(tmp, "claude");
+  const extractedPath = path.join(tmp, "extracted.js");
+  const replacementPath = path.join(tmp, "replacement.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+  const initialSource = "// Version: 2.1.220\nconst label = \"Settings\";\n";
+  const replacementSource = "// Version: 2.1.220\nconst label = \"设置页面已经完成中文本地化\";\n";
+
+  writeFakeElfNodeLief(fakeModuleRoot);
+  fs.writeFileSync(
+    binaryPath,
+    Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46]), createBunSectionData(initialSource)])
+  );
+  fs.chmodSync(binaryPath, 0o755);
+  fs.writeFileSync(replacementPath, replacementSource);
+
+  const env = {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  };
+
+  assert.equal(runHelper(["version", binaryPath], env), "2.1.220");
+  assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
+  assert.equal(fs.readFileSync(extractedPath, "utf8"), initialSource);
+
+  const repack = runHelperWithStatus(["repack", binaryPath, replacementPath], env);
+  assert.equal(repack.status, 0, repack.stderr);
+  assert.equal(repack.stdout.trim(), "ok");
   assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
   assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
 });

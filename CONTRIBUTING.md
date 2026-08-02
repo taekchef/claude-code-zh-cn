@@ -123,4 +123,5 @@ node scripts/verify-settings-sources.js
 
 - `npm` 安装：稳定支持
 - `macOS 官方安装器`：实验性支持
-- `Linux 官方安装器`：暂不支持
+- `Linux x64 glibc 原生二进制`：仅实验性支持已验证的 `2.1.220`
+- `Linux ARM64 / musl / 其他原生形态`：暂不支持 CLI Patch

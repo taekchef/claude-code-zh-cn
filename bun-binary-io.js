@@ -3,7 +3,7 @@
  * bun-binary-io.js — Bun 原生二进制 I/O 工具
  *
  * 从 tweakcc (Piebald-AI/tweakcc) 的 nativeInstallation.ts 精简移植。
- * 支持 macOS (Mach-O) 与 Windows (PE)，仍按平台版本窗口开放。
+ * 支持 macOS (Mach-O)、Linux (ELF) 与 Windows (PE)，仍按平台版本窗口开放。
  *
  * CLI 子命令：
  *   detect <claude-cmd>     → 输出 "npm:<path>" 或 "native-bun:<path>" 或 "unknown"
@@ -116,9 +116,8 @@ function detectInstallation(claudeCmd) {
   try { realPath = fs.realpathSync(claudeCmd); } catch { return "unknown"; }
 
   // 2. 先判真实目标本身是不是 Bun 二进制（Codex 二审 #1）
-  //    仅支持 Mach-O（macOS），ELF (Linux) 暂不开放
   const format = detectBinaryFormat(realPath);
-  if ((format === "MachO64" || format === "MachO32" || format === "PE") && hasBunTrailer(realPath)) {
+  if ((format === "MachO64" || format === "MachO32" || format === "ELF" || format === "PE") && hasBunTrailer(realPath)) {
     return "native-bun:" + realPath;
   }
 
@@ -136,7 +135,7 @@ function detectInstallation(claudeCmd) {
     "node_modules/@anthropic-ai/claude-code/bin/claude.exe");
   if (fs.existsSync(npmExe)) {
     const exeFormat = detectBinaryFormat(npmExe);
-    if ((exeFormat === "PE" || exeFormat === "MachO64" || exeFormat === "MachO32") && hasBunTrailer(npmExe)) {
+    if ((exeFormat === "PE" || exeFormat === "ELF" || exeFormat === "MachO64" || exeFormat === "MachO32") && hasBunTrailer(npmExe)) {
       return "native-bun:" + npmExe;
     }
   }
@@ -151,7 +150,7 @@ function detectInstallation(claudeCmd) {
     const npmExe2 = path.join(globalRoot, "@anthropic-ai/claude-code/bin/claude.exe");
     if (fs.existsSync(npmExe2)) {
       const exeFormat2 = detectBinaryFormat(npmExe2);
-      if ((exeFormat2 === "PE" || exeFormat2 === "MachO64" || exeFormat2 === "MachO32") && hasBunTrailer(npmExe2)) {
+      if ((exeFormat2 === "PE" || exeFormat2 === "ELF" || exeFormat2 === "MachO64" || exeFormat2 === "MachO32") && hasBunTrailer(npmExe2)) {
         return "native-bun:" + npmExe2;
       }
     }
@@ -328,6 +327,12 @@ function extractNativeBun(LIEF, binaryPath) {
         } catch {}
       }
       throw new Error("Bun section not found in PE binary");
+    }
+    case "ELF": {
+      const section = binary.getSection(".bun");
+      if (!section) throw new Error(".bun section not found in ELF binary");
+      const parsed = extractBunDataFromSection(section.content);
+      return { ...parsed, format: "ELF", binary, section };
     }
     default:
       throw new Error(`Unsupported native binary format: ${binary.format || "unknown"}`);
@@ -511,10 +516,10 @@ function signAndVerifyMachO(outputPath) {
   runCodesign(["--verify", "--strict", "--verbose=4", outputPath], "verify");
 }
 
-function verifyPERepack(LIEF, outputPath, expectedBunBuffer) {
+function verifyNativeRepack(LIEF, outputPath, expectedBunBuffer, format) {
   const { bunData } = extractNativeBun(LIEF, outputPath);
   if (!bunData.equals(expectedBunBuffer)) {
-    throw new Error("PE repack verification failed: embedded Bun data did not round-trip");
+    throw new Error(`${format} repack verification failed: embedded Bun data did not round-trip`);
   }
 }
 
@@ -558,7 +563,41 @@ function repackPE(LIEF, peBinary, binPath, newBunBuffer, outputPath, sectionHead
   }
 
   atomicWriteBinary(LIEF, peBinary, outputPath, binPath);
-  verifyPERepack(LIEF, outputPath, newBunBuffer);
+  verifyNativeRepack(LIEF, outputPath, newBunBuffer, "PE");
+}
+
+function repackELF(LIEF, elfBinary, binPath, newBunBuffer, outputPath, sectionHeaderSize, section) {
+  const newSectionData = buildSectionData(newBunBuffer, sectionHeaderSize);
+  const sizeDiff = newSectionData.length - Number(section.size);
+
+  if (sizeDiff > 0) {
+    if (typeof elfBinary.pageSize !== "function" || typeof elfBinary.extend !== "function") {
+      throw new Error("Growing an ELF Bun section requires node-lief 1.3.0 or newer");
+    }
+    const sectionName = section.name;
+    const sectionStart = BigInt(section.fileOffset);
+    const sectionEnd = sectionStart + BigInt(section.size);
+    const loadSegment = elfBinary.segments().find((candidate) => {
+      const segmentStart = BigInt(candidate.fileOffset);
+      const segmentEnd = segmentStart + BigInt(candidate.fileSize);
+      return candidate.type === "LOAD" && segmentStart <= sectionStart && sectionEnd <= segmentEnd;
+    });
+    if (!loadSegment) throw new Error("ELF LOAD segment containing Bun section not found");
+
+    const pageSize = BigInt(elfBinary.pageSize());
+    const alignedSizeDiff = ((BigInt(sizeDiff) + pageSize - 1n) / pageSize) * pageSize;
+    if (!elfBinary.extend(loadSegment, alignedSizeDiff)) {
+      throw new Error("Failed to extend ELF LOAD segment");
+    }
+
+    section = elfBinary.getSection(sectionName);
+    if (!section) throw new Error("Bun section not found after extending ELF LOAD segment");
+  }
+
+  section.content = newSectionData;
+  section.size = BigInt(newSectionData.length);
+  atomicWriteBinary(LIEF, elfBinary, outputPath, binPath);
+  verifyNativeRepack(LIEF, outputPath, newBunBuffer, "ELF");
 }
 
 // ============================================================================
@@ -623,6 +662,9 @@ function cmdRepack() {
     case "PE":
       repackPE(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
       break;
+    case "ELF":
+      repackELF(LIEF, binary, binaryPath, newBuffer, binaryPath, sectionHeaderSize, section);
+      break;
     default:
       process.stderr.write(`Error: unsupported native binary format ${format || "unknown"}\n`);
       process.exit(1);
@@ -633,6 +675,10 @@ function cmdRepack() {
 function isClaudePackageName(name) {
   return name === "@anthropic-ai/claude-code" ||
     name === "@anthropic-ai/claude-code-darwin-arm64" ||
+    name === "@anthropic-ai/claude-code-linux-x64" ||
+    name === "@anthropic-ai/claude-code-linux-arm64" ||
+    name === "@anthropic-ai/claude-code-linux-x64-musl" ||
+    name === "@anthropic-ai/claude-code-linux-arm64-musl" ||
     name === "@anthropic-ai/claude-code-win32-x64";
 }
 

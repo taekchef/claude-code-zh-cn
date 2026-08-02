@@ -151,7 +151,11 @@ print_completion() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
-        echo -e "  ${YELLOW}!${NC} 官方安装器 native patch：已验证版本有公开证据；更高可识别版本会在安装时本机自验证"
+        if [[ "$(native_platform)" == linux-* ]]; then
+            echo -e "  ${YELLOW}!${NC} Linux native patch：仅对已验证支持窗口开放"
+        else
+            echo -e "  ${YELLOW}!${NC} 官方安装器 native patch：已验证版本有公开证据；更高可识别版本会在安装时本机自验证"
+        fi
     fi
 
     echo ""
@@ -165,10 +169,6 @@ detect_platform() {
 
     if [ -f /proc/version ] && grep -qi "microsoft" /proc/version 2>/dev/null; then
         echo -e "${GREEN}检测到 WSL 环境，继续安装${NC}"
-    elif [ -f /proc/version ]; then
-        echo -e "${YELLOW}提示：未检测到 WSL 环境。如果你在 Windows 上使用 Git Bash 或 PowerShell，${NC}"
-        echo -e "${YELLOW}请切换到 WSL 终端后运行此脚本。Claude Code 仅通过 WSL 在 Windows 上运行。${NC}"
-        echo ""
     fi
 }
 
@@ -191,15 +191,22 @@ check_dependencies() {
     local install_info
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
-        local native_path native_version dep_status
+        local native_path native_version dep_status platform lief_requirement
         native_path="${install_info#*:}"
         native_version="$(native_binary_version "$native_path")"
+        platform="$(native_platform)"
+        lief_requirement="node-lief"
+        [[ "$platform" == linux-* ]] && lief_requirement="node-lief >= 1.3.0"
         dep_status="$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null || echo "missing")"
 
         if is_supported_native_version "$native_version"; then
             if [ "$dep_status" != "ok" ]; then
-                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version:-unknown}，CLI Patch 需要 node-lief${NC}"
-                echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+                echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version:-unknown}，CLI Patch 需要 ${lief_requirement}${NC}"
+                if [[ "$platform" == linux-* ]]; then
+                    echo -e "  运行: ${GREEN}npm install -g node-lief@^1.3.0${NC}"
+                else
+                    echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+                fi
             else
                 echo -e "${YELLOW}检测到已验证原生二进制版本 ${native_version}，将执行 native patch${NC}"
             fi
@@ -212,7 +219,7 @@ check_dependencies() {
             fi
         else
             echo -e "${YELLOW}检测到原生二进制安装方式；当前版本 ${native_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
-            echo -e "  macOS native 已验证窗口：$(native_support_summary)"
+            echo -e "  当前平台 native 已验证窗口：$(native_support_summary)"
             echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         fi
     fi
@@ -264,6 +271,12 @@ native_platform() {
         Darwin-arm64|Darwin-aarch64)
             printf 'darwin-arm64'
             ;;
+        Linux-x86_64|Linux-amd64)
+            printf 'linux-x64'
+            ;;
+        Linux-arm64|Linux-aarch64)
+            printf 'linux-arm64'
+            ;;
         *)
             printf ''
             ;;
@@ -276,6 +289,7 @@ is_supported_native_version() {
     local support_file="$PLUGIN_SRC/support-window.json"
 
     if [ ! -f "$support_file" ]; then
+        [ "$platform" = "darwin-arm64" ] || return 1
         case "${version:-}" in
             2.1.110|2.1.111|2.1.112)
                 return 0
@@ -293,7 +307,11 @@ const version = process.argv[3];
 const platform = process.argv[4] || "";
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const versions = [];
-for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+for (const key of [
+  "macosNativeOfficialInstallerExperimental",
+  "macosNativeExperimental",
+  "linuxNativeExperimental",
+]) {
   const entry = data[key];
   if (!entry) continue;
   if (platform && entry.platform && entry.platform !== platform) continue;
@@ -353,20 +371,31 @@ NODE
 
 native_support_summary() {
     local support_file="$PLUGIN_SRC/support-window.json"
+    local platform="${1:-$(native_platform)}"
 
     if [ ! -f "$support_file" ]; then
-        printf "2.1.110 - 2.1.112"
+        if [ "$platform" = "darwin-arm64" ]; then
+            printf "2.1.110 - 2.1.112"
+        else
+            printf "无"
+        fi
         return
     fi
 
-    node - "$support_file" <<'NODE'
+    node - "$support_file" "$platform" <<'NODE'
 const fs = require("fs");
 const file = process.argv[2];
+const platform = process.argv[3] || "";
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const ranges = [];
-for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExperimental"]) {
+for (const key of [
+  "macosNativeOfficialInstallerExperimental",
+  "macosNativeExperimental",
+  "linuxNativeExperimental",
+]) {
   const entry = data[key];
   if (!entry || !entry.floor || !entry.ceiling) continue;
+  if (platform && entry.platform && entry.platform !== platform) continue;
   let range = entry.floor === entry.ceiling ? entry.floor : `${entry.floor} - ${entry.ceiling}`;
   if (Array.isArray(entry.excluded) && entry.excluded.length > 0) {
     range += ` (不含 ${entry.excluded.join(", ")})`;
@@ -375,6 +404,22 @@ for (const key of ["macosNativeOfficialInstallerExperimental", "macosNativeExper
 }
 process.stdout.write(ranges.join("；") || "无");
 NODE
+}
+
+replace_native_binary_from_file() {
+    local source_path="$1"
+    local binary_path="$2"
+    local replacement_path
+
+    replacement_path="$(mktemp "${binary_path}.zh-cn-restore.XXXXXX" 2>/dev/null || true)"
+    [ -n "${replacement_path:-}" ] || return 1
+
+    if cp -p "$source_path" "$replacement_path" 2>/dev/null && mv -f "$replacement_path" "$binary_path" 2>/dev/null; then
+        return 0
+    fi
+
+    rm -f "$replacement_path" 2>/dev/null || true
+    return 1
 }
 
 native_binary_hash() {
@@ -1602,7 +1647,7 @@ patch_native_binary() {
         patch_mode="provisional"
     else
         echo -e "${YELLOW}当前原生二进制版本 ${current_version:-unknown} 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）${NC}"
-        echo -e "  macOS native 已验证窗口：$(native_support_summary)"
+        echo -e "  当前平台 native 已验证窗口：$(native_support_summary "$platform")"
         echo -e "  如需稳定 CLI 中文化，请使用 npm 安装 Claude Code 2.1.112"
         print_updater_boundary_note
         echo -e "${YELLOW}  下一步：如果是 Claude Code 自动升到未发布窗口，请等插件发布支持，或临时安装支持窗口内版本。${NC}"
@@ -1620,8 +1665,13 @@ patch_native_binary() {
     local dep_status
     dep_status="$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null || echo "missing")"
     if [ "$dep_status" != "ok" ]; then
-        echo -e "${YELLOW}需要安装 node-lief 来支持官方安装器 native patch${NC}"
-        echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+        if [[ "$platform" == linux-* ]]; then
+            echo -e "${YELLOW}Linux native patch 需要 node-lief >= 1.3.0${NC}"
+            echo -e "  运行: ${GREEN}npm install -g node-lief@^1.3.0${NC}"
+        else
+            echo -e "${YELLOW}需要安装 node-lief 来支持官方安装器 native patch${NC}"
+            echo -e "  运行: ${GREEN}npm install -g node-lief${NC}"
+        fi
         echo -e "  然后重新运行 ./install.sh"
         CLI_PATCH_STATUS_SUMMARY="已跳过（官方安装器 CLI Patch 需要 node-lief）"
         return
@@ -1635,7 +1685,7 @@ patch_native_binary() {
     # 备份逻辑：仅同版本恢复 backup；版本变化时刷新 backup 为当前版本
     if [ -f "$backup_path" ] && [ -n "${current_version:-}" ] && [ "${current_version:-}" = "${backup_version:-}" ]; then
         echo -e "  从备份恢复原始二进制..."
-        cp "$backup_path" "$binary_path" || {
+        replace_native_binary_from_file "$backup_path" "$binary_path" || {
             echo -e "${RED}恢复备份失败${NC}"
             return
         }
@@ -1663,7 +1713,7 @@ patch_native_binary() {
     if [ "$patch_count" != "0" ]; then
         node "$PLUGIN_SRC/bun-binary-io.js" repack "$binary_path" "$tmp_js" || {
             echo -e "${RED}写回二进制失败，正在从备份恢复...${NC}"
-            cp "$backup_path" "$binary_path" 2>/dev/null || true
+            replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null || true
             CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制写回失败）"
             rm -f "$tmp_js"
             return
@@ -1673,7 +1723,7 @@ patch_native_binary() {
         verified_version="$(native_binary_version_from_execution "$binary_path")"
         if [ "${verified_version:-}" != "${current_version:-}" ]; then
             echo -e "${RED}本机启动自检失败，正在从备份恢复...${NC}"
-            cp "$backup_path" "$binary_path" 2>/dev/null || true
+            replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null || true
             CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机启动自检失败）"
             rm -f "$tmp_js"
             return

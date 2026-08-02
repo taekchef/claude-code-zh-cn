@@ -289,6 +289,107 @@ test("verify-upstream-compat reports missing node-lief as native dependency skip
   assert.match(native.skipReason, /node-lief/);
 });
 
+test("verify-upstream-compat patches and audits the Linux platform package", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-linux-native-"));
+  const packagesDir = path.join(tmp, "cache");
+  const packageDir = path.join(
+    packagesDir,
+    "_anthropic-ai_claude-code-linux-x64-2.1.220",
+    "package"
+  );
+  fs.mkdirSync(packageDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packageDir, "package.json"),
+    JSON.stringify({ name: "@anthropic-ai/claude-code-linux-x64", version: "2.1.220" })
+  );
+  fs.writeFileSync(path.join(packageDir, "claude"), "fake ELF\n");
+
+  const configPath = path.join(tmp, "config.json");
+  const config = JSON.parse(fs.readFileSync(fixtureConfig, "utf8"));
+  config.baseline = { versions: ["1.0.0"], includeLatestFromNpm: false };
+  config.support = {
+    linuxNativeExperimental: {
+      platform: "linux-x64",
+      packageName: "@anthropic-ai/claude-code-linux-x64",
+      floor: "2.1.113",
+      representatives: ["2.1.220"],
+    },
+  };
+  config.checks = {
+    sentinels: [],
+    templateResidues: [],
+    upstreamTextGuards: [],
+    displayAudit: {
+      commands: [{ id: "help", args: ["--help"] }],
+      mustPreserve: [{ id: "localized_help", pattern: "中文帮助", command: "help" }],
+    },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const fakeBinaryIo = path.join(tmp, "fake-binary-io.js");
+  fs.writeFileSync(
+    fakeBinaryIo,
+    [
+      "const fs = require('node:fs');",
+      "const command = process.argv[2];",
+      "if (command === 'check-deps') process.stdout.write('ok\\n');",
+      "else if (command === 'detect') process.stdout.write('native-bun:elf\\n');",
+      "else if (command === 'extract') fs.writeFileSync(process.argv[4], 'const label=\\\"Stop ultrareview\\\";\\n');",
+      "else if (command === 'repack') {",
+      "  fs.writeFileSync(process.argv[3], '#!/usr/bin/env node\\nif(process.argv.includes(\\\"--version\\\")) console.log(\\\"2.1.220 (Claude Code)\\\"); else console.log(\\\"中文帮助\\\");\\n');",
+      "  fs.chmodSync(process.argv[3], 0o755);",
+      "}",
+      "else process.exit(2);",
+      "",
+    ].join("\n")
+  );
+  const binDir = path.join(tmp, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  const fakeNode = path.join(binDir, "node");
+  fs.writeFileSync(
+    fakeNode,
+    [
+      "#!/usr/bin/env bash",
+      "if [ \"$1\" = \"$CCZH_TEST_BINARY_IO_PATH\" ]; then",
+      "  exec \"$CCZH_TEST_REAL_NODE\" \"$CCZH_TEST_FAKE_BINARY_IO\" \"${@:2}\"",
+      "fi",
+      "exec \"$CCZH_TEST_REAL_NODE\" \"$@\"",
+      "",
+    ].join("\n")
+  );
+  fs.chmodSync(fakeNode, 0o755);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", configPath, "--packages-dir", packagesDir, "--skip-latest", "--native-linux-x64", "--json"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+        CCZH_NATIVE_VERIFY_PLATFORM: "linux-x64",
+        CCZH_TEST_BINARY_IO_PATH: path.join(repoRoot, "bun-binary-io.js"),
+        CCZH_TEST_FAKE_BINARY_IO: fakeBinaryIo,
+        CCZH_TEST_REAL_NODE: process.execPath,
+      },
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  assert.deepEqual(payload.baseline, ["2.1.220"]);
+  const [native] = payload.results;
+  assert.equal(native.status, "pass");
+  assert.ok(native.patchCount > 0);
+  assert.equal(native.nativeVerification.packageName, "@anthropic-ai/claude-code-linux-x64");
+  assert.equal(native.nativeVerification.platform, "linux-x64");
+  assert.equal(native.nativeVerification.codeSignature, "not-required");
+  assert.match(native.nativeVerification.versionOutput, /2\.1\.220/);
+  assert.equal(native.displayAudit.status, "pass");
+  assert.equal(native.displayAudit.commandCount, 1);
+});
+
 test("verify-upstream-compat resolves new native macOS candidates to the platform package", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-package-resolve-"));
   const packagesDir = path.join(tmp, "cache");

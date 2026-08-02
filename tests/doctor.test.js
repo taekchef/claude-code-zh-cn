@@ -6,7 +6,12 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
-const { runDoctor, STABLE_INSTALL_CMD } = require(path.join(repoRoot, "scripts", "zh-cn-doctor.js"));
+const {
+  runDoctor,
+  STABLE_INSTALL_CMD,
+  nativePlatformForTarget,
+  isSupportedNativeVersion,
+} = require(path.join(repoRoot, "scripts", "zh-cn-doctor.js"));
 
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -515,6 +520,23 @@ test("runDoctor does not treat macOS native support as Windows native support", 
   assert.match(updater.detail, /DISABLE_AUTOUPDATER/);
   assert.ok(result.recommendations.some((line) => line.includes("docs/support-matrix.md")));
   assert.equal(result.layer4Status, "unsupported");
+});
+
+test("doctor maps Linux architectures and reads the Linux x64 support window", () => {
+  const support = {
+    linuxNativeExperimental: {
+      platform: "linux-x64",
+      floor: "2.1.220",
+      ceiling: "2.1.220",
+      versions: ["2.1.220"],
+    },
+  };
+
+  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "x64"), "linux-x64");
+  assert.equal(nativePlatformForTarget("/usr/bin/claude", "linux", "arm64"), "linux-arm64");
+  assert.equal(nativePlatformForTarget("/nvm/bin/claude.exe", "linux", "x64"), "linux-x64");
+  assert.equal(isSupportedNativeVersion("2.1.220", support, "linux-x64"), true);
+  assert.equal(isSupportedNativeVersion("2.1.220", support, "linux-arm64"), false);
 });
 
 test("runDoctor reports supported Windows native as needing node-lief or patch", () => {

@@ -1322,6 +1322,57 @@ printf '1'
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
+test("session-start patches verified Linux x64 without provisional fallback", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-linux-native-verified-"));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeBinary = path.join(tmp, "claude-native");
+  const markerFile = path.join(pluginRoot, ".patched-version");
+
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  const supportPath = path.join(pluginRoot, "support-window.json");
+  const support = JSON.parse(fs.readFileSync(supportPath, "utf8"));
+  support.linuxNativeExperimental = {
+    floor: "2.1.220",
+    ceiling: "2.1.220",
+    versions: ["2.1.220"],
+    platform: "linux-x64",
+  };
+  fs.writeFileSync(supportPath, `${JSON.stringify(support, null, 2)}\n`);
+  writeFakeNativeHelper(path.join(pluginRoot, "bun-binary-io.js"));
+  fs.writeFileSync(
+    path.join(pluginRoot, "patch-cli.sh"),
+    `#!/usr/bin/env bash\nprintf '\nPATCHED-LINUX\n' >> "$1"\nprintf '1'\n`,
+    { mode: 0o755 }
+  );
+  fs.writeFileSync(fakeBinary, nativeShellFixture("2.1.220"), { mode: 0o755 });
+  fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
+
+  const result = spawnSync("bash", [hookPath], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      ZH_CN_NATIVE_PLATFORM: "linux-x64",
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    input: "\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(fs.readFileSync(fakeBinary, "utf8"), /PATCHED-LINUX/);
+  assert.match(fs.readFileSync(markerFile, "utf8").trim(), /^native\|2\.1\.220\|[a-f0-9]{64}\|[^|]+$/);
+  assert.doesNotMatch(fs.readFileSync(markerFile, "utf8"), /provisional/);
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+});
+
 test("session-start restores native backup when repack fails after mutating binary", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-repack-fail-"));
   const home = path.join(tmp, "home");
@@ -1453,6 +1504,7 @@ printf '1'
   fs.writeFileSync(backupBinary, cleanBackup);
   fs.chmodSync(fakeBinary, 0o755);
   fs.chmodSync(backupBinary, 0o755);
+  const originalInode = fs.statSync(fakeBinary).ino;
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
   fs.writeFileSync(markerFile, "native|2.1.175|stale|old-revision\n");
 
@@ -1472,6 +1524,7 @@ printf '1'
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(fs.readFileSync(fakeBinary, "utf8"), cleanBackup);
+  assert.notEqual(fs.statSync(fakeBinary).ino, originalInode, "rollback must atomically replace the running native inode");
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "native|2.1.175|stale|old-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });

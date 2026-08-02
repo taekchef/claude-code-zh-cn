@@ -6,6 +6,22 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.9.0] - 2026-08-02
+
+### 新增
+
+- Linux x64 glibc 原生版 CLI Patch 首批支持 Claude Code 2.1.220；补丁器可从 ELF `.bun` section 提取、回写并校验内嵌 JavaScript。
+- Ubuntu CI 直接安装官方 Linux 原生包，验证 patch 后二进制可启动、版本正确且 11 项显示审计通过。
+
+### 修复
+
+- 纯 Linux 不再被安装器误提示为“请切换到 WSL”；Fedora/NVM 等原生安装会按 Linux 支持窗口处理。
+
+### 验证
+
+- `node-lief` 1.3.2 对官方 `@anthropic-ai/claude-code-linux-x64@2.1.220` 完成提取、1492 处替换、语法检查、ELF 回写和逐字 round-trip。
+- Linux ARM64 与 musl 尚未纳入已发布支持窗口。
+
 ## [2.8.0] - 2026-08-02
 
 ### 新增

@@ -173,6 +173,83 @@ printf '1'
   return sourceRepo;
 }
 
+function addLinuxNativeSupport(sourceRepo, version = "2.1.220") {
+  const supportPath = path.join(sourceRepo, "plugin", "support-window.json");
+  const support = JSON.parse(fs.readFileSync(supportPath, "utf8"));
+  support.linuxNativeExperimental = {
+    floor: version,
+    ceiling: version,
+    versions: [version],
+    platform: "linux-x64",
+    requires: ["node-lief"],
+  };
+  fs.writeFileSync(supportPath, `${JSON.stringify(support, null, 2)}\n`);
+}
+
+test("Linux native install prompt requires node-lief 1.3.0 or newer", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "install.sh"), "utf8");
+  assert.match(script, /Linux native patch 需要 node-lief >= 1\.3\.0/);
+  assert.match(script, /npm install -g node-lief@\^1\.3\.0/);
+});
+
+test("install smoke supports verified Linux x64 but rejects arm64 and provisional latest", { skip: unixShellRequired }, () => {
+  const cases = [
+    { version: "2.1.220", arch: "x86_64", patched: true },
+    { version: "2.1.220", arch: "aarch64", patched: false },
+    { version: "2.1.221", arch: "x86_64", patched: false },
+  ];
+
+  for (const item of cases) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-linux-native-"));
+    const home = path.join(tmp, "home");
+    const fakeBin = path.join(tmp, "bin");
+    const fakeClaude = path.join(fakeBin, "claude");
+    const invokedFile = path.join(tmp, "patch-invoked");
+    const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+    const sourceRepo = createInstallSource(tmp, invokedFile, item.version);
+
+    addLinuxNativeSupport(sourceRepo);
+    fs.mkdirSync(fakeBin, { recursive: true });
+    fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${item.version} (Claude Code)'\n`, { mode: 0o755 });
+    fs.writeFileSync(
+      path.join(fakeBin, "uname"),
+      `#!/usr/bin/env bash\nif [ "$1" = "-s" ]; then echo Linux; else echo ${item.arch}; fi\n`,
+      { mode: 0o755 }
+    );
+
+    const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
+      cwd: sourceRepo,
+      env: {
+        ...process.env,
+        HOME: home,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        CLAUDE_PLUGIN_ROOT: pluginRoot,
+        ZH_CN_REAL_CLAUDE: fakeClaude,
+        ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
+        ZH_CN_PROFILE_FILES: path.join(home, ".zshrc"),
+        GIT_TERMINAL_PROMPT: "0",
+      },
+      encoding: "utf8",
+    });
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    assert.equal(result.status, 0, output);
+    assert.equal(fs.existsSync(invokedFile), item.patched, `${item.arch} ${item.version}`);
+    assert.doesNotMatch(output, /未检测到 WSL/, "pure Linux must not be described as failed WSL detection");
+    if (item.patched) {
+      assert.match(
+        fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
+        /^native\|2\.1\.220\|[a-f0-9]+\|[a-f0-9]{16}$/,
+        "published Linux support must use a verified marker"
+      );
+    } else {
+      assert.match(output, /暂不支持 CLI Patch/);
+      assert.doesNotMatch(output, /版本: .*未纳入已发布支持窗口/);
+      assert.match(output, /Linux native patch：仅对已验证支持窗口开放/);
+    }
+  }
+});
+
 test("install smoke provisionally self-verifies a future native release instead of hard-skipping it", { skip: unixShellRequired }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-native-unsupported-"));
   const home = path.join(tmp, "home");
@@ -283,6 +360,7 @@ test("install smoke restores native backup when runtime self-check fails", { ski
   fs.mkdirSync(fakeBin, { recursive: true });
   fs.writeFileSync(fakeClaude, originalBinary);
   fs.chmodSync(fakeClaude, 0o755);
+  const originalInode = fs.statSync(fakeClaude).ino;
 
   const result = spawnSync("bash", [path.join(sourceRepo, "install.sh")], {
     cwd: sourceRepo,
@@ -304,6 +382,7 @@ test("install smoke restores native backup when runtime self-check fails", { ski
   assert.match(output, /本机启动自检失败/, "runtime failure should be visible to the user");
   assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "install should reach native repack");
   assert.equal(fs.readFileSync(fakeClaude, "utf8"), originalBinary, "failed runtime self-check must restore backup");
+  assert.notEqual(fs.statSync(fakeClaude).ino, originalInode, "restore must replace the inode instead of truncating a running ELF");
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "failed self-check must not write success marker");
 });
 
@@ -355,7 +434,7 @@ test("install smoke provisionally self-verifies excluded in-window native binari
   );
 });
 
-test("Windows PowerShell old-npm install smoke is wired into CI", () => {
+test("native compat and Windows install smoke are wired into CI", () => {
   const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
 
   assert.doesNotMatch(workflow, /windows-latest/, "CI should not rely on the floating Windows runner");
@@ -369,7 +448,14 @@ test("Windows PowerShell old-npm install smoke is wired into CI", () => {
   );
   assert.match(workflow, /windows-native-compat/, "CI should include a Windows native compat lane");
   assert.match(workflow, /--native-windows-x64/, "CI should verify Windows native patching");
-  assert.match(workflow, /npm install --no-save node-lief/, "Windows native compat should install node-lief");
+  assert.match(workflow, /npm install --no-save node-lief(?:\r?\n|$)/, "Windows native compat should install node-lief");
+  assert.match(workflow, /linux-native-compat/, "CI should include a Linux native compat lane");
+  assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Linux native compat should pin node-lief");
+  assert.match(
+    workflow,
+    /--baseline 2\.1\.220 --skip-latest --native-linux-x64 --json/,
+    "CI should verify the fixed Linux native baseline"
+  );
 });
 
 test("install.ps1 gates launcher injection to Windows old npm cli.js installs", () => {

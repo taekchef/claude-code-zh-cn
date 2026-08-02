@@ -52,6 +52,22 @@ jobs:
         shell: powershell
         run: node --test tests/install-smoke.test.js tests/hook-entrypoints.test.js
 
+  linux-native-compat:
+    name: linux-native-compat
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install native verification dependency
+        run: npm install --no-save node-lief@1.3.2
+
+      - name: Verify Linux native baseline
+        run: node scripts/verify-upstream-compat.js --baseline 2.1.220 --skip-latest --native-linux-x64 --json
+
   windows-native-compat:
     name: windows-native-compat
     runs-on: windows-2022

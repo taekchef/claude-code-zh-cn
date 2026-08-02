@@ -221,6 +221,12 @@ native_platform() {
         Darwin-arm64|Darwin-aarch64)
             printf 'darwin-arm64'
             ;;
+        Linux-x86_64|Linux-amd64)
+            printf 'linux-x64'
+            ;;
+        Linux-arm64|Linux-aarch64)
+            printf 'linux-arm64'
+            ;;
         MINGW64_NT-*|MSYS_NT-*|CYGWIN_NT-*)
             printf 'win32-x64'
             ;;
@@ -236,6 +242,7 @@ is_supported_native_version() {
     local support_file="$PLUGIN_ROOT/support-window.json"
 
     if [ ! -f "$support_file" ]; then
+        [ "$platform" = "darwin-arm64" ] || return 1
         case "${version:-}" in
             2.1.110|2.1.111|2.1.112)
                 return 0
@@ -256,6 +263,7 @@ const versions = [];
 for (const key of [
   "macosNativeOfficialInstallerExperimental",
   "macosNativeExperimental",
+  "linuxNativeExperimental",
   "windowsNativeExperimental",
 ]) {
   const entry = data[key];
@@ -313,6 +321,22 @@ for (const key of [
 
 process.exit(1);
 NODE
+}
+
+replace_native_binary_from_file() {
+    local source_path="$1"
+    local binary_path="$2"
+    local replacement_path
+
+    replacement_path="$(mktemp "${binary_path}.zh-cn-restore.XXXXXX" 2>/dev/null || true)"
+    [ -n "${replacement_path:-}" ] || return 1
+
+    if cp -p "$source_path" "$replacement_path" 2>/dev/null && mv -f "$replacement_path" "$binary_path" 2>/dev/null; then
+        return 0
+    fi
+
+    rm -f "$replacement_path" 2>/dev/null || true
+    return 1
 }
 
 native_marker_is_current() {
@@ -733,7 +757,7 @@ if [ -n "$NATIVE_BINARY" ]; then
                 # 同版本时恢复 backup 保证干净基底；版本变化时刷新 backup 为当前版本
                 BACKUP_READY=false
                 if [ -f "$backup_path" ] && [ -n "${CURRENT_VERSION:-}" ] && [ "${CURRENT_VERSION:-}" = "${backup_version:-}" ]; then
-                    if cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null; then
+                    if replace_native_binary_from_file "$backup_path" "$NATIVE_BINARY" 2>/dev/null; then
                         BACKUP_READY=true
                     fi
                 else
@@ -788,7 +812,7 @@ if [ -n "$NATIVE_BINARY" ]; then
                                         AUTO_PATCH_MSG="（已自动 patch ${PATCH_COUNT} 处硬编码文字，启动自检通过）"
                                     fi
                                 else
-                                    cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                                    replace_native_binary_from_file "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                                 fi
                                 ;;
                             *)
@@ -798,7 +822,7 @@ if [ -n "$NATIVE_BINARY" ]; then
                     else
                         # 提取失败不触碰二进制；保留当前英文版本。
                         if [ -f "$backup_path" ]; then
-                            cp "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
+                            replace_native_binary_from_file "$backup_path" "$NATIVE_BINARY" 2>/dev/null || true
                         fi
                     fi
                 fi
