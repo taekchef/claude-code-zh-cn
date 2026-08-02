@@ -506,6 +506,7 @@ function readCcSwitchCommonConfig(homeDir) {
  * @param {string} [options.homeDir]
  * @param {string} [options.pluginRoot]
  * @param {string} [options.claudePath]
+ * @param {string} [options.nativePlatform]
  * @param {string} [options.runtimeError]
  * @param {boolean} [options.json]
  * @param {boolean} [options.color]
@@ -754,7 +755,7 @@ function runDoctor(options = {}) {
       add("launcher", "npm 启动前自修复", "ok", "launcher 已在 PATH 最前");
     }
   } else if (kind === "native-bun" && target) {
-    const nativePlatform = nativePlatformForTarget(target);
+    const nativePlatform = options.nativePlatform || nativePlatformForTarget(target);
     const supported = isSupportedNativeVersion(cliVersion, support, nativePlatform);
     const liefOk = checkNodeLief(bunBinaryIoPath);
     if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
