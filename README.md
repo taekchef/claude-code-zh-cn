@@ -104,17 +104,21 @@ macOS、Linux 或 WSL 远程安装用户运行：
 curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/uninstall-remote.sh | bash
 ```
 
-本地源码安装用户运行 `./uninstall.sh`。Windows 用户先关闭所有 Claude Code 窗口，再在本项目目录运行：
+本地源码安装用户运行 `./uninstall.sh`。Windows 用户先关闭所有 Claude Code 窗口；如果插件市场安装时没有保留本项目目录，先下载源码，再运行卸载脚本：
 
 ```powershell
+git clone https://github.com/taekchef/claude-code-zh-cn.git
+cd claude-code-zh-cn
 powershell -NoProfile -ExecutionPolicy Bypass -File uninstall.ps1
 ```
 
-卸载脚本会还原 CLI 备份，移除本插件写入的中文设置、Hook 和插件注册，同时保留其他 Claude Code 配置。重启 Claude Code 后即为英文界面。
+已有本地源码的 Windows 用户直接在原目录运行最后一行即可。卸载脚本会还原 CLI 备份，移除中文设置、Hook 和插件注册，同时保留其他 Claude Code 配置。重启 Claude Code 后即为英文界面。
+
+> 卸载脚本无法判断 `language`、`spinnerTipsEnabled`、`spinnerTipsOverride`、`spinnerVerbs` 是插件写入还是你手动配置，因此会统一删除。如果你手动维护过这些字段，请先自行备份需要保留的值。
 
 如果安装时同意把中文设置同步到 CC Switch，还需在 CC Switch 的 Claude“通用配置”中删除本插件添加的 `language`、`spinnerTipsEnabled`、`spinnerTipsOverride`、`spinnerVerbs`，否则下次切换供应商时这些设置可能再次写回。如果这些字段原本就是你手动配置的，请只暂时关闭“写入通用配置”，不要删除。
 
-要重新启用中文，macOS、Linux 或 WSL 重新运行上面的 [30 秒安装](#quick-install) 命令；Windows 重新运行 `install.ps1`。
+要重新启用中文，macOS、Linux 或 WSL 重新运行上面的 [30 秒安装](#quick-install) 命令；Windows 在刚才的源码目录重新运行 `install.ps1`。
 
 ## 为什么做这个？
 
