@@ -1460,6 +1460,7 @@ test("session-start restores native backup when runtime self-check fails after r
   const fakeBinary = path.join(tmp, "claude-native");
   const backupBinary = `${fakeBinary}.zh-cn-backup`;
   const markerFile = path.join(pluginRoot, ".patched-version");
+  const repackedInodeFile = path.join(tmp, "repacked-inode");
   const cleanBackup = nativeShellFixture("2.1.175", "CLEAN BACKUP");
 
   fs.mkdirSync(pluginRoot, { recursive: true });
@@ -1488,6 +1489,7 @@ if (cmd === "detect") {
 } else if (cmd === "extract") {
   fs.copyFileSync(process.argv[3], process.argv[4]);
 } else if (cmd === "repack") {
+  fs.writeFileSync(${JSON.stringify(repackedInodeFile)}, String(fs.statSync(process.argv[3]).ino));
   fs.writeFileSync(process.argv[3], "#!/usr/bin/env bash\\nkill -9 $$\\n");
   fs.chmodSync(process.argv[3], 0o755);
 }
@@ -1507,7 +1509,6 @@ printf '1'
   fs.writeFileSync(backupBinary, cleanBackup);
   fs.chmodSync(fakeBinary, 0o755);
   fs.chmodSync(backupBinary, 0o755);
-  const originalInode = fs.statSync(fakeBinary).ino;
   fs.symlinkSync(fakeBinary, path.join(fakeBin, "claude"));
   fs.writeFileSync(markerFile, "native|2.1.175|stale|old-revision\n");
 
@@ -1528,7 +1529,11 @@ printf '1'
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(fs.readFileSync(fakeBinary, "utf8"), cleanBackup);
-  assert.notEqual(fs.statSync(fakeBinary).ino, originalInode, "rollback must atomically replace the running native inode");
+  assert.notEqual(
+    fs.statSync(fakeBinary).ino,
+    Number(fs.readFileSync(repackedInodeFile, "utf8")),
+    "rollback must atomically replace the mutated native inode"
+  );
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "native|2.1.175|stale|old-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
