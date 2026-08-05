@@ -29,7 +29,19 @@
 
 ---
 
-## 效果预览
+## ⭐ 快速导航
+
+| 我想做什么 | 直接查看 |
+|---|---|
+| 先看看汉化效果 | [效果预览](#preview) |
+| 立即安装 | [30 秒安装](#quick-install) |
+| 临时切回英文或彻底卸载 | [恢复英文界面](#back-to-english) |
+| 确认系统和版本是否支持 | [支持范围](#支持范围) |
+| 排查“没汉化”或运行报错 | [验证与 doctor 诊断](#验证) |
+
+<a id="preview"></a>
+
+## ⭐ 效果预览
 
 ![Claude Code 中文本地化演示](./docs/assets/claude-code-zh-cn-demo.gif)
 
@@ -62,7 +74,9 @@
 
 187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化，AI 默认中文回复。**装完即用。**
 
-## 30 秒安装
+<a id="quick-install"></a>
+
+## ⭐ 30 秒安装
 
 已经安装 Claude Code？运行：
 
@@ -75,6 +89,36 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 > **安全边界**：安装前会备份原文件。补丁、重打包或启动自检失败时会保留或恢复原文件；遇到暂未适配的新文案时，对应内容保持英文，不影响 Claude Code 正常启动。
 
 如果它让你的 Claude Code 更顺手，欢迎点一下右上角 **Star**，这会帮助更多中文用户发现它。
+
+<a id="back-to-english"></a>
+
+## ⭐ 临时切回英文或卸载
+
+需要对照英文教程时，当前最稳妥的临时切换方法是：**完整卸载汉化，使用完英文界面后再重新安装**。
+
+> **不要只运行 `claude plugin disable`。** 本项目还会写入中文设置并修改 CLI 硬编码文字（Layer 4 Patch）；只停用插件不会清理这些设置，也不会还原 CLI，因此界面仍可能是中文。
+
+macOS、Linux 或 WSL 远程安装用户运行：
+
+```bash
+curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/uninstall-remote.sh | bash
+```
+
+本地源码安装用户运行 `./uninstall.sh`。Windows 用户先关闭所有 Claude Code 窗口；如果插件市场安装时没有保留本项目目录，先下载源码，再运行卸载脚本：
+
+```powershell
+git clone https://github.com/taekchef/claude-code-zh-cn.git
+cd claude-code-zh-cn
+powershell -NoProfile -ExecutionPolicy Bypass -File uninstall.ps1
+```
+
+已有本地源码的 Windows 用户直接在原目录运行最后一行即可。卸载脚本会还原 CLI 备份，移除中文设置、Hook 和插件注册，同时保留其他 Claude Code 配置。重启 Claude Code 后即为英文界面。
+
+> 卸载脚本无法判断 `language`、`spinnerTipsEnabled`、`spinnerTipsOverride`、`spinnerVerbs` 是插件写入还是你手动配置，因此会统一删除。如果你手动维护过这些字段，请先自行备份需要保留的值。
+
+如果安装时同意把中文设置同步到 CC Switch，还需在 CC Switch 的 Claude“通用配置”中删除本插件添加的 `language`、`spinnerTipsEnabled`、`spinnerTipsOverride`、`spinnerVerbs`，否则下次切换供应商时这些设置可能再次写回。如果这些字段原本就是你手动配置的，请只暂时关闭“写入通用配置”，不要删除。
+
+要重新启用中文，macOS、Linux 或 WSL 重新运行上面的 [30 秒安装](#quick-install) 命令；Windows 在刚才的源码目录重新运行 `install.ps1`。
 
 ## 为什么做这个？
 
@@ -202,16 +246,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\doctor.ps1   # Windows
 Claude Code 更新后，npm / macOS native 安装会在首次会话启动时**自动检测版本变更并重新 patch**；Windows native 会保留原版可用，并提示关闭窗口后重跑安装器。新版先本机自检；只有格式、依赖、提取或自检失败才跳过原生 Layer 4，不会让 CLI 失效。
 
 插件本体发布新 Release 后，正式安装态由 Claude Code 插件管理器更新。独立兜底安装只做限时检查并提示，不会在会话启动途中原地覆盖自身；本地源码安装用户在会话结束后运行 `git pull && ./install.sh`（Windows：`git pull` 后重跑 `install.ps1`）。
-
-### 卸载
-
-远程安装用户可直接运行：
-
-```bash
-curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/uninstall-remote.sh | bash
-```
-
-本地源码安装用户运行 `./uninstall.sh`（Windows：`powershell -File uninstall.ps1`）。精准移除插件注入的设置，保留你的其他配置不变。
 
 ## 支持范围
 
@@ -381,7 +415,7 @@ $env:ZH_CN_CCSWITCH_SYNC = "1"; .\install.ps1
 <details>
 <summary><b>会不会破坏 Claude Code 原有功能？</b></summary>
 
-不会。安装脚本在修改前先备份；native 补丁还必须通过重打包和真实启动自检，失败就恢复原文件。单条新文案匹配不上时只保留英文，不会连累整套插件。如果仍要移除，运行 `./uninstall.sh`。
+不会。安装脚本在修改前先备份；native 补丁还必须通过重打包和真实启动自检，失败就恢复原文件。单条新文案匹配不上时只保留英文，不会连累整套插件。如果仍要移除，按[临时切回英文或卸载](#back-to-english)选择对应安装方式。
 </details>
 
 <details>
