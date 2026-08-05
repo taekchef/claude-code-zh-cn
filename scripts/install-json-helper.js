@@ -41,7 +41,10 @@ function buildOverlay(baseFile, verbsFile, tipsFile) {
   const verbs = readJson(verbsFile);
   const tips = readJson(tipsFile);
 
-  base.spinnerVerbs = verbs;
+  base.spinnerVerbs = {
+    mode: isPlainObject(verbs) && verbs.mode === "append" ? "append" : "replace",
+    verbs: Array.isArray(verbs) ? verbs : verbs.verbs,
+  };
   base.spinnerTipsOverride = {
     excludeDefault: true,
     tips: (tips.tips || []).map((tip) => tip.text),

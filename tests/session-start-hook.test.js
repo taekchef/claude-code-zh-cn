@@ -197,10 +197,7 @@ test("session-start repairs settings from cached overlay before emitting JSON", 
   const overlay = {
     language: "Chinese",
     spinnerTipsEnabled: true,
-    spinnerVerbs: {
-      loading: "加载中",
-      thinking: "思考中",
-    },
+    spinnerVerbs: ["加载中", "思考中"],
     spinnerTipsOverride: {
       excludeDefault: true,
       tips: ["保持简洁"],
@@ -241,7 +238,10 @@ test("session-start repairs settings from cached overlay before emitting JSON", 
   const repaired = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
   assert.equal(repaired.language, "Chinese");
   assert.equal(repaired.spinnerTipsEnabled, true);
-  assert.deepEqual(repaired.spinnerVerbs, overlay.spinnerVerbs);
+  assert.deepEqual(repaired.spinnerVerbs, {
+    mode: "replace",
+    verbs: overlay.spinnerVerbs,
+  });
   assert.deepEqual(repaired.spinnerTipsOverride, overlay.spinnerTipsOverride);
   assert.equal(repaired.theme, "dark");
   assert.deepEqual(repaired.permissions, { allow: ["Bash(git status:*)"] });
@@ -308,6 +308,7 @@ test("Windows session-start hook repairs settings from cached overlay", () => {
   assert.match(script, /\.settings-overlay-cache\.json/);
   assert.match(script, /function Repair-SettingsFromCache/);
   assert.match(script, /spinnerTipsOverride/);
+  assert.match(script, /legacySpinnerVerbs\|\|pluginKeys/);
   assert.match(script, /fs\.writeFileSync\(settingsFile/);
   assert.match(script, /Repair-SettingsFromCache/);
 });
@@ -360,8 +361,9 @@ test("pure marketplace install (no cache) self-seeds spinner settings from bundl
   const repaired = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
   assert.equal(repaired.language, "Chinese");
   assert.equal(repaired.spinnerTipsEnabled, true);
-  assert.ok(Array.isArray(repaired.spinnerVerbs), "spinnerVerbs should be seeded as an array");
-  assert.ok(repaired.spinnerVerbs.length >= 100, "spinnerVerbs should contain the bundled verbs");
+  assert.equal(repaired.spinnerVerbs.mode, "replace");
+  assert.ok(Array.isArray(repaired.spinnerVerbs.verbs), "spinnerVerbs.verbs should be seeded as an array");
+  assert.ok(repaired.spinnerVerbs.verbs.length >= 100, "spinnerVerbs should contain the bundled verbs");
   assert.ok(
     Array.isArray(repaired.spinnerTipsOverride?.tips),
     "spinnerTipsOverride.tips should be seeded as an array"
@@ -372,8 +374,8 @@ test("pure marketplace install (no cache) self-seeds spinner settings from bundl
   assert.equal(repaired.theme, "dark");
 });
 
-test("self-seed does not overwrite user's existing spinner config", () => {
-  // 用户已有自定义 spinnerVerbs → hook 必须保留，只补齐缺失的非冲突 key。
+test("self-seed migrates a legacy spinnerVerbs array without losing user values", () => {
+  // 旧数组形态已不符合当前 schema；hook 只包装结构，不替换用户动词。
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-preserve-"));
   const home = path.join(tmp, "home");
   const pluginRoot = path.join(tmp, "cache", "claude-code-zh-cn", "2.6.1");
@@ -413,8 +415,7 @@ test("self-seed does not overwrite user's existing spinner config", () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 
   const repaired = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
-  // 用户已有的 spinnerVerbs 必须原样保留，绝不被内置数据覆盖
-  assert.deepEqual(repaired.spinnerVerbs, userVerbs);
+  assert.deepEqual(repaired.spinnerVerbs, { mode: "replace", verbs: userVerbs });
   // 缺失的 key 仍被补齐
   assert.equal(repaired.language, "Chinese");
   assert.equal(repaired.spinnerTipsEnabled, true);
@@ -965,7 +966,8 @@ test("standalone session-start announces the latest release without mutating the
   // 这两个测试关注的是 update-check 不改插件文件、不跑安装器，不约束 settings 形态。
   const seededSettings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
   assert.equal(seededSettings.language, "Chinese");
-  assert.ok(Array.isArray(seededSettings.spinnerVerbs) && seededSettings.spinnerVerbs.length >= 100);
+  assert.equal(seededSettings.spinnerVerbs.mode, "replace");
+  assert.ok(Array.isArray(seededSettings.spinnerVerbs.verbs) && seededSettings.spinnerVerbs.verbs.length >= 100);
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
     /^available v2\.0\.1 \d+$/
@@ -1029,7 +1031,8 @@ test("standalone release check never executes a broken untagged installer from t
   // 设置的 spinner 自补齐是预期副作用；此测试关注 update-check 行为，不约束 settings 形态。
   const seededSettings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
   assert.equal(seededSettings.language, "Chinese");
-  assert.ok(Array.isArray(seededSettings.spinnerVerbs) && seededSettings.spinnerVerbs.length >= 100);
+  assert.equal(seededSettings.spinnerVerbs.mode, "replace");
+  assert.ok(Array.isArray(seededSettings.spinnerVerbs.verbs) && seededSettings.spinnerVerbs.verbs.length >= 100);
   assert.match(
     fs.readFileSync(path.join(pluginRoot, ".last-update-status"), "utf8").trim(),
     /^available v2\.0\.1 \d+$/,

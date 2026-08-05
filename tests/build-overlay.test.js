@@ -31,7 +31,10 @@ test("buildOverlay assembles base + verbs + tips from bundled plugin data", () =
 
   assert.equal(overlay.language, "Chinese");
   assert.equal(overlay.spinnerTipsEnabled, true);
-  assert.deepEqual(overlay.spinnerVerbs, ["思考中", "加载中"]);
+  assert.deepEqual(overlay.spinnerVerbs, {
+    mode: "replace",
+    verbs: ["思考中", "加载中"],
+  });
   assert.deepEqual(overlay.spinnerTipsOverride, {
     excludeDefault: true,
     tips: ["保持简洁", "用 Plan 模式"],
@@ -48,7 +51,10 @@ test("buildOverlay handles legacy verbs-as-array shape", () => {
   });
 
   const overlay = buildOverlay(root);
-  assert.deepEqual(overlay.spinnerVerbs, ["思考中"]);
+  assert.deepEqual(overlay.spinnerVerbs, {
+    mode: "replace",
+    verbs: ["思考中"],
+  });
 
   fs.rmSync(root, { recursive: true, force: true });
 });
@@ -71,8 +77,9 @@ test("buildOverlay against the real repo plugin payload matches expected counts"
   const overlay = buildOverlay(path.join(repoRoot, "plugin"));
   assert.equal(overlay.language, "Chinese");
   assert.equal(overlay.spinnerTipsEnabled, true);
-  assert.ok(Array.isArray(overlay.spinnerVerbs));
-  assert.ok(overlay.spinnerVerbs.length >= 100);
+  assert.equal(overlay.spinnerVerbs.mode, "replace");
+  assert.ok(Array.isArray(overlay.spinnerVerbs.verbs));
+  assert.ok(overlay.spinnerVerbs.verbs.length >= 100);
   assert.ok(Array.isArray(overlay.spinnerTipsOverride.tips));
   assert.ok(overlay.spinnerTipsOverride.tips.length >= 40);
   assert.equal(overlay.spinnerTipsOverride.excludeDefault, true);
@@ -86,7 +93,7 @@ test("fillMissingKeys seeds only absent keys and preserves everything else", () 
   const overlay = {
     language: "Chinese",
     spinnerTipsEnabled: true,
-    spinnerVerbs: ["思考中"],
+    spinnerVerbs: { mode: "replace", verbs: ["思考中"] },
     spinnerTipsOverride: { excludeDefault: true, tips: ["x"] },
   };
 
@@ -95,7 +102,7 @@ test("fillMissingKeys seeds only absent keys and preserves everything else", () 
   assert.equal(merged.theme, "dark");
   assert.equal(merged.editor, "vim");
   assert.equal(merged.language, "Chinese");
-  assert.deepEqual(merged.spinnerVerbs, ["思考中"]);
+  assert.deepEqual(merged.spinnerVerbs, overlay.spinnerVerbs);
 
   fs.rmSync(dir, { recursive: true, force: true });
 });
@@ -103,7 +110,7 @@ test("fillMissingKeys seeds only absent keys and preserves everything else", () 
 test("fillMissingKeys never overwrites existing spinner config", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-settings-preserve-"));
   const settingsFile = path.join(dir, "settings.json");
-  const userVerbs = ["我的自定义动词"];
+  const userVerbs = { mode: "append", verbs: ["我的自定义动词"] };
   fs.writeFileSync(
     settingsFile,
     JSON.stringify({ spinnerVerbs: userVerbs, spinnerTipsOverride: { tips: ["mine"] } }) + "\n"
@@ -112,7 +119,7 @@ test("fillMissingKeys never overwrites existing spinner config", () => {
   const overlay = {
     language: "Chinese",
     spinnerTipsEnabled: true,
-    spinnerVerbs: ["不应该覆盖"],
+    spinnerVerbs: { mode: "replace", verbs: ["不应该覆盖"] },
     spinnerTipsOverride: { excludeDefault: true, tips: ["也不应该"] },
   };
 
@@ -125,6 +132,22 @@ test("fillMissingKeys never overwrites existing spinner config", () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test("fillMissingKeys migrates legacy spinnerVerbs arrays without losing custom verbs", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-settings-migrate-verbs-"));
+  const settingsFile = path.join(dir, "settings.json");
+  fs.writeFileSync(settingsFile, JSON.stringify({ spinnerVerbs: ["我的自定义动词"] }) + "\n");
+
+  const { changed, merged } = fillMissingKeys(settingsFile, {});
+
+  assert.equal(changed, true);
+  assert.deepEqual(merged.spinnerVerbs, {
+    mode: "replace",
+    verbs: ["我的自定义动词"],
+  });
+
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test("fillMissingKeys reports no change when all plugin keys already present", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-settings-complete-"));
   const settingsFile = path.join(dir, "settings.json");
@@ -133,7 +156,7 @@ test("fillMissingKeys reports no change when all plugin keys already present", (
     JSON.stringify({
       language: "English",
       spinnerTipsEnabled: false,
-      spinnerVerbs: ["x"],
+      spinnerVerbs: { mode: "append", verbs: ["x"] },
       spinnerTipsOverride: { tips: ["y"] },
     }) + "\n"
   );
@@ -141,7 +164,7 @@ test("fillMissingKeys reports no change when all plugin keys already present", (
   const overlay = {
     language: "Chinese",
     spinnerTipsEnabled: true,
-    spinnerVerbs: ["z"],
+    spinnerVerbs: { mode: "replace", verbs: ["z"] },
     spinnerTipsOverride: { tips: ["w"] },
   };
 

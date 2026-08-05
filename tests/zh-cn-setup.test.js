@@ -45,7 +45,8 @@ test("setup.js merges missing spinner config into settings.json and preserves ex
   assert.equal(result.editor, "vim");
   assert.equal(result.language, "Chinese");
   assert.equal(result.spinnerTipsEnabled, true);
-  assert.ok(Array.isArray(result.spinnerVerbs) && result.spinnerVerbs.length >= 100);
+  assert.equal(result.spinnerVerbs.mode, "replace");
+  assert.ok(Array.isArray(result.spinnerVerbs.verbs) && result.spinnerVerbs.verbs.length >= 100);
   assert.ok(Array.isArray(result.spinnerTipsOverride.tips) && result.spinnerTipsOverride.tips.length >= 40);
 
   fs.rmSync(tmp, { recursive: true, force: true });
@@ -83,7 +84,7 @@ test("setup.js backs up settings.json before modifying", () => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-test("setup.js does not overwrite user's existing spinnerVerbs", () => {
+test("setup.js migrates legacy spinnerVerbs arrays without losing user values", () => {
   const { tmp, home } = makeTmpHome();
   const settingsFile = path.join(home, ".claude", "settings.json");
   const userVerbs = ["我的自定义动词"];
@@ -92,19 +93,19 @@ test("setup.js does not overwrite user's existing spinnerVerbs", () => {
   runSetup(home, path.join(repoRoot, "plugin"));
 
   const result = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
-  assert.deepEqual(result.spinnerVerbs, userVerbs, "existing spinnerVerbs must be preserved");
+  assert.deepEqual(result.spinnerVerbs, { mode: "replace", verbs: userVerbs });
   assert.equal(result.language, "Chinese"); // 缺失项仍补齐
 
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
 test("ccSwitchConfigStatus returns ok for complete config", () => {
-  const overlay = { language: "Chinese", spinnerTipsEnabled: true, spinnerVerbs: new Array(150).fill("x"), spinnerTipsOverride: { tips: new Array(41).fill("y") } };
+  const overlay = { language: "Chinese", spinnerTipsEnabled: true, spinnerVerbs: { mode: "replace", verbs: new Array(150).fill("x") }, spinnerTipsOverride: { tips: new Array(41).fill("y") } };
   assert.equal(ccSwitchConfigStatus(JSON.stringify(overlay), overlay), "ok");
 });
 
 test("ccSwitchConfigStatus returns needs-sync for incomplete config", () => {
-  const overlay = { language: "Chinese", spinnerTipsEnabled: true, spinnerVerbs: new Array(150).fill("x"), spinnerTipsOverride: { tips: new Array(41).fill("y") } };
+  const overlay = { language: "Chinese", spinnerTipsEnabled: true, spinnerVerbs: { mode: "replace", verbs: new Array(150).fill("x") }, spinnerTipsOverride: { tips: new Array(41).fill("y") } };
   const incomplete = JSON.stringify({ language: "English", spinnerTipsEnabled: false });
   assert.equal(ccSwitchConfigStatus(incomplete, overlay), "needs-sync");
 });

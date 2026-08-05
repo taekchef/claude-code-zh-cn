@@ -35,7 +35,10 @@ test("build-overlay combines base settings with spinner verbs and tip text", () 
   assert.equal(result.status, 0, result.stderr);
   const overlay = JSON.parse(result.stdout);
   assert.equal(overlay.language, "Chinese");
-  assert.deepEqual(overlay.spinnerVerbs, ["读", "写"]);
+  assert.deepEqual(overlay.spinnerVerbs, {
+    mode: "replace",
+    verbs: ["读", "写"],
+  });
   assert.deepEqual(overlay.spinnerTipsOverride, {
     excludeDefault: true,
     tips: ["第一条", "第二条"],

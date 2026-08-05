@@ -8,7 +8,7 @@
 //
 // 职责（只做"装插件本身不会自动完成"的步骤）：
 //   1. 从插件内置 verbs/tips/settings-overlay 构建 overlay，合并进 ~/.claude/settings.json
-//      （只补齐缺失项，绝不覆盖用户已有配置；带备份 + 原子写）
+//      （只补齐缺失项，并迁移废弃的 spinnerVerbs 数组；带备份 + 原子写）
 //   2. 检测 CC Switch 通用配置，必要时引导用户授权同步（非交互时只输出手动步骤）
 //   3. 报告 patch 状态，提示是否需要重启
 //
@@ -48,6 +48,11 @@ function readJson(file, fallback) {
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function spinnerVerbCount(value) {
+  if (Array.isArray(value)) return value.length;
+  return isPlainObject(value) && Array.isArray(value.verbs) ? value.verbs.length : 0;
 }
 
 function backupSettings(settingsPath) {
@@ -102,11 +107,7 @@ function ccSwitchConfigStatus(currentRaw, overlay) {
 
   if (!current) return "invalid";
 
-  const verbCount = Array.isArray(current.spinnerVerbs)
-    ? current.spinnerVerbs.length
-    : isPlainObject(current.spinnerVerbs)
-      ? Object.keys(current.spinnerVerbs).length
-      : 0;
+  const verbCount = spinnerVerbCount(current.spinnerVerbs);
   const tipCount = isPlainObject(current.spinnerTipsOverride) && Array.isArray(current.spinnerTipsOverride.tips)
     ? current.spinnerTipsOverride.tips.length
     : 0;
@@ -187,7 +188,7 @@ function main() {
 
   // 1. 合并 settings
   const overlay = buildOverlay(pluginRoot);
-  const verbCount = Array.isArray(overlay.spinnerVerbs) ? overlay.spinnerVerbs.length : 0;
+  const verbCount = spinnerVerbCount(overlay.spinnerVerbs);
   const tipCount = overlay.spinnerTipsOverride?.tips?.length || 0;
   console.log(`已从插件内置数据构建 overlay：${verbCount} 个动词、${tipCount} 条提示`);
 
