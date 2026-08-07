@@ -28,6 +28,64 @@ test("past-tense status verbs are translated when upstream escapes Sautéed", ()
   assert.match(patched, /"烘焙了","沏了","翻搅了","琢磨了","烹饪了","嚼了","翻炒了","忙活了"/);
 });
 
+test("new status families localize Thought, duration hints and running shells", () => {
+  const patched = patchFixture([
+    'var verbs=["Thought","Crunched","Brewed","Worked"];',
+    'let thought=`Thought for ${elapsed} (ctrl+o to expand)`;',
+    'let running=`Crunched for ${elapsed} · ${count} shell still running`;',
+    'let plural=`Brewed for ${elapsed} · ${count} shells still running`;',
+    "",
+  ]);
+
+  for (const residue of ["Thought for", "Crunched for", "Brewed for", "ctrl+o to expand", "shell still running", "shells still running"]) {
+    assert.equal(patched.includes(residue), false, patched);
+  }
+  assert.match(patched, /\["思考了","嚼了","沏了","忙活了"\]/);
+  assert.match(patched, /`思考了 \$\{elapsed\} \(ctrl\+o 展开\)`/);
+  assert.match(patched, /`嚼了 \$\{elapsed\} · \$\{count\} 个 shell 仍在运行`/);
+  assert.match(patched, /`沏了 \$\{elapsed\} · \$\{count\} 个 shell 仍在运行`/);
+});
+
+test("recap status literals are localized", () => {
+  const patched = patchFixture([
+    'const title="Session recap";',
+    'const loading="Generating recap";',
+    'const progress="Recapping conversation";',
+    "",
+  ]);
+
+  assert.equal(patched.includes("Session recap"), false, patched);
+  assert.equal(patched.includes("Generating recap"), false, patched);
+  assert.equal(patched.includes("Recapping conversation"), false, patched);
+  assert.match(patched, /"会话回顾"/);
+  assert.match(patched, /"正在生成会话回顾"/);
+  assert.match(patched, /"正在回顾会话"/);
+});
+
+test("turn-duration shell summary (native 2.1.221 shape) is localized", () => {
+  const patched = patchFixture([
+    'let summary; if (o>0) summary.push(o===1?"1 shell":`${o} shells`);',
+    'let row=H&&wo.jsx(y,{dimColor:!0,children:` \\xB7 ${summary} still running`});',
+    "",
+  ]);
+
+  assert.match(patched, /"1 个 shell"/);
+  assert.match(patched, /`\$\{o\} 个 shell`/);
+  assert.match(patched, /` \\xB7 \$\{summary\} 仍在运行`/);
+  assert.equal(patched.includes("still running`"), false, patched);
+});
+
+test("recap heading and /config model-switch tip are localized", () => {
+  const patched = patchFixture([
+    'let heading=jsxs(y,{bold:!0,children:["recap:"," "]});',
+    'let tip="Tip: You can configure model switch behavior in /config";',
+    "",
+  ]);
+
+  assert.match(patched, /"会话回顾:"/);
+  assert.match(patched, /"提示：可在 \/config 中配置模型切换行为"/);
+});
+
 test("duration patch removes English 'for' from generic Worked/Idle variants", () => {
   const patched = patchFixture([
     "let teammate=`${verb} Worked for ${fmt(Date.now()-task.startTime)}`;",
@@ -803,4 +861,61 @@ test("issue 122 slash and prompt command descriptions are translated", () => {
     assert.equal(patched.includes(en), false, patched);
     assert.match(patched, new RegExp(zh.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+});
+
+test("builtin /config command descriptions are localized", () => {
+  const patched = patchFixture([
+    'const c1={type:"local",name:"config",description:"Set a setting by key"};',
+    'const c2={type:"local",name:"cd",description:"Move this session to a new working directory"};',
+    "const c3={type:\"local\",name:\"usage\",description:\"Show session cost, plan usage, and what's contributing to your limits\"};",
+    'const c4={type:"local",name:"session",description:"Show cloud session URL and QR code"};',
+    'const c5={type:"local",name:"feedback",description:"Send feedback to Anthropic or report a bug"};',
+    'const c6={type:"local",name:"fork",description:"Copy this conversation into a new background session and keep working here"};',
+    'const c7={type:"local",name:"subtask",description:"Send a subagent off with your full context; its result comes back here"};',
+    'const c8={type:"local",name:"chrome",description:"Open Claude in Chrome settings"};',
+    'const c9={type:"local",name:"usage-credits",description:"Configure usage credits or request them from your admin when you hit a limit"};',
+    'const c10={type:"local",name:"review",description:"Review a GitHub pull request; for your working diff use /code-review"};',
+    'const c11={type:"local",name:"artifacts",description:"Browse your published and shared artifacts"};',
+    'const c12={type:"local",name:"pause-memory",description:"Pause automemory for this session"};',
+    'const c13={type:"local",name:"import",description:"Import config from another AI coding agent into Claude Code"};',
+    'const c14={type:"local",name:"skill-doctor",description:"Show which loaded skills are unused and costing context"};',
+    'const c15={type:"local",name:"bug",description:"Report a bug or share your conversation"};',
+    "",
+  ]);
+
+  for (const residue of [
+    "Set a setting by key",
+    "Move this session to a new working directory",
+    "Show session cost, plan usage",
+    "Show cloud session URL and QR code",
+    "Send feedback to Anthropic or report a bug",
+    "Copy this conversation into a new background session",
+    "Send a subagent off with your full context",
+    "Open Claude in Chrome settings",
+    "Configure usage credits",
+    "Review a GitHub pull request",
+    "Browse your published and shared artifacts",
+    "Pause automemory for this session",
+    "Import config from another AI coding agent",
+    "Show which loaded skills are unused",
+    "Report a bug or share your conversation",
+  ]) {
+    assert.equal(patched.includes(residue), false, `raw residue remained: ${residue}\n${patched}`);
+  }
+
+  assert.match(patched, /按键设置配置项/);
+  assert.match(patched, /将会话切换到新的工作目录/);
+  assert.match(patched, /显示会话费用、套餐用量/);
+  assert.match(patched, /显示云端会话链接和二维码/);
+  assert.match(patched, /向 Anthropic 发送反馈或报告问题/);
+  assert.match(patched, /将当前对话复制到新的后台会话/);
+  assert.match(patched, /携带完整上下文派发子代理/);
+  assert.match(patched, /打开 Claude 的 Chrome 设置/);
+  assert.match(patched, /配置用量积分/);
+  assert.match(patched, /审查 GitHub 拉取请求/);
+  assert.match(patched, /浏览你已发布和共享的 artifacts/);
+  assert.match(patched, /暂停本次会话的自动记忆/);
+  assert.match(patched, /从其他 AI 编程代理导入配置到 Claude Code/);
+  assert.match(patched, /显示哪些已加载的 skill/);
+  assert.match(patched, /报告问题或分享你的对话/);
 });

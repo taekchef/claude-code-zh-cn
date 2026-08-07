@@ -6,6 +6,66 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.12.2] - 2026-08-07
+
+### 新增
+
+- 支持 Claude Code 2.1.224 Windows native：新增 teamMemory 数量分支（`${X} team memory/memories` 模板与 `条团队记忆` 两态覆盖）和 hook 状态行 active 分支（无 `Ran` 前缀的 `children:...}` 结构）的结构化 patch 规则，消除 2.1.224 引入的三元链结构变化导致的英文残留。
+- Windows native 支持窗口扩展到 `2.1.113 - 2.1.224`（含 `2.1.221 - 2.1.224` 代表版本）。
+
+### 修复
+
+- zh-cn-setup 在 Windows 上给出错误的 CLI patch 恢复指引：native 不能在运行中热改 `claude.exe`，改为提示完全退出所有 Claude Code 窗口后从源码目录运行 `install.ps1 -UpdateOnly`（缓存包不含 install.ps1）。
+
+## [2.12.1] - 2026-08-07
+
+### 修复
+
+- 同步根目录与 `plugin/patch-cli.js` 的结构化 patch；插件实际执行的是 `plugin/patch-cli.js`，此前状态栏 ToolActivity 和 `/config` 剩余项规则未随 2.12.0 一起进入插件 payload。
+- 补充两个插件 manifest 的版本同步，确保 Marketplace 更新检查读取的 `plugin/.claude-plugin/plugin.json` 与发布版本一致。
+
+### 验证
+
+- 根目录与 `plugin/` 的 patch、翻译表 payload 已逐文件一致；两份 manifest 均为 2.12.1。
+- `node --check`、`plugin-payload` 和 `patch-cli` 测试通过，共 31 项。
+
+## [2.12.0] - 2026-08-07
+
+### 新增
+
+- 状态栏 ToolActivity 本地化结构 patch：`Thinking`/`Thought` 状态词与时长拼接、mem-search 记忆搜索（正在搜索/已搜索）、searching/editing/publishing/recalling 等 11 组进行中/完成动词、tool/agent 及搜索/读取/列出的数量名词（pattern/file/directory 等）、git 提交/推送/PR 动作对象、Hook 运行状态行（`已运行 N 个 PreToolUse Hook`）、team 记忆摘要。
+- `/config` 剩余项本地化：Theme、Local notifications、Output style、Language、Model、Ultracode keyword trigger、Worktree base ref、Skip the /copy picker、Open agents view by default、Question auto-continue timeout 等配置项 label，以及 `Teammate mode` 及覆盖提示、`Auto-scroll`、`Show last response in external editor`、各选项 hints 与 `(disabled in safe mode)`。
+- 命令执行错误模板本地化：`failed with exit code N`、`was killed with ... (...)`、`timed out after N milliseconds`。
+
+### 修复
+
+- 状态栏搜索/读取摘要（`searching for 1 pattern`、`reading 1 file`）中数量名词因 JSX 数组结构未被替换而残留英文；补全为通用数量名词替换，覆盖对象/数组/模板/属性访问各结构。
+- `Thought 28秒` 等状态栏中 `Thought` 状态词与时长之间残留英文 `for`，改为全角括号拼接（`思考（28秒）`）。
+
+### 验证
+
+- patch-cli 28 项测试、翻译表 schema/quality/派生计数 15 项测试全部通过；对原生 2.1.221 副本运行 patch 后语法校验通过，关键中文字符串抽查全部命中。
+
+## [2.11.0] - 2026-08-06
+
+### 新增
+
+- 增强 `zh-cn-setup` skill 作为统一覆盖检查入口，检查 Marketplace 插件安装后的 settings、CLI patch、CC Switch 和 skill 描述覆盖，并为必须在 Claude Code 进程外执行的步骤输出终端命令。
+- 新增可选工具 `cc-switch-descriptions.js`：把 CC Switch 数据库 `skills` 表中仍为英文、但对应 `SKILL.md` 已翻译为中文的描述同步为中文；默认只读预览，`--apply` 才写入并先备份数据库，支持一键还原。
+- skill-i18n 支持 `ZH_CN_SKILL_I18N_EXTRA_ROOTS`，可显式扫描 CC Switch 等管理器存放在 `~/.claude` 外的 skill；扫描、写回和恢复共享同一组路径边界。
+- Node 支持 `node:sqlite` 时可直接读写 CC Switch 数据库，不再强制依赖系统 `sqlite3` CLI。
+
+### 改进
+
+- 状态行补齐 `Thought`、`Crunched`、`Brewed`、运行中 shell 数量和展开提示，并允许上游调整状态动词数组顺序；后台 shell 摘要（`1 个 shell` / `N 个 shell`）与 `· ${n} 仍在运行` 适配原生 2.1.221 的模板结构，不再依赖旧的 `shell still running` 字面量。
+- 补齐 `Session recap`、`Generating recap`、`Recapping conversation` 等 recap 状态文案，并本地化会话回顾标题 `recap:` 与模型切换行为的 `/config` 提示。
+- 补齐 `/config` 命令列表与 `/help` 中 16 条高频内置命令描述（`config`、`cd`、`usage`、`session`、`review`、`fork`、`subtask` 等），命令名与 `/code-review` 等标识保持英文。
+- 保留 skill 描述翻译的显式授权边界：默认不消耗额度、不改写文件，先提供 dry-run，再提供翻译与恢复命令。
+
+### 验证
+
+- 新增状态词族、recap（含标题）、后台 shell 摘要、额外 skill 根目录、进程外命令、`/config` 内置命令描述和 CC Switch skill 描述同步回归测试。
+
 ## [2.10.1] - 2026-08-05
 
 ### 修复

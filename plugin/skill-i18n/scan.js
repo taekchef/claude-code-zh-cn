@@ -48,7 +48,8 @@ function main() {
   const cacheData = args.cache ? cache.load(args.cache) : { entries: {} };
   // 默认不跟随符号链接：避免改写符号链接指向的外部源仓库
   const follow = process.env.ZH_CN_SKILL_I18N_FOLLOW_SYMLINKS === "1";
-  const files = collect.collectAll(args.root, follow);
+  const extraRoots = collect.parseExtraRoots(process.env.ZH_CN_SKILL_I18N_EXTRA_ROOTS);
+  const files = collect.collectAll(args.root, follow, extraRoots);
   const mdFiles = files.filter((f) => f.kind !== "metadata");
   const jsonFiles = files.filter((f) => f.kind === "metadata");
 

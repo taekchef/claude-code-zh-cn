@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const fm = require("./lib/frontmatter");
 const meta = require("./lib/metadata");
+const collect = require("./lib/collect");
 
 function parseArgs(argv) {
   const a = { apply: "", dryRun: false, root: "" };
@@ -44,14 +45,20 @@ function main() {
     byPath.get(item.path).push(item);
   }
 
-  const rootResolved = args.root ? path.resolve(args.root) : null;
+  const allowedRoots = [
+    ...(args.root ? [path.resolve(args.root)] : []),
+    ...collect.parseExtraRoots(process.env.ZH_CN_SKILL_I18N_EXTRA_ROOTS),
+  ];
   let applied = 0;
   let skipped = 0;
   for (const [file, items] of byPath) {
     // 路径边界校验：清单只应写扫描根下的文件（防清单被篡改越界写）
-    if (rootResolved) {
+    if (allowedRoots.length > 0) {
       const resolved = path.resolve(file);
-      if (resolved !== rootResolved && !resolved.startsWith(rootResolved + path.sep)) {
+      const inAllowedRoot = allowedRoots.some(
+        (root) => resolved === root || resolved.startsWith(root + path.sep)
+      );
+      if (!inAllowedRoot) {
         console.error(`[apply] 路径越界，跳过 ${file}`);
         skipped += items.length;
         continue;

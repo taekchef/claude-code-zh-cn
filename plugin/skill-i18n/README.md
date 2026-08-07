@@ -73,6 +73,7 @@ CC 默认自动更新，每次升级下载全新 binary，**cli.js patch 全丢*
 | `ZH_CN_SKILL_I18N_BASE_URL` | provider 默认 | openai: `https://api.openai.com/v1`；anthropic: `https://api.anthropic.com` |
 | `ZH_CN_SKILL_I18N_MODEL` | 空 | openai/anthropic 模型名（必填） |
 | `ZH_CN_SKILL_I18N_FOLLOW_SYMLINKS` | `0` | `1` 跟随符号链接 skill（默认不跟随，保护外部源仓库） |
+| `ZH_CN_SKILL_I18N_EXTRA_ROOTS` | 空 | 额外 skill/command 扫描根目录；用于 CC Switch 等把 skill 存在 `~/.claude` 外的位置。Windows 用 `;` 分隔，macOS/Linux 用 `:` 分隔 |
 | `ZH_CN_SKILL_I18N_TIMEOUT` | `25` | hook 后台翻译超时秒数 |
 | `ZH_CN_SKILL_I18N_LIMIT` | `0` | 限制本次待翻译条数（`0` 不限；调试/小批验证用） |
 | `ZH_CN_SKILL_I18N_CACHE_DIR` | `~/.claude/.skill-i18n-cache` | 译文缓存目录 |
@@ -99,6 +100,11 @@ ZH_CN_SKILL_I18N_BASE_URL=https://your-anthropic-compatible-endpoint \
 ZH_CN_SKILL_I18N_MODEL=your-model \
 ZH_CN_SKILL_I18N_API_KEY=你的key \
 bash plugin/skill-i18n/translate-skills.sh --root ~/.claude
+
+# CC Switch 或其他管理器把 skill 存在 ~/.claude 外时，显式加入真实目录
+# Windows PowerShell 示例：
+$env:ZH_CN_SKILL_I18N_EXTRA_ROOTS = "D:\\cc-switch\\skills;E:\\shared-skills"
+bash plugin/skill-i18n/translate-skills.sh --root ~/.claude --dry-run
 
 # 还原全部
 node plugin/skill-i18n/restore.js --all
