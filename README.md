@@ -15,7 +15,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 <!-- readme-support-window:badges:start -->
 [![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
-[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.221-green)](./docs/support-matrix.md)
+[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.226-green)](./docs/support-matrix.md)
 [![Linux native](https://img.shields.io/badge/linux%20native-2.1.220--2.1.220-green)](./docs/support-matrix.md)
 [![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.220-green)](./docs/support-matrix.md)
 <!-- readme-support-window:badges:end -->
@@ -207,7 +207,7 @@ Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被�
 | `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.220` | Linux x64 glibc 已验证版本（需要 `node-lief >=1.3.0`）；不含 arm64、musl 或 latest |
 | `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.220` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
 
-> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 `2.1.113 - 2.1.221` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高版本也会本机自检，需要 `node-lief`。Linux x64 glibc 仅启用 `2.1.220`，需要 `node-lief >=1.3.0`，不尝试 provisional latest。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 `install.ps1`。
+> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 `2.1.113 - 2.1.226` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高版本也会本机自检，需要 `node-lief`。Linux x64 glibc 仅启用 `2.1.220`，需要 `node-lief >=1.3.0`，不尝试 provisional latest。macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 `install.ps1`。
 
 安装脚本会自动检测安装方式，无需手动选择。
 <!-- readme-support-window:install-advice:end -->
@@ -254,7 +254,7 @@ Claude Code 更新后，npm / macOS native 安装会在首次会话启动时**�
 |------|-----------|------|
 | macOS / Linux / WSL · npm 全局安装 | `2.1.92 - 2.1.112` | 翻译最完整；launcher 启动前自修复 + `session-start` 兜底 |
 | macOS · 官方安装器（native） | `2.1.110 - 2.1.112` | 需要 `node-lief` |
-| macOS · native binary（arm64） | `2.1.113 - 2.1.221` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| macOS · native binary（arm64） | `2.1.113 - 2.1.226` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Linux · native binary（x64 glibc） | `2.1.220 - 2.1.220` | 需要 `node-lief >=1.3.0`；仅该版本，不含 arm64、musl 或 latest |
 | Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
 | Windows · native .exe（x64） | `2.1.113 - 2.1.220` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
