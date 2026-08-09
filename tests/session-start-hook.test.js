@@ -635,6 +635,10 @@ test("session-start bounds update checks and never runs a standalone installer m
   assert.doesNotMatch(psHook, /install\.ps1.*-UpdateOnly/);
   assert.match(psHook, /本次未自动安装/);
   assert.match(shellHook, /curl -fsSL --connect-timeout 5 --max-time/);
+  assert.match(shellHook, /--header @-/);
+  assert.doesNotMatch(shellHook, /-H "Authorization: Bearer \$\{GITHUB_TOKEN\}"/);
+  assert.match(shellHook, /PINNED_RELEASE_SOURCE_FILE/);
+  assert.match(shellHook, /\[ ! -f "\$PINNED_RELEASE_SOURCE_FILE" \]/);
   assert.doesNotMatch(shellHook, /install\.sh" --update-only/);
   assert.match(shellHook, /本次未自动安装/);
 });

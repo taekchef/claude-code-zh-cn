@@ -452,7 +452,7 @@ test("native compat and Windows install smoke are wired into CI", () => {
   );
   assert.match(workflow, /windows-native-compat/, "CI should include a Windows native compat lane");
   assert.match(workflow, /--native-windows-x64/, "CI should verify Windows native patching");
-  assert.match(workflow, /npm install --no-save node-lief(?:\r?\n|$)/, "Windows native compat should install node-lief");
+  assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Windows native compat should pin node-lief");
   assert.match(workflow, /linux-native-compat/, "CI should include a Linux native compat lane");
   assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Linux native compat should pin node-lief");
   assert.match(

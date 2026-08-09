@@ -19,6 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 const PLUGIN_KEYS = ["language", "spinnerTipsEnabled", "spinnerVerbs", "spinnerTipsOverride"];
 
@@ -88,11 +89,24 @@ function fillMissingKeys(settingsFile, overlay) {
 
 function writeSettings(settingsFile, merged) {
   const dir = path.dirname(settingsFile);
-  fs.mkdirSync(dir, { recursive: true });
-  // 原子写：先写临时文件再 rename，避免中途被打断留下半份
-  const tmp = `${settingsFile}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(merged, null, 2)}\n`);
-  fs.renameSync(tmp, settingsFile);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const existingMode = fs.existsSync(settingsFile) ? fs.statSync(settingsFile).mode & 0o600 : 0o600;
+  const mode = existingMode || 0o600;
+  const tmp = path.join(dir, `.${path.basename(settingsFile)}.${crypto.randomBytes(8).toString("hex")}.tmp`);
+  const flags = fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL |
+    (fs.constants.O_NOFOLLOW || 0);
+  let output;
+  try {
+    output = fs.openSync(tmp, flags, mode);
+    fs.writeFileSync(output, `${JSON.stringify(merged, null, 2)}\n`);
+    fs.fsyncSync(output);
+    fs.closeSync(output);
+    output = undefined;
+    fs.renameSync(tmp, settingsFile);
+  } finally {
+    if (output !== undefined) fs.closeSync(output);
+    fs.rmSync(tmp, { force: true });
+  }
 }
 
 // resolve overlay 数据源优先级：显式传入 > CLAUDE_PLUGIN_ROOT > 调用脚本所在 plugin 根

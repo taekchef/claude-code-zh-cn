@@ -53,6 +53,20 @@ function writeTranslationsWithout(englishFragment) {
   return target;
 }
 
+test("verify-upstream-compat rejects a shared package cache", { skip: process.platform === "win32" }, () => {
+  const packagesDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-insecure-cache-"));
+  fs.chmodSync(packagesDir, 0o777);
+
+  const result = spawnSync(
+    "node",
+    [compatScript, "--config", fixtureConfig, "--packages-dir", packagesDir, "--baseline", "1.0.0", "--skip-latest"],
+    { cwd: repoRoot, encoding: "utf8" }
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must not be accessible by group or other users/);
+});
+
 test("verify-upstream-compat supports --baseline override without touching config", () => {
   const result = runCompat(["--baseline", "1.0.0", "--skip-latest", "--json"]);
 
@@ -294,6 +308,7 @@ test("verify-upstream-compat reports missing node-lief as native dependency skip
 test("verify-upstream-compat patches and audits the Linux platform package", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-linux-native-"));
   const packagesDir = path.join(tmp, "cache");
+  fs.mkdirSync(packagesDir, { recursive: true, mode: 0o700 });
   const packageDir = path.join(
     packagesDir,
     "_anthropic-ai_claude-code-linux-x64-2.1.220",
@@ -395,6 +410,7 @@ test("verify-upstream-compat patches and audits the Linux platform package", () 
 test("verify-upstream-compat resolves new native macOS candidates to the platform package", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-package-resolve-"));
   const packagesDir = path.join(tmp, "cache");
+  fs.mkdirSync(packagesDir, { recursive: true, mode: 0o700 });
   const requestsPath = path.join(tmp, "npm-requests.txt");
   const binDir = path.join(tmp, "bin");
   fs.mkdirSync(binDir, { recursive: true });
@@ -541,6 +557,7 @@ test("verify-upstream-compat uses Windows native representatives as the default 
 test("verify-upstream-compat accepts root-level Windows platform claude.exe packages", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-windows-root-exe-"));
   const packagesDir = path.join(tmp, "cache");
+  fs.mkdirSync(packagesDir, { recursive: true, mode: 0o700 });
   const requestsPath = path.join(tmp, "npm-requests.txt");
   const binDir = path.join(tmp, "bin");
   fs.mkdirSync(binDir, { recursive: true });
@@ -625,6 +642,7 @@ test("verify-upstream-compat accepts root-level Windows platform claude.exe pack
 test("verify-upstream-compat verifies Windows native-wrapper packages", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-windows-wrapper-exe-"));
   const packagesDir = path.join(tmp, "cache");
+  fs.mkdirSync(packagesDir, { recursive: true, mode: 0o700 });
   const requestsPath = path.join(tmp, "npm-requests.txt");
   const binDir = path.join(tmp, "bin");
   fs.mkdirSync(binDir, { recursive: true });
@@ -1087,6 +1105,7 @@ test("compact duration guards do not flag unrelated protocol duration abbreviati
 test("verify-upstream-compat refreshes a corrupt downloaded package cache", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-corrupt-cache-"));
   const packagesDir = path.join(tmp, "cache");
+  fs.mkdirSync(packagesDir, { recursive: true, mode: 0o700 });
   const packageName = "@anthropic-ai/claude-code";
   const version = "1.0.5-corrupt-cache";
   const safePackageName = packageName.replace(/[^a-zA-Z0-9_.-]+/g, "_");

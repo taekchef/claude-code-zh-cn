@@ -399,6 +399,31 @@ test("extract, version, and repack can run through a PE node-lief adapter", () =
   assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
 });
 
+test("extract refuses to follow an output symlink", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-extract-symlink-"));
+  const binaryPath = path.join(tmp, "claude.exe");
+  const targetPath = path.join(tmp, "target.js");
+  const outputPath = path.join(tmp, "output.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+
+  writeFakeNodeLief(fakeModuleRoot);
+  fs.writeFileSync(binaryPath, Buffer.concat([
+    Buffer.from([0x4d, 0x5a, 0x90, 0x00]),
+    createBunSectionData('// Version: 2.1.150\nconst label = "Bash command";\n'),
+  ]));
+  fs.writeFileSync(targetPath, "keep\n");
+  fs.symlinkSync(targetPath, outputPath);
+
+  const result = runHelperWithStatus(["extract", binaryPath, outputPath], {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.equal(fs.readFileSync(targetPath, "utf8"), "keep\n");
+});
+
 test("extract, version, and repack can run through an ELF node-lief adapter", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-elf-repack-"));
   const binaryPath = path.join(tmp, "claude");

@@ -23,6 +23,7 @@ function makeFakeCurl(binDir) {
   const file = path.join(binDir, 'curl');
   writeFile(file, `#!/usr/bin/env bash
 set -euo pipefail
+printf '%s\n' "$*" >> "$FAKE_CURL_ARGV_LOG"
 url=""
 out=""
 while [ "$#" -gt 0 ]; do
@@ -32,6 +33,7 @@ while [ "$#" -gt 0 ]; do
       shift 2
       ;;
     -H|--header)
+      if [ "$2" = "@-" ]; then cat >> "$FAKE_CURL_HEADERS_LOG"; fi
       shift 2
       ;;
     -*)
@@ -73,6 +75,7 @@ set -euo pipefail
   echo "script=${kind}"
   echo "pwd=$(pwd)"
   echo "repo=\${ZH_CN_SOURCE_REPO:-}"
+  echo "marketplace_source=\${ZH_CN_MARKETPLACE_SOURCE:-}"
   echo "ref=\${CCZH_INSTALLED_REF:-}"
   echo "commit=\${CCZH_INSTALLED_COMMIT:-}"
   printf 'args=%s\n' "$*"
@@ -97,6 +100,7 @@ function makeSingleRootTarball(baseDir, kind) {
   const root = path.join(sourceParent, 'repo-root');
   const scriptName = `${kind}.sh`;
   writeFile(path.join(root, scriptName), makeRemoteScript(kind), 0o644);
+  fs.mkdirSync(path.join(root, 'plugin'), { recursive: true });
   writeFile(path.join(root, 'nested', scriptName), makeNestedScript(), 0o644);
   const tarball = path.join(baseDir, `${kind}.tar.gz`);
   packDirectory(tarball, sourceParent, 'repo-root');
@@ -132,6 +136,8 @@ function makeEnv(baseDir, tarball, extra = {}) {
     FAKE_COMMIT: fakeCommit,
     FAKE_TARBALL: tarball,
     FAKE_CURL_LOG: path.join(baseDir, 'curl.log'),
+    FAKE_CURL_ARGV_LOG: path.join(baseDir, 'curl-argv.log'),
+    FAKE_CURL_HEADERS_LOG: path.join(baseDir, 'curl-headers.log'),
     TEST_REMOTE_MARKER: path.join(baseDir, 'remote.marker'),
     TEST_NESTED_MARKER: path.join(baseDir, 'nested.marker'),
     ...extra,
@@ -183,6 +189,7 @@ test('install-remote uses fake repo tarball, records source metadata, and only r
   const marker = fs.readFileSync(env.TEST_REMOTE_MARKER, 'utf8');
   assert.match(marker, /script=install/);
   assert.match(marker, /repo=local\/fake-repo/);
+  assert.match(marker, /marketplace_source=.+repo-root/);
   assert.match(marker, /ref=v-test-install/);
   assert.match(marker, new RegExp(`commit=${fakeCommit}`));
   assert.match(marker, /args=--dry-run-for-test/);
@@ -194,6 +201,27 @@ test('install-remote uses fake repo tarball, records source metadata, and only r
   assert.match(curlLog, /\/commits\/v-test-install/);
   assert.match(curlLog, new RegExp(`/tarball/${fakeCommit}`));
   assert.doesNotMatch(curlLog, /github\.com\/(?!repos\/local\/fake-repo)/);
+});
+
+test('remote scripts send GitHub tokens through header stdin, not process arguments', () => {
+  for (const kind of ['install', 'uninstall']) {
+    const baseDir = tempDir(`token-${kind}`);
+    const tarball = makeSingleRootTarball(baseDir, kind);
+    const pluginRoot = path.join(baseDir, 'plugin-root');
+    if (kind === 'uninstall') {
+      writeFile(path.join(pluginRoot, '.installed-ref'), 'v-token\n');
+      writeFile(path.join(pluginRoot, '.installed-commit'), `${fakeCommit}\n`);
+    }
+    const env = makeEnv(baseDir, tarball, {
+      CCZH_REF: 'v-token',
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      GITHUB_TOKEN: 'top-secret-token',
+    });
+    const result = runRemoteScript(`${kind}-remote.sh`, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.doesNotMatch(fs.readFileSync(env.FAKE_CURL_ARGV_LOG, 'utf8'), /top-secret-token/);
+    assert.match(fs.readFileSync(env.FAKE_CURL_HEADERS_LOG, 'utf8'), /Authorization: Bearer top-secret-token/);
+  }
 });
 
 test('install-remote rejects tarballs that do not extract to exactly one top-level directory', () => {

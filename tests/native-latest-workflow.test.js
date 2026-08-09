@@ -46,8 +46,9 @@ test("native latest candidate workflow also verifies Windows native candidates",
   assert.match(workflow, /^\s*verify-windows:/m);
   assert.match(workflow, /name:\s*Verify Windows native candidate/);
   assert.match(workflow, /runs-on:\s*windows-2022\b/);
-  assert.match(workflow, /contents:\s*write/);
-  assert.match(workflow, /pull-requests:\s*write/);
+  assert.match(windowsJob, /permissions:\s*\n\s+contents:\s*read/);
+  assert.match(windowsJob, /persist-credentials:\s*false/);
+  assert.doesNotMatch(windowsJob, /issues:\s*write|contents:\s*write|pull-requests:\s*write/);
   assert.match(windowsJob, /shell:\s*pwsh/);
   assert.doesNotMatch(windowsJob, /shell:\s*powershell/);
   assert.match(workflow, /node\s+scripts\/verify-upstream-compat\.js\s+--baseline\s+"\$Version"\s+--skip-latest\s+--native-windows-x64\s+--json/);
@@ -77,8 +78,9 @@ test("native latest candidate workflow promotes support evidence without forcing
   );
   assert.match(workflow, /actions\/upload-artifact@v\d+/);
   assert.match(workflow, /path:\s*\$\{\{\s*steps\.verify\.outputs\.json_path\s*\}\}/);
-  assert.match(workflow, /contents:\s*write/);
-  assert.match(workflow, /pull-requests:\s*write/);
+  assert.doesNotMatch(workflow, /contents:\s*write|pull-requests:\s*write|issues:\s*write/);
+  assert.match(workflow, /persist-credentials:\s*false/);
+  assert.match(workflow, /node-lief@1\.3\.2/);
   assert.match(workflow, /scripts\/promote-native-candidate\.js\s+--candidate/);
   assert.match(workflow, /scripts\/generate-plugin-support-window\.js\s+--write/);
   assert.match(workflow, /scripts\/generate-support-matrix\.js/);
@@ -90,13 +92,10 @@ test("native latest candidate workflow promotes support evidence without forcing
   assert.doesNotMatch(workflow, /Prepare plugin release metadata/);
   assert.doesNotMatch(workflow, /scripts\/prepare-native-release-closeout\.js\s+--native-version/);
   assert.doesNotMatch(workflow, /plugin_version/);
-  assert.match(workflow, /peter-evans\/create-pull-request@v\d+/);
-  assert.match(workflow, /codex\/native-latest-/);
-  assert.match(workflow, /draft:\s*true/);
-  assert.match(workflow, /commit-message:\s*"chore: verify macOS native \$\{\{ steps\.version\.outputs\.version \}\} compatibility"/);
+  assert.match(workflow, /Upload native support evidence/);
+  assert.match(workflow, /native-support-evidence-\$\{\{ steps\.version\.outputs\.version \}\}/);
+  assert.doesNotMatch(workflow, /peter-evans\/create-pull-request|actions\/github-script/);
   assert.match(workflow, /steps\.support_changes\.outputs\.changed == 'true'/);
-  assert.match(workflow, /does not bump the plugin version or CHANGELOG/);
-  assert.match(workflow, /No plugin release is required/);
   assert.doesNotMatch(workflow, /\bgh\s+release\b/);
 });
 
@@ -105,9 +104,7 @@ test("native latest candidate workflow records runtime and display coverage evid
 
   assert.match(workflow, /## Native candidate promotion evidence/);
   assert.match(workflow, /printf '%s\\n' "\$PROMOTE_OUTPUT"[\s\S]*GITHUB_STEP_SUMMARY/);
-  assert.match(workflow, /运行硬边界已通过/);
-  assert.match(workflow, /展示文案覆盖可能是 `complete` 或 `partial`/);
-  assert.match(workflow, /`partial` 不代表完整中文覆盖/);
+  assert.match(workflow, /coverage partial is a warning, not a claim of complete Chinese coverage/);
   assert.doesNotMatch(workflow, /display audit pass/);
 
   assert.match(workflow, /ConvertFrom-Json/);
@@ -127,7 +124,7 @@ test("native latest candidate workflow publishes an upstream text diff report", 
   assert.match(workflow, /Upload native text diff report/);
   assert.match(workflow, /native-latest-text-diff-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
   assert.match(workflow, /GITHUB_STEP_SUMMARY/);
-  assert.match(workflow, /Text diff report artifact/);
+  assert.match(workflow, /native-latest-text-diff-/);
 });
 
 test("native latest candidate workflow explains failed promotion boundaries", () => {
@@ -142,43 +139,35 @@ test("native latest candidate workflow explains failed promotion boundaries", ()
   assert.match(workflow, /2>&1/);
 });
 
-test("native latest candidate workflow reports failed candidates to a single tracking issue", () => {
+test("native latest candidate workflow uploads failed candidates without write permissions", () => {
   const workflow = readWorkflow();
 
   assert.match(workflow, /Prepare native failure handoff/);
   assert.match(workflow, /scripts\/prepare-native-failure-handoff\.js[\s\S]*--candidate/);
   assert.match(workflow, /docs\/native-latest-failures\/\$\{VERSION\}\.md/);
-  assert.match(workflow, /Report native candidate failure to tracking issue/);
-  assert.match(workflow, /id:\s*failure_issue/);
-  assert.match(workflow, /actions\/github-script@v\d+/);
-  assert.match(workflow, /native-candidate-failure/);
-  assert.match(workflow, /Native latest candidate failures \(tracking\)/);
+  assert.match(workflow, /Upload native failure handoff/);
+  assert.match(workflow, /native-latest-failure-/);
   assert.match(workflow, /steps\.failure_handoff\.outputs\.report_path != ''/);
-  // 失败不再开草稿 PR
-  assert.doesNotMatch(workflow, /Create native candidate failure handoff PR/);
-  assert.doesNotMatch(workflow, /codex\/native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
+  assert.doesNotMatch(workflow, /actions\/github-script|issues:\s*write/);
 });
 
-test("native failure tracking issue reporting is idempotent per platform and version", () => {
+test("native candidate jobs cannot write repository or issue state", () => {
   const workflow = readWorkflow();
 
-  assert.match(workflow, /<!-- native-candidate-failure \$\{PLATFORM_LABEL\} \$\{CANDIDATE_VERSION\} -->/);
-  assert.match(workflow, /already reported/);
-  assert.match(workflow, /issues:\s*write/);
+  assert.doesNotMatch(workflow, /contents:\s*write|pull-requests:\s*write|issues:\s*write/);
+  assert.doesNotMatch(workflow, /secrets\.GITHUB_TOKEN|actions\/github-script|create-pull-request/);
 });
 
-test("native latest candidate workflow reports failed Windows candidates to the tracking issue", () => {
+test("native latest candidate workflow uploads failed Windows candidates", () => {
   const workflow = readWorkflow();
 
   assert.match(workflow, /Prepare Windows native failure handoff/);
   assert.match(workflow, /scripts\/prepare-native-failure-handoff\.js[\s\S]*--platform windows/);
   assert.match(workflow, /docs\/native-latest-failures\/windows-\$Version\.md/);
-  assert.match(workflow, /Report Windows native candidate failure to tracking issue/);
-  assert.match(workflow, /id:\s*windows_failure_issue/);
-  assert.match(workflow, /PLATFORM_LABEL:\s*Windows x64/);
+  assert.match(workflow, /Upload Windows native failure handoff/);
+  assert.match(workflow, /windows-native-latest-failure-/);
   assert.match(workflow, /windows-native-latest-text-diff-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/);
-  assert.doesNotMatch(workflow, /Create Windows native candidate failure handoff PR/);
-  assert.doesNotMatch(workflow, /codex\/windows-native-latest-\$\{\{\s*steps\.version\.outputs\.version\s*\}\}-fix/);
+  assert.doesNotMatch(workflow, /actions\/github-script|issues:\s*write/);
 });
 
 test("native latest candidate workflow prepares Windows promotion artifacts with guards", () => {

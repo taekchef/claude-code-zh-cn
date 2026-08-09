@@ -632,7 +632,14 @@ function cmdExtract() {
     process.exit(1);
   }
 
-  fs.writeFileSync(outputPath, found.contents);
+  const flags = fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC |
+    (fs.constants.O_NOFOLLOW || 0);
+  const output = fs.openSync(outputPath, flags, 0o600);
+  try {
+    fs.writeFileSync(output, found.contents);
+  } finally {
+    fs.closeSync(output);
+  }
   process.stdout.write("ok");
 }
 

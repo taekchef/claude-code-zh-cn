@@ -181,6 +181,12 @@ test("writeSettings writes atomically and produces valid JSON", () => {
   writeSettings(settingsFile, { language: "Chinese", spinnerTipsEnabled: true });
   const written = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
   assert.deepEqual(written, { language: "Chinese", spinnerTipsEnabled: true });
+  if (process.platform !== "win32") {
+    assert.equal(fs.statSync(settingsFile).mode & 0o777, 0o600);
+    fs.chmodSync(settingsFile, 0o600);
+    writeSettings(settingsFile, { language: "Chinese" });
+    assert.equal(fs.statSync(settingsFile).mode & 0o777, 0o600);
+  }
   // 无残留临时文件
   assert.equal(fs.readdirSync(dir).length, 1);
   fs.rmSync(dir, { recursive: true, force: true });

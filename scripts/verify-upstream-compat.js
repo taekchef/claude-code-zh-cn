@@ -383,6 +383,20 @@ function downloadPackage(packageName, version, packagesDir) {
   return packageDir;
 }
 
+function ensurePrivatePackagesDir(packagesDir) {
+  fs.mkdirSync(packagesDir, { recursive: true, mode: 0o700 });
+  const stat = fs.lstatSync(packagesDir);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    fail(`Package cache must be a private directory: ${packagesDir}`);
+  }
+  if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
+    fail(`Package cache is not owned by the current user: ${packagesDir}`);
+  }
+  if (process.platform !== "win32" && (stat.mode & 0o077) !== 0) {
+    fail(`Package cache must not be accessible by group or other users: ${packagesDir}`);
+  }
+}
+
 function resolvePackageName(config, args, version) {
   const nativeConfig = nativeSupportConfig(config, args);
   if ((args.nativeMacosArm64 || args.nativeLinuxX64 || args.nativeWindowsX64) && nativeConfig?.packageName) {
@@ -402,6 +416,7 @@ function resolvePackageDir(config, args, version) {
   }
 
   const packagesDir = args.packagesDir || path.join(os.tmpdir(), "claude-code-zh-cn-upstream-cache");
+  ensurePrivatePackagesDir(packagesDir);
   return downloadPackage(resolvePackageName(config, args, version), version, packagesDir);
 }
 

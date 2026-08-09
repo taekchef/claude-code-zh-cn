@@ -21,6 +21,7 @@ SOURCE_REPO_FILE="$PLUGIN_DST/.source-repo"
 LAST_UPDATE_CHECK_FILE="$PLUGIN_DST/.last-update-check"
 CCSWITCH_CONSENT_FILE="$PLUGIN_DST/.ccswitch-sync-consent"
 SOURCE_REPO_OVERRIDE="${ZH_CN_SOURCE_REPO:-}"
+MARKETPLACE_SOURCE_OVERRIDE="${ZH_CN_MARKETPLACE_SOURCE:-}"
 SKIP_BANNER="${ZH_CN_SKIP_BANNER:-0}"
 CCSWITCH_SYNC_CHOICE="${ZH_CN_CCSWITCH_SYNC:-}"
 LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$HOME/.claude/bin}"
@@ -78,6 +79,10 @@ ensure_cc_autoupdate_disabled() {
 
 print_unpublished_window_note() {
     echo -e "${YELLOW}  提醒：本机自验证是临时 patch，不等于已发布支持；升到未发布窗口时请先看支持窗口，未收录就等插件 Release 或临时退回已验证版本。${NC}"
+}
+
+make_private_temp_dir() {
+    node -e 'const fs=require("fs"),os=require("os"),path=require("path");process.stdout.write(fs.mkdtempSync(path.join(os.tmpdir(),process.argv[1])))' "$1"
 }
 
 if [ -f "$INSTALL_JSON_HELPER" ]; then
@@ -494,6 +499,9 @@ process.stdout.write(JSON.stringify(base));
 }
 
 official_marketplace_source() {
+    case "${MARKETPLACE_SOURCE_OVERRIDE:-}" in
+        ?*) printf '%s' "$MARKETPLACE_SOURCE_OVERRIDE"; return ;;
+    esac
     case "${SOURCE_REPO_OVERRIDE:-}" in
         http://*|https://*|git@*|ssh://*|*/*)
             printf '%s' "$SOURCE_REPO_OVERRIDE"
@@ -687,6 +695,10 @@ register_official_plugin() {
     marketplace_source="$(official_marketplace_source)"
     if official_user_plugin_installed "$claude_cli"; then
         plugin_was_installed=true
+    fi
+
+    if [ -n "${MARKETPLACE_SOURCE_OVERRIDE:-}" ]; then
+        "$claude_cli" plugin marketplace remove "$OFFICIAL_MARKETPLACE_NAME" >/dev/null 2>&1 || true
     fi
 
     if ! "$claude_cli" plugin marketplace add --scope user "$marketplace_source" >/dev/null 2>&1; then
@@ -1586,7 +1598,7 @@ write_install_metadata() {
 
 patch_npm_cli() {
     local cli_file="$1"
-    local current_version patch_count patch_revision patch_status status_file
+    local current_version patch_count patch_revision patch_status status_dir status_file
 
     echo ""
     echo -e "${BLUE}正在 patch cli.js 硬编码文字...${NC}"
@@ -1596,12 +1608,13 @@ patch_npm_cli() {
     # 备份/恢复/语法校验/失败回滚统一由 patch-cli.js 托管（--backup 模式）：
     # - 同版本备份存在 → 从备份恢复干净基底再 patch，杜绝 patch 叠 patch
     # - patch 结果通过 JS 语法校验才写盘；失败则不落盘，CLI 保持可用（优雅降级）
-    status_file="${TMPDIR:-/tmp}/cczh-patch-status.$$.${RANDOM:-0}"
+    status_dir="$(make_private_temp_dir "cczh-patch-status.")"
+    status_file="$status_dir/status"
     patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$cli_file" \
         --backup "${cli_file}.zh-cn-backup" \
         --status "$status_file" 2>/dev/null || echo "0")
     patch_status="$(cat "$status_file" 2>/dev/null || echo "error")"
-    rm -f "$status_file"
+    rm -rf "$status_dir"
 
     case "$patch_status" in
         ok)
@@ -1639,7 +1652,9 @@ patch_npm_cli() {
 
 patch_native_binary() {
     local binary_path="$1"
-    local tmp_js="${TMPDIR:-/tmp}/claude-zh-cn-extract.$$.js"
+    local tmp_dir tmp_js
+    tmp_dir="$(make_private_temp_dir "claude-zh-cn-extract.")"
+    tmp_js="$tmp_dir/extracted.js"
     local backup_path="${binary_path}.zh-cn-backup"
     local current_version backup_version patch_mode platform
 
@@ -1712,7 +1727,7 @@ patch_native_binary() {
     node "$PLUGIN_SRC/bun-binary-io.js" extract "$binary_path" "$tmp_js" || {
         echo -e "${RED}提取 JS 失败${NC}"
         CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制提取失败）"
-        rm -f "$tmp_js"
+        rm -rf "$tmp_dir"
         return
     }
 
@@ -1728,7 +1743,7 @@ patch_native_binary() {
                 echo -e "${RED}自动恢复失败；原始备份仍保留在 ${backup_path}${NC}"
                 CLI_PATCH_STATUS_SUMMARY="失败（原生二进制写回及自动恢复均失败；请从 ${backup_path} 手动恢复）"
             fi
-            rm -f "$tmp_js"
+            rm -rf "$tmp_dir"
             return
         }
         local verified_version
@@ -1742,7 +1757,7 @@ patch_native_binary() {
                 echo -e "${RED}自动恢复失败；原始备份仍保留在 ${backup_path}${NC}"
                 CLI_PATCH_STATUS_SUMMARY="失败（原生二进制启动自检及自动恢复均失败；请从 ${backup_path} 手动恢复）"
             fi
-            rm -f "$tmp_js"
+            rm -rf "$tmp_dir"
             return
         fi
 
@@ -1758,7 +1773,7 @@ patch_native_binary() {
         echo -e "${YELLOW}未找到需要 patch 的内容${NC}"
         if [ "$patch_mode" = "provisional" ]; then
             CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制本机自验证未找到可 patch 内容）"
-            rm -f "$tmp_js"
+            rm -rf "$tmp_dir"
             return
         else
             CLI_PATCH_STATUS_SUMMARY="原生二进制无新增改动（可能已是最新状态）"
@@ -1766,7 +1781,7 @@ patch_native_binary() {
         fi
     fi
 
-    rm -f "$tmp_js"
+    rm -rf "$tmp_dir"
 
     local patch_revision final_hash
     current_version="$(native_binary_version "$binary_path")"

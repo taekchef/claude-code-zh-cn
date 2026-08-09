@@ -394,6 +394,20 @@ test("reinstall updates an existing user plugin when repeated install returns no
   assert.equal(standaloneHooks(settings, context.pluginRoot).length, 0);
 });
 
+test("pinned remote installs register the verified local snapshot", { skip: unixShellRequired }, () => {
+  const context = createInstallContext("success");
+  context.env.ZH_CN_SOURCE_REPO = "owner/repository";
+  context.env.ZH_CN_MARKETPLACE_SOURCE = context.source;
+
+  const result = runInstall(context);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+
+  const calls = fs.readFileSync(context.fake.log, "utf8");
+  assert.match(calls, /plugin marketplace remove claude-code-zh-cn/);
+  assert.match(calls, new RegExp(`plugin marketplace add --scope user ${context.source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+  assert.doesNotMatch(calls, /plugin marketplace add --scope user owner\/repository/);
+});
+
 test("update-only refreshes an existing official plugin when staging omits the root marketplace manifest", { skip: unixShellRequired }, () => {
   const context = createInstallContext("reinstall-update");
   const first = runInstall(context);

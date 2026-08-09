@@ -43,36 +43,19 @@ api_get() {
   local path="$1"
   local url="https://api.github.com/repos/${REPO}${path}"
 
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -fsSL \
-      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$url"
-  else
-    curl -fsSL \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$url"
-  fi
+  github_api_headers | curl -fsSL --header @- "$url"
 }
 
 curl_download() {
   local url="$1"
   local output="$2"
 
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -fsSL \
-      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$url" -o "$output"
-  else
-    curl -fsSL \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$url" -o "$output"
-  fi
+  github_api_headers | curl -fsSL --header @- "$url" -o "$output"
+}
+
+github_api_headers() {
+  [ -z "${GITHUB_TOKEN:-}" ] || printf 'Authorization: Bearer %s\n' "$GITHUB_TOKEN"
+  printf '%s\n' 'Accept: application/vnd.github+json' 'X-GitHub-Api-Version: 2022-11-28'
 }
 
 json_string_field() {
