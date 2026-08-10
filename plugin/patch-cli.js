@@ -1122,7 +1122,7 @@ function installStatusbarToolActivityLocalization() {
     // 224+ 无 Ran 前缀的 hook 状态行（active 分支 Oe("hooks","ran",...) 推送结构）
     tryRegexReplace(
         /children:([A-Za-z0-9_$]+(?:\.[A-Za-z0-9_$]+)?)\}\)," PreToolUse"," ",\1===1\?"hook":"hooks"/g,
-        (_m, c) => `children:${c})}," 个 PreToolUse Hook"`
+        (_m, c) => `children:${c}})," 个 PreToolUse Hook"`
     );
 
     // 224+ memoized Hook 状态行（React JSX transform 生成缓存分支，字面量与直接 JSX 分离）
