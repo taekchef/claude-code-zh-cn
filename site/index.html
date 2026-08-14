@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code 中文 · 让 Claude Code 说中文</title>
+  <meta name="description" content="Claude Code CLI 中文本地化插件：2065 条界面翻译、187 个 spinner 动词、四层本地化架构，支持 macOS、Windows 与 Linux，30 秒安装，随时回滚。">
+  <meta property="og:title" content="Claude Code 中文 · 让 Claude Code 说中文">
+  <meta property="og:description" content="覆盖设置、状态栏与命令行界面的中文本地化插件。2065 条界面翻译，30 秒安装，随时回滚。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://taekchef.github.io/claude-code-zh-cn/">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="preload" href="./fonts/NotoSerifSC-600.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/NotoSerifSC-900.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="./">
+        <span class="brand-seal" aria-hidden="true">中</span>
+        <span class="brand-name">Claude Code 中文</span>
+      </a>
+      <nav class="nav-links" aria-label="页面导航">
+        <a href="#demo">效果</a>
+        <a href="#how">原理</a>
+        <a href="#platforms">平台</a>
+        <a href="#install">安装</a>
+        <a class="nav-gh" href="https://github.com/taekchef/claude-code-zh-cn" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          <span>GitHub</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <h1 class="hero-title">让 Claude Code<br>说<span class="accent">中文</span>。</h1>
+          <p class="hero-sub">覆盖设置、状态栏与命令行界面的中文本地化插件。两千余条界面翻译，三十秒安装，随时回滚。</p>
+          <div class="hero-cta">
+            <div class="install-line" id="heroInstall">
+              <code id="heroCommand">curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/install-remote.sh | bash</code>
+              <button class="copy-btn" data-copy-target="heroCommand" aria-label="复制安装命令">
+                <svg class="ic-copy" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+                <svg class="ic-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              </button>
+            </div>
+            <p class="hero-note">适用于 macOS、Linux 与 WSL。Windows 用户见下方<a href="#install">安装指南</a>。</p>
+          </div>
+        </div>
+
+        <div class="hero-specimen" aria-label="翻译样张">
+          <div class="seal-large" aria-hidden="true"><span>中</span></div>
+          <ul class="specimen-list">
+            <li><s lang="en">Welcome back!</s><span class="specimen-arrow" aria-hidden="true">→</span><b>欢迎回来！</b></li>
+            <li><s lang="en">Do you want to proceed?</s><span class="specimen-arrow" aria-hidden="true">→</span><b>要继续吗？</b></li>
+            <li><s lang="en">Enter to confirm · Esc to cancel</s><span class="specimen-arrow" aria-hidden="true">→</span><b>按 Enter 确认 · 按 Esc 取消</b></li>
+            <li><s lang="en">Answering...</s><span class="specimen-arrow" aria-hidden="true">→</span><b>回答中...</b></li>
+          </ul>
+          <p class="specimen-caption">样张取自插件真实翻译数据</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TERMINAL DEMO ============ -->
+    <section class="section" id="demo">
+      <div class="section-head">
+        <h2>安装前后，同一个终端。</h2>
+        <p class="section-sub">以下是一个 Claude Code 会话。点击切换，查看中文本地化后的实际界面文案。</p>
+      </div>
+
+      <div class="terminal-frame reveal" id="terminalFrame">
+        <div class="terminal-bar">
+          <div class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="terminal-title">claude · ~/projects/demo</span>
+          <div class="terminal-actions">
+            <button class="term-btn is-active" id="btnEn" type="button">原版</button>
+            <button class="term-btn" id="btnZh" type="button">中文</button>
+          </div>
+        </div>
+        <div class="terminal-body" id="terminalBody"></div>
+      </div>
+      <p class="terminal-caption">界面文案取自 <code>cli-translations.json</code>，spinner 动词取自 <code>verbs/zh-CN.json</code>。</p>
+    </section>
+
+    <!-- ============ STATS ============ -->
+    <section class="section stats" id="stats">
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-num" data-count="2065">0</span>
+          <span class="stat-label">界面翻译条目</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" data-count="187">0</span>
+          <span class="stat-label">spinner 动词</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" data-count="41">0</span>
+          <span class="stat-label">spinner 提示</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" data-count="4">0</span>
+          <span class="stat-label">本地化层级</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="section" id="how">
+      <div class="section-head">
+        <h2>四层本地化，逐层生效。</h2>
+        <p class="section-sub">从设置到二进制补丁，每一层独立工作；任何一层失败，其余层与 Claude Code 本体不受影响。</p>
+      </div>
+
+      <ol class="layers">
+        <li class="layer reveal">
+          <span class="layer-num" aria-hidden="true">一</span>
+          <div class="layer-body">
+            <h3>中文设置</h3>
+            <p>合并进 <code>settings.json</code>：界面语言、187 个 spinner 动词与 41 条提示全部中文化，CC Switch 通用配置同步覆盖。</p>
+          </div>
+        </li>
+        <li class="layer reveal">
+          <span class="layer-num" aria-hidden="true">二</span>
+          <div class="layer-body">
+            <h3>会话 Hooks</h3>
+            <p>会话启动时注入中文上下文，让模型以中文回复；桌面通知消息同步翻译。</p>
+          </div>
+        </li>
+        <li class="layer reveal">
+          <span class="layer-num" aria-hidden="true">三</span>
+          <div class="layer-body">
+            <h3>输出风格</h3>
+            <p>内置 Chinese 输出风格，控制 AI 回复的语言与行文习惯。</p>
+          </div>
+        </li>
+        <li class="layer reveal">
+          <span class="layer-num" aria-hidden="true">四</span>
+          <div class="layer-body">
+            <h3>CLI Patch</h3>
+            <p>对 CLI 界面硬编码文字做内容匹配补丁，2065 条翻译按原文精确替换；未识别的文案保留英文，Claude Code 更新后首次会话自动重新补丁。</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ PLATFORMS ============ -->
+    <section class="section section-tint" id="platforms">
+      <div class="section-head">
+        <h2>平台与版本窗口。</h2>
+        <p class="section-sub">每个窗口都经过真实安装与启动自检验证；更高版本安装时先本机自检，未识别文案保留英文。</p>
+      </div>
+
+      <div class="platforms">
+        <div class="platform-group">
+          <h3>macOS</h3>
+          <dl>
+            <div class="prow"><dt>npm 安装（cli.js）</dt><dd>2.1.92 – 2.1.112 · 稳定</dd></div>
+            <div class="prow"><dt>官方安装器（native）</dt><dd>2.1.113 – 2.1.226 · 已验证</dd></div>
+          </dl>
+        </div>
+        <div class="platform-group">
+          <h3>Windows</h3>
+          <dl>
+            <div class="prow"><dt>npm 全局安装（PowerShell）</dt><dd>2.1.92 – 2.1.112 · 稳定</dd></div>
+            <div class="prow"><dt>native .exe（install.ps1）</dt><dd>2.1.113 – 2.1.224 · 已验证</dd></div>
+          </dl>
+        </div>
+        <div class="platform-group">
+          <h3>Linux</h3>
+          <dl>
+            <div class="prow"><dt>native 二进制（x64 glibc）</dt><dd>2.1.220 · 实验性已验证</dd></div>
+            <div class="prow"><dt>其他安装形态</dt><dd>设置、Hooks 与输出风格可用</dd></div>
+          </dl>
+        </div>
+      </div>
+      <p class="platforms-note">完整窗口与逐版本验证证据见 <a href="https://github.com/taekchef/claude-code-zh-cn/blob/main/docs/support-matrix.md" target="_blank" rel="noopener">docs/support-matrix.md</a>。</p>
+    </section>
+
+    <!-- ============ INSTALL ============ -->
+    <section class="section" id="install">
+      <div class="section-head">
+        <h2>三十秒安装。</h2>
+        <p class="section-sub">安装器自动完成依赖检查、设置合并与 CLI 补丁；任何时候都可以完整卸载，恢复英文原版。</p>
+      </div>
+
+      <div class="install-panel reveal">
+        <div class="install-tabs" role="tablist" aria-label="选择平台">
+          <button class="install-tab is-active" role="tab" aria-selected="true" data-pane="pane-bash" id="tab-bash" type="button">macOS · Linux · WSL</button>
+          <button class="install-tab" role="tab" aria-selected="false" data-pane="pane-win" id="tab-win" type="button">Windows PowerShell</button>
+          <button class="install-tab" role="tab" aria-selected="false" data-pane="pane-npm" id="tab-npm" type="button">npm 源码安装</button>
+        </div>
+
+        <div class="install-pane is-active" id="pane-bash" role="tabpanel" aria-labelledby="tab-bash">
+          <div class="code-block">
+            <div class="code-bar"><span>bash</span>
+              <button class="copy-btn" data-copy-target="cmd-bash" aria-label="复制命令">
+                <svg class="ic-copy" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+                <svg class="ic-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              </button>
+            </div>
+            <pre><code id="cmd-bash">curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/install-remote.sh | bash</code></pre>
+          </div>
+          <p class="pane-note">卸载：<code>curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/uninstall-remote.sh | bash</code></p>
+        </div>
+
+        <div class="install-pane" id="pane-win" role="tabpanel" aria-labelledby="tab-win" hidden>
+          <div class="code-block">
+            <div class="code-bar"><span>powershell</span>
+              <button class="copy-btn" data-copy-target="cmd-win" aria-label="复制命令">
+                <svg class="ic-copy" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+                <svg class="ic-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              </button>
+            </div>
+            <pre><code id="cmd-win">git clone https://github.com/taekchef/claude-code-zh-cn.git
+cd claude-code-zh-cn
+powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1</code></pre>
+          </div>
+          <p class="pane-note">需要 PowerShell 5.1 及以上（Windows 10/11 自带）。卸载：<code>powershell -NoProfile -ExecutionPolicy Bypass -File uninstall.ps1</code></p>
+        </div>
+
+        <div class="install-pane" id="pane-npm" role="tabpanel" aria-labelledby="tab-npm" hidden>
+          <div class="code-block">
+            <div class="code-bar"><span>bash</span>
+              <button class="copy-btn" data-copy-target="cmd-npm" aria-label="复制命令">
+                <svg class="ic-copy" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+                <svg class="ic-check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              </button>
+            </div>
+            <pre><code id="cmd-npm">git clone https://github.com/taekchef/claude-code-zh-cn.git
+cd claude-code-zh-cn
+./install.sh</code></pre>
+          </div>
+          <p class="pane-note">适合希望跟踪源码、自行修改翻译的用户。</p>
+        </div>
+      </div>
+
+      <p class="safety-line">安装前自动备份 · 补丁后启动自检 · 失败自动回滚 · <a href="https://github.com/taekchef/claude-code-zh-cn#readme" target="_blank" rel="noopener">完整文档与临时切回英文的方法</a></p>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-seal" aria-hidden="true">中</span>
+        <span>Claude Code 中文</span>
+      </div>
+      <p class="footer-note">社区开源项目，与 Anthropic 官方无关联。Claude Code 的商标与产品归 Anthropic 所有。</p>
+      <div class="footer-links">
+        <a href="https://github.com/taekchef/claude-code-zh-cn" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/taekchef/claude-code-zh-cn/blob/main/CHANGELOG.md" target="_blank" rel="noopener">更新日志</a>
+        <a href="https://github.com/taekchef/claude-code-zh-cn/blob/main/docs/support-matrix.md" target="_blank" rel="noopener">支持矩阵</a>
+        <a href="https://github.com/taekchef/claude-code-zh-cn/issues" target="_blank" rel="noopener">反馈问题</a>
+      </div>
+      <p class="footer-license">MIT License</p>
+    </div>
+  </footer>
+
+  <script src="./assets/app.js" defer></script>
+</body>
+</html>

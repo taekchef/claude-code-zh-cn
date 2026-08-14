@@ -23,34 +23,15 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: site/package-lock.json
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Use stable npm
-        run: npm install --global npm@10.8.2
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Build static website
-        run: npm run pages:build
-        env:
-          PAGES_BASE_PATH: /claude-code-zh-cn
-          NEXT_PUBLIC_BASE_PATH: /claude-code-zh-cn
-          NEXT_PUBLIC_SITE_URL: https://taekchef.github.io
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/out
+          path: site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
