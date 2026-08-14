@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.11.1] - 2026-08-15
+
+### 修复
+
+- 支持 Claude Code 2.1.227+ 的 native 二进制：上游将 Bun 入口模块从 `/claude`（或 `src/entrypoints/cli.js`）改名为 `/cli`（PE 下为 `B:/~BUN/root/cli`，Mach-O 下为 `/$bunfs/root/cli`），导致提取时报 `claude module not found in binary` 并安全跳过 Layer 4（#219）。现在三种历史命名都能识别。
+
+### 验证
+
+- 新增 `/cli` 模块命名的 extract 回归测试（三种平台形态）。
+- 对真实 2.1.232 二进制端到端验证：Windows x64 PE 与 macOS arm64 Mach-O 的 extract、1605 处有效 patch、语法校验、repack 全部通过；macOS 侧补丁后二进制 `--version` 启动自检通过，`--help` 输出中文。
+
 ## [2.11.0] - 2026-08-14
 
 ### 新增

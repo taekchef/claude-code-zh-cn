@@ -29,9 +29,9 @@ function createFakePeBinary(filePath) {
   fs.chmodSync(filePath, 0o755);
 }
 
-function createBunSectionData(source, { encoding = 0 } = {}) {
+function createBunSectionData(source, { encoding = 0, moduleName = "claude" } = {}) {
   const strings = [
-    Buffer.from("claude"),
+    Buffer.from(moduleName),
     Buffer.from(source),
     Buffer.alloc(0),
     Buffer.alloc(0),
@@ -397,6 +397,32 @@ test("extract, version, and repack can run through a PE node-lief adapter", () =
 
   assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
   assert.equal(fs.readFileSync(extractedPath, "utf8"), replacementSource);
+});
+
+test("extract recognizes the renamed /cli entry module used by Claude Code 2.1.227+", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-cli-module-"));
+  const binaryPath = path.join(tmp, "claude.exe");
+  const extractedPath = path.join(tmp, "extracted.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+  const initialSource = '// Version: 2.1.232\nconst label = "Bash command";\n';
+
+  writeFakeNodeLief(fakeModuleRoot);
+  for (const moduleName of ["B:/~BUN/root/cli", "/$bunfs/root/cli", "cli"]) {
+    fs.writeFileSync(binaryPath, Buffer.concat([
+      Buffer.from([0x4d, 0x5a, 0x90, 0x00]),
+      createBunSectionData(initialSource, { moduleName }),
+    ]));
+    fs.chmodSync(binaryPath, 0o755);
+
+    const result = runHelperWithStatus(["extract", binaryPath, extractedPath], {
+      NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+      HOME: path.join(tmp, "home"),
+      npm_config_prefix: path.join(tmp, "npm-prefix"),
+    });
+    assert.equal(result.status, 0, `${moduleName}: ${result.stderr}`);
+    assert.equal(result.stdout.trim(), "ok", moduleName);
+    assert.equal(fs.readFileSync(extractedPath, "utf8"), initialSource, moduleName);
+  }
 });
 
 test("extract refuses to follow an output symlink", () => {

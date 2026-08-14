@@ -198,8 +198,12 @@ function detectModuleStructSize(modulesListLength) {
 }
 
 function isClaudeModule(moduleName) {
+  // 2.1.227+ 的 Bun 入口模块从 /claude（或 src/entrypoints/cli.js）改名为
+  // /cli（PE 下为 B:/~BUN/root/cli，Mach-O 下为 /$bunfs/root/cli）。
   return moduleName.endsWith("/claude") ||
     moduleName === "claude" ||
+    moduleName.endsWith("/cli") ||
+    moduleName === "cli" ||
     moduleName.endsWith("/src/entrypoints/cli.js") ||
     moduleName === "src/entrypoints/cli.js";
 }
