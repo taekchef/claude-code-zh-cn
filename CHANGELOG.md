@@ -6,6 +6,28 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.11.0] - 2026-08-14
+
+### 新增
+
+- Claude Code 2.1.226 展示文案本地化（#218，作者 @MapleEve）：新增 26 条已评审的用户可见翻译；unknown-model 自动压缩警告改为整函数锚定的结构化 patch（保留全部动态值、设置/环境变量标识与控制流）；`mark bad` 快捷键提示按精确 `{chord:"b",action:...}` 结构局部汉化，不影响原始 action 值。
+- 支持 Claude Code 2.1.224 Windows native（#214，作者 @hjkl950217）：新增 teamMemory 数量分支与 hook 状态行 active 分支的结构化 patch 规则，Windows native 支持窗口扩展到 `2.1.113 - 2.1.224`。
+- 状态栏 ToolActivity 本地化：`Thinking`/`Thought` 状态词与时长拼接、mem-search 记忆搜索、searching/editing/publishing/recalling 等 11 组进行中/完成动词、tool/agent 数量名词、git 提交/推送/PR 动作、Hook 运行状态行、team 记忆摘要。
+- `/config` 剩余配置项与 16 条高频内置命令描述本地化（`config`、`cd`、`usage`、`review`、`fork`、`subtask` 等，命令名保持英文）。
+- 命令执行错误模板本地化：`failed with exit code N`、`was killed with ... (...)`、`timed out after N milliseconds`。
+- `zh-cn-setup` skill 增强为统一覆盖检查入口；新增可选工具 `cc-switch-descriptions.js`（把 CC Switch 数据库中已翻译 skill 的英文描述同步为中文，默认只读预览，`--apply` 写入前先备份）；skill-i18n 支持 `ZH_CN_SKILL_I18N_EXTRA_ROOTS` 额外扫描根目录；Node 支持 `node:sqlite` 时不再依赖系统 `sqlite3` CLI。
+
+### 修复
+
+- `install.ps1 -UpdateOnly` 在 install-json-helper 分支下写 overlay 临时文件前未创建 `TmpDir`，导致合并设置失败。
+- zh-cn-setup 在 Windows 上给出错误的 CLI patch 恢复指引：native 不能在运行中热改 `claude.exe`，改为提示完全退出 Claude Code 后从源码目录运行 `install.ps1 -UpdateOnly`。
+- 状态栏搜索/读取摘要的数量名词（`searching for 1 pattern` 等）因 JSX 数组结构未替换而残留英文；`Thought 28秒` 状态词与时长之间残留 `for`，改为全角括号拼接。
+- 移除翻译表中完全重复的条目（`Manage Claude Code plugins`）；合并后翻译表为 2065 条。
+
+### 验证
+
+- 根目录与 `plugin/` payload 逐文件一致；`node --check`、patch-cli、翻译表 schema/quality/派生计数、plugin-payload 测试通过；CI 复验 `windows-native-compat` 对 2.1.224 转绿后合并。
+
 ## [2.10.2] - 2026-08-09
 
 ### 修复

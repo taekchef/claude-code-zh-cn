@@ -625,6 +625,7 @@ function merge-settings {
         }
     }
     $overlayContent = build-overlay
+    New-Item -Force -ItemType Directory -Path $TmpDir | Out-Null
     $overlayTempFile = "$TmpDir\settings-overlay-$PID.json"
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
     [System.IO.File]::WriteAllText($overlayTempFile, $overlayContent, $utf8NoBom)

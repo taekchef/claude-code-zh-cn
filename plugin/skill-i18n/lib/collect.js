@@ -88,6 +88,21 @@ function collectFromRoots(roots, followSymlinks) {
   return out;
 }
 
+function parseExtraRoots(value) {
+  if (!value) return [];
+  const seen = new Set();
+  const roots = [];
+  for (const entry of String(value).split(path.delimiter)) {
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    const resolved = path.resolve(trimmed);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    roots.push(resolved);
+  }
+  return roots;
+}
+
 // 用户级：~/.claude/skills, ~/.claude/commands（及 .claude/skills|commands）
 function collectUserMarkdown(root, followSymlinks) {
   return collectFromRoots([
@@ -157,17 +172,18 @@ function collectMetadata(root) {
 }
 
 // 统一收集所有来源。followSymlinks 控制是否跟随符号链接目录。
-function collectAll(root, followSymlinks) {
+function collectAll(root, followSymlinks, extraRoots = []) {
   return [
     ...collectUserMarkdown(root, followSymlinks),
     ...collectPluginMarkdown(root, followSymlinks),
     ...collectMarketplaces(root, followSymlinks),
+    ...collectFromRoots(extraRoots, followSymlinks),
     ...collectMetadata(root),
   ];
 }
 
 module.exports = {
-  collectAll, walkAndCollect, collectCommandsDeep, collectFromRoots,
+  collectAll, walkAndCollect, collectCommandsDeep, collectFromRoots, parseExtraRoots,
   collectUserMarkdown, collectPluginMarkdown, collectMarketplaces, collectMetadata,
   EXCLUDE_SEGS,
 };

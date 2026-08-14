@@ -25,7 +25,8 @@ test("collectAll follow=false：跳过符号链接 skill（scan 默认行为）"
   const root = setup();
   const skills = collect.collectAll(root, false).filter((f) => f.kind === "skill");
   assert.equal(skills.length, 1);
-  assert.ok(skills[0].path.endsWith("real/SKILL.md"));
+  assert.equal(path.basename(path.dirname(skills[0].path)), "real");
+  assert.equal(path.basename(skills[0].path), "SKILL.md");
 });
 
 test("collectAll follow=true：跟随符号链接 skill（restore 总是跟随）", () => {
@@ -38,7 +39,8 @@ test("collectAll 收集 command", () => {
   const root = setup();
   const cmds = collect.collectAll(root, false).filter((f) => f.kind === "command");
   assert.equal(cmds.length, 1);
-  assert.ok(cmds[0].path.endsWith("commands/c.md"));
+  assert.equal(path.basename(path.dirname(cmds[0].path)), "commands");
+  assert.equal(path.basename(cmds[0].path), "c.md");
 });
 
 // ---------- 防环（五轴 review 修复的回归守护）----------
@@ -106,7 +108,25 @@ test("collectMarketplaces: plugins/marketplaces/<name>/ 收集", () => {
   fs.mkdirSync(path.join(mpRoot, "skills", "s"), { recursive: true });
   fs.writeFileSync(path.join(mpRoot, "skills", "s", "SKILL.md"), "x");
   const r = collect.collectMarketplaces(root, false);
-  assert.ok(r.some((f) => f.path.includes("marketplaces/myplugin/skills/s/SKILL.md")));
+  assert.ok(r.some((f) =>
+    path.basename(f.path) === "SKILL.md" &&
+    path.basename(path.dirname(f.path)) === "s" &&
+    f.path.includes(`${path.sep}marketplaces${path.sep}myplugin${path.sep}`)
+  ));
+});
+
+test("collectAll 支持 CC Switch 等显式额外扫描根并去重", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "collect-extra-base-"));
+  const extra = fs.mkdtempSync(path.join(os.tmpdir(), "collect-extra-root-"));
+  fs.mkdirSync(path.join(extra, "managed-skill"), { recursive: true });
+  fs.writeFileSync(path.join(extra, "managed-skill", "SKILL.md"), "---\nname: managed\ndescription: managed skill\n---\n");
+
+  const parsed = collect.parseExtraRoots([extra, extra].join(path.delimiter));
+  assert.deepEqual(parsed, [path.resolve(extra)]);
+  const skills = collect.collectAll(root, false, parsed).filter((f) => f.kind === "skill");
+  assert.equal(skills.length, 1);
+  assert.equal(path.basename(path.dirname(skills[0].path)), "managed-skill");
+  assert.equal(path.basename(skills[0].path), "SKILL.md");
 });
 
 test("空目录 / 不存在根 → collectAll 不抛", () => {

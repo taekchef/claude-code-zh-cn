@@ -39,7 +39,8 @@ function main() {
   if (!root) { console.error("restore: 缺少 --root 或 --all"); process.exit(0); }
 
   // 总是跟随符号链接：清理操作应彻底，还原所有含标记的文件
-  const files = collect.collectAll(root, true);
+  const extraRoots = collect.parseExtraRoots(process.env.ZH_CN_SKILL_I18N_EXTRA_ROOTS);
+  const files = collect.collectAll(root, true, extraRoots);
 
   let restored = 0;
   let skipped = 0;
