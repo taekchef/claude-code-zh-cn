@@ -10,6 +10,9 @@
 
 187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化；另有 2007 条界面翻译。
 
+> 🚀 **姊妹项目：我还做了一个 [codex-code-zh-cn](https://github.com/taekchef/codex-code-zh-cn) —— Codex CLI 简体中文版。**
+> 和这个一样的用法：直接输入 `codex` 就是中文界面，还能在会话里用 `/chinese`、`/english` 随时切换语言。欢迎来试试！
+
 [![GitHub](https://img.shields.io/badge/GitHub-taekchef%2Fclaude--code--zh--cn-blue?logo=github)](https://github.com/taekchef/claude-code-zh-cn)
 [![官方网站](https://img.shields.io/badge/官方网站-GitHub%20Pages-222?logo=githubpages)](https://taekchef.github.io/claude-code-zh-cn/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
