@@ -20,7 +20,10 @@ const { spawnSync } = require("child_process");
 const PLUGIN_ROOT =
   process.env.CLAUDE_PLUGIN_ROOT ||
   path.join(os.homedir(), ".claude", "plugins", "claude-code-zh-cn");
-const SETTINGS_FILE = path.join(os.homedir(), ".claude", "settings.json");
+const SETTINGS_FILE = path.join(
+  process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude"),
+  "settings.json"
+);
 const OVERLAY_FILE = path.join(PLUGIN_ROOT, "settings-overlay.json");
 const VERBS_FILE = path.join(PLUGIN_ROOT, "verbs", "zh-CN.json");
 const TIPS_FILE = path.join(PLUGIN_ROOT, "tips", "zh-CN.json");
