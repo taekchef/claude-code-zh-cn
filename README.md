@@ -39,6 +39,7 @@
 |---|---|
 | 先看看汉化效果 | [效果预览](#preview) |
 | 立即安装 | [30 秒安装](#quick-install) |
+| 会话内 `/chinese` `/english` 切换 | [会话内切换语言](#switch-language) |
 | 临时切回英文或彻底卸载 | [恢复英文界面](#back-to-english) |
 | 确认系统和版本是否支持 | [支持范围](#支持范围) |
 | 排查“没汉化”或运行报错 | [验证与 doctor 诊断](#验证) |
@@ -94,13 +95,25 @@ curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/downloa
 
 如果它让你的 Claude Code 更顺手，欢迎点一下右上角 **Star**，这会帮助更多中文用户发现它。
 
+<a id="switch-language"></a>
+
+## ⭐ 会话内切换语言（v2.12.0+）
+
+装好之后，直接在 Claude Code 输入框输入并回车：
+
+| 命令 | 作用 |
+|------|------|
+| `/chinese`（或 `/zh`） | 切回中文：更新语言设置、spinner 动词/提示，并重新 patch CLI 文案 |
+| `/english`（或 `/en`） | 切回英文：移除中文设置，并从备份还原 CLI 原文 |
+
+切换由 `UserPromptSubmit` Hook 拦截处理，**不消耗任何 token**，结果立刻显示。
+界面硬编码文案需要重启 Claude Code 后完全生效；语言设置与 spinner 动词/提示随即更新。
+
 <a id="back-to-english"></a>
 
 ## ⭐ 临时切回英文或卸载
 
-需要对照英文教程时，当前最稳妥的临时切换方法是：**完整卸载汉化，使用完英文界面后再重新安装**。
-
-> **不要只运行 `claude plugin disable`。** 本项目还会写入中文设置并修改 CLI 硬编码文字（Layer 4 Patch）；只停用插件不会清理这些设置，也不会还原 CLI，因此界面仍可能是中文。
+需要对照英文教程时，输入 `/english` 即可切回（见上节）。如果想彻底卸载汉化：
 
 macOS、Linux 或 WSL 远程安装用户运行：
 

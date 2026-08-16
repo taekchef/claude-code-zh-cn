@@ -6,6 +6,18 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.12.0] - 2026-08-16
+
+### 新增
+
+- **`/chinese` / `/english` 会话内语言切换**（Prompt Intercept 模式，零 API 调用）：
+  - `/chinese`（别名 `/zh`）：合并中文语言设置 + 187 个 spinner 动词 + 41 条提示，并重新 patch CLI 硬编码文字
+  - `/english`（别名 `/en`）：移除插件注入的中文设置，并从 `.zh-cn-backup` 还原 CLI 原文
+  - 切换结果直接显示给用户，Claude 不消耗 token；需要界面文案完全生效时重启 Claude Code
+- 插件内置 4 个命令 stub（`/chinese`、`/english`、`/zh`、`/en`），`/help` 可发现
+- 新增 `UserPromptSubmit` hook（Node 跨平台入口，timeout 120s）
+- standalone 备用 Hook 模式同样注入 `/chinese` `/english` 切换入口
+
 ## [2.11.1] - 2026-08-15
 
 ### 修复

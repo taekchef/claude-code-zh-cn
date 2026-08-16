@@ -770,7 +770,8 @@ function isStandaloneHook(hook) {
   if (hook.command !== "node" || !Array.isArray(hook.args) || !hook.args.includes(standaloneArg)) return false;
   const script = String(hook.args[0] || "");
   return script === path.join(pluginRoot, "hooks", "session-start.js") ||
-    script === path.join(pluginRoot, "hooks", "notification.js");
+    script === path.join(pluginRoot, "hooks", "notification.js") ||
+    script === path.join(pluginRoot, "hooks", "user-prompt-submit.js");
 }
 
 function resolveCommitTarget(file) {
@@ -838,6 +839,8 @@ if (mode === "standalone") {
   const notificationScript = path.join(pluginRoot, "hooks", "notification.js");
   if (!Array.isArray(settings.hooks.SessionStart)) settings.hooks.SessionStart = [];
   if (!Array.isArray(settings.hooks.Notification)) settings.hooks.Notification = [];
+  if (!Array.isArray(settings.hooks.UserPromptSubmit)) settings.hooks.UserPromptSubmit = [];
+  const userPromptScript = path.join(pluginRoot, "hooks", "user-prompt-submit.js");
   settings.hooks.SessionStart.push({
     matcher: "startup|resume|clear|compact",
     hooks: [{ type: "command", command: "node", args: [sessionScript, standaloneArg], async: false }],
@@ -845,6 +848,10 @@ if (mode === "standalone") {
   settings.hooks.Notification.push({
     matcher: "",
     hooks: [{ type: "command", command: "node", args: [notificationScript, standaloneArg], async: false, timeout: 10 }],
+  });
+  settings.hooks.UserPromptSubmit.push({
+    matcher: "",
+    hooks: [{ type: "command", command: "node", args: [userPromptScript, standaloneArg], async: false, timeout: 120 }],
   });
   changed = true;
 }

@@ -222,6 +222,7 @@ function hookBelongsToPlugin(hook) {
     '/hooks/notification',
     '/hooks/session-start.js',
     '/hooks/notification.js',
+    '/hooks/user-prompt-submit.js',
     '/hooks/session-start.cmd',
     '/hooks/notification.cmd',
     '/hooks/session-start.ps1',

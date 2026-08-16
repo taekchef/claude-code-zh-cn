@@ -26,6 +26,20 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit.js"],
+            "async": false,
+            "timeout": 120
+          }
+        ]
+      }
     ]
   }
 }

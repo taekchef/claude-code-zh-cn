@@ -9,7 +9,7 @@ Claude Code CLI 中文本地化插件。
 - `install.sh` / `uninstall.sh` — 安装/卸载脚本
 - `compute-patch-revision.sh` — patch 规则指纹计算，供 install.sh 和 session-start hook 共用
 - `settings-overlay.json` — 合并到 settings.json 的中文设置（只含 language、spinnerTipsEnabled 等独有配置，**不含** verbs 和 tips 数据）
-- `plugin/` — 插件（manifest、hooks、output-styles）
+- `plugin/` — 插件（manifest、hooks、commands 命令 stub、output-styles；`hooks/user-prompt-submit.js` 实现 `/chinese` `/english` 切换）
 - `verbs/zh-CN.json` — 187 个 spinner 动词翻译（**唯一数据源**）
 - `tips/zh-CN.json` — 41 条 spinner 提示翻译（**唯一数据源**）
 - `CHANGELOG.md` — 版本变更记录
