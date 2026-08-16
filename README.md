@@ -20,6 +20,7 @@
 [![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.224-green)](./docs/support-matrix.md)
 <!-- readme-support-window:badges:end -->
 [![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
+[![Codex 中文版](https://img.shields.io/badge/Codex%20中文版-codex--code--zh--cn-blue)](https://github.com/taekchef/codex-code-zh-cn)
 
 **macOS · Linux · WSL · Windows**
 
@@ -455,6 +456,10 @@ Windows：现已支持通过 `install.ps1` 在 PowerShell 5.1+ 中原生安装�
 ## 许可证
 
 [MIT](./LICENSE)
+
+## 姊妹项目
+
+- [**codex-code-zh-cn**](https://github.com/taekchef/codex-code-zh-cn) — Codex CLI 简体中文本地化扩展：PTY 实时汉化终端界面、状态动词与提示，并启用桌面版中文语言。
 
 ## 致谢
 
