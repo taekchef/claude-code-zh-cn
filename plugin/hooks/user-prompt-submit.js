@@ -105,8 +105,8 @@ function applyEnglishSettings() {
   return { removed };
 }
 
-function run(cmd, args) {
-  return spawnSync(cmd, args, { encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+function run(args) {
+  return spawnSync(NODE, args, { encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
 }
 
 function findClaudeCommand() {
@@ -126,7 +126,7 @@ function detectInstallation() {
   if (!fs.existsSync(BUN_IO)) return null;
   const claudeBin = process.env.CLAUDE_BIN || findClaudeCommand();
   if (!claudeBin) return null;
-  const res = run(NODE, [BUN_IO, "detect", claudeBin]);
+  const res = run([BUN_IO, "detect", claudeBin]);
   const value = (res.stdout || "").trim();
   if (res.status === 0 && /^(npm|native-bun):/.test(value)) {
     return { kind: value.split(":")[0], target: value.slice(value.indexOf(":") + 1) };
@@ -153,13 +153,13 @@ function patchCliChinese(install) {
     if (install.kind === "npm") {
       if (DRY_RUN) return "npm-dry-run";
       const backup = `${install.target}.zh-cn-backup`;
-      const res = run(NODE, [PATCH_CLI, install.target, TRANSLATIONS, "--backup", backup]);
+      const res = run([PATCH_CLI, install.target, TRANSLATIONS, "--backup", backup]);
       return res.status === 0 ? "npm-patched" : null;
     }
 
     if (install.kind === "native-bun") {
       if (DRY_RUN) return "native-dry-run";
-      const deps = run(NODE, [BUN_IO, "check-deps"]);
+      const deps = run([BUN_IO, "check-deps"]);
       if (deps.status !== 0 || (deps.stdout || "").trim() !== "ok") return null;
       const binary = install.target;
       const backup = `${binary}.zh-cn-backup`;
@@ -171,11 +171,11 @@ function patchCliChinese(install) {
         } else {
           fs.copyFileSync(binary, backup);
         }
-        let res = run(NODE, [BUN_IO, "extract", binary, tmpJs]);
+        let res = run([BUN_IO, "extract", binary, tmpJs]);
         if (res.status !== 0) return null;
-        res = run(NODE, [PATCH_CLI, tmpJs, TRANSLATIONS]);
+        res = run([PATCH_CLI, tmpJs, TRANSLATIONS]);
         if (res.status !== 0) return null;
-        res = run(NODE, [BUN_IO, "repack", binary, tmpJs]);
+        res = run([BUN_IO, "repack", binary, tmpJs]);
         if (res.status !== 0) {
           // 失败回滚到干净备份
           fs.copyFileSync(backup, binary);
