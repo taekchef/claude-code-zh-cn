@@ -33,9 +33,14 @@ const SIZEOF_STRING_POINTER = 8;
 const SIZEOF_MODULE_OLD = 4 * SIZEOF_STRING_POINTER + 4; // 36
 const SIZEOF_MODULE_NEW = 6 * SIZEOF_STRING_POINTER + 4; // 52
 const JS_SOURCE_ENCODING_UTF8 = 0;
-const BYTECODE_STUB_MARKER = "// @bun @bytecode";
+const BYTECODE_STUB_MARKER = "// @bun";
 // bytecode 编译容器不支持 Layer 4；用独立退出码方便上层区分"格式不支持"与一般失败。
 const UNSUPPORTED_BYTECODE_EXIT_CODE = 3;
+// Bun 编译的 claude bundle 一律以 "// @bun ..." 横幅开头（实测 2.1.220 的完整
+// 源码 ~21MB 也带 "// @bun @bytecode @bun-cjs"），横幅本身不是 stub 特征；
+// 区别在体量：bytecode 编译构建（Windows 2.1.24x 起）的入口模块只剩几十 KB
+// 的 stub，真实 UI 文案在编译后的 bytecode chunk 里，重打包必然产出损坏二进制。
+const BYTECODE_STUB_MAX_BYTES = 1024 * 1024;
 
 // ============================================================================
 // node-lief 加载
@@ -365,19 +370,16 @@ function findClaudeModule(bunData, bunOffsets, moduleStructSize) {
   return null;
 }
 
-// 2.1.24x 起部分构建改用 Bun bytecode 编译 + 模块 chunk 拆分：入口模块的
-// contents 只剩 "// @bun @bytecode" 开头的 stub，UI 文案搬进了编译后的
-// bytecode。对这种容器做 extract→patch→repack 会产出体积缩水、启动即
-// segfault 的二进制，必须在写盘前拒绝。
+// 2.1.24x 起 Windows 构建改用 Bun bytecode 编译 + 模块 chunk 拆分：入口模块的
+// contents 只剩几十 KB 的 "// @bun" stub，UI 文案搬进了编译后的 bytecode。
+// 对这种容器做 extract→patch→repack 会产出体积缩水、启动即 segfault 的二进制，
+// 必须在写盘前拒绝。判据只看「带 Bun 横幅但体量远小于任何真实 bundle」，
+// 不能看横幅本身——横幅在可正常 patch 的历史版本里同样存在。
 function claudeBytecodeGuardReason(found) {
-  const head = found.contents.subarray(0, 128).toString("utf-8").trimStart();
-  if (head.startsWith(BYTECODE_STUB_MARKER)) {
-    return `entry module source is a stub starting with "${BYTECODE_STUB_MARKER}"`;
-  }
-  if (found.module.bytecode.length > 0) {
-    return "entry module ships compiled Bun bytecode";
-  }
-  return "";
+  const head = found.contents.subarray(0, 32).toString("utf-8").trimStart();
+  if (!head.startsWith(BYTECODE_STUB_MARKER)) return "";
+  if (found.contents.length >= BYTECODE_STUB_MAX_BYTES) return "";
+  return `entry module source is only a ${found.contents.length}-byte "${BYTECODE_STUB_MARKER}" stub instead of the bundled JS payload`;
 }
 
 function refuseBytecodeContainer(reason) {

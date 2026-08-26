@@ -550,13 +550,13 @@ test("probe reports source-js for classic JS-source containers", () => {
   assert.equal(output, "source-js");
 });
 
-test("bytecode containers are refused by extract/repack instead of corrupting the binary", () => {
+test("bytecode stub containers are refused by extract/repack instead of corrupting the binary", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-bytecode-"));
   const binaryPath = path.join(tmp, "claude.exe");
   const extractedPath = path.join(tmp, "extracted.js");
   const replacementPath = path.join(tmp, "replacement.js");
   const fakeModuleRoot = path.join(tmp, "fake-node-path");
-  const stubSource = "// @bun @bytecode\n// UI strings live in compiled bytecode chunks\n";
+  const stubSource = "// @bun @bytecode @bun-cjs\n// UI strings live in compiled bytecode chunks\n";
 
   writeFakeNodeLief(fakeModuleRoot);
   fs.writeFileSync(replacementPath, "// irrelevant replacement source\n");
@@ -573,30 +573,36 @@ test("bytecode containers are refused by extract/repack instead of corrupting th
   };
 
   assert.equal(runHelper(["probe", binaryPath], env), "bytecode");
-  assert.equal(runHelper(["version", binaryPath], env), "");
 
   const extract = runHelperWithStatus(["extract", binaryPath, extractedPath], env);
   assert.equal(extract.status, 3, extract.stderr);
-  assert.match(extract.stderr, /@bun @bytecode/);
+  assert.match(extract.stderr, /-byte "\/\/ @bun" stub/);
   assert.ok(!fs.existsSync(extractedPath), "refused extract must not write an output stub");
 
   const repack = runHelperWithStatus(["repack", binaryPath, replacementPath], env);
   assert.equal(repack.status, 3, repack.stderr);
-  assert.match(repack.stderr, /bytecode/);
+  assert.match(repack.stderr, /stub/);
   assert.deepEqual(fs.readFileSync(binaryPath), bytesBefore, "refused repack must leave the binary untouched");
 });
 
-test("hybrid builds that keep JS source next to bytecode are refused conservatively", () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-hybrid-"));
+test("full-size bundles with the standard @bun banner stay patchable even with bytecode blobs", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-banner-big-"));
   const binaryPath = path.join(tmp, "claude.exe");
   const extractedPath = path.join(tmp, "extracted.js");
   const fakeModuleRoot = path.join(tmp, "fake-node-path");
-  const fullSource = '// Version: 2.1.250\nconst label = "Bash command";\n';
+  // 模拟历史构建：标准横幅开头 + 远超 stub 阈值的完整 JS 源码（>1MiB）
+  const banner = "// @bun @bytecode @bun-cjs\n";
+  const filler = Buffer.from(`const padding${"x".repeat(64)} = "${"a".repeat(96)}";\n`);
+  const fullSource = Buffer.concat([
+    Buffer.from(banner),
+    Buffer.from('// Version: 2.1.237\n'),
+    Buffer.concat(Array.from({ length: Math.ceil(1024 * 1024 / filler.length) }, () => filler)),
+  ]);
 
   writeFakeNodeLief(fakeModuleRoot);
   createPeBinaryFromSection(
     binaryPath,
-    createBunSectionData(fullSource, { bytecode: Buffer.from("\0compiled-bytecode-blob\0") })
+    createBunSectionData(fullSource.toString("utf8"), { bytecode: Buffer.from("\0compiled-bytecode-blob\0") })
   );
 
   const env = {
@@ -605,8 +611,7 @@ test("hybrid builds that keep JS source next to bytecode are refused conservativ
     npm_config_prefix: path.join(tmp, "npm-prefix"),
   };
 
-  assert.equal(runHelper(["probe", binaryPath], env), "bytecode");
-  const extract = runHelperWithStatus(["extract", binaryPath, extractedPath], env);
-  assert.equal(extract.status, 3, extract.stderr);
-  assert.match(extract.stderr, /compiled Bun bytecode/);
+  assert.equal(runHelper(["probe", binaryPath], env), "source-js");
+  assert.equal(runHelper(["extract", binaryPath, extractedPath], env), "ok");
+  assert.equal(fs.readFileSync(extractedPath, "utf8"), fullSource.toString("utf8"));
 });
