@@ -29,12 +29,12 @@ function createFakePeBinary(filePath) {
   fs.chmodSync(filePath, 0o755);
 }
 
-function createBunSectionData(source, { encoding = 0, moduleName = "claude" } = {}) {
+function createBunSectionData(source, { encoding = 0, moduleName = "claude", bytecode = null } = {}) {
   const strings = [
     Buffer.from(moduleName),
     Buffer.from(source),
     Buffer.alloc(0),
-    Buffer.alloc(0),
+    bytecode || Buffer.alloc(0),
     Buffer.alloc(0),
     Buffer.alloc(0),
   ];
@@ -520,4 +520,93 @@ test("hash returns sha256 for binary marker identity", () => {
   const expected = crypto.createHash("sha256").update("native-binary-content\n").digest("hex");
 
   assert.equal(output, expected);
+});
+
+function createPeBinaryFromSection(binaryPath, sectionData) {
+  fs.writeFileSync(
+    binaryPath,
+    Buffer.concat([Buffer.from([0x4d, 0x5a, 0x90, 0x00]), sectionData])
+  );
+  fs.chmodSync(binaryPath, 0o755);
+}
+
+test("probe reports source-js for classic JS-source containers", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-probe-source-"));
+  const binaryPath = path.join(tmp, "claude.exe");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+
+  writeFakeNodeLief(fakeModuleRoot);
+  createPeBinaryFromSection(
+    binaryPath,
+    createBunSectionData('// Version: 2.1.237\nconst label = "Bash command";\n')
+  );
+
+  const output = runHelper(["probe", binaryPath], {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  });
+
+  assert.equal(output, "source-js");
+});
+
+test("bytecode containers are refused by extract/repack instead of corrupting the binary", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-bytecode-"));
+  const binaryPath = path.join(tmp, "claude.exe");
+  const extractedPath = path.join(tmp, "extracted.js");
+  const replacementPath = path.join(tmp, "replacement.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+  const stubSource = "// @bun @bytecode\n// UI strings live in compiled bytecode chunks\n";
+
+  writeFakeNodeLief(fakeModuleRoot);
+  fs.writeFileSync(replacementPath, "// irrelevant replacement source\n");
+  createPeBinaryFromSection(
+    binaryPath,
+    createBunSectionData(stubSource, { bytecode: Buffer.from("\0compiled-bytecode-blob\0") })
+  );
+  const bytesBefore = fs.readFileSync(binaryPath);
+
+  const env = {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  };
+
+  assert.equal(runHelper(["probe", binaryPath], env), "bytecode");
+  assert.equal(runHelper(["version", binaryPath], env), "");
+
+  const extract = runHelperWithStatus(["extract", binaryPath, extractedPath], env);
+  assert.equal(extract.status, 3, extract.stderr);
+  assert.match(extract.stderr, /@bun @bytecode/);
+  assert.ok(!fs.existsSync(extractedPath), "refused extract must not write an output stub");
+
+  const repack = runHelperWithStatus(["repack", binaryPath, replacementPath], env);
+  assert.equal(repack.status, 3, repack.stderr);
+  assert.match(repack.stderr, /bytecode/);
+  assert.deepEqual(fs.readFileSync(binaryPath), bytesBefore, "refused repack must leave the binary untouched");
+});
+
+test("hybrid builds that keep JS source next to bytecode are refused conservatively", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-bun-hybrid-"));
+  const binaryPath = path.join(tmp, "claude.exe");
+  const extractedPath = path.join(tmp, "extracted.js");
+  const fakeModuleRoot = path.join(tmp, "fake-node-path");
+  const fullSource = '// Version: 2.1.250\nconst label = "Bash command";\n';
+
+  writeFakeNodeLief(fakeModuleRoot);
+  createPeBinaryFromSection(
+    binaryPath,
+    createBunSectionData(fullSource, { bytecode: Buffer.from("\0compiled-bytecode-blob\0") })
+  );
+
+  const env = {
+    NODE_PATH: path.join(fakeModuleRoot, "node_modules"),
+    HOME: path.join(tmp, "home"),
+    npm_config_prefix: path.join(tmp, "npm-prefix"),
+  };
+
+  assert.equal(runHelper(["probe", binaryPath], env), "bytecode");
+  const extract = runHelperWithStatus(["extract", binaryPath, extractedPath], env);
+  assert.equal(extract.status, 3, extract.stderr);
+  assert.match(extract.stderr, /compiled Bun bytecode/);
 });

@@ -11,6 +11,7 @@
  *   repack <binary> <js>    → 将修改后的 JS 写回二进制（macOS 含 codesign）
  *   version <binary>        → 输出二进制内嵌的版本号
  *   resolve <path>          → 输出 realpath（跨平台 symlink 解析）
+ *   probe <binary>          → 输出容器形态："source-js" / "bytecode" / "unknown"
  *   check-deps              → 检查 node-lief 是否可用
  */
 
@@ -32,6 +33,9 @@ const SIZEOF_STRING_POINTER = 8;
 const SIZEOF_MODULE_OLD = 4 * SIZEOF_STRING_POINTER + 4; // 36
 const SIZEOF_MODULE_NEW = 6 * SIZEOF_STRING_POINTER + 4; // 52
 const JS_SOURCE_ENCODING_UTF8 = 0;
+const BYTECODE_STUB_MARKER = "// @bun @bytecode";
+// bytecode 编译容器不支持 Layer 4；用独立退出码方便上层区分"格式不支持"与一般失败。
+const UNSUPPORTED_BYTECODE_EXIT_CODE = 3;
 
 // ============================================================================
 // node-lief 加载
@@ -361,6 +365,29 @@ function findClaudeModule(bunData, bunOffsets, moduleStructSize) {
   return null;
 }
 
+// 2.1.24x 起部分构建改用 Bun bytecode 编译 + 模块 chunk 拆分：入口模块的
+// contents 只剩 "// @bun @bytecode" 开头的 stub，UI 文案搬进了编译后的
+// bytecode。对这种容器做 extract→patch→repack 会产出体积缩水、启动即
+// segfault 的二进制，必须在写盘前拒绝。
+function claudeBytecodeGuardReason(found) {
+  const head = found.contents.subarray(0, 128).toString("utf-8").trimStart();
+  if (head.startsWith(BYTECODE_STUB_MARKER)) {
+    return `entry module source is a stub starting with "${BYTECODE_STUB_MARKER}"`;
+  }
+  if (found.module.bytecode.length > 0) {
+    return "entry module ships compiled Bun bytecode";
+  }
+  return "";
+}
+
+function refuseBytecodeContainer(reason) {
+  process.stderr.write(
+    `Error: unsupported Bun bytecode container (${reason}); the UI strings are no longer present as JS source\n` +
+    "Refusing to extract/patch this build because repacking it would corrupt the executable.\n"
+  );
+  process.exit(UNSUPPORTED_BYTECODE_EXIT_CODE);
+}
+
 function rebuildBunData(bunData, bunOffsets, modifiedClaudeJs, moduleStructSize) {
   const modulesListBytes = getStringPointerContent(bunData, bunOffsets.modulesPtr);
   const count = Math.floor(modulesListBytes.length / moduleStructSize);
@@ -636,6 +663,11 @@ function cmdExtract() {
     process.exit(1);
   }
 
+  const bytecodeReason = claudeBytecodeGuardReason(found);
+  if (bytecodeReason) {
+    refuseBytecodeContainer(bytecodeReason);
+  }
+
   if (fs.existsSync(outputPath) && fs.lstatSync(outputPath).isSymbolicLink()) {
     process.stderr.write("Error: refusing to write through symbolic link output path\n");
     process.exit(1);
@@ -669,6 +701,15 @@ function cmdRepack() {
   LIEF.logging.disable();
   const modifiedJs = fs.readFileSync(jsPath);
   const { format, binary, section, segment, bunOffsets, bunData, sectionHeaderSize, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
+
+  const currentModule = findClaudeModule(bunData, bunOffsets, moduleStructSize);
+  if (currentModule) {
+    const bytecodeReason = claudeBytecodeGuardReason(currentModule);
+    if (bytecodeReason) {
+      refuseBytecodeContainer(bytecodeReason);
+    }
+  }
+
   const newBuffer = rebuildBunData(bunData, bunOffsets, modifiedJs, moduleStructSize);
 
   switch (format) {
@@ -784,6 +825,34 @@ function cmdVersion() {
   process.stdout.write(readPackageVersionNearBinary(binaryPath) || readExecutableVersion(binaryPath) || "");
 }
 
+function cmdProbe() {
+  const binaryPath = process.argv[3];
+  if (!binaryPath) {
+    process.stderr.write("Usage: bun-binary-io.js probe <binary>\n");
+    process.exit(1);
+  }
+
+  const LIEF = loadNodeLief();
+  if (!LIEF) {
+    process.stderr.write("Error: node-lief not found. Install with: npm install -g node-lief\n");
+    process.exit(1);
+  }
+
+  try {
+    LIEF.logging.disable();
+    const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(LIEF, binaryPath);
+    const found = findClaudeModule(bunData, bunOffsets, moduleStructSize);
+    if (!found || found.contents.length === 0) {
+      process.stdout.write("unknown");
+      return;
+    }
+    process.stdout.write(claudeBytecodeGuardReason(found) ? "bytecode" : "source-js");
+  } catch {
+    // 解析失败时无法判定容器形态；具体错误由 extract/repack 自己给出。
+    process.stdout.write("unknown");
+  }
+}
+
 function cmdResolve() {
   const inputPath = process.argv[3];
   if (!inputPath) {
@@ -838,12 +907,13 @@ switch (command) {
   case "repack": cmdRepack(); break;
   case "version": cmdVersion(); break;
   case "resolve": cmdResolve(); break;
+  case "probe": cmdProbe(); break;
   case "check-deps": cmdCheckDeps(); break;
   case "hash": cmdHash(); break;
   default:
     process.stderr.write(
       "Usage: bun-binary-io.js <command> [args...]\n" +
-      "Commands: detect, extract, repack, version, resolve, check-deps, hash\n"
+      "Commands: detect, extract, repack, version, resolve, probe, check-deps, hash\n"
     );
     process.exit(1);
 }
