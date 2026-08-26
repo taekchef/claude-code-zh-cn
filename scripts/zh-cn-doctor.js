@@ -303,6 +303,19 @@ function nativeBinaryHash(bunBinaryIoPath, target) {
   return String(result.stdout || "").trim();
 }
 
+function probeNativeContainerLayout(bunBinaryIoPath, target) {
+  let result;
+  try {
+    result = spawnSync(process.execPath, [bunBinaryIoPath, "probe", target], {
+      encoding: "utf8",
+    });
+  } catch {
+    return "";
+  }
+  const value = String(result.stdout || "").trim();
+  return value === "bytecode" || value === "source-js" ? value : "";
+}
+
 function isExecutableFile(target) {
   try {
     fs.accessSync(target, fs.constants.X_OK);
@@ -758,7 +771,15 @@ function runDoctor(options = {}) {
     const nativePlatform = options.nativePlatform || nativePlatformForTarget(target);
     const supported = isSupportedNativeVersion(cliVersion, support, nativePlatform);
     const liefOk = checkNodeLief(bunBinaryIoPath);
-    if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
+    const bytecodeContainer =
+      liefOk && probeNativeContainerLayout(bunBinaryIoPath, target) === "bytecode";
+    if (bytecodeContainer) {
+      layer4Status = "unsupported";
+      layer4Detail = `native ${cliVersion || "unknown"} 为 Bun bytecode 编译容器（界面文字在编译后的字节码中），Layer 4 暂不支持`;
+      add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
+      recommendations.push("该构建把界面文字编译进了字节码，patch 源码的方式不适用；Layer 1~3（settings / 插件 / hooks / spinner）不受影响");
+      recommendations.push(`如需完整 UI 中文：${STABLE_INSTALL_CMD}，或临时回退到支持窗口内已验证版本；等插件适配 bytecode 容器后再升级`);
+    } else if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
       const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
       const currentRevision = computePatchRevision(pluginRoot);
       if (marker.hash && currentHash && marker.hash !== currentHash) {

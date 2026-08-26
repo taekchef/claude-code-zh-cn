@@ -517,6 +517,17 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /node \$helper check-deps/);
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
   assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
+  assert.match(nativePatch, /node \$helper probe \$BinaryPath/);
+  assert.match(
+    nativePatch,
+    /Bun bytecode 编译容器[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/
+  );
+  const probeIndex = nativePatch.indexOf("node $helper probe $BinaryPath");
+  const backupIndex = nativePatch.indexOf("已备份原生二进制");
+  assert.ok(
+    probeIndex >= 0 && backupIndex > probeIndex,
+    "bytecode container pre-check must run before any binary backup/rewrite"
+  );
   assert.match(script, /--version/);
   const repackIndex = nativePatch.indexOf("node $helper repack $BinaryPath $tmpJs");
   const runtimeCheckIndex = nativePatch.indexOf("$verifiedVersion = get-native-version-from-execution $BinaryPath");
