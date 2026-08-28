@@ -1216,6 +1216,21 @@ function patch-native-bun {
         return
     }
 
+    # 预检容器形态：bytecode 编译构建（stub + 编译字节码 + chunk 拆分）不能走 Layer 4，
+    # 在备份/改动二进制之前就明确跳过，避免产出无法启动的二进制再回滚。
+    $containerLayout = ""
+    try {
+        $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
+    } catch {}
+    if ($containerLayout -eq "bytecode") {
+        Write-CN "当前版本 $currentVersion 的原生二进制为 Bun bytecode 编译容器（界面文字在编译后的字节码里），Layer 4 暂不支持，已安全跳过 CLI Patch。" Yellow
+        Write-CN "  这类容器强行 patch 会产出无法启动的二进制，因此本次没有对二进制做任何改动。" Yellow
+        Write-CN "  Layer 1~3（settings / 插件目录 / hooks / spinner）不受影响。如需完整 UI 中文，请临时使用支持窗口内的版本，等插件适配 bytecode 容器后再升级。" Yellow
+        write-support-window-link
+        $script:CliPatchStatusSummary = "已跳过（版本 $currentVersion 为 Bun bytecode 编译容器，Layer 4 暂不支持）"
+        return
+    }
+
     $tmpJs = Join-Path $TmpDir "claude-zh-cn-extract-$PID.js"
     $backupFile = "$BinaryPath.zh-cn-backup"
     New-Item -Force -ItemType Directory -Path $TmpDir | Out-Null

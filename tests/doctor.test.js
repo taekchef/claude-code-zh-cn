@@ -90,6 +90,7 @@ function createFakeNativeDoctorPlugin(pluginRoot, {
   targetPath = "C:\\\\fake\\\\claude.exe",
   marker = "",
   supportWindow = {},
+  containerLayout = "",
 } = {}) {
   fs.mkdirSync(pluginRoot, { recursive: true });
   writeJson(path.join(pluginRoot, "manifest.json"), { name: "claude-code-zh-cn", version: "9.9.9" });
@@ -102,6 +103,7 @@ if (cmd === "detect") process.stdout.write("native-bun:" + ${JSON.stringify(targ
 else if (cmd === "version") process.stdout.write(${JSON.stringify(version)});
 else if (cmd === "check-deps") process.stdout.write(${JSON.stringify(depStatus)});
 else if (cmd === "hash") process.stdout.write("fakehash");
+else if (cmd === "probe") process.stdout.write(${JSON.stringify(containerLayout)});
 else process.stdout.write("");
 `
   );
@@ -521,6 +523,45 @@ test("runDoctor does not treat macOS native support as Windows native support", 
   assert.match(updater.detail, /DISABLE_AUTOUPDATER/);
   assert.ok(result.recommendations.some((line) => line.includes("docs/support-matrix.md")));
   assert.equal(result.layer4Status, "unsupported");
+});
+
+test("runDoctor explains Bun bytecode containers instead of a generic unsupported note", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-bytecode-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude.exe");
+
+  fs.writeFileSync(targetPath, "fake exe");
+  createFakeNativeDoctorPlugin(pluginRoot, {
+    targetPath,
+    version: "2.1.246",
+    containerLayout: "bytecode",
+    supportWindow: {
+      windowsNativeExperimental: {
+        platform: "win32-x64",
+        floor: "2.1.113",
+        ceiling: "2.1.237",
+        versions: ["2.1.237"],
+      },
+    },
+  });
+
+  const result = runDoctor({
+    repoRoot,
+    homeDir: home,
+    pluginRoot,
+    claudePath: targetPath,
+    nativePlatform: "win32-x64",
+    json: true,
+    color: false,
+  });
+
+  const layer4 = result.checks.find((item) => item.id === "layer4");
+  assert.equal(layer4.status, "warn");
+  assert.match(layer4.detail, /bytecode 编译容器/);
+  assert.match(layer4.detail, /Layer 4 暂不支持/);
+  assert.equal(result.layer4Status, "unsupported");
+  assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.112")));
+  assert.ok(result.recommendations.some((line) => line.includes("Layer 1~3")));
 });
 
 test("doctor maps Linux architectures and reads the Linux x64 support window", () => {
