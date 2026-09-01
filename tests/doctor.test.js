@@ -11,6 +11,7 @@ const {
   STABLE_INSTALL_CMD,
   nativePlatformForTarget,
   isSupportedNativeVersion,
+  bestNativeVersionForPlatform,
 } = require(path.join(repoRoot, "scripts", "zh-cn-doctor.js"));
 
 function writeJson(filePath, value) {
@@ -560,8 +561,31 @@ test("runDoctor explains Bun bytecode containers instead of a generic unsupporte
   assert.match(layer4.detail, /bytecode 编译容器/);
   assert.match(layer4.detail, /Layer 4 暂不支持/);
   assert.equal(result.layer4Status, "unsupported");
+  assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.237")));
   assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.112")));
   assert.ok(result.recommendations.some((line) => line.includes("Layer 1~3")));
+});
+
+test("bestNativeVersionForPlatform picks the highest verified version per platform", () => {
+  const support = {
+    windowsNativeExperimental: {
+      platform: "win32-x64",
+      floor: "2.1.113",
+      ceiling: "2.1.241",
+      versions: ["2.1.237", "2.1.113", "2.1.241"],
+    },
+    macosNativeExperimental: {
+      platform: "darwin-arm64",
+      floor: "2.1.113",
+      ceiling: "2.1.241",
+      versions: ["2.1.237"],
+    },
+  };
+
+  assert.equal(bestNativeVersionForPlatform(support, "win32-x64"), "2.1.241");
+  assert.equal(bestNativeVersionForPlatform(support, "darwin-arm64"), "2.1.237");
+  assert.equal(bestNativeVersionForPlatform(support, "linux-x64"), "");
+  assert.equal(bestNativeVersionForPlatform(null, "win32-x64"), "");
 });
 
 test("doctor maps Linux architectures and reads the Linux x64 support window", () => {

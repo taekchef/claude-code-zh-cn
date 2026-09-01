@@ -134,6 +134,18 @@ function isSupportedNativeVersion(version, support, platform = "") {
   return versions.includes(version);
 }
 
+// bytecode 容器等不支持 Layer 4 的场景要给"回退到哪个版本"的建议；
+// 从支持窗口里取本平台已验证的最高版本，避免硬编码数字随窗口推进过期。
+function bestNativeVersionForPlatform(support, platform = "") {
+  const versions = [];
+  for (const entry of nativeSupportLists(support)) {
+    if (platform && entry.platform && entry.platform !== platform) continue;
+    versions.push(...entry.versions);
+  }
+  if (versions.length === 0) return "";
+  return versions.reduce((best, current) => (compareVersion(current, best) > 0 ? current : best));
+}
+
 function filteredPath(envPath, launcherBinDir) {
   const parts = String(envPath || "").split(path.delimiter).filter(Boolean);
   const filtered = parts.filter((entry) => path.resolve(entry) !== path.resolve(launcherBinDir));
@@ -778,7 +790,16 @@ function runDoctor(options = {}) {
       layer4Detail = `native ${cliVersion || "unknown"} 为 Bun bytecode 编译容器（界面文字在编译后的字节码中），Layer 4 暂不支持`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
       recommendations.push("该构建把界面文字编译进了字节码，patch 源码的方式不适用；Layer 1~3（settings / 插件 / hooks / spinner）不受影响");
-      recommendations.push(`如需完整 UI 中文：${STABLE_INSTALL_CMD}，或临时回退到支持窗口内已验证版本；等插件适配 bytecode 容器后再升级`);
+      const nativeBest = bestNativeVersionForPlatform(support, nativePlatform);
+      if (nativeBest) {
+        recommendations.push(
+          `如需完整 UI 中文：npm install -g @anthropic-ai/claude-code@${nativeBest}（本平台支持窗口内最高已验证版本），安装后重跑 install.sh / install.ps1 重新 patch`
+        );
+        recommendations.push(`翻译最完整的旧 npm 形态：${STABLE_INSTALL_CMD}`);
+      } else {
+        recommendations.push(`如需完整 UI 中文：${STABLE_INSTALL_CMD}，或临时回退到支持窗口内已验证版本`);
+      }
+      recommendations.push("等插件适配 bytecode 容器后再升级");
     } else if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
       const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
       const currentRevision = computePatchRevision(pluginRoot);
@@ -802,7 +823,10 @@ function runDoctor(options = {}) {
       layer4Status = "unsupported";
       layer4Detail = `native ${cliVersion || "unknown"} 不在已验证支持窗口内`;
       add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
-      recommendations.push(`稳定方案：${STABLE_INSTALL_CMD}`);
+      const nativeBest = bestNativeVersionForPlatform(support, nativePlatform);
+      recommendations.push(
+        `稳定方案：${nativeBest ? `npm install -g @anthropic-ai/claude-code@${nativeBest}` : STABLE_INSTALL_CMD}`
+      );
       recommendations.push(UNPUBLISHED_WINDOW_GUIDANCE);
     } else if (!liefOk) {
       layer4Status = "needs-deps";
@@ -985,4 +1009,5 @@ module.exports = {
   classifyRuntimeError,
   nativePlatformForTarget,
   isSupportedNativeVersion,
+  bestNativeVersionForPlatform,
 };
