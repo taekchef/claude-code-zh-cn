@@ -6,6 +6,25 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.14.0] - 2026-09-01
+
+### 新增
+
+- macOS arm64 与 Windows x64 native 支持窗口上限从 `2.1.237` 扩展到 `2.1.241`（#236）：
+  - `2.1.238` - `2.1.241` 四个版本全链路验证（extract / patch 1715-1717 处 / repack / `--version` 启动自检 / 11 个稳定显示面运行审计）；macOS 在本机验证，Windows 在 windows-2022 runner 上验证。
+  - 确认官方构建从 `2.1.242` 起全平台（macOS / Windows / Linux）改为 Bun bytecode 编译容器，界面文字进入编译后的字节码，Layer 4（UI 硬编码 patch）不适用；插件按 #234 的检测安全跳过并提示。
+
+### 改进
+
+- `doctor` 对 bytecode 容器与超窗版本的回退建议不再硬编码 `2.1.112`，改为从支持窗口取本平台已验证的最高版本（当前 native 为 `2.1.241`），把"多降 130 个小版本"的建议修正为最小回退；旧 npm 形态 `2.1.112` 仍作为"翻译最完整"的备选保留。
+- README「native binary 说明」段补充 `2.1.242` 起 bytecode 边界与应对方式；支持矩阵、徽章由生成脚本同步更新。
+
+### 验证
+
+- macOS `2.1.238` - `2.1.241` 本机离线 `verify-upstream-compat.js --native-macos-arm64` 全部 PASS（coverage PARTIAL 39，与 2.1.237 的 PARTIAL 29 同性质，为上游新增未翻译文案）。
+- Windows `2.1.238` - `2.1.241` 通过 `native-latest-candidate` workflow（windows-2022）逐版本验证全部 PASS，证据 artifact 已归档；PR CI 的 `windows-native-compat` 会复验全部 representatives。
+- 全量 preflight 通过。
+
 ## [2.13.0] - 2026-08-20
 
 ### 新增
