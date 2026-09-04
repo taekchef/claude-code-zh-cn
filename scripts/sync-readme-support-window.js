@@ -238,7 +238,7 @@ function renderInstallAdvice(config) {
     ...(macosNative && macosNative.unsupported !== true
       ? [
           "",
-          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高版本也会本机自检，需要 \`node-lief\`。${linuxNative && linuxNative.unsupported !== true ? `Linux x64 glibc 仅启用 \`${linuxNative.ceiling}\`，需要 \`node-lief >=1.3.0\`，不尝试 provisional latest。` : ""}macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 \`install.ps1\`。`,
+          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高的源码容器版本也会本机自检，需要 \`node-lief\`。官方从 \`2.1.242\` 起改为 Bun bytecode 编译容器（界面文字在编译后的字节码中），Layer 4 暂不支持并安全跳过，Layer 1~3 不受影响；需要完整 UI 中文请先使用窗口内版本。${linuxNative && linuxNative.unsupported !== true ? `Linux x64 glibc 仅启用 \`${linuxNative.ceiling}\`，需要 \`node-lief >=1.3.0\`，不尝试 provisional latest。` : ""}macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 \`install.ps1\`。`,
         ]
       : []),
     "",

@@ -26,7 +26,7 @@
   },
   "macosNativeExperimental": {
     "floor": "2.1.113",
-    "ceiling": "2.1.237",
+    "ceiling": "2.1.241",
     "excluded": [
       "2.1.115",
       "2.1.125",
@@ -154,7 +154,11 @@
       "2.1.223",
       "2.1.224",
       "2.1.226",
-      "2.1.237"
+      "2.1.237",
+      "2.1.238",
+      "2.1.239",
+      "2.1.240",
+      "2.1.241"
     ],
     "platform": "darwin-arm64",
     "packageName": "@anthropic-ai/claude-code-darwin-arm64",
@@ -178,7 +182,7 @@
   },
   "windowsNativeExperimental": {
     "floor": "2.1.113",
-    "ceiling": "2.1.237",
+    "ceiling": "2.1.241",
     "excluded": [
       "2.1.115",
       "2.1.125",
@@ -298,7 +302,11 @@
       "2.1.223",
       "2.1.224",
       "2.1.233",
-      "2.1.237"
+      "2.1.237",
+      "2.1.238",
+      "2.1.239",
+      "2.1.240",
+      "2.1.241"
     ],
     "platform": "win32-x64",
     "packageName": "@anthropic-ai/claude-code-win32-x64",
