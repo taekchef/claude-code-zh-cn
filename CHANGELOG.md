@@ -6,6 +6,16 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.14.1] - 2026-09-06
+
+### 修复
+
+- 跟进 `2.1.237` 汉化残留：`Press Enter` 多片段拼接句（`children:["Press ", ... "Enter" ... " to continue."]` 等 4 形态）结构化 patch，保留 `Enter` 键名与 jsx/bold 结构；翻译表新增 9 条：对话框等待中、已配置的插件市场、导航完成、已读取标签页、输入完成、终端/移动通知已发送、共享标记、（我的+共享）。只改显示文案，case key / 三元分支 / switch 判断原样保留。
+
+### 边界登记
+
+- Windows x64 native 支持窗口 `verification` / `notes` 登记 `2.1.260`：官方构建从 `2.1.242` 起（macOS / Windows / Linux）改为 Bun bytecode 编译容器，界面文字在编译后的字节码里，Layer 4（UI 硬编码 patch）无法适用；`2.1.260` 实测 `probe=bytecode`，`install.ps1` 安全跳过 CLI Patch，仅 Layer 1~3（settings / 插件目录 / hooks / spinner）生效，不进入已验证窗口。
+
 ## [2.14.0] - 2026-09-01
 
 ### 新增
