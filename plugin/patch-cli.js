@@ -1052,6 +1052,96 @@ function installGoalDisplayLocalization() {
     );
 }
 
+function installGoalCommandMessageLocalization() {
+    // /goal 命令的 system/status 消息模板。fixture 取自 2.1.237 exe 原文。
+    // 模板字面量内是 minify 标识符，按结构通配；case key、阈值常量与 goal 条件文本不动。
+    tryRegexReplace(
+        /`Goal set: \$\{([A-Za-z0-9_$]+)\}`/g,
+        (_m, v) => '`目标已设置：${' + v + '}`'
+    );
+    tryRegexReplace(
+        /`Goal cleared: \$\{([A-Za-z0-9_$]+)\}`/g,
+        (_m, v) => '`目标已清除：${' + v + '}`'
+    );
+    tryReplace('"No goal set"', '"尚未设置目标"');
+    tryRegexReplace(
+        /`Goal active: \$\{([A-Za-z0-9_$]+\.condition)\} \(\$\{([A-Za-z0-9_$]+)\}\)\$\{([A-Za-z0-9_$]+)\}`/g,
+        (_m, cond, iter, tail) => '`目标执行中：${' + cond + '}（${' + iter + '}）${' + tail + '}`'
+    );
+    tryRegexReplace(
+        /`Goal condition is limited to \$\{([A-Za-z0-9_$]+)\} characters \(got \$\{([A-Za-z0-9_$]+\.length)\}\)`/g,
+        (_m, limit, got) => '`目标条件的字符数限制为 ${' + limit + '} 个字符（当前 ${' + got + '} 个）`'
+    );
+    tryRegexReplace(
+        /`Goal cleared after an unrecoverable error \(\$\{([A-Za-z0-9_$]+)\}\): "(\$\{[^`]*\})"\. Run \/goal again to continue\.`/g,
+        (_m, err, cond) => '`目标已清除（由于不可恢复的错误 ${' + err + '}）："' + cond + '"。请重新运行 /goal 继续。`'
+    );
+}
+
+function installBackgroundCommandNotificationLocalization() {
+    // 后台命令 task-notification：jkt("Background command ") 前缀由翻译表处理，
+    // 这里把 4 个状态后缀模板转中文；任务名变量保留原样。
+    tryRegexReplace(
+        /"\$\{([A-Za-z0-9_$]+)\}" completed\$\{([A-Za-z0-9_$]+)!==void 0\?` \(exit code \$\{([A-Za-z0-9_$]+)\}\)`:""\}/g,
+        (_m, t, n1, n2) => '"${' + t + '}" 已完成${' + n1 + '!==void 0?`（退出码 ${' + n2 + '}）`:""}'
+    );
+    tryRegexReplace(
+        /"\$\{([A-Za-z0-9_$]+)\}" failed\$\{([A-Za-z0-9_$]+)!==void 0\?` with exit code \$\{([A-Za-z0-9_$]+)\}`:""\}/g,
+        (_m, t, n1, n2) => '"${' + t + '}" 失败${' + n1 + '!==void 0?`（退出码 ${' + n2 + '}）`:""}'
+    );
+    tryRegexReplace(
+        /"\$\{([A-Za-z0-9_$]+)\}" was stopped`/g,
+        (_m, t) => '"${' + t + '}" 已停止`'
+    );
+    tryRegexReplace(
+        /"\$\{([A-Za-z0-9_$]+)\}" appears to be waiting for interactive input`/g,
+        (_m, t) => '"${' + t + '}" 似乎在等待交互输入`'
+    );
+}
+
+function installContextGroupingLocalization() {
+    // /context 面板的来源分组标签。两个 label switch 的 case key 是内部状态枚举，
+    // 只替换 return 的显示字面量；MLE 排序数组必须与 G1o 返回值同步翻译，
+    // 保持 indexOf(label) 排序逻辑不破。
+    tryRegexReplace(
+        /case"userSettings":return"User";case"projectSettings":return"Project";case"localSettings":return"Local";case"flagSettings":return"Flag";case"policySettings":return"Managed";case"plugin":return"Plugin";case"built-in":return"Built-in";case"mcp":return"MCP";case"memoryStore":return"Memory store";case"syncedSkills":return ([A-Za-z0-9_$]+)/g,
+        (_m, rpe) => 'case"userSettings":return"用户";case"projectSettings":return"项目";case"localSettings":return"本地";case"flagSettings":return"标志";case"policySettings":return"托管";case"plugin":return"插件";case"built-in":return"内置";case"mcp":return"MCP";case"memoryStore":return"记忆存储";case"syncedSkills":return ' + rpe
+    );
+    tryRegexReplace(
+        /case"flagged":return"Flagged";case"project":return"Project";case"local":return"Local";case"user":return"User";case"enterprise":return"Enterprise";case"managed":return"Managed";case"builtin":case"dynamic":return"Built-in";case"skills":return"Skills"/g,
+        () => 'case"flagged":return"已标记";case"project":return"项目";case"local":return"本地";case"user":return"用户";case"enterprise":return"企业";case"managed":return"托管";case"builtin":case"dynamic":return"内置";case"skills":return"技能"'
+    );
+    tryRegexReplace(/var [A-Za-z0-9_$]+="claude\.ai sync"/g, (m) => m.replace('"claude.ai sync"', '"claude.ai 同步"'));
+    tryRegexReplace(
+        /\["Project","User",([A-Za-z0-9_$]+),"Managed","Plugin","MCP","Built-in"\]/g,
+        (_m, rpe) => '["项目","用户",' + rpe + ',"托管","插件","MCP","内置"]'
+    );
+    tryRegexReplace(/{dimColor:!0,children:"Available"}/g, () => '{dimColor:!0,children:"可用"}');
+    tryRegexReplace(/{dimColor:!0,children:"Loaded"}/g, () => '{dimColor:!0,children:"已加载"}');
+}
+
+function installPressEnterContinuationLocalization() {
+    // 权限/平台设置提示把 "Press Enter to continue/retry" 拆成 ["Press ",<jsx>.jsx(b,{bold:!0,children:"Enter"})," to ..."]
+    // 三个字面量，翻译表子串匹配命中不了。按 children 结构通配 minify 标识符，
+    // 只换显示文案，Enter 键名、bold 结构、jsx 调用形态原样保留。
+    tryRegexReplace(
+        /(children:\[)"Press ",([A-Za-z0-9_$]+\.jsx\([A-Za-z0-9_$]+,\{bold:!0,children:"Enter"\}\),)" to continue\."\]/g,
+        (_m, pre, jsx) => `${pre}"按 ",${jsx}" 继续。"]`
+    );
+    tryRegexReplace(
+        /(children:\[)"Couldn't start your trial\. Press ",([A-Za-z0-9_$]+\.jsx\([A-Za-z0-9_$]+,\{bold:!0,children:"Enter"\}\),)" to continue\."\]/g,
+        (_m, pre, jsx) => `${pre}"无法开始试用。按 ",${jsx}" 继续。"]`
+    );
+    tryRegexReplace(
+        /(children:\[)"Press ",([A-Za-z0-9_$]+\.jsx\([A-Za-z0-9_$]+,\{bold:!0,children:"Enter"\}\),)" to retry\."\]/g,
+        (_m, pre, jsx) => `${pre}"按 ",${jsx}" 重试。"]`
+    );
+    tryRegexReplace(
+        /\["Press ",([A-Za-z0-9_$]+\.[A-Za-z0-9_$]+)," again to exit"\]/g,
+        (_m, key) => `["再按 ",${key}," 退出"]`
+    );
+}
+
 function installStatusbarToolActivityLocalization() {
     // Thought 状态栏（进行中 Thinking / 完成 Thought）
     tryRegexReplace(/([A-Za-z0-9_$]+)\?"Thinking":"Thought"/g, (_m, v) => `${v}?"思考中":"思考"`);
@@ -1515,6 +1605,10 @@ for (const step of [
     installCli233DisplayResidueLocalization,
     installGoalActiveIndicatorLocalization,
     installGoalDisplayLocalization,
+    installGoalCommandMessageLocalization,
+    installBackgroundCommandNotificationLocalization,
+    installContextGroupingLocalization,
+    installPressEnterContinuationLocalization,
     installStatusbarToolActivityLocalization,
     installConfigRemainderLocalization,
     installErrorTemplateLocalization,
