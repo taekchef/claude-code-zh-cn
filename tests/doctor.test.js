@@ -558,12 +558,14 @@ test("runDoctor explains Bun bytecode containers instead of a generic unsupporte
 
   const layer4 = result.checks.find((item) => item.id === "layer4");
   assert.equal(layer4.status, "warn");
-  assert.match(layer4.detail, /bytecode 编译容器/);
-  assert.match(layer4.detail, /Layer 4 暂不支持/);
-  assert.equal(result.layer4Status, "unsupported");
-  assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.237")));
-  assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.112")));
-  assert.ok(result.recommendations.some((line) => line.includes("Layer 1~3")));
+  assert.match(layer4.detail, /字节码汉化/);
+  assert.match(layer4.detail, /尚未执行/);
+  assert.equal(result.layer4Status, "needed");
+  assert.ok(result.recommendations.some((line) => line.includes("重跑 install.ps1")));
+  fs.writeFileSync(targetPath + ".zh-cn-backup", "stale backup");
+  const stale = runDoctor({ repoRoot, homeDir: home, pluginRoot, claudePath: targetPath, nativePlatform: "win32-x64", json: true, color: false });
+  assert.equal(stale.layer4Status, "needed", "a backup alone is not evidence of a current patch");
+
 });
 
 test("bestNativeVersionForPlatform picks the highest verified version per platform", () => {

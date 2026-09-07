@@ -1731,18 +1731,26 @@ patch_native_binary() {
     local source_hash
     source_hash="$(native_binary_hash "$binary_path")"
 
-    node "$PLUGIN_SRC/bun-binary-io.js" extract "$binary_path" "$tmp_js" || {
-        echo -e "${RED}提取 JS 失败${NC}"
-        CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制提取失败）"
-        rm -rf "$tmp_dir"
-        return
-    }
-
-    local patch_count
-    patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
+    local patch_count container_layout
+    container_layout="$(node "$PLUGIN_SRC/bun-binary-io.js" probe "$binary_path")"
+    if [ "$container_layout" = "bytecode" ]; then
+        patch_count="$(node "$PLUGIN_SRC/scripts/patch-bytecode.js" patch "$binary_path" "$PLUGIN_SRC/cli-translations.json")" || {
+            CLI_PATCH_STATUS_SUMMARY="失败（字节码汉化未通过验证）"
+            rm -rf "$tmp_dir"
+            return
+        }
+    else
+        node "$PLUGIN_SRC/bun-binary-io.js" extract "$binary_path" "$tmp_js" || {
+            echo -e "${RED}提取 JS 失败${NC}"
+            CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制提取失败）"
+            rm -rf "$tmp_dir"
+            return
+        }
+        patch_count=$("$PLUGIN_SRC/patch-cli.sh" "$tmp_js" 2>/dev/null || echo "0")
+    fi
 
     if [ "$patch_count" != "0" ]; then
-        node "$PLUGIN_SRC/bun-binary-io.js" repack "$binary_path" "$tmp_js" || {
+        { [ "$container_layout" = "bytecode" ] || node "$PLUGIN_SRC/bun-binary-io.js" repack "$binary_path" "$tmp_js"; } || {
             echo -e "${RED}写回二进制失败，正在从备份恢复...${NC}"
             if replace_native_binary_from_file "$backup_path" "$binary_path" 2>/dev/null; then
                 CLI_PATCH_STATUS_SUMMARY="已跳过（原生二进制写回失败，已恢复原文件）"

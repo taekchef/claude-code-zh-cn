@@ -89,7 +89,7 @@ function isAllowedLinuxNativeExperimentalLine(line) {
     /Linux/i.test(line) &&
     /x64/i.test(line) &&
     /glibc/i.test(line) &&
-    /2\.1\.220/.test(line) &&
+    /\b\d+\.\d+\.\d+\b/.test(line) &&
     /experimental|实验|已验证|仅/.test(line);
   const mentionsExcludedShape = /arm64|musl|latest|最新版|最新版本|provisional/i.test(line);
   const explicitlyExcludesShape = /不含|不支持|不尝试|不执行/.test(line);
@@ -185,7 +185,7 @@ function findLinuxNativeClaim(line) {
   if (isAllowedLinuxNativeExperimentalLine(line)) return null;
 
   if (!isSupportMatrixScopedLine(line)) {
-    return "Linux native 仅允许 x64 glibc 2.1.220，不能宣称 arm64 / musl / provisional latest";
+    return "Linux native 仅允许明确验证的 x64 glibc 版本，不能宣称 arm64 / musl / provisional latest";
   }
 
   return null;
@@ -273,19 +273,9 @@ function addSupportEntryFindings(findings, node, relative, pathParts, boundary) 
       : boundary.stableCeiling;
 
     if (isLinuxNativeExperimental) {
-      const exactVersion =
-        node.floor === "2.1.220" &&
-        node.ceiling === "2.1.220" &&
-        Array.isArray(node.representatives) &&
-        node.representatives.length === 1 &&
-        node.representatives[0] === "2.1.220";
-      if (!exactVersion) {
-        findings.push({
-          file: relative,
-          line: 1,
-          message: "Linux native 仅允许 x64 glibc 2.1.220",
-          text: `${entryPath}: ${JSON.stringify(node)}`,
-        });
+      if (!Array.isArray(node.representatives) || !node.representatives.length ||
+          !node.representatives.includes(node.floor) || !node.representatives.includes(node.ceiling)) {
+        findings.push({ file: relative, line: 1, message: "Linux native 上下限必须有明确的已验证版本", text: entryPath });
       }
       for (const [valid, message] of [
         [node.platform === "linux-x64", "linuxNativeExperimental platform 必须是 linux-x64"],
@@ -378,7 +368,7 @@ function printOk(boundary) {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${boundary.stableRange}`);
   console.log(`native CLI Patch: only explicitly verified macOS / Windows / Linux experimental versions; no latest stable claim`);
-  console.log(`Linux native CLI Patch: x64 glibc 2.1.220 only; no provisional latest`);
+  console.log(`Linux native CLI Patch: verified x64 glibc versions only; no provisional latest`);
 }
 
 function printFail(findings, boundary) {
@@ -387,7 +377,7 @@ function printFail(findings, boundary) {
   console.log(`- stable CLI Patch: ${boundary.stableRange}`);
   console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；native 只能写已验证 experimental 窗口`);
   console.log("- Windows native 只能写成 explicit experimental，不能写成 stable");
-  console.log("- Linux native 仅发布 x64 glibc 2.1.220，不含 arm64 / musl / provisional latest");
+  console.log("- Linux native 仅发布已验证的 x64 glibc 版本，不含 arm64 / musl / provisional latest");
   console.log("");
 
   for (const finding of findings) {

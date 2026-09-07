@@ -8174,6 +8174,26 @@
     "zh": "后台命令 "
   },
   {
+    "en": "Tips for getting started",
+    "zh": "新手入门提示"
+  },
+  {
+    "en": "/release-notes for more",
+    "zh": "/release-notes 了解更多"
+  },
+  {
+    "en": "API Usage Billing",
+    "zh": "API 用量与计费"
+  },
+  {
+    "en": "System tools",
+    "zh": "系统工具"
+  },
+  {
+    "en": "System tools (deferred)",
+    "zh": "系统工具（延迟）"
+  },
+  {
     "en": "Switch models when a message is flagged",
     "zh": "当消息被标记时切换模型"
   },
@@ -8288,5 +8308,81 @@
   {
     "en": "Skip the interactive picker. On headless surfaces, pass --yes=<digest> from the `/import` preview.",
     "zh": "跳过交互式选择器。在无界面环境中，传入 `/import` 预览给出的 --yes=<digest>。"
+  },
+  {
+    "en": "Scanning local sessions…",
+    "zh": "正在扫描本地会话…"
+  },
+  {
+    "en": "Claude has context of ",
+    "zh": "Claude 的上下文包含 "
+  },
+  {
+    "en": "Plan Approved by ",
+    "zh": "计划批准人："
+  },
+  {
+    "en": "Plan Rejected by ",
+    "zh": "计划拒绝人："
+  },
+  {
+    "en": "Stop hook feedback",
+    "zh": "Stop hook 反馈"
+  },
+  {
+    "en": "Enabled plan mode",
+    "zh": "已启用计划模式"
+  },
+  {
+    "en": "Already in plan mode.",
+    "zh": "已处于计划模式。"
+  },
+  {
+    "en": "Exited plan mode",
+    "zh": "已退出计划模式"
+  },
+  {
+    "en": "Allow the use of your chats and coding sessions to train and improve Anthropic AI models.",
+    "zh": "允许使用你的聊天和编程会话，用于训练和改进 Anthropic AI 模型。"
+  },
+  {
+    "en": "Any key closes this panel.",
+    "zh": "任意键关闭此面板。"
+  },
+  {
+    "en": "dialog waiting",
+    "zh": "对话框等待中"
+  },
+  {
+    "en": "Configured marketplaces:",
+    "zh": "已配置的插件市场："
+  },
+  {
+    "en": "Navigation completed",
+    "zh": "导航完成"
+  },
+  {
+    "en": "Tabs read",
+    "zh": "已读取标签页"
+  },
+  {
+    "en": "Input completed",
+    "zh": "输入完成"
+  },
+  {
+    "en": "Terminal and mobile notification sent.",
+    "zh": "终端和移动通知已发送。"
+  },
+  {
+    "en": "Mobile notification sent.",
+    "zh": "移动通知已发送。"
+  },
+  {
+    "en": " (shared)",
+    "zh": "（共享）"
+  },
+  {
+    "en": " (mine + shared)",
+    "zh": "（我的 + 共享）"
   }
 ]

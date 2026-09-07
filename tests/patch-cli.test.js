@@ -1426,3 +1426,171 @@ test("ellipsis translation rules match literal \\u2026 escape form in the binary
   assert.match(patched, /message:"恢复对话中…"/);
   assert.match(patched, /"重试中…"/);
 });
+
+test("goal command message templates are localized without touching goal condition text", () => {
+  // fixture 取自 2.1.237 真实 exe 提取的 goal 命令处理函数原文（变量名保留原样）
+  const patched = patchFixture([
+    'function handleGoalQuery(r){if(r.length>vGr)return{type:"text",value:`Goal condition is limited to ${vGr} characters (got ${r.length})`};let n=checkGoal(r);if(n!==null)return{type:"text",value:n};return{type:"query",value:`Goal set: ${r}`,prompt:compose(r)}}',
+    'function handleGoalNonInteractive(n){let o=getGoal(t);if(!hasGoal(o)){let i=getGoalText(a);return e(i===null?"No goal set":`Goal cleared: ${i}`,{display:"system"})}return e(`Goal set: ${n}`,{shouldQuery:!0,metaMessages:[compose(n)]}),null}',
+    'function showGoalActive(o,i,s){return{type:"text",value:`Goal active: ${o.condition} (${i})${s}`}}',
+    'function goalClearedErr(i){return`Goal cleared after an unrecoverable error (${i}): "${jl(e.condition,dcS,!0)}". Run /goal again to continue.`}',
+    "",
+  ]);
+
+  for (const residue of ["Goal set: ", "Goal cleared: ", "No goal set", "Goal active: ", "Goal condition is limited", "Goal cleared after an unrecoverable error"]) {
+    assert.equal(patched.includes(residue), false, `residue ${residue} in: ${patched}`);
+  }
+  assert.match(patched, /目标已设置：\$\{\w+\}/);
+  assert.match(patched, /目标已清除：\$\{\w+\}/);
+  assert.match(patched, /"尚未设置目标"/);
+  assert.match(patched, /目标条件的字符数限制为 \$\{\w+\} 个字符（当前 \$\{\w+\.length\} 个）/);
+  assert.match(patched, /目标执行中：\$\{\w+\.condition\}（\$\{\w+\}/);
+  assert.match(patched, /请重新运行 \/goal 继续/);
+});
+
+test("background command notification templates are localized while keeping the task name", () => {
+  const patched = patchFixture([
+    'var jkt="Background command ";',
+    'function notif(r,t,n,i){switch(r){case"completed":return`${jkt}"${t}" completed${n!==void 0?` (exit code ${n})`:""}`;case"failed":return`${jkt}"${t}" failed${n!==void 0?` with exit code ${n}`:""}`;case"killed":return`${jkt}"${t}" was stopped`}}',
+    'function waitingHint(t){let p=`${jkt}"${t}" appears to be waiting for interactive input`;return p}',
+    "",
+  ]);
+
+  for (const residue of ['" completed${', '" failed${', '" was stopped`', " waiting for interactive input"]) {
+    assert.equal(patched.includes(residue), false, `residue ${residue} in: ${patched}`);
+  }
+  assert.match(patched, /" 已完成\$\{\w+!==/);
+  assert.match(patched, /" 失败\$\{\w+!==/);
+  assert.match(patched, /" 已停止\`/);
+  assert.match(patched, /" 似乎在等待交互输入\`/);
+  assert.match(patched, /\`（退出码 \$\{\w+\}）\`/);
+  assert.match(patched, /jkt="后台命令 "/);
+});
+
+test("/context panel ordering labels, source labels and section titles are localized in sync", () => {
+  const patched = patchFixture([
+    'function G1o(e){switch(e){case"userSettings":return"User";case"projectSettings":return"Project";case"localSettings":return"Local";case"flagSettings":return"Flag";case"policySettings":return"Managed";case"plugin":return"Plugin";case"built-in":return"Built-in";case"mcp":return"MCP";case"memoryStore":return"Memory store";case"syncedSkills":return RPe}}',
+    'var RPe="claude.ai sync";',
+    'function Wr0(e){switch(e){case"flagged":return"Flagged";case"project":return"Project";case"local":return"Local";case"user":return"User";case"enterprise":return"Enterprise";case"managed":return"Managed";case"builtin":case"dynamic":return"Built-in";case"skills":return"Skills";default:return e}}',
+    'var MLE=["Project","User",RPe,"Managed","Plugin","MCP","Built-in"];',
+    'children:[Ti.jsx(b,{dimColor:!0,children:"Available"}),Ti.jsx(Z_,{variant:"tree",children:items})]',
+    'children:[Ti.jsx(b,{dimColor:!0,children:"Loaded"}),Ti.jsx(Z_,{variant:"tree",children:items})]',
+    "",
+  ]);
+
+  for (const residue of ['"User";case', '"Project";case', '"Local";case', '"Flag";case', '"Managed";case', '"Plugin";case', '"Built-in",', '"Memory store";case', '"Flagged";case', '"Enterprise";case', '"Skills";default', '"Available"', '"Loaded"', '"claude.ai sync"']) {
+    assert.equal(patched.includes(residue), false, `residue ${residue} in: ${patched}`);
+  }
+  assert.match(patched, /case"userSettings":return"用户"/);
+  assert.match(patched, /case"projectSettings":return"项目"/);
+  assert.match(patched, /case"localSettings":return"本地"/);
+  assert.match(patched, /case"flagSettings":return"标志"/);
+  assert.match(patched, /case"policySettings":return"托管"/);
+  assert.match(patched, /case"plugin":return"插件"/);
+  assert.match(patched, /case"built-in":return"内置"/);
+  assert.match(patched, /case"mcp":return"MCP"/);
+  assert.match(patched, /case"memoryStore":return"记忆存储"/);
+  assert.match(patched, /case"flagged":return"已标记"/);
+  assert.match(patched, /case"enterprise":return"企业"/);
+  assert.match(patched, /case"skills":return"技能"/);
+  assert.match(patched, /var RPe="claude\.ai 同步"/);
+  // 排序数组必须与 label 函数返回同步翻译，保证 indexOf 匹配仍成立
+  assert.match(patched, /MLE=\["项目","用户",RPe,"托管","插件","MCP","内置"\]/);
+  assert.match(patched, /children:"可用"/);
+  assert.match(patched, /children:"已加载"/);
+});
+
+test("welcome and /context billing hints backfill the translation table", () => {
+  const patched = patchFixture([
+    'return{title:"Tips for getting started",lines:r}',
+    'footer:t.length>0?"/release-notes for more":void 0',
+    'i=o!=="firstParty"?Vie[o]:as()?p6o():"API Usage Billing"',
+    'if(ue>0)se.push({name:"System tools",tokens:ue,color:"inactive"});if(D>0)se.push({name:"System tools (deferred)",tokens:D,color:"inactive",isDeferred:!0})',
+    "",
+  ]);
+
+  for (const residue of ['"Tips for getting started"', '"/release-notes for more"', '"API Usage Billing"', 'name:"System tools"', 'name:"System tools (deferred)"']) {
+    assert.equal(patched.includes(residue), false, `residue ${residue} in: ${patched}`);
+  }
+  assert.match(patched, /"新手入门提示"/);
+  assert.match(patched, /"\/release-notes 了解更多"/);
+  assert.match(patched, /"API 用量与计费"/);
+  assert.match(patched, /name:"系统工具"/);
+  assert.match(patched, /name:"系统工具（延迟）"/);
+});
+
+test("detected 2.1.237 UI residues are translated by the translation table", () => {
+  const detected = [
+    ["Scanning local sessions…", "正在扫描本地会话…"],
+    ["Help improve our AI models", "帮助改进我们的 AI 模型"],
+    ["Claude has context of ", "Claude 的上下文包含 "],
+    ["Plan Approved by ", "计划批准人："],
+    ["Plan Rejected by ", "计划拒绝人："],
+    ["Stop hook feedback", "Stop hook 反馈"],
+    ["Enabled plan mode", "已启用计划模式"],
+    ["Already in plan mode.", "已处于计划模式。"],
+    ["Exited plan mode", "已退出计划模式"],
+    ["Allow the use of your chats and coding sessions to train and improve Anthropic AI models.", "允许使用你的聊天和编程会话，用于训练和改进 Anthropic AI 模型。"],
+    ["Any key closes this panel.", "任意键关闭此面板。"],
+  ];
+
+  const sourceLines = detected.map(
+    ([en], index) => `const d${index}=${JSON.stringify(en)};`
+  );
+  // 真实 bundle 中省略号是 … 转义形态，用该形态覆盖 d0 行
+  sourceLines[0] = String.raw`const d0="Scanning local sessions\u2026";`;
+  const patched = patchFixture([...sourceLines, ""]);
+
+  for (const [en, zh] of detected) {
+    assert.equal(patched.includes(en), false, `residue ${en} in: ${patched}`);
+    assert.match(patched, new RegExp(zh.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+});
+
+test("Press Enter multi-part children are localized structurally while keeping the key", () => {
+  // fixture 取自 2.1.237 exe 原文：children 数组把 "Press "、bold Enter、" to continue." 拆成三个字面量，
+  // 翻译表子串匹配命中不了，必须按 children 结构做结构化 patch。Enter 键名与 bold/jsx 结构保留。
+  const patched = patchFixture([
+    'Hi.jsxs(R,{flexDirection:"column",gap:1,marginTop:1,children:[ng,Hi.jsxs(b,{dimColor:!0,children:["Press ",Hi.jsx(b,{bold:!0,children:"Enter"})," to continue."]})]}),uw[26]=OA;',
+    'OA=Hi.jsxs(b,{dimColor:!0,children:["Press ",Hi.jsx(b,{bold:!0,children:"Enter"})," to continue."]}),uw[42]=OA;',
+    'IAr==="error"?P5.jsxs(b,{color:"error",children:["Couldn\'t start your trial. Press ",P5.jsx(b,{bold:!0,children:"Enter"})," to continue."]}):P5.jsxs(b,{color:"permission",children:["Press ",P5.jsx(b,{bold:!0,children:"Enter"})," to continue."]})',
+    'OA=AV.toRetry&&Hi.jsx(R,{marginTop:1,children:Hi.jsxs(b,{color:"permission",children:["Press ",Hi.jsx(b,{bold:!0,children:"Enter"})," to retry."]})}),uw[87]=AV.toRetry,uw[88]=OA;',
+    'h.pending?ef.jsxs(b,{children:["Press ",h.keyName," again to exit"]}):v?ef.jsx(Wr,{children:m&&ef.jsx(b,{color:"permission",children:"dialog waiting"})})',
+    "",
+  ]);
+
+  for (const residue of ['" to continue."]', '" to retry."]', '" again to exit"', '"Press "']) {
+    assert.equal(patched.includes(residue), false, `residue ${residue} in: ${patched}`);
+  }
+  assert.match(patched, /"按 ",[A-Za-z0-9_$]+\.jsx\([A-Za-z0-9_$]+,\{bold:!0,children:"Enter"\}\)," 继续。"\]/);
+  assert.match(patched, /"无法开始试用。按 ",/);
+  assert.match(patched, /"按 ",[A-Za-z0-9_$]+\.jsx\([A-Za-z0-9_$]+,\{bold:!0,children:"Enter"\}\)," 重试。"\]/);
+  assert.match(patched, /"再按 ",h\.keyName," 退出"\]/);
+  // 内部结构保留
+  assert.match(patched, /bold:!0,children:"Enter"/);
+  assert.match(patched, /h\.keyName/);
+});
+
+test("newly discovered 2.1.237 UI residues are localized via the translation table", () => {
+  // fixture 取自 2.1.237 exe 原文：switch toast 文案、通知提示、/plugin 标题、list 视图后缀、
+  // permission 等待提示。只替换显示文案，case key / 状态值 / 三元分支判断保留。
+  const patched = patchFixture([
+    'function ZsE(e,t,r){if(r)return aso(e,[],{verbose:r});let n=null;switch(t){case"navigate":n="Navigation completed";break;case"tabs_create_mcp":n="Tab created";break;case"tabs_context_mcp":n="Tabs read";break;case"form_input":n="Input completed";break;case"compute":n="Output generated";break}return n}',
+    't=pwe.jsx(b,{children:e.localSent?"Terminal and mobile notification sent.":"Mobile notification sent."})',
+    'let a=["Configured marketplaces:",""];o.forEach((l)=>{a.push(`  ${et.pointer} ${l}`)});',
+    'return Np.jsxs(b,{children:["list",l==="shared"?" (shared)":l==="all"?" (mine + shared)":""]})',
+    'm&&ef.jsx(b,{color:"permission",children:"dialog waiting"})',
+    "",
+  ]);
+
+  for (const residue of ['"Navigation completed"', '"Tabs read"', '"Input completed"', '"Terminal and mobile notification sent."', '"Mobile notification sent."', '"Configured marketplaces:"', '" (shared)"', '" (mine + shared)"', '"dialog waiting"']) {
+    assert.equal(patched.includes(residue), false, `residue ${residue} in: ${patched}`);
+  }
+  for (const zh of ['"导航完成"', '"已读取标签页"', '"输入完成"', '"终端和移动通知已发送。"', '"移动通知已发送。"', '"已配置的插件市场："', '"（共享）"', '"（我的 + 共享）"', '"对话框等待中"']) {
+    assert.match(patched, new RegExp(zh.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  // 逻辑判断保留
+  for (const logic of ['case"navigate"', 'e.localSent?', 'l==="shared"', 'l==="all"', 'a.push(`  ${et.pointer} ${l}`)']) {
+    assert.match(patched, new RegExp(logic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+});

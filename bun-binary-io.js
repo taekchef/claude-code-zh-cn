@@ -34,7 +34,7 @@ const SIZEOF_MODULE_OLD = 4 * SIZEOF_STRING_POINTER + 4; // 36
 const SIZEOF_MODULE_NEW = 6 * SIZEOF_STRING_POINTER + 4; // 52
 const JS_SOURCE_ENCODING_UTF8 = 0;
 const BYTECODE_STUB_MARKER = "// @bun";
-// bytecode 编译容器不支持 Layer 4；用独立退出码方便上层区分"格式不支持"与一般失败。
+// bytecode 容器不能提取/重打包源码；独立退出码引导上层改用 patch-bytecode.js。
 const UNSUPPORTED_BYTECODE_EXIT_CODE = 3;
 // Bun 编译的 claude bundle 一律以 "// @bun ..." 横幅开头（实测 2.1.220 的完整
 // 源码 ~21MB 也带 "// @bun @bytecode @bun-cjs"），横幅本身不是 stub 特征；
@@ -516,6 +516,19 @@ function buildSectionData(bunBuffer, headerSize) {
   return sectionData;
 }
 
+function withWindowsFileRetry(operation) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return operation();
+    } catch (error) {
+      // Windows background processes can retain image handles for several seconds.
+      // Keep the original file intact if the lock does not clear.
+      if (process.platform !== "win32" || attempt === 39 || !["EPERM", "EBUSY", "EACCES"].includes(error.code)) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
+}
+
 function atomicWriteBinary(LIEF, binary, outputPath, originalPath) {
   const tempPath = outputPath + ".tmp";
   binary.write(tempPath);
@@ -524,9 +537,9 @@ function atomicWriteBinary(LIEF, binary, outputPath, originalPath) {
     fs.chmodSync(tempPath, origStat.mode);
   } catch {}
   try {
-    fs.renameSync(tempPath, outputPath);
+    withWindowsFileRetry(() => fs.renameSync(tempPath, outputPath));
   } catch (error) {
-    try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch {}
+    try { if (fs.existsSync(tempPath)) withWindowsFileRetry(() => fs.unlinkSync(tempPath)); } catch {}
     if (error && (error.code === "ETXTBSY" || error.code === "EBUSY" || error.code === "EPERM")) {
       throw new Error("Cannot update the Claude executable while it is running. Please close all Claude instances and try again.");
     }
@@ -684,6 +697,24 @@ function cmdExtract() {
     fs.closeSync(output);
   }
   process.stdout.write("ok");
+}
+
+// 仅供文案差异审计：字节码构建里的 chunk 源码是调试副本，不用于重打包。
+function cmdSources() {
+  const [, , , binaryPath, outputPath] = process.argv;
+  if (!binaryPath || !outputPath) throw new Error("Usage: bun-binary-io.js sources <binary> <out>");
+  const lief = loadNodeLief();
+  if (!lief) throw new Error("node-lief dependency missing");
+  const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(lief, binaryPath);
+  const modules = getStringPointerContent(bunData, bunOffsets.modulesPtr);
+  const sources = [];
+  for (let offset = 0; offset < modules.length; offset += moduleStructSize) {
+    const mod = parseCompiledModule(modules, offset, moduleStructSize);
+    const name = getStringPointerContent(bunData, mod.name).toString("utf8");
+    if (isClaudeModule(name) || name.endsWith(".js")) sources.push(getStringPointerContent(bunData, mod.contents).toString("utf8"));
+  }
+  if (!sources.length) throw new Error("No JavaScript display-audit sources found");
+  fs.writeFileSync(outputPath, sources.join("\n"));
 }
 
 function cmdRepack() {
@@ -902,10 +933,14 @@ function cmdHash() {
 // CLI 入口
 // ============================================================================
 
+module.exports = { loadNodeLief, extractNativeBun, findClaudeModule, claudeBytecodeGuardReason, signAndVerifyMachO, readExecutableVersion, withWindowsFileRetry };
+
+if (require.main === module) {
 const command = process.argv[2];
 switch (command) {
   case "detect": cmdDetect(); break;
   case "extract": cmdExtract(); break;
+  case "sources": cmdSources(); break;
   case "repack": cmdRepack(); break;
   case "version": cmdVersion(); break;
   case "resolve": cmdResolve(); break;
@@ -915,7 +950,8 @@ switch (command) {
   default:
     process.stderr.write(
       "Usage: bun-binary-io.js <command> [args...]\n" +
-      "Commands: detect, extract, repack, version, resolve, probe, check-deps, hash\n"
+      "Commands: detect, extract, sources, repack, version, resolve, probe, check-deps, hash\n"
     );
     process.exit(1);
+}
 }

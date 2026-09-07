@@ -231,7 +231,7 @@ function readPackageJs(config, args, version) {
     checkNativePlatform(args);
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-text-diff-"));
     const extracted = path.join(tmpDir, `${version}.js`);
-    execFile("node", [binaryIoPath, "extract", nativeBinary, extracted], {
+    execFile("node", [binaryIoPath, "sources", nativeBinary, extracted], {
       cwd: repoRoot,
       stdio: ["ignore", "ignore", "pipe"],
     });

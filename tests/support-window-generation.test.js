@@ -36,9 +36,9 @@ test("plugin support window is generated from compat config", () => {
   assert.equal(parsed.macosNativeExperimental.platform, "darwin-arm64");
   assert.equal(parsed.macosNativeExperimental.packageName, "@anthropic-ai/claude-code-darwin-arm64");
   assert.deepEqual(parsed.linuxNativeExperimental, {
-    floor: "2.1.220",
-    ceiling: "2.1.220",
-    versions: ["2.1.220"],
+    floor: compatConfig.support.linuxNativeExperimental.floor,
+    ceiling: compatConfig.support.linuxNativeExperimental.ceiling,
+    versions: compatConfig.support.linuxNativeExperimental.representatives,
     platform: "linux-x64",
     libc: "glibc",
     packageName: "@anthropic-ai/claude-code-linux-x64",

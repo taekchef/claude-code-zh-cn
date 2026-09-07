@@ -19,6 +19,17 @@ const platforms = {
     notesSubject: "macOS arm64 native binary experimental",
     notesSuffix: "不代表未来 latest 自动稳定。",
   },
+  linux: {
+    label: "Linux",
+    supportKey: "linuxNativeExperimental",
+    expectedPlatform: "linux-x64",
+    expectedPackage: "@anthropic-ai/claude-code-linux-x64",
+    allowedKinds: ["native"],
+    requireCodeSignature: false,
+    requireCompleteVerification: true,
+    notesSubject: "Linux x64 glibc native binary experimental",
+    notesSuffix: "仅启用已验证版本；不支持 arm64、musl 或 provisional latest。",
+  },
   windows: {
     label: "Windows",
     supportKey: "windowsNativeExperimental",
@@ -69,7 +80,7 @@ function parseArgs(argv) {
 
 function usage() {
   return [
-    "Usage: node scripts/promote-native-candidate.js --candidate candidate.json [--platform macos|windows] [--config scripts/upstream-compat.config.json] [--write]",
+    "Usage: node scripts/promote-native-candidate.js --candidate candidate.json [--platform macos|windows|linux] [--config scripts/upstream-compat.config.json] [--write]",
     "",
     "Validates one native candidate JSON and, with --write, promotes it into scripts/upstream-compat.config.json.",
     "The script refuses skipped/failed candidates and prints the exact boundary that blocked promotion.",
@@ -288,17 +299,19 @@ function validateCandidate(config, payload, platformName) {
     reasons.push(`native package boundary failed: expected ${expectedPackage}, got ${native.packageName}`);
   }
 
-  if (native.extract !== "ok") {
-    reasons.push(`native extract boundary failed: ${native.extract || "unknown"}`);
-  }
-
-  if (native.repack !== "ok") {
-    reasons.push(`native repack boundary failed: ${native.repack || "unknown"}`);
+  if (native.container === "bytecode") {
+    if (native.bytecodePatch !== "ok" || native.bytecodeTranslations?.patched !== result.patchCount ||
+        ["noMatch", "repeat", "uninstall"].some(check => native.bytecodeLifecycle?.[check] !== "ok")) {
+      reasons.push("native bytecode patch evidence missing or inconsistent");
+    }
+  } else {
+    if (native.extract !== "ok") reasons.push(`native extract boundary failed: ${native.extract || "unknown"}`);
+    if (native.repack !== "ok") reasons.push(`native repack boundary failed: ${native.repack || "unknown"}`);
   }
 
   if (platform.requireCodeSignature && native.codeSignature !== "ok") {
     reasons.push(`native codesign boundary failed: ${native.codeSignature || "unknown"}`);
-  } else if (!platform.requireCodeSignature && native.codeSignature && native.codeSignature !== "ok") {
+  } else if (!platform.requireCodeSignature && native.codeSignature && !["ok", "not-required"].includes(native.codeSignature)) {
     reasons.push(`native signature boundary failed: ${native.codeSignature}`);
   }
 
@@ -390,7 +403,7 @@ function renderNotes(entry, result, platformName) {
     ? `${result.version} 的运行边界通过，但展示文案覆盖为 PARTIAL（${coverage.issueCount} 个警告），不代表完整中文覆盖；`
     : "";
 
-  return `${platform.notesSubject}；需要 node-lief；已验证 ${verified} 的 extract / patch / repack / --version 和 ${displayCount} 个稳定显示面的运行审计；${coverageNote}${excluded}${platform.notesSuffix}`;
+  return `${platform.notesSubject}；需要 node-lief；已验证 ${verified} 的原生汉化、--version 启动自检和 ${displayCount} 个稳定显示面的运行审计；${coverageNote}${excluded}${platform.notesSuffix}`;
 }
 
 function promote(config, result, platformName) {

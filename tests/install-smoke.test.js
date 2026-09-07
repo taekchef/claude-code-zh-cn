@@ -141,6 +141,8 @@ if (cmd === "detect") {
   process.stdout.write("ok");
 } else if (cmd === "version") {
   process.stdout.write(${JSON.stringify(nativeVersion)});
+} else if (cmd === "probe") {
+  process.stdout.write("source-js");
 } else if (cmd === "extract") {
   fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
 } else if (cmd === "repack") {
@@ -452,13 +454,13 @@ test("native compat and Windows install smoke are wired into CI", () => {
   );
   assert.match(workflow, /windows-native-compat/, "CI should include a Windows native compat lane");
   assert.match(workflow, /--native-windows-x64/, "CI should verify Windows native patching");
-  assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Windows native compat should pin node-lief");
+  assert.match(workflow, /npm install --global node-lief@1\.3\.2/, "Windows native compat should pin node-lief");
   assert.match(workflow, /linux-native-compat/, "CI should include a Linux native compat lane");
-  assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Linux native compat should pin node-lief");
+  assert.match(workflow, /npm install --global node-lief@1\.3\.2/, "Linux native compat should pin node-lief");
   assert.match(
     workflow,
-    /--baseline 2\.1\.220 --skip-latest --native-linux-x64 --fail-on-skip --json/,
-    "CI should require the fixed Linux native baseline to run instead of skipping"
+    /--skip-latest --native-linux-x64 --fail-on-skip --json/,
+    "CI should verify the published Linux native versions without skipping"
   );
 });
 
@@ -512,7 +514,7 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(nativePatch, /需要安装 node-lief[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
   assert.match(nativePatch, /本机自验证未找到可 patch 内容[\s\S]+write-support-window-link[\s\S]+return/);
   assert.match(nativePatch, /Windows 原生二进制 patch 失败[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
-  assert.match(nativePatch, /原生二进制被运行中的 Claude Code 进程占用[\s\S]+请手动退出所有 Claude Code 实例[\s\S]+write-support-window-link[\s\S]+exit 1/);
+  assert.match(nativePatch, /原生二进制无法独占写入[\s\S]+请手动退出所有 Claude Code 实例[\s\S]+write-support-window-link[\s\S]+exit 1/);
   assert.match(nativePatch, /test-binary-writable \$BinaryPath/);
   assert.match(script, /node \$helper check-deps/);
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
@@ -520,7 +522,7 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(nativePatch, /node \$helper probe \$BinaryPath/);
   assert.match(
     nativePatch,
-    /Bun bytecode 编译容器[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/
+    /\$containerLayout -eq "bytecode"[\s\S]+patch-bytecode\.js[\s\S]+\$LASTEXITCODE/
   );
   const probeIndex = nativePatch.indexOf("node $helper probe $BinaryPath");
   const backupIndex = nativePatch.indexOf("已备份原生二进制");
@@ -542,6 +544,105 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /\.patched-version/);
   assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);
 });
+
+test("Windows write guard waits for transient sharing but rejects a held lock", { skip: windowsPowerShellRequired }, () => {
+  const powershell = locateWindowsPowerShell();
+  assert.ok(powershell);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-write-lock-"));
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  const guard = script.match(/function test-binary-writable \{[\s\S]*?\n\}/)[0];
+  const check = path.join(tmp, "check.ps1");
+  fs.writeFileSync(check, "\ufeff" + guard + `
+$ErrorActionPreference = "Stop"
+$file = $env:CCZH_LOCK_FILE
+[System.IO.File]::WriteAllText($file, "original")
+$job = Start-Job -ArgumentList $file -ScriptBlock {
+  param($file)
+  $lock = [System.IO.File]::Open($file, 'Open', 'Write', 'None')
+  try {
+    [System.IO.File]::WriteAllText("$file.ready", "ready")
+    Start-Sleep -Milliseconds 4500
+  } finally { $lock.Dispose() }
+}
+try {
+  $deadline = (Get-Date).AddSeconds(15)
+  while (-not (Test-Path "$file.ready")) {
+    if ((Get-Date) -gt $deadline) { throw "lock holder did not start" }
+    Start-Sleep -Milliseconds 20
+  }
+  if (-not (test-binary-writable $file)) { throw "released lock was rejected" }
+  Receive-Job $job -Wait | Out-Null
+  $lock = [System.IO.File]::Open($file, 'Open', 'Write', 'None')
+  try { if (test-binary-writable $file) { throw "held lock was accepted" } }
+  finally { $lock.Dispose() }
+  if ([System.IO.File]::ReadAllText($file) -ne "original") { throw "probe changed bytes" }
+} finally { Remove-Job $job -Force -ErrorAction SilentlyContinue }
+`);
+  try {
+    const result = runWindowsPowerShell(powershell, ["-File", check], {
+      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe") }, timeout: 30000,
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+for (const operation of ["replace", "remove"]) {
+test(`Windows binary ${operation} waits for release and preserves a persistently locked target`, { skip: windowsPowerShellRequired }, () => {
+  const powershell = locateWindowsPowerShell();
+  assert.ok(powershell);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-replace-lock-"));
+  const check = path.join(tmp, "check.ps1");
+  const replacement = path.join(tmp, "replace.cjs");
+  fs.writeFileSync(replacement, `
+try { require(${JSON.stringify(path.join(repoRoot, "bun-binary-io.js"))}).withWindowsFileRetry(() => ${operation === "replace" ? 'require("node:fs").renameSync(process.argv[2], process.argv[3])' : 'require("node:fs").unlinkSync(process.argv[3])'}); }
+catch (error) { process.stdout.write(error.code); process.exitCode = 1; }
+`);
+  fs.writeFileSync(check, `
+$ErrorActionPreference = "Stop"
+$file = $env:CCZH_LOCK_FILE
+$candidate = "$file.candidate"
+[System.IO.File]::WriteAllText($file, "original")
+[System.IO.File]::WriteAllText($candidate, "replacement")
+$job = Start-Job -ArgumentList $file -ScriptBlock {
+  param($file)
+  $lock = [System.IO.File]::Open($file, 'Open', 'Read', 'Read')
+  try {
+    [System.IO.File]::WriteAllText("$file.ready", "ready")
+    Start-Sleep -Milliseconds 4500
+  } finally { $lock.Dispose() }
+}
+try {
+  $deadline = (Get-Date).AddSeconds(15)
+  while (-not (Test-Path "$file.ready")) {
+    if ((Get-Date) -gt $deadline) { throw "lock holder did not start" }
+    Start-Sleep -Milliseconds 20
+  }
+  & $env:CCZH_NODE $env:CCZH_REPLACE_SCRIPT $candidate $file
+  if ($LASTEXITCODE -ne 0) { throw "replacement failed after lock release" }
+  Receive-Job $job -Wait | Out-Null
+  if ($env:CCZH_OPERATION -eq "replace") {
+    if ([System.IO.File]::ReadAllText($file) -ne "replacement") { throw "replacement did not reach target" }
+  } elseif (Test-Path $file) { throw "released backup was not removed" }
+  [System.IO.File]::WriteAllText($file, "replacement")
+  [System.IO.File]::WriteAllText($candidate, "second")
+  $lock = [System.IO.File]::Open($file, 'Open', 'Read', 'Read')
+  try {
+    & $env:CCZH_NODE $env:CCZH_REPLACE_SCRIPT $candidate $file
+    if ($LASTEXITCODE -eq 0) { throw "locked target was replaced" }
+  } finally { $lock.Dispose() }
+  if ([System.IO.File]::ReadAllText($file) -ne "replacement") { throw "locked target was lost" }
+  if ([System.IO.File]::ReadAllText($candidate) -ne "second") { throw "candidate was lost" }
+} finally { Remove-Job $job -Force -ErrorAction SilentlyContinue }
+exit 0
+`);
+  try {
+    const result = runWindowsPowerShell(powershell, ["-File", check], {
+      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe"), CCZH_NODE: process.execPath, CCZH_REPLACE_SCRIPT: replacement, CCZH_OPERATION: operation }, timeout: 30000,
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+}
 
 test("install.ps1 avoids PowerShell smart quotes in script strings", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");

@@ -175,7 +175,7 @@ function renderSupportSystems(config) {
       : []),
     ...(linuxNative && linuxNative.unsupported !== true
       ? [
-          `| Linux · native binary（x64 glibc） | \`${renderRange(linuxNative)}\` | 需要 \`node-lief >=1.3.0\`；仅该版本，不含 arm64、musl 或 latest |`,
+          `| Linux · native binary（x64 glibc） | \`${renderRange(linuxNative)}\` | 需要 \`node-lief >=1.3.0\`；仅支持矩阵列出的版本，不含 arm64、musl |`,
         ]
       : []),
     `| Windows · npm（PowerShell） | \`${renderRange(windowsNpm)}\` | 用 install.ps1，需 PowerShell 5.1+ |`,
@@ -188,10 +188,10 @@ function renderSupportSystems(config) {
         ]),
     "| Linux · 其他官方安装器形态 | 暂无已验证版本 | 仅 Layer 1~3 生效 |",
     "",
-    "> - **macOS / Windows 版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时提取、翻译、重打包并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。",
+    "> - **macOS / Windows 版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时副本上翻译并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。",
     ...(linuxNative && linuxNative.unsupported !== true
       ? [
-          `> - **Linux 不走 provisional**：Linux x64 glibc 仅启用已发布的 \`${linuxNative.ceiling}\`；arm64、musl 和 latest 不执行 CLI Patch。`,
+          `> - **Linux 不走 provisional**：Linux x64 glibc 仅启用支持矩阵列出的已验证版本；arm64、musl 和未验证的新版本不执行 CLI Patch。`,
         ]
       : []),
     "> - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。",
@@ -222,10 +222,10 @@ function renderInstallAdvice(config) {
     `| \`npm install -g @anthropic-ai/claude-code@${stablePinned}\` | 最完整（推荐） |`,
     "| `npm install -g @anthropic-ai/claude-code`（latest） | macOS / Windows native 新版先本机自检；Linux native 仅启用已发布窗口 |",
     `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${macosInstallerPinned}\` | 官方安装器指定已验证旧版本（需要 \`node-lief\`） |`,
-    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | macOS 新版先本机自检；Linux native latest 只保留 Layer 1~3 |",
+    "| `curl -fsSL https://claude.ai/install.sh \\| sh`（latest） | macOS 新版先本机自检；Linux x64 glibc 仅启用支持矩阵列出的实际版本 |",
     ...(linuxNative && linuxNative.unsupported !== true
       ? [
-          `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${linuxNative.ceiling}\` | Linux x64 glibc 已验证版本（需要 \`node-lief >=1.3.0\`）；不含 arm64、musl 或 latest |`,
+          `| \`curl -fsSL https://claude.ai/install.sh \\| bash -s ${linuxNative.ceiling}\` | Linux x64 glibc 已验证版本（需要 \`node-lief >=1.3.0\`）；不含 arm64、musl 或未验证版本 |`,
         ]
       : []),
     ...(windowsNativeExperimental && windowsNativeExperimental.unsupported !== true
@@ -238,7 +238,7 @@ function renderInstallAdvice(config) {
     ...(macosNative && macosNative.unsupported !== true
       ? [
           "",
-          `> **native binary 说明**：官方安装器和新版 npm 包装到的是 native 二进制。插件会提取其中的 JS → 翻译 → 写回，并做启动自检；补丁、重打包或自检失败会恢复原文件。macOS arm64 已验证 \`${renderRange(macosNative)}\` 内的版本（完整清单见[支持矩阵](./docs/support-matrix.md)）；更高的源码容器版本也会本机自检，需要 \`node-lief\`。官方从 \`2.1.242\` 起改为 Bun bytecode 编译容器（界面文字在编译后的字节码中），Layer 4 暂不支持并安全跳过，Layer 1~3 不受影响；需要完整 UI 中文请先使用窗口内版本。${linuxNative && linuxNative.unsupported !== true ? `Linux x64 glibc 仅启用 \`${linuxNative.ceiling}\`，需要 \`node-lief >=1.3.0\`，不尝试 provisional latest。` : ""}macOS 可在新会话安全补丁；Windows 不热改运行中的 exe，更新后需关闭窗口并重跑 \`install.ps1\`。`,
+          `> **native binary 说明**：官方安装器和新版 npm 包安装的是原生程序。插件会按容器格式翻译：源码构建提取并写回 JS，字节码构建在原字符串占位内写入中文；译文超过占位长度时保留英文。两条路径均在启动自检通过后记录成功，macOS 还会重新签名。已验证版本见[支持矩阵](./docs/support-matrix.md)，不代表完整中文覆盖。${linuxNative && linuxNative.unsupported !== true ? `Linux x64 glibc 仅启用矩阵列出的版本，需要 \`node-lief >=1.3.0\`。` : ""}Windows 更新 Claude Code 后，请关闭所有 Claude Code 窗口，再重跑 \`install.ps1\`。`,
         ]
       : []),
     "",

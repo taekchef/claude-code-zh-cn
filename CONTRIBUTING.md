@@ -57,6 +57,7 @@ bash scripts/preflight.sh --base <base-sha> --skip-release-state
 - `cli-translations.json`
 - `bun-binary-io.js`
 - `compute-patch-revision.sh`
+- `scripts/patch-bytecode.js` → `plugin/scripts/patch-bytecode.js`
 
 规则：
 
@@ -76,6 +77,10 @@ CI 有两道检查：
 - `tests/plugin-payload.test.js`：检查根目录源文件和 `plugin/` 镜像内容完全一致
 
 这两道检查只影响本地校验和 CI，不改变 `install.sh`、`plugin/hooks/session-start` 或用户现有安装流程。
+
+## 原生安装流程验证
+
+候选版本先运行 `scripts/verify-upstream-compat.js`，通过后更新支持清单。CI 对字节码版本额外传入 `--verify-install`，在隔离用户目录及官方程序副本上检查完整安装、诊断、重复安装和卸载；未进入 Linux 支持清单的版本不能用此步骤宣称安装成功。
 
 ## 发布状态校验
 
@@ -123,5 +128,5 @@ node scripts/verify-settings-sources.js
 
 - `npm` 安装：稳定支持
 - `macOS 官方安装器`：实验性支持
-- `Linux x64 glibc 原生二进制`：仅实验性支持已验证的 `2.1.220`
+- `Linux x64 glibc 原生二进制`：实验性支持已验证的 `2.1.220`、`2.1.242`、`2.1.252`、`2.1.260`、`2.1.263`；完整版本清单以[支持矩阵](./docs/support-matrix.md)为准
 - `Linux ARM64 / musl / 其他原生形态`：暂不支持 CLI Patch

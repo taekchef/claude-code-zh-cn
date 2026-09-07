@@ -18,6 +18,7 @@ const PATCH_REVISION_FILES = [
   "cli-translations.json",
   "bun-binary-io.js",
   "compute-patch-revision.sh",
+  "scripts/patch-bytecode.js",
 ];
 const NPM_RESIDUE_PROBES = [
   "Quick safety check",
@@ -134,7 +135,7 @@ function isSupportedNativeVersion(version, support, platform = "") {
   return versions.includes(version);
 }
 
-// bytecode 容器等不支持 Layer 4 的场景要给"回退到哪个版本"的建议；
+// 无法执行 CLI Patch 时，从实际验证记录生成版本建议；
 // 从支持窗口里取本平台已验证的最高版本，避免硬编码数字随窗口推进过期。
 function bestNativeVersionForPlatform(support, platform = "") {
   const versions = [];
@@ -786,20 +787,20 @@ function runDoctor(options = {}) {
     const bytecodeContainer =
       liefOk && probeNativeContainerLayout(bunBinaryIoPath, target) === "bytecode";
     if (bytecodeContainer) {
-      layer4Status = "unsupported";
-      layer4Detail = `native ${cliVersion || "unknown"} 为 Bun bytecode 编译容器（界面文字在编译后的字节码中），Layer 4 暂不支持`;
-      add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
-      recommendations.push("该构建把界面文字编译进了字节码，patch 源码的方式不适用；Layer 1~3（settings / 插件 / hooks / spinner）不受影响");
-      const nativeBest = bestNativeVersionForPlatform(support, nativePlatform);
-      if (nativeBest) {
-        recommendations.push(
-          `如需完整 UI 中文：npm install -g @anthropic-ai/claude-code@${nativeBest}（本平台支持窗口内最高已验证版本），安装后重跑 install.sh / install.ps1 重新 patch`
-        );
-        recommendations.push(`翻译最完整的旧 npm 形态：${STABLE_INSTALL_CMD}`);
-      } else {
-        recommendations.push(`如需完整 UI 中文：${STABLE_INSTALL_CMD}，或临时回退到支持窗口内已验证版本`);
+      const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
+      const currentRevision = computePatchRevision(pluginRoot);
+      const current = marker.kind === "native" && marker.version === cliVersion &&
+        Boolean(marker.hash && currentHash && marker.hash === currentHash) &&
+        Boolean(marker.revision && currentRevision && marker.revision === currentRevision);
+      layer4Status = current ? (supported ? "ok" : "provisional") : "needed";
+      layer4Detail = `native ${cliVersion || "unknown"} 字节码汉化：` +
+        (current ? "当前版本、文件校验值与翻译规则记录一致" : "尚未执行或汉化记录已失效");
+      add("layer4", "Layer 4（UI 硬编码）", current && supported ? "ok" : "warn", layer4Detail);
+      if (!current) {
+        const installer = nativePlatform === "win32-x64" ? "install.ps1" : "./install.sh";
+        recommendations.push(`关闭 Claude Code 后重跑 ${installer}，执行字节码汉化与启动自检`);
       }
-      recommendations.push("等插件适配 bytecode 容器后再升级");
+      if (!supported) recommendations.push("当前版本尚未纳入本平台已发布支持窗口，本机通过不等于完整中文覆盖");
     } else if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
       const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
       const currentRevision = computePatchRevision(pluginRoot);

@@ -14,6 +14,7 @@ const PATCH_REVISION_FILES = [
   "cli-translations.json",
   "bun-binary-io.js",
   "compute-patch-revision.sh",
+  "scripts/patch-bytecode.js",
 ];
 
 function readJson(file) {

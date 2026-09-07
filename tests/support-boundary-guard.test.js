@@ -252,7 +252,7 @@ test("support boundary guard allows only the published Linux x64 glibc version",
   const result = runGuard(repo);
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /x64 glibc 2\.1\.220/);
+  assert.match(result.stdout, /verified x64 glibc versions only/);
   assert.match(result.stdout, /no provisional latest/);
 });
 
@@ -277,7 +277,7 @@ test("support boundary guard rejects Linux native scope drift", () => {
   const result = runGuard(repo);
 
   assert.equal(result.status, 1, result.stderr || result.stdout);
-  assert.match(result.stdout, /Linux native 仅允许 x64 glibc 2\.1\.220/);
+  assert.match(result.stdout, /ceiling 不能使用非数字版本 latest/);
   assert.match(result.stdout, /linuxNativeExperimental platform 必须是 linux-x64/);
   assert.match(result.stdout, /linuxNativeExperimental libc 必须是 glibc/);
   assert.match(result.stdout, /linuxNativeExperimental packageName 必须是 @anthropic-ai\/claude-code-linux-x64/);

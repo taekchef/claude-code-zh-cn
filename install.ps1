@@ -59,12 +59,19 @@ function write-unpublished-window-note {
 function test-binary-writable {
     param([string]$Path)
     if (-not (Test-Path $Path)) { return $false }
-    try {
-        $fs = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-        $fs.Close()
-        return $true
-    } catch {
-        return $false
+    # Windows 后台程序在 CLI 自检后可占用文件数秒；最多等待约 10 秒，始终要求独占写入成功。
+    for ($attempt = 0; $attempt -lt 40; $attempt++) {
+        try {
+            $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $stream.Dispose()
+            return $true
+        } catch {
+            $cause = $_.Exception
+            while ($cause.InnerException) { $cause = $cause.InnerException }
+            $script:NativeWriteFailure = $cause.Message
+            if (($cause.HResult -band 0xffff) -ne 32 -or $attempt -eq 39) { return $false }
+            Start-Sleep -Milliseconds 250
+        }
     }
 }
 
@@ -117,7 +124,7 @@ function run-install-json-helper {
 $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.env.ZH_CN_SETTINGS_DIR;try{var all=fs.readdirSync(dir).filter(function(n){return n.indexOf('settings.json.zh-cn-backup.')===0}).sort();var stale=all.slice(0,Math.max(0,all.length-5));for(var i=0;i<stale.length;i++){fs.unlinkSync(path.join(dir,stale[i]))}}catch(e){}"
 $JS_BUILD_OVERLAY_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var base=r(process.argv[2]);var verbs=r(process.argv[3]);var tips=r(process.argv[4]);base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:(tips.tips||[]).map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
 $JS_DEEP_MERGE_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var sf=process.argv[2];var of=process.argv[3];function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={};var k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}fs.writeFileSync(sf,JSON.stringify(dm(r(sf),r(of)),null,2)+'\n');process.stdout.write('ok')"
-$JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
+$JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh','scripts/patch-bytecode.js'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
 $JS_CCSWITCH_STATUS = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function vc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.verbs))return v.verbs.length;return Object.keys(v).length}function tc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.tips))return v.tips.length;return 0}try{var c=r(process.argv[2],{});r(process.argv[3],{});if(!po(c)){process.stdout.write('invalid');process.exit(0)}var ok=c.language==='Chinese'&&c.spinnerTipsEnabled===true&&vc(c.spinnerVerbs)>=100&&tc(c.spinnerTipsOverride)>=40;process.stdout.write(ok?'ok':'needs-sync')}catch(e){process.stdout.write('invalid')}"
 $JS_CCSWITCH_MERGE = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={},k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}var c=r(process.argv[2],{}),o=r(process.argv[3],{});if(!po(c)||!po(o))process.exit(2);fs.writeFileSync(process.argv[4],JSON.stringify(dm(c,o),null,2)+'\n')"
 $JS_CCSWITCH_PROVIDER_SQL = @'
@@ -1197,7 +1204,7 @@ function patch-native-bun {
         $procs = find-claude-processes
         $procList = ($procs | ForEach-Object { "PID=$($_.Id)" }) -join ", "
         if (-not $procList) { $procList = "（未列出 claude 进程，可能由其他句柄占用）" }
-        Write-CN "  原生二进制被运行中的 Claude Code 进程占用，无法写入（$procList）" Red
+        Write-CN "  原生二进制无法独占写入（$procList）：$script:NativeWriteFailure" Red
         Write-CN "  请手动退出所有 Claude Code 实例（关闭所有 CC 窗口，含当前会话），然后重新运行 install.ps1。" Yellow
         Write-CN "  Layer 1~3（settings / 插件目录 / hooks）已在本会话写入；CLI Patch 待所有实例退出后重跑才能完成。" Yellow
         write-support-window-link
@@ -1216,20 +1223,7 @@ function patch-native-bun {
         return
     }
 
-    # 预检容器形态：bytecode 编译构建（stub + 编译字节码 + chunk 拆分）不能走 Layer 4，
-    # 在备份/改动二进制之前就明确跳过，避免产出无法启动的二进制再回滚。
-    $containerLayout = ""
-    try {
-        $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
-    } catch {}
-    if ($containerLayout -eq "bytecode") {
-        Write-CN "当前版本 $currentVersion 的原生二进制为 Bun bytecode 编译容器（界面文字在编译后的字节码里），Layer 4 暂不支持，已安全跳过 CLI Patch。" Yellow
-        Write-CN "  这类容器强行 patch 会产出无法启动的二进制，因此本次没有对二进制做任何改动。" Yellow
-        Write-CN "  Layer 1~3（settings / 插件目录 / hooks / spinner）不受影响。如需完整 UI 中文，请临时使用支持窗口内的版本，等插件适配 bytecode 容器后再升级。" Yellow
-        write-support-window-link
-        $script:CliPatchStatusSummary = "已跳过（版本 $currentVersion 为 Bun bytecode 编译容器，Layer 4 暂不支持）"
-        return
-    }
+    $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
 
     $tmpJs = Join-Path $TmpDir "claude-zh-cn-extract-$PID.js"
     $backupFile = "$BinaryPath.zh-cn-backup"
@@ -1254,18 +1248,24 @@ function patch-native-bun {
     if (-not $sourceHash) { $sourceHash = "unknown" }
 
     try {
-        node $helper extract $BinaryPath $tmpJs | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "extract failed" }
-
-        $patchScript = Join-Path $PluginDst "patch-cli.js"
         $translationsFile = Join-Path $PluginDst "cli-translations.json"
-        $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "patch-cli failed" }
+        if ($containerLayout -eq "bytecode") {
+            $patchCount = node "$PluginDst\scripts\patch-bytecode.js" patch $BinaryPath $translationsFile
+            if ($LASTEXITCODE -ne 0) { throw "bytecode patch failed" }
+        } else {
+            node $helper extract $BinaryPath $tmpJs | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "extract failed" }
+            $patchScript = Join-Path $PluginDst "patch-cli.js"
+            $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
+            if ($LASTEXITCODE -ne 0) { throw "patch-cli failed" }
+        }
         if (-not $patchCount) { $patchCount = "0" }
 
         if ([int]$patchCount -gt 0) {
-            node $helper repack $BinaryPath $tmpJs | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "repack failed" }
+            if ($containerLayout -ne "bytecode") {
+                node $helper repack $BinaryPath $tmpJs | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "repack failed" }
+            }
             Write-Host "  正在运行 --version 做启动自检..."
             $verifiedVersion = get-native-version-from-execution $BinaryPath
             if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }
