@@ -6,6 +6,27 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.15.0] - 2026-09-07
+
+### 新增
+
+- **Layer 4B：Bun bytecode 容器常量池原地 patch**（`scripts/patch-bytecode.js`，payload 同步 `plugin/scripts/`）。2.1.242 起官方 native 构建改为 Bun bytecode 编译容器，此前 Layer 4（extract/patch/repack）不适用、CLI Patch 被整体跳过。本轮实测并打通了 bytecode 容器内的字符串 patch 路径：
+  - 常量池条目格式 `[u32: flags<<24 | charLen][u32 hash][content]`，`flags=0x80` 为 8-bit Latin-1、`flags=0x00` 为 16-bit UTF-16LE；
+  - bytecode 按条目起点偏移引用字符串，**内容占位不变则偏移全部有效**；8-bit 条目可原地翻转为 16-bit（译文字符数×2 ≤ 原文字节数，UTF-16LE 译文 + 0x00 填充写满原占位），hash 不校验；
+  - 引擎直接复用 `cli-translations.json`（自动跳过 `skipPatch` 模型契约条目）；译文超长（译文字符数×2 > 原文占位）的条目记入 `tooLong` 安全跳过，不做任何改动；
+  - patch 前自动备份 `<binary>.zh-cn-bytecode-backup`；幂等（已 patch 的条目不再命中）。
+- `install.ps1` 的 bytecode 分支从「整体跳过」改为调用 Layer 4B 引擎，完成后 CLI Patch 状态显示 `bytecode 常量池原地 patch 完成（Layer 4B）`。
+
+### 验证（Windows x64 native `2.1.260` 实测）
+
+- 单机全表 patch 副本：1133 条常量池条目重写为 16-bit 中文，`--version` / `--help`（225 行差异）/ 真实 API 请求全部正常；幂等复跑无改动。
+- 对照实验：等长替换（拉丁文本生效）、改长（len 字段改写安全）、推挤（内容变长必然损坏二进制）三类实验各验证过机制假设；条目格式、16-bit flag 编码、占位约束由此钉死。
+- `tests/patch-bytecode.test.js` 6 个用例：原地翻转、not-found 不写盘、译文超长跳过、skipPatch 契约保护、16-bit 原地 patch、幂等。
+
+### 边界登记
+
+- `windowsNativeExperimental` 的 `verification` 追加 `2.1.260 PASS-Layer4B(...)` 实测记录；`notes` 更新 bytecode 容器的机制说明与 Layer 4B 路径。**ceiling 维持 2.1.241**——传统 extract/patch/repack 验证窗口不变，Layer 4B 对 2.1.242+ 的 bytecode 容器同样适用但走独立路径，不支持矩阵宣称。
+
 ## [2.14.1] - 2026-09-06
 
 ### 修复

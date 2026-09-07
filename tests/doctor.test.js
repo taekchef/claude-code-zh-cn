@@ -557,13 +557,14 @@ test("runDoctor explains Bun bytecode containers instead of a generic unsupporte
   });
 
   const layer4 = result.checks.find((item) => item.id === "layer4");
+  // bytecode 容器现走 Layer 4B（常量池原地 patch）：无备份时提示待执行
   assert.equal(layer4.status, "warn");
   assert.match(layer4.detail, /bytecode 编译容器/);
-  assert.match(layer4.detail, /Layer 4 暂不支持/);
-  assert.equal(result.layer4Status, "unsupported");
+  assert.match(layer4.detail, /Layer 4B/);
+  assert.match(layer4.detail, /尚未执行/);
+  assert.equal(result.layer4Status, "layer4b");
   assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.237")));
-  assert.ok(result.recommendations.some((line) => line.includes("npm install -g @anthropic-ai/claude-code@2.1.112")));
-  assert.ok(result.recommendations.some((line) => line.includes("Layer 1~3")));
+  assert.ok(result.recommendations.some((line) => line.includes("重跑 install.ps1")));
 });
 
 test("bestNativeVersionForPlatform picks the highest verified version per platform", () => {

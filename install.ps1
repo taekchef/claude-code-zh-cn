@@ -1216,18 +1216,37 @@ function patch-native-bun {
         return
     }
 
-    # 预检容器形态：bytecode 编译构建（stub + 编译字节码 + chunk 拆分）不能走 Layer 4，
-    # 在备份/改动二进制之前就明确跳过，避免产出无法启动的二进制再回滚。
+    # 预检容器形态：bytecode 编译构建（stub + 编译字节码 + chunk 拆分）不能走 Layer 4 的
+    # 「提取源码→重打包」流程，改走 bytecode 常量池原地 patch（patch-bytecode.js）。
     $containerLayout = ""
     try {
         $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
     } catch {}
     if ($containerLayout -eq "bytecode") {
-        Write-CN "当前版本 $currentVersion 的原生二进制为 Bun bytecode 编译容器（界面文字在编译后的字节码里），Layer 4 暂不支持，已安全跳过 CLI Patch。" Yellow
-        Write-CN "  这类容器强行 patch 会产出无法启动的二进制，因此本次没有对二进制做任何改动。" Yellow
-        Write-CN "  Layer 1~3（settings / 插件目录 / hooks / spinner）不受影响。如需完整 UI 中文，请临时使用支持窗口内的版本，等插件适配 bytecode 容器后再升级。" Yellow
+        $bytecodeEngine = "$PluginDst\scripts\patch-bytecode.js"
+        if (-not (Test-Path $bytecodeEngine)) {
+            $bytecodeEngine = "$PluginSrc\scripts\patch-bytecode.js"
+        }
+        $bytecodeTrans = "$PluginDst\cli-translations.json"
+        if (-not (Test-Path $bytecodeTrans)) {
+            $bytecodeTrans = "$PluginSrc\cli-translations.json"
+        }
+        if ((Test-Path $bytecodeEngine) -and (Test-Path $bytecodeTrans)) {
+            Write-CN "当前版本 $currentVersion 为 Bun bytecode 编译容器，走常量池原地 patch（Layer 4B）。" Blue
+            & node $bytecodeEngine patch $BinaryPath $bytecodeTrans --json
+            $patchExit = $LASTEXITCODE
+            if ($patchExit -ne 0) {
+                Write-CN "  bytecode 常量池 patch 失败（exit $patchExit），二进制未改动，Layer 4B 已跳过。" Yellow
+                $script:CliPatchStatusSummary = "已跳过（bytecode 常量池 patch 执行失败）"
+            } else {
+                $script:CliPatchStatusSummary = "bytecode 常量池原地 patch 完成（Layer 4B）"
+                $script:CliPatchStatusOk = $true
+            }
+        } else {
+            Write-CN "  bytecode 常量池 patch 引擎缺失（patch-bytecode.js / cli-translations.json），Layer 4B 已跳过。" Yellow
+            $script:CliPatchStatusSummary = "已跳过（bytecode patch 引擎文件缺失）"
+        }
         write-support-window-link
-        $script:CliPatchStatusSummary = "已跳过（版本 $currentVersion 为 Bun bytecode 编译容器，Layer 4 暂不支持）"
         return
     }
 

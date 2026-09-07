@@ -786,20 +786,25 @@ function runDoctor(options = {}) {
     const bytecodeContainer =
       liefOk && probeNativeContainerLayout(bunBinaryIoPath, target) === "bytecode";
     if (bytecodeContainer) {
-      layer4Status = "unsupported";
-      layer4Detail = `native ${cliVersion || "unknown"} 为 Bun bytecode 编译容器（界面文字在编译后的字节码中），Layer 4 暂不支持`;
-      add("layer4", "Layer 4（UI 硬编码）", "warn", layer4Detail);
-      recommendations.push("该构建把界面文字编译进了字节码，patch 源码的方式不适用；Layer 1~3（settings / 插件 / hooks / spinner）不受影响");
+      layer4Status = "layer4b";
+      layer4Detail = `native ${cliVersion || "unknown"} 为 Bun bytecode 编译容器，走常量池原地 patch（Layer 4B）`;
+      const layer4bBackup = target + ".zh-cn-bytecode-backup";
+      const hasLayer4b = fs.existsSync(layer4bBackup);
+      add(
+        "layer4",
+        "Layer 4（UI 硬编码）",
+        hasLayer4b ? "ok" : "warn",
+        hasLayer4b ? layer4Detail + "：已执行常量池 patch" : layer4Detail + "：尚未执行"
+      );
+      if (!hasLayer4b) {
+        recommendations.push("关闭所有 Claude Code 窗口后重跑 install.ps1，执行 Layer 4B 常量池 patch");
+      }
       const nativeBest = bestNativeVersionForPlatform(support, nativePlatform);
       if (nativeBest) {
         recommendations.push(
-          `如需完整 UI 中文：npm install -g @anthropic-ai/claude-code@${nativeBest}（本平台支持窗口内最高已验证版本），安装后重跑 install.sh / install.ps1 重新 patch`
+          `如需传统 extract/patch/repack 形态的完整审计：npm install -g @anthropic-ai/claude-code@${nativeBest}（本平台支持窗口内最高已验证版本），安装后重跑 install.sh / install.ps1`
         );
-        recommendations.push(`翻译最完整的旧 npm 形态：${STABLE_INSTALL_CMD}`);
-      } else {
-        recommendations.push(`如需完整 UI 中文：${STABLE_INSTALL_CMD}，或临时回退到支持窗口内已验证版本`);
       }
-      recommendations.push("等插件适配 bytecode 容器后再升级");
     } else if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
       const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
       const currentRevision = computePatchRevision(pluginRoot);
