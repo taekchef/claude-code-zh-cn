@@ -8319,11 +8319,11 @@
   },
   {
     "en": "Plan Approved by ",
-    "zh": "计划已由 "
+    "zh": "计划批准人："
   },
   {
     "en": "Plan Rejected by ",
-    "zh": "计划已由 "
+    "zh": "计划拒绝人："
   },
   {
     "en": "Stop hook feedback",
