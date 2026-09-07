@@ -59,8 +59,8 @@ function write-unpublished-window-note {
 function test-binary-writable {
     param([string]$Path)
     if (-not (Test-Path $Path)) { return $false }
-    # Windows 在刚执行 CLI 自检后可能短暂保留共享句柄；只重试共享冲突，始终要求独占写入成功。
-    for ($attempt = 0; $attempt -lt 12; $attempt++) {
+    # Windows 后台程序在 CLI 自检后可占用文件数秒；最多等待约 10 秒，始终要求独占写入成功。
+    for ($attempt = 0; $attempt -lt 40; $attempt++) {
         try {
             $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
             $stream.Dispose()
@@ -69,7 +69,7 @@ function test-binary-writable {
             $cause = $_.Exception
             while ($cause.InnerException) { $cause = $cause.InnerException }
             $script:NativeWriteFailure = $cause.Message
-            if (($cause.HResult -band 0xffff) -ne 32 -or $attempt -eq 11) { return $false }
+            if (($cause.HResult -band 0xffff) -ne 32 -or $attempt -eq 39) { return $false }
             Start-Sleep -Milliseconds 250
         }
     }

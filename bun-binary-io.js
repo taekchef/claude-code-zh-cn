@@ -522,9 +522,9 @@ function replaceBinaryFile(sourcePath, outputPath) {
       fs.renameSync(sourcePath, outputPath);
       return;
     } catch (error) {
-      // Windows may retain a sharing handle briefly after a CLI self-check exits.
+      // Windows background processes can retain image handles for several seconds.
       // Keep the original file intact if the lock does not clear.
-      if (process.platform !== "win32" || attempt === 11 || !["EPERM", "EBUSY", "EACCES"].includes(error.code)) throw error;
+      if (process.platform !== "win32" || attempt === 39 || !["EPERM", "EBUSY", "EACCES"].includes(error.code)) throw error;
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
     }
   }

@@ -561,7 +561,7 @@ $job = Start-Job -ArgumentList $file -ScriptBlock {
   $lock = [System.IO.File]::Open($file, 'Open', 'Write', 'None')
   try {
     [System.IO.File]::WriteAllText("$file.ready", "ready")
-    Start-Sleep -Milliseconds 1000
+    Start-Sleep -Milliseconds 4500
   } finally { $lock.Dispose() }
 }
 try {
@@ -607,7 +607,7 @@ $job = Start-Job -ArgumentList $file -ScriptBlock {
   $lock = [System.IO.File]::Open($file, 'Open', 'Read', 'Read')
   try {
     [System.IO.File]::WriteAllText("$file.ready", "ready")
-    Start-Sleep -Milliseconds 1000
+    Start-Sleep -Milliseconds 4500
   } finally { $lock.Dispose() }
 }
 try {
