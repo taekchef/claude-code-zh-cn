@@ -71,7 +71,7 @@ jobs:
           node-version: 24
 
       - name: Install native verification dependency
-        run: npm install --no-save node-lief@1.3.2
+        run: npm install --global node-lief@1.3.2
 
       - name: Verify Linux native baseline
         run: node scripts/verify-upstream-compat.js --skip-latest --native-linux-x64 --fail-on-skip --json --verify-install
@@ -93,7 +93,7 @@ jobs:
           node-version: 24
 
       - name: Install native verification dependency
-        run: npm install --no-save node-lief@1.3.2
+        run: npm install --global node-lief@1.3.2
 
       - name: Verify Windows native support window
         shell: powershell
@@ -116,7 +116,7 @@ jobs:
         with:
           node-version: 24
       - name: Install native verification dependency
-        run: npm install --no-save node-lief@1.3.2
+        run: npm install --global node-lief@1.3.2
       - name: Verify published bytecode versions
         run: |
           VERSIONS="$(node -p 'require("./scripts/upstream-compat.config.json").support.macosNativeExperimental.representatives.filter(v => Number(v.split(".")[2]) >= 242).join(",")')"

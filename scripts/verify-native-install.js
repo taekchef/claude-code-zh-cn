@@ -7,7 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const assert = require("node:assert/strict");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, execSync } = require("node:child_process");
 const repo = path.resolve(__dirname, "..");
 const source = process.argv[2];
 if (!source) throw new Error("Usage: node scripts/verify-native-install.js <official-binary>");
@@ -23,6 +23,8 @@ fs.copyFileSync(source, target);
 fs.chmodSync(target, 0o755);
 const env = {
   ...process.env, HOME: home, USERPROFILE: home,
+  // Keep the machine dependency prefix while isolating user settings on Windows.
+  NPM_CONFIG_PREFIX: execSync("npm prefix -g", { encoding: "utf8" }).trim(),
   CLAUDE_CONFIG_DIR: path.join(home, ".claude"),
   XDG_CONFIG_HOME: path.join(home, ".config"),
   XDG_CACHE_HOME: path.join(home, ".cache"),
