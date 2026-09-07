@@ -586,6 +586,59 @@ try {
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
+test("Windows binary replacement waits for release and preserves a persistently locked target", { skip: windowsPowerShellRequired }, () => {
+  const powershell = locateWindowsPowerShell();
+  assert.ok(powershell);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-replace-lock-"));
+  const check = path.join(tmp, "check.ps1");
+  const replacement = path.join(tmp, "replace.cjs");
+  fs.writeFileSync(replacement, `
+try { require(${JSON.stringify(path.join(repoRoot, "bun-binary-io.js"))}).replaceBinaryFile(process.argv[2], process.argv[3]); }
+catch (error) { process.stdout.write(error.code); process.exitCode = 1; }
+`);
+  fs.writeFileSync(check, `
+$ErrorActionPreference = "Stop"
+$file = $env:CCZH_LOCK_FILE
+$candidate = "$file.candidate"
+[System.IO.File]::WriteAllText($file, "original")
+[System.IO.File]::WriteAllText($candidate, "replacement")
+$job = Start-Job -ArgumentList $file -ScriptBlock {
+  param($file)
+  $lock = [System.IO.File]::Open($file, 'Open', 'Read', 'Read')
+  try {
+    [System.IO.File]::WriteAllText("$file.ready", "ready")
+    Start-Sleep -Milliseconds 1000
+  } finally { $lock.Dispose() }
+}
+try {
+  $deadline = (Get-Date).AddSeconds(15)
+  while (-not (Test-Path "$file.ready")) {
+    if ((Get-Date) -gt $deadline) { throw "lock holder did not start" }
+    Start-Sleep -Milliseconds 20
+  }
+  & $env:CCZH_NODE $env:CCZH_REPLACE_SCRIPT $candidate $file
+  if ($LASTEXITCODE -ne 0) { throw "replacement failed after lock release" }
+  Receive-Job $job -Wait | Out-Null
+  if ([System.IO.File]::ReadAllText($file) -ne "replacement") { throw "replacement did not reach target" }
+  [System.IO.File]::WriteAllText($candidate, "second")
+  $lock = [System.IO.File]::Open($file, 'Open', 'Read', 'Read')
+  try {
+    & $env:CCZH_NODE $env:CCZH_REPLACE_SCRIPT $candidate $file
+    if ($LASTEXITCODE -eq 0) { throw "locked target was replaced" }
+  } finally { $lock.Dispose() }
+  if ([System.IO.File]::ReadAllText($file) -ne "replacement") { throw "locked target was lost" }
+  if ([System.IO.File]::ReadAllText($candidate) -ne "second") { throw "candidate was lost" }
+} finally { Remove-Job $job -Force -ErrorAction SilentlyContinue }
+exit 0
+`);
+  try {
+    const result = runWindowsPowerShell(powershell, ["-File", check], {
+      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe"), CCZH_NODE: process.execPath, CCZH_REPLACE_SCRIPT: replacement }, timeout: 30000,
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
 test("install.ps1 avoids PowerShell smart quotes in script strings", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
 

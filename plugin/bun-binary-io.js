@@ -516,6 +516,20 @@ function buildSectionData(bunBuffer, headerSize) {
   return sectionData;
 }
 
+function replaceBinaryFile(sourcePath, outputPath) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.renameSync(sourcePath, outputPath);
+      return;
+    } catch (error) {
+      // Windows may retain a sharing handle briefly after a CLI self-check exits.
+      // Keep the original file intact if the lock does not clear.
+      if (process.platform !== "win32" || attempt === 11 || !["EPERM", "EBUSY", "EACCES"].includes(error.code)) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
+}
+
 function atomicWriteBinary(LIEF, binary, outputPath, originalPath) {
   const tempPath = outputPath + ".tmp";
   binary.write(tempPath);
@@ -524,7 +538,7 @@ function atomicWriteBinary(LIEF, binary, outputPath, originalPath) {
     fs.chmodSync(tempPath, origStat.mode);
   } catch {}
   try {
-    fs.renameSync(tempPath, outputPath);
+    replaceBinaryFile(tempPath, outputPath);
   } catch (error) {
     try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch {}
     if (error && (error.code === "ETXTBSY" || error.code === "EBUSY" || error.code === "EPERM")) {
@@ -920,7 +934,7 @@ function cmdHash() {
 // CLI 入口
 // ============================================================================
 
-module.exports = { loadNodeLief, extractNativeBun, findClaudeModule, claudeBytecodeGuardReason, signAndVerifyMachO, readExecutableVersion };
+module.exports = { loadNodeLief, extractNativeBun, findClaudeModule, claudeBytecodeGuardReason, signAndVerifyMachO, readExecutableVersion, replaceBinaryFile };
 
 if (require.main === module) {
 const command = process.argv[2];

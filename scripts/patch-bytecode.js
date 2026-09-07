@@ -95,7 +95,7 @@ function patchBinary(binaryPath, translations, { dryRun = false } = {}) {
     const help = execFileSync(candidate, ["--help"], { encoding: "utf8", timeout: 20000, stdio: ["ignore", "pipe", "pipe"] });
     if (!/[\u3400-\u9fff]/u.test(help)) throw new Error("汉化副本帮助界面未出现中文，未改动原文件");
     if (!sameVersionBackup) fs.copyFileSync(binaryPath, backupPath);
-    fs.renameSync(candidate, binaryPath);
+    io.replaceBinaryFile(candidate, binaryPath);
     return { ...summary, version, backup: backupPath, changed: true };
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -113,7 +113,7 @@ function restoreBinary(binaryPath) {
   try {
     const candidate = path.join(tempDir, path.basename(binaryPath));
     fs.copyFileSync(backup, candidate);
-    fs.renameSync(candidate, binaryPath);
+    io.replaceBinaryFile(candidate, binaryPath);
     fs.unlinkSync(backup);
     return { restored: true, version };
   } finally {
