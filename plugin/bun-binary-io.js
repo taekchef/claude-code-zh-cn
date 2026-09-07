@@ -516,11 +516,10 @@ function buildSectionData(bunBuffer, headerSize) {
   return sectionData;
 }
 
-function replaceBinaryFile(sourcePath, outputPath) {
+function withWindowsFileRetry(operation) {
   for (let attempt = 0; ; attempt++) {
     try {
-      fs.renameSync(sourcePath, outputPath);
-      return;
+      return operation();
     } catch (error) {
       // Windows background processes can retain image handles for several seconds.
       // Keep the original file intact if the lock does not clear.
@@ -538,9 +537,9 @@ function atomicWriteBinary(LIEF, binary, outputPath, originalPath) {
     fs.chmodSync(tempPath, origStat.mode);
   } catch {}
   try {
-    replaceBinaryFile(tempPath, outputPath);
+    withWindowsFileRetry(() => fs.renameSync(tempPath, outputPath));
   } catch (error) {
-    try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch {}
+    try { if (fs.existsSync(tempPath)) withWindowsFileRetry(() => fs.unlinkSync(tempPath)); } catch {}
     if (error && (error.code === "ETXTBSY" || error.code === "EBUSY" || error.code === "EPERM")) {
       throw new Error("Cannot update the Claude executable while it is running. Please close all Claude instances and try again.");
     }
@@ -934,7 +933,7 @@ function cmdHash() {
 // CLI 入口
 // ============================================================================
 
-module.exports = { loadNodeLief, extractNativeBun, findClaudeModule, claudeBytecodeGuardReason, signAndVerifyMachO, readExecutableVersion, replaceBinaryFile };
+module.exports = { loadNodeLief, extractNativeBun, findClaudeModule, claudeBytecodeGuardReason, signAndVerifyMachO, readExecutableVersion, withWindowsFileRetry };
 
 if (require.main === module) {
 const command = process.argv[2];

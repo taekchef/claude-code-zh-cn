@@ -94,11 +94,11 @@ function patchBinary(binaryPath, translations, { dryRun = false } = {}) {
     if (io.readExecutableVersion(candidate) !== version) throw new Error("汉化副本启动自检失败，未改动原文件");
     const help = execFileSync(candidate, ["--help"], { encoding: "utf8", timeout: 20000, stdio: ["ignore", "pipe", "pipe"] });
     if (!/[\u3400-\u9fff]/u.test(help)) throw new Error("汉化副本帮助界面未出现中文，未改动原文件");
-    if (!sameVersionBackup) fs.copyFileSync(binaryPath, backupPath);
-    io.replaceBinaryFile(candidate, binaryPath);
+    if (!sameVersionBackup) io.withWindowsFileRetry(() => fs.copyFileSync(binaryPath, backupPath));
+    io.withWindowsFileRetry(() => fs.renameSync(candidate, binaryPath));
     return { ...summary, version, backup: backupPath, changed: true };
   } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    io.withWindowsFileRetry(() => fs.rmSync(tempDir, { recursive: true, force: true }));
   }
 }
 
@@ -113,11 +113,11 @@ function restoreBinary(binaryPath) {
   try {
     const candidate = path.join(tempDir, path.basename(binaryPath));
     fs.copyFileSync(backup, candidate);
-    io.replaceBinaryFile(candidate, binaryPath);
-    fs.unlinkSync(backup);
+    io.withWindowsFileRetry(() => fs.renameSync(candidate, binaryPath));
+    io.withWindowsFileRetry(() => fs.unlinkSync(backup));
     return { restored: true, version };
   } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    io.withWindowsFileRetry(() => fs.rmSync(tempDir, { recursive: true, force: true }));
   }
 }
 
