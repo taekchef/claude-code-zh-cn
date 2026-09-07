@@ -156,12 +156,12 @@ test("README support window sync rewrites badges, support table, and install adv
   assert.match(text, /macos%20native-2\.1\.121--2\.1\.130-green/);
   assert.match(text, /linux%20native-2\.1\.220--2\.1\.220-green/);
   assert.match(text, /\| macOS · native binary（arm64） \| `2\.1\.121 - 2\.1\.130` 内的已验证版本 \|/);
-  assert.match(text, /\| Linux · native binary（x64 glibc） \| `2\.1\.220 - 2\.1\.220` \| 需要 `node-lief >=1\.3\.0`；仅该版本，不含 arm64、musl 或 latest \|/);
+  assert.match(text, /\| Linux · native binary（x64 glibc） \| `2\.1\.220 - 2\.1\.220` \| 需要 `node-lief >=1\.3\.0`；仅支持矩阵列出的版本，不含 arm64、musl \|/);
   assert.match(text, /npm install -g @anthropic-ai\/claude-code@2\.1\.120/);
   assert.match(text, /\*\*macOS \/ Windows 版本号不是运行门禁\*\*/);
   assert.match(text, /已有词条继续中文，新文案原样保留英文/);
   assert.match(text, /\*\*Linux 不走 provisional\*\*/);
-  assert.match(text, /Linux x64 glibc 仅启用已发布的 `2\.1\.220`/);
+  assert.match(text, /Linux x64 glibc 仅启用支持矩阵列出的已验证版本/);
   assert.match(text, /claude\.ai\/install\.sh \\?\| bash -s 2\.1\.220/);
   assert.match(text, /\*\*失败不伤 CLI\*\*/);
   assert.match(text, /\*\*格式变化才停手\*\*/);

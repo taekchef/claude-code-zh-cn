@@ -6,36 +6,29 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
-## [2.15.0] - 2026-09-07
+## [2.15.0] - 2026-09-08
 
 ### 新增
 
-- **Layer 4B：Bun bytecode 容器常量池原地 patch**（`scripts/patch-bytecode.js`，payload 同步 `plugin/scripts/`）。2.1.242 起官方 native 构建改为 Bun bytecode 编译容器，此前 Layer 4（extract/patch/repack）不适用、CLI Patch 被整体跳过。本轮实测并打通了 bytecode 容器内的字符串 patch 路径：
-  - 常量池条目格式 `[u32: flags<<24 | charLen][u32 hash][content]`，`flags=0x80` 为 8-bit Latin-1、`flags=0x00` 为 16-bit UTF-16LE；
-  - bytecode 按条目起点偏移引用字符串，**内容占位不变则偏移全部有效**；8-bit 条目可原地翻转为 16-bit（译文字符数×2 ≤ 原文字节数，UTF-16LE 译文 + 0x00 填充写满原占位），hash 不校验；
-  - 引擎直接复用 `cli-translations.json`（自动跳过 `skipPatch` 模型契约条目）；译文超长（译文字符数×2 > 原文占位）的条目记入 `tooLong` 安全跳过，不做任何改动；
-  - patch 前自动备份 `<binary>.zh-cn-bytecode-backup`；幂等（已 patch 的条目不再命中）。
-- `install.ps1` 的 bytecode 分支从「整体跳过」改为调用 Layer 4B 引擎，完成后 CLI Patch 状态显示 `bytecode 常量池原地 patch 完成（Layer 4B）`。
+- 支持新版 Claude Code 的字节码界面汉化：已在 macOS arm64、Windows x64、Linux x64 glibc 验证 `2.1.242`、`2.1.252`、`2.1.260`、`2.1.263`。其中 `2.1.252` 对应 #236 的用户反馈，`2.1.263` 是本次发布时核对的最新版本。
+- 感谢 [@hjkl950217](https://github.com/hjkl950217) 在 [#238](https://github.com/taekchef/claude-code-zh-cn/pull/238) 提供字节码常量池原地翻译方案和初始验证。保留原作者提交，并补齐两种字符串布局及三个系统的安装流程。
 
-### 验证（Windows x64 native `2.1.260` 实测）
+### 改进
 
-- 单机全表 patch 副本：1133 条常量池条目重写为 16-bit 中文，`--version` / `--help`（225 行差异）/ 真实 API 请求全部正常；幂等复跑无改动。
-- 对照实验：等长替换（拉丁文本生效）、改长（len 字段改写安全）、推挤（内容变长必然损坏二进制）三类实验各验证过机制假设；条目格式、16-bit flag 编码、占位约束由此钉死。
-- `tests/patch-bytecode.test.js` 6 个用例：原地翻转、not-found 不写盘、译文超长跳过、skipPatch 契约保护、16-bit 原地 patch、幂等。
-
-### 边界登记
-
-- `windowsNativeExperimental` 的 `verification` 追加 `2.1.260 PASS-Layer4B(...)` 实测记录；`notes` 更新 bytecode 容器的机制说明与 Layer 4B 路径。**ceiling 维持 2.1.241**——传统 extract/patch/repack 验证窗口不变，Layer 4B 对 2.1.242+ 的 bytecode 容器同样适用但走独立路径，不支持矩阵宣称。
-
-## [2.14.1] - 2026-09-06
+- 安装器和会话 Hook 共用字节码补丁引擎，复用现有翻译表；只修改 Bun 数据内能完整容纳译文的字符串占位，保留偏移、相邻数据及 `skipPatch` 保护条目。
+- 候选验证包含实际启动、11 个稳定显示面、零命中保护、重复补丁和原始文件还原；CI 另运行完整安装、诊断、重复安装和卸载检查。
+- 同步支持矩阵、安装包支持清单及安装说明；Linux 仅对明确列出的 x64 glibc 版本启用，不扩大到 arm64、musl 或未验证版本。
 
 ### 修复
 
-- 跟进 `2.1.237` 汉化残留：`Press Enter` 多片段拼接句（`children:["Press ", ... "Enter" ... " to continue."]` 等 4 形态）结构化 patch，保留 `Enter` 键名与 jsx/bold 结构；翻译表新增 9 条：对话框等待中、已配置的插件市场、导航完成、已读取标签页、输入完成、终端/移动通知已发送、共享标记、（我的+共享）。只改显示文案，case key / 三元分支 / switch 判断原样保留。
+- 先在副本上完成补丁和启动自检，macOS 重新签名并验证后才替换；零命中或帮助界面仍无中文时不记录成功。
+- 统一使用现有 `.zh-cn-backup` 备份，卸载会校验版本并还原原始程序；更新后的程序不会被旧版本备份覆盖。
+- 诊断工具同时核对版本、文件校验值与翻译规则，避免仅凭备份存在就显示已汉化；补丁引擎变更也会触发重新汉化。
+- 合入作者补充的 `Press Enter` 多片段提示修复，以及插件市场、浏览器操作、通知、共享状态等显示文案翻译。
 
-### 边界登记
+### 翻译覆盖
 
-- Windows x64 native 支持窗口 `verification` / `notes` 登记 `2.1.260`：官方构建从 `2.1.242` 起（macOS / Windows / Linux）改为 Bun bytecode 编译容器，界面文字在编译后的字节码里，Layer 4（UI 硬编码 patch）无法适用；`2.1.260` 实测 `probe=bytecode`，`install.ps1` 安全跳过 CLI Patch，仅 Layer 1~3（settings / 插件目录 / hooks / spinner）生效，不进入已验证窗口。
+- `2.1.263` 实测 macOS 翻译 1,139 处，Windows / Linux 翻译 1,133 处。运行检查通过，中文覆盖仍为部分覆盖：超过原占位长度的译文及未收录新文案保留英文，不代表所有界面已完整汉化。
 
 ## [2.14.0] - 2026-09-01
 

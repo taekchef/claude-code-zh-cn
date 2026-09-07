@@ -124,6 +124,9 @@ run node --check scripts/sync-doc-derived-counts.js
 run node --check scripts/sync-readme-support-window.js
 run node --check scripts/verify-release-state.js
 run node --check scripts/verify-upstream-compat.js
+run node --check scripts/verify-native-install.js
+run node --check scripts/patch-bytecode.js
+run node --check plugin/scripts/patch-bytecode.js
 run node --check scripts/zh-cn-doctor.js
 run node --check plugin/skill-i18n/scan.js
 run node --check plugin/skill-i18n/translate.js

@@ -135,7 +135,7 @@ function isSupportedNativeVersion(version, support, platform = "") {
   return versions.includes(version);
 }
 
-// bytecode 容器等不支持 Layer 4 的场景要给"回退到哪个版本"的建议；
+// 无法执行 CLI Patch 时，从实际验证记录生成版本建议；
 // 从支持窗口里取本平台已验证的最高版本，避免硬编码数字随窗口推进过期。
 function bestNativeVersionForPlatform(support, platform = "") {
   const versions = [];

@@ -77,6 +77,9 @@ function parseArgs(argv) {
       case "--fail-on-skip":
         args.failOnSkip = true;
         break;
+      case "--verify-install":
+        args.verifyInstall = true;
+        break;
       case "--native-macos-arm64":
         args.nativeMacosArm64 = true;
         break;
@@ -636,6 +639,11 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       const restoredHash = crypto.createHash("sha256").update(fs.readFileSync(patchedBinary)).digest("hex");
       if (restoredHash !== bytecodeLifecycle.originalHash) fail("bytecode uninstall did not restore the original executable");
       bytecodeLifecycle = { noMatch: "ok", repeat: "ok", uninstall: "ok" };
+      if (args.verifyInstall) {
+        Object.assign(bytecodeLifecycle, JSON.parse(execFile("node", [path.join(repoRoot, "scripts", "verify-native-install.js"), patchedBinary], {
+          encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+        })));
+      }
     }
 
     return {

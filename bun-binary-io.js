@@ -34,7 +34,7 @@ const SIZEOF_MODULE_OLD = 4 * SIZEOF_STRING_POINTER + 4; // 36
 const SIZEOF_MODULE_NEW = 6 * SIZEOF_STRING_POINTER + 4; // 52
 const JS_SOURCE_ENCODING_UTF8 = 0;
 const BYTECODE_STUB_MARKER = "// @bun";
-// bytecode 编译容器不支持 Layer 4；用独立退出码方便上层区分"格式不支持"与一般失败。
+// bytecode 容器不能提取/重打包源码；独立退出码引导上层改用 patch-bytecode.js。
 const UNSUPPORTED_BYTECODE_EXIT_CODE = 3;
 // Bun 编译的 claude bundle 一律以 "// @bun ..." 横幅开头（实测 2.1.220 的完整
 // 源码 ~21MB 也带 "// @bun @bytecode @bun-cjs"），横幅本身不是 stub 特征；

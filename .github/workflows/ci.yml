@@ -74,11 +74,15 @@ jobs:
         run: npm install --no-save node-lief@1.3.2
 
       - name: Verify Linux native baseline
-        run: node scripts/verify-upstream-compat.js --skip-latest --native-linux-x64 --fail-on-skip --json
+        run: node scripts/verify-upstream-compat.js --skip-latest --native-linux-x64 --fail-on-skip --json --verify-install
 
   windows-native-compat:
-    name: windows-native-compat
+    name: windows-native-compat (${{ matrix.shard }})
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -93,7 +97,11 @@ jobs:
 
       - name: Verify Windows native support window
         shell: powershell
-        run: node scripts/verify-upstream-compat.js --skip-latest --native-windows-x64 --json
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          $Versions = node -p 'require("./scripts/upstream-compat.config.json").support.windowsNativeExperimental.representatives.filter((_, i) => i % 4 === Number(process.env.SHARD)).join(",")'
+          node scripts/verify-upstream-compat.js --skip-latest --native-windows-x64 --json --baseline "$Versions" --verify-install --fail-on-skip
 
   macos-bytecode-compat:
     name: macos-bytecode-compat
@@ -111,4 +119,4 @@ jobs:
         run: |
           VERSIONS="$(node -p 'require("./scripts/upstream-compat.config.json").support.macosNativeExperimental.representatives.filter(v => Number(v.split(".")[2]) >= 242).join(",")')"
           test -n "$VERSIONS"
-          node scripts/verify-upstream-compat.js --baseline "$VERSIONS" --skip-latest --native-macos-arm64 --fail-on-skip --json
+          node scripts/verify-upstream-compat.js --baseline "$VERSIONS" --skip-latest --native-macos-arm64 --fail-on-skip --json --verify-install
