@@ -117,7 +117,7 @@ function run-install-json-helper {
 $JS_BACKUP_PRUNE = "var fs=require('fs'),path=require('path');var dir=process.env.ZH_CN_SETTINGS_DIR;try{var all=fs.readdirSync(dir).filter(function(n){return n.indexOf('settings.json.zh-cn-backup.')===0}).sort();var stale=all.slice(0,Math.max(0,all.length-5));for(var i=0;i<stale.length;i++){fs.unlinkSync(path.join(dir,stale[i]))}}catch(e){}"
 $JS_BUILD_OVERLAY_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var base=r(process.argv[2]);var verbs=r(process.argv[3]);var tips=r(process.argv[4]);base.spinnerVerbs=verbs;base.spinnerTipsOverride={excludeDefault:true,tips:(tips.tips||[]).map(function(t){return t.text})};process.stdout.write(JSON.stringify(base))"
 $JS_DEEP_MERGE_FILES = "var fs=require('fs');function r(f){return JSON.parse(fs.readFileSync(f,'utf8').replace(/^\uFEFF/,''))}var sf=process.argv[2];var of=process.argv[3];function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={};var k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}fs.writeFileSync(sf,JSON.stringify(dm(r(sf),r(of)),null,2)+'\n');process.stdout.write('ok')"
-$JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
+$JS_PATCH_REVISION = "var crypto=require('crypto'),fs=require('fs'),path=require('path');var root=process.argv[2];var files=['patch-cli.sh','patch-cli.js','cli-translations.json','bun-binary-io.js','compute-patch-revision.sh','scripts/patch-bytecode.js'];var hash=crypto.createHash('sha256');for(var i=0;i<files.length;i++){var f=files[i];var t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update('\0');hash.update(fs.readFileSync(t));hash.update('\0')}process.stdout.write(hash.digest('hex').slice(0,16))"
 $JS_CCSWITCH_STATUS = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function vc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.verbs))return v.verbs.length;return Object.keys(v).length}function tc(v){if(Array.isArray(v))return v.length;if(!po(v))return 0;if(Array.isArray(v.tips))return v.tips.length;return 0}try{var c=r(process.argv[2],{});r(process.argv[3],{});if(!po(c)){process.stdout.write('invalid');process.exit(0)}var ok=c.language==='Chinese'&&c.spinnerTipsEnabled===true&&vc(c.spinnerVerbs)>=100&&tc(c.spinnerTipsOverride)>=40;process.stdout.write(ok?'ok':'needs-sync')}catch(e){process.stdout.write('invalid')}"
 $JS_CCSWITCH_MERGE = "var fs=require('fs');function r(f,d){var s=fs.readFileSync(f,'utf8').replace(/^\uFEFF/,'');return s.trim()?JSON.parse(s):d}function po(v){return v&&typeof v==='object'&&!Array.isArray(v)}function dm(b,o){var out={},k;for(k in b){if(Object.prototype.hasOwnProperty.call(b,k))out[k]=b[k]}for(k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;if(po(out[k])&&po(o[k]))out[k]=dm(out[k],o[k]);else out[k]=o[k]}return out}var c=r(process.argv[2],{}),o=r(process.argv[3],{});if(!po(c)||!po(o))process.exit(2);fs.writeFileSync(process.argv[4],JSON.stringify(dm(c,o),null,2)+'\n')"
 $JS_CCSWITCH_PROVIDER_SQL = @'
@@ -1216,39 +1216,7 @@ function patch-native-bun {
         return
     }
 
-    # 预检容器形态：bytecode 编译构建（stub + 编译字节码 + chunk 拆分）不能走 Layer 4 的
-    # 「提取源码→重打包」流程，改走 bytecode 常量池原地 patch（patch-bytecode.js）。
-    $containerLayout = ""
-    try {
-        $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
-    } catch {}
-    if ($containerLayout -eq "bytecode") {
-        $bytecodeEngine = "$PluginDst\scripts\patch-bytecode.js"
-        if (-not (Test-Path $bytecodeEngine)) {
-            $bytecodeEngine = "$PluginSrc\scripts\patch-bytecode.js"
-        }
-        $bytecodeTrans = "$PluginDst\cli-translations.json"
-        if (-not (Test-Path $bytecodeTrans)) {
-            $bytecodeTrans = "$PluginSrc\cli-translations.json"
-        }
-        if ((Test-Path $bytecodeEngine) -and (Test-Path $bytecodeTrans)) {
-            Write-CN "当前版本 $currentVersion 为 Bun bytecode 编译容器，走常量池原地 patch（Layer 4B）。" Blue
-            & node $bytecodeEngine patch $BinaryPath $bytecodeTrans --json
-            $patchExit = $LASTEXITCODE
-            if ($patchExit -ne 0) {
-                Write-CN "  bytecode 常量池 patch 失败（exit $patchExit），二进制未改动，Layer 4B 已跳过。" Yellow
-                $script:CliPatchStatusSummary = "已跳过（bytecode 常量池 patch 执行失败）"
-            } else {
-                $script:CliPatchStatusSummary = "bytecode 常量池原地 patch 完成（Layer 4B）"
-                $script:CliPatchStatusOk = $true
-            }
-        } else {
-            Write-CN "  bytecode 常量池 patch 引擎缺失（patch-bytecode.js / cli-translations.json），Layer 4B 已跳过。" Yellow
-            $script:CliPatchStatusSummary = "已跳过（bytecode patch 引擎文件缺失）"
-        }
-        write-support-window-link
-        return
-    }
+    $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
 
     $tmpJs = Join-Path $TmpDir "claude-zh-cn-extract-$PID.js"
     $backupFile = "$BinaryPath.zh-cn-backup"
@@ -1273,18 +1241,24 @@ function patch-native-bun {
     if (-not $sourceHash) { $sourceHash = "unknown" }
 
     try {
-        node $helper extract $BinaryPath $tmpJs | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "extract failed" }
-
-        $patchScript = Join-Path $PluginDst "patch-cli.js"
         $translationsFile = Join-Path $PluginDst "cli-translations.json"
-        $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "patch-cli failed" }
+        if ($containerLayout -eq "bytecode") {
+            $patchCount = node "$PluginDst\scripts\patch-bytecode.js" patch $BinaryPath $translationsFile
+            if ($LASTEXITCODE -ne 0) { throw "bytecode patch failed" }
+        } else {
+            node $helper extract $BinaryPath $tmpJs | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "extract failed" }
+            $patchScript = Join-Path $PluginDst "patch-cli.js"
+            $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
+            if ($LASTEXITCODE -ne 0) { throw "patch-cli failed" }
+        }
         if (-not $patchCount) { $patchCount = "0" }
 
         if ([int]$patchCount -gt 0) {
-            node $helper repack $BinaryPath $tmpJs | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "repack failed" }
+            if ($containerLayout -ne "bytecode") {
+                node $helper repack $BinaryPath $tmpJs | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "repack failed" }
+            }
             Write-Host "  正在运行 --version 做启动自检..."
             $verifiedVersion = get-native-version-from-execution $BinaryPath
             if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }

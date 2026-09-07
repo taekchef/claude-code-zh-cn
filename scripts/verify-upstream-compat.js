@@ -5,6 +5,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { execFileSync, spawnSync } = require("node:child_process");
 
 const isWindows = process.platform === "win32";
@@ -555,28 +556,45 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       });
     }
 
-    execFile("node", [binaryIoPath, "extract", binaryPath, extractedJs], {
-      cwd: repoRoot,
-      stdio: ["ignore", "ignore", "pipe"],
-    });
-
-    const original = fs.readFileSync(extractedJs, "utf8");
-    const patchOutput = execFile("bash", [patchCliShellPath, extractedJs], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
+    const container = execFile("node", [binaryIoPath, "probe", binaryPath], {
+      cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
     }).trim();
-    const patchCount = Number.parseInt(patchOutput || "0", 10) || 0;
-    const patched = fs.readFileSync(extractedJs, "utf8");
-    const residue = collectResidue(patched, config.checks);
-    const missingRequired = collectMissingRequired(original, patched, config.checks);
-
     fs.copyFileSync(binaryPath, patchedBinary);
     fs.chmodSync(patchedBinary, 0o755);
-    execFile("node", [binaryIoPath, "repack", patchedBinary, extractedJs], {
-      cwd: repoRoot,
-      stdio: ["ignore", "ignore", "pipe"],
-    });
+    let patchCount, bytecodePatch, bytecodeLifecycle;
+    let residue = [], missingRequired = [];
+    if (container === "bytecode") {
+      const engine = path.join(repoRoot, "scripts", "patch-bytecode.js");
+      const hash = file => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+      const originalHash = hash(patchedBinary);
+      const emptyTranslations = path.join(tmpDir, "empty-translations.json");
+      fs.writeFileSync(emptyTranslations, "[]");
+      const noMatch = spawnFile("node", [engine, "patch", patchedBinary, emptyTranslations, "--json"], { encoding: "utf8" });
+      if (noMatch.status === 0 || hash(patchedBinary) !== originalHash) fail("bytecode no-match must fail without changing the executable");
+      bytecodePatch = JSON.parse(execFile("node", [engine, "patch", patchedBinary, args.translations || translationsPath, "--json"], {
+        cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+      }));
+      patchCount = bytecodePatch.patched;
+      const patchedHash = hash(patchedBinary);
+      const repeated = JSON.parse(execFile("node", [engine, "patch", patchedBinary, args.translations || translationsPath, "--json"], { encoding: "utf8" }));
+      if (repeated.changed !== false || hash(patchedBinary) !== patchedHash) fail("repeated bytecode patch changed the executable");
+      bytecodeLifecycle = { noMatch: "ok", repeat: "ok", originalHash };
+    } else {
+      execFile("node", [binaryIoPath, "extract", binaryPath, extractedJs], {
+        cwd: repoRoot, stdio: ["ignore", "ignore", "pipe"],
+      });
+      const original = fs.readFileSync(extractedJs, "utf8");
+      const patchOutput = execFile("bash", [patchCliShellPath, extractedJs], {
+        cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+      }).trim();
+      patchCount = Number.parseInt(patchOutput || "0", 10) || 0;
+      const patched = fs.readFileSync(extractedJs, "utf8");
+      residue = collectResidue(patched, config.checks);
+      missingRequired = collectMissingRequired(original, patched, config.checks);
+      execFile("node", [binaryIoPath, "repack", patchedBinary, extractedJs], {
+        cwd: repoRoot, stdio: ["ignore", "ignore", "pipe"],
+      });
+    }
     if (process.platform === "darwin" && args.nativeMacosArm64) {
       execFile("codesign", ["--verify", "--strict", "--verbose=4", patchedBinary], {
         cwd: repoRoot,
@@ -613,6 +631,12 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       displayAudit,
       patchCount <= 0 || !versionOutput.includes(version)
     );
+    if (bytecodeLifecycle) {
+      execFile("node", [path.join(repoRoot, "scripts", "patch-bytecode.js"), "restore", patchedBinary], { stdio: ["ignore", "ignore", "pipe"] });
+      const restoredHash = crypto.createHash("sha256").update(fs.readFileSync(patchedBinary)).digest("hex");
+      if (restoredHash !== bytecodeLifecycle.originalHash) fail("bytecode uninstall did not restore the original executable");
+      bytecodeLifecycle = { noMatch: "ok", repeat: "ok", uninstall: "ok" };
+    }
 
     return {
       version,
@@ -625,8 +649,10 @@ function runNativeVerification(config, args, version, packageDir, kind) {
         packageName: resolvePackageName(config, args, version),
         platform: expectedPlatform,
         detect: detectOutput.split(":")[0],
-        extract: "ok",
-        repack: "ok",
+        container,
+        extract: container === "bytecode" ? "not-applicable" : "ok",
+        repack: container === "bytecode" ? "not-applicable" : "ok",
+        ...(bytecodePatch ? { bytecodePatch: "ok", bytecodeTranslations: bytecodePatch, bytecodeLifecycle } : {}),
         codeSignature: args.nativeLinuxX64 ? "not-required" : "ok",
         versionOutput,
       },

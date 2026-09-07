@@ -167,7 +167,7 @@ function Get-PatchRevision($Root) {
     $code = @'
 const crypto=require("crypto"),fs=require("fs"),path=require("path");
 const root=process.argv[2];
-const files=["patch-cli.sh","patch-cli.js","cli-translations.json","bun-binary-io.js","compute-patch-revision.sh"];
+const files=["patch-cli.sh","patch-cli.js","cli-translations.json","bun-binary-io.js","compute-patch-revision.sh","scripts/patch-bytecode.js"];
 const hash=crypto.createHash("sha256");
 for(const f of files){const t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update("\0");hash.update(fs.readFileSync(t));hash.update("\0")}
 process.stdout.write(hash.digest("hex").slice(0,16));
@@ -368,13 +368,16 @@ function Invoke-NativePatch($Target) {
     $logFile = Join-Path $StateRoot "patch.log"
 
     try {
-        node $helperFile extract "$Target" "$tmpJs" 2>$null | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Copy-Item $backupFile $Target -Force -ErrorAction SilentlyContinue
-            return ""
+        $containerLayout = ((node $helperFile probe "$Target" 2>$null) | Out-String).Trim()
+        if ($containerLayout -eq "bytecode") {
+            $patchCountText = ((node "$PluginRoot\scripts\patch-bytecode.js" patch "$Target" "$PluginRoot\cli-translations.json" 2>$null) | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0) { return "（字节码自动汉化未通过验证，请关闭 Claude Code 后重跑安装器）" }
+            "ok" | Set-Content -Path $statusFile -Encoding ascii
+        } else {
+            node $helperFile extract "$Target" "$tmpJs" 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { return "" }
+            $patchCountText = ((node $patchFile "$tmpJs" "$PluginRoot\cli-translations.json" --status "$statusFile" --log "$logFile" 2>$null) | Out-String).Trim()
         }
-
-        $patchCountText = ((node $patchFile "$tmpJs" "$PluginRoot\cli-translations.json" --status "$statusFile" --log "$logFile" 2>$null) | Out-String).Trim()
         $patchCount = 0
         [int]::TryParse($patchCountText, [ref]$patchCount) | Out-Null
         $patchStatus = ""
@@ -383,8 +386,12 @@ function Invoke-NativePatch($Target) {
         if (@("ok", "partial", "noop") -notcontains $patchStatus) { return "" }
 
         if ($patchCount -gt 0) {
-            node $helperFile repack "$Target" "$tmpJs" 2>$null | Out-Null
-            if ($LASTEXITCODE -ne 0 -or (Read-NativeVersionFromExecution $Target) -ne $version) {
+            $repackExit = 0
+            if ($containerLayout -ne "bytecode") {
+                node $helperFile repack "$Target" "$tmpJs" 2>$null | Out-Null
+                $repackExit = $LASTEXITCODE
+            }
+            if ($repackExit -ne 0 -or (Read-NativeVersionFromExecution $Target) -ne $version) {
                 Copy-Item $backupFile $Target -Force -ErrorAction SilentlyContinue
                 return ""
             }

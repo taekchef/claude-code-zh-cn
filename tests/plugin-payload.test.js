@@ -8,6 +8,7 @@ const legacyManifestPath = path.join(repoRoot, "plugin", "manifest.json");
 const officialManifestPath = path.join(repoRoot, "plugin", ".claude-plugin", "plugin.json");
 const marketplaceManifestPath = path.join(repoRoot, ".claude-plugin", "marketplace.json");
 const pairs = [
+  ["scripts/patch-bytecode.js", path.join(repoRoot, "scripts", "patch-bytecode.js"), path.join(repoRoot, "plugin", "scripts", "patch-bytecode.js")],
   ["patch-cli.sh", path.join(repoRoot, "patch-cli.sh"), path.join(repoRoot, "plugin", "patch-cli.sh")],
   ["patch-cli.js", path.join(repoRoot, "patch-cli.js"), path.join(repoRoot, "plugin", "patch-cli.js")],
   ["cli-translations.json", path.join(repoRoot, "cli-translations.json"), path.join(repoRoot, "plugin", "cli-translations.json")],

@@ -345,14 +345,17 @@ $RESTORED = $false
 
 # 试 npm 全局 claude
 $claudeBin = (Get-Command claude -ErrorAction SilentlyContinue).Source
-if ($claudeBin) {
-    # 试原生二进制备份
-    if (Test-Path "${claudeBin}.zh-cn-backup") {
-        Copy-Item "${claudeBin}.zh-cn-backup" $claudeBin -Force
-        Remove-Item "${claudeBin}.zh-cn-backup" -Force
-        Write-Host "已还原二进制" -ForegroundColor Green
-        $RESTORED = $true
-    }
+$nativeHelper = Join-Path $PSScriptRoot "bun-binary-io.js"
+$bytecodeHelper = Join-Path $PSScriptRoot "scripts\patch-bytecode.js"
+if ($claudeBin -and (Test-Path $nativeHelper)) {
+    $detected = ((node $nativeHelper detect $claudeBin 2>$null) | Out-String).Trim()
+    if ($detected.StartsWith("native-bun:")) { $claudeBin = $detected.Substring(11) }
+}
+if ($claudeBin -and (Test-Path "${claudeBin}.zh-cn-backup")) {
+    node $bytecodeHelper restore $claudeBin
+    if ($LASTEXITCODE -ne 0) { throw "原生程序还原失败；插件与备份已保留，请关闭 Claude Code 后重试。" }
+    Write-Host "已还原原生二进制" -ForegroundColor Green
+    $RESTORED = $true
 }
 
 if (-not $RESTORED) {

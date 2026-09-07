@@ -18,6 +18,7 @@ const PATCH_REVISION_FILES = [
   "cli-translations.json",
   "bun-binary-io.js",
   "compute-patch-revision.sh",
+  "scripts/patch-bytecode.js",
 ];
 const NPM_RESIDUE_PROBES = [
   "Quick safety check",
@@ -786,25 +787,20 @@ function runDoctor(options = {}) {
     const bytecodeContainer =
       liefOk && probeNativeContainerLayout(bunBinaryIoPath, target) === "bytecode";
     if (bytecodeContainer) {
-      layer4Status = "layer4b";
-      layer4Detail = `native ${cliVersion || "unknown"} 为 Bun bytecode 编译容器，走常量池原地 patch（Layer 4B）`;
-      const layer4bBackup = target + ".zh-cn-bytecode-backup";
-      const hasLayer4b = fs.existsSync(layer4bBackup);
-      add(
-        "layer4",
-        "Layer 4（UI 硬编码）",
-        hasLayer4b ? "ok" : "warn",
-        hasLayer4b ? layer4Detail + "：已执行常量池 patch" : layer4Detail + "：尚未执行"
-      );
-      if (!hasLayer4b) {
-        recommendations.push("关闭所有 Claude Code 窗口后重跑 install.ps1，执行 Layer 4B 常量池 patch");
+      const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
+      const currentRevision = computePatchRevision(pluginRoot);
+      const current = marker.kind === "native" && marker.version === cliVersion &&
+        Boolean(marker.hash && currentHash && marker.hash === currentHash) &&
+        Boolean(marker.revision && currentRevision && marker.revision === currentRevision);
+      layer4Status = current ? (supported ? "ok" : "provisional") : "needed";
+      layer4Detail = `native ${cliVersion || "unknown"} 字节码汉化：` +
+        (current ? "当前版本、文件校验值与翻译规则记录一致" : "尚未执行或汉化记录已失效");
+      add("layer4", "Layer 4（UI 硬编码）", current && supported ? "ok" : "warn", layer4Detail);
+      if (!current) {
+        const installer = nativePlatform === "win32-x64" ? "install.ps1" : "./install.sh";
+        recommendations.push(`关闭 Claude Code 后重跑 ${installer}，执行字节码汉化与启动自检`);
       }
-      const nativeBest = bestNativeVersionForPlatform(support, nativePlatform);
-      if (nativeBest) {
-        recommendations.push(
-          `如需传统 extract/patch/repack 形态的完整审计：npm install -g @anthropic-ai/claude-code@${nativeBest}（本平台支持窗口内最高已验证版本），安装后重跑 install.sh / install.ps1`
-        );
-      }
+      if (!supported) recommendations.push("当前版本尚未纳入本平台已发布支持窗口，本机通过不等于完整中文覆盖");
     } else if (!supported && marker.kind === "native" && marker.version === cliVersion && marker.provisional) {
       const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
       const currentRevision = computePatchRevision(pluginRoot);

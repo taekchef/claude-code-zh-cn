@@ -374,6 +374,7 @@ test("verify-upstream-compat patches and audits the Linux platform package", { s
       "const command = process.argv[2];",
       "if (command === 'check-deps') process.stdout.write('ok\\n');",
       "else if (command === 'detect') process.stdout.write('native-bun:elf\\n');",
+      "else if (command === 'probe') process.stdout.write('source-js');",
       "else if (command === 'extract') fs.writeFileSync(process.argv[4], 'const label=\\\"Stop ultrareview\\\";\\n');",
       "else if (command === 'repack') {",
       "  fs.writeFileSync(process.argv[3], '#!/usr/bin/env node\\nif(process.argv.includes(\\\"--version\\\")) console.log(\\\"2.1.220 (Claude Code)\\\"); else console.log(\\\"中文帮助\\\");\\n');",

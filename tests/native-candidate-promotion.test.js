@@ -469,3 +469,17 @@ test("promote-native-candidate requires codesign verification before support-win
   assert.match(result.stderr, /native codesign boundary failed/);
   assert.equal(readJson(configPath).support.macosNativeExperimental.ceiling, currentNativeCeiling);
 });
+
+
+test("bytecode promotion requires runtime and install lifecycle evidence", () => {
+  const fixture = candidateResult();
+  const original = fixture.results[0];
+  const native = { ...original.nativeVerification, container: "bytecode", extract: "not-applicable", repack: "not-applicable", bytecodePatch: "ok", bytecodeTranslations: { patched: original.patchCount }, bytecodeLifecycle: { noMatch: "ok", repeat: "ok", uninstall: "ok" } };
+  for (const valid of [false, true]) {
+    const candidatePath = tmpFile("bytecode.json");
+    writeJson(candidatePath, candidateResult({ nativeVerification: valid ? native : { ...native, bytecodeLifecycle: undefined } }));
+    const result = runPromote(["--candidate", candidatePath, "--config", copyConfig()]);
+    assert.equal(result.status, valid ? 0 : 1, result.stderr);
+    if (!valid) assert.match(result.stderr, /bytecode patch evidence/);
+  }
+});

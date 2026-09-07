@@ -686,6 +686,24 @@ function cmdExtract() {
   process.stdout.write("ok");
 }
 
+// 仅供文案差异审计：字节码构建里的 chunk 源码是调试副本，不用于重打包。
+function cmdSources() {
+  const [, , , binaryPath, outputPath] = process.argv;
+  if (!binaryPath || !outputPath) throw new Error("Usage: bun-binary-io.js sources <binary> <out>");
+  const lief = loadNodeLief();
+  if (!lief) throw new Error("node-lief dependency missing");
+  const { bunData, bunOffsets, moduleStructSize } = extractNativeBun(lief, binaryPath);
+  const modules = getStringPointerContent(bunData, bunOffsets.modulesPtr);
+  const sources = [];
+  for (let offset = 0; offset < modules.length; offset += moduleStructSize) {
+    const mod = parseCompiledModule(modules, offset, moduleStructSize);
+    const name = getStringPointerContent(bunData, mod.name).toString("utf8");
+    if (isClaudeModule(name) || name.endsWith(".js")) sources.push(getStringPointerContent(bunData, mod.contents).toString("utf8"));
+  }
+  if (!sources.length) throw new Error("No JavaScript display-audit sources found");
+  fs.writeFileSync(outputPath, sources.join("\n"));
+}
+
 function cmdRepack() {
   const binaryPath = process.argv[3];
   const jsPath = process.argv[4];
@@ -902,10 +920,14 @@ function cmdHash() {
 // CLI 入口
 // ============================================================================
 
+module.exports = { loadNodeLief, extractNativeBun, findClaudeModule, claudeBytecodeGuardReason, signAndVerifyMachO, readExecutableVersion };
+
+if (require.main === module) {
 const command = process.argv[2];
 switch (command) {
   case "detect": cmdDetect(); break;
   case "extract": cmdExtract(); break;
+  case "sources": cmdSources(); break;
   case "repack": cmdRepack(); break;
   case "version": cmdVersion(); break;
   case "resolve": cmdResolve(); break;
@@ -915,7 +937,8 @@ switch (command) {
   default:
     process.stderr.write(
       "Usage: bun-binary-io.js <command> [args...]\n" +
-      "Commands: detect, extract, repack, version, resolve, probe, check-deps, hash\n"
+      "Commands: detect, extract, sources, repack, version, resolve, probe, check-deps, hash\n"
     );
     process.exit(1);
+}
 }

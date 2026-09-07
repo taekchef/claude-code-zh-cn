@@ -141,6 +141,8 @@ if (cmd === "detect") {
   process.stdout.write("ok");
 } else if (cmd === "version") {
   process.stdout.write(${JSON.stringify(nativeVersion)});
+} else if (cmd === "probe") {
+  process.stdout.write("source-js");
 } else if (cmd === "extract") {
   fs.writeFileSync(${JSON.stringify(invokedFile)}, cmd);
 } else if (cmd === "repack") {
@@ -457,8 +459,8 @@ test("native compat and Windows install smoke are wired into CI", () => {
   assert.match(workflow, /npm install --no-save node-lief@1\.3\.2/, "Linux native compat should pin node-lief");
   assert.match(
     workflow,
-    /--baseline 2\.1\.220 --skip-latest --native-linux-x64 --fail-on-skip --json/,
-    "CI should require the fixed Linux native baseline to run instead of skipping"
+    /--skip-latest --native-linux-x64 --fail-on-skip --json/,
+    "CI should verify the published Linux native versions without skipping"
   );
 });
 
@@ -520,7 +522,7 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(nativePatch, /node \$helper probe \$BinaryPath/);
   assert.match(
     nativePatch,
-    /Bun bytecode 编译容器[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/
+    /\$containerLayout -eq "bytecode"[\s\S]+patch-bytecode\.js[\s\S]+\$LASTEXITCODE/
   );
   const probeIndex = nativePatch.indexOf("node $helper probe $BinaryPath");
   const backupIndex = nativePatch.indexOf("已备份原生二进制");

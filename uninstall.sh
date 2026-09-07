@@ -371,10 +371,17 @@ claude_bin="$(which claude 2>/dev/null || true)"
 if [ -n "$claude_bin" ]; then
     real_bin="$(resolve_real_path "$claude_bin")"
 
-    # 优先检测原生二进制备份
+    # 解析 npm wrapper 指向的真正原生程序，沿用安装时的备份。
+    helper_root="$(cd "$(dirname "$0")" && pwd)"
+    if [ -f "$helper_root/bun-binary-io.js" ]; then
+        detected="$(node "$helper_root/bun-binary-io.js" detect "$claude_bin" 2>/dev/null || true)"
+        case "$detected" in native-bun:*) real_bin="${detected#native-bun:}" ;; esac
+    fi
     if [ -n "$real_bin" ] && [ -f "${real_bin}.zh-cn-backup" ]; then
-        cp "${real_bin}.zh-cn-backup" "$real_bin"
-        rm "${real_bin}.zh-cn-backup"
+        node "$helper_root/scripts/patch-bytecode.js" restore "$real_bin" || {
+            echo -e "${RED}原生程序还原失败；插件与备份已保留，请关闭 Claude Code 后重试。${NC}"
+            exit 1
+        }
         echo -e "${GREEN}已还原原生二进制${NC}"
         RESTORED=true
     fi
