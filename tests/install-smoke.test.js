@@ -514,7 +514,7 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(nativePatch, /需要安装 node-lief[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
   assert.match(nativePatch, /本机自验证未找到可 patch 内容[\s\S]+write-support-window-link[\s\S]+return/);
   assert.match(nativePatch, /Windows 原生二进制 patch 失败[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
-  assert.match(nativePatch, /原生二进制被运行中的 Claude Code 进程占用[\s\S]+请手动退出所有 Claude Code 实例[\s\S]+write-support-window-link[\s\S]+exit 1/);
+  assert.match(nativePatch, /原生二进制无法独占写入[\s\S]+请手动退出所有 Claude Code 实例[\s\S]+write-support-window-link[\s\S]+exit 1/);
   assert.match(nativePatch, /test-binary-writable \$BinaryPath/);
   assert.match(script, /node \$helper check-deps/);
   assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
@@ -543,6 +543,47 @@ test("install.ps1 gates Windows native patch through support window and node-lie
   assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
   assert.match(script, /\.patched-version/);
   assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);
+});
+
+test("Windows write guard waits for transient sharing but rejects a held lock", { skip: windowsPowerShellRequired }, () => {
+  const powershell = locateWindowsPowerShell();
+  assert.ok(powershell);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-write-lock-"));
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  const guard = script.match(/function test-binary-writable \{[\s\S]*?\n\}/)[0];
+  const check = path.join(tmp, "check.ps1");
+  fs.writeFileSync(check, "\ufeff" + guard + `
+$ErrorActionPreference = "Stop"
+$file = $env:CCZH_LOCK_FILE
+[System.IO.File]::WriteAllText($file, "original")
+$job = Start-Job -ArgumentList $file -ScriptBlock {
+  param($file)
+  $lock = [System.IO.File]::Open($file, 'Open', 'Write', 'None')
+  try {
+    [System.IO.File]::WriteAllText("$file.ready", "ready")
+    Start-Sleep -Milliseconds 1000
+  } finally { $lock.Dispose() }
+}
+try {
+  $deadline = (Get-Date).AddSeconds(15)
+  while (-not (Test-Path "$file.ready")) {
+    if ((Get-Date) -gt $deadline) { throw "lock holder did not start" }
+    Start-Sleep -Milliseconds 20
+  }
+  if (-not (test-binary-writable $file)) { throw "released lock was rejected" }
+  Receive-Job $job -Wait | Out-Null
+  $lock = [System.IO.File]::Open($file, 'Open', 'Write', 'None')
+  try { if (test-binary-writable $file) { throw "held lock was accepted" } }
+  finally { $lock.Dispose() }
+  if ([System.IO.File]::ReadAllText($file) -ne "original") { throw "probe changed bytes" }
+} finally { Remove-Job $job -Force -ErrorAction SilentlyContinue }
+`);
+  try {
+    const result = runWindowsPowerShell(powershell, ["-File", check], {
+      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe") }, timeout: 30000,
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
 test("install.ps1 avoids PowerShell smart quotes in script strings", () => {

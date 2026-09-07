@@ -1131,7 +1131,7 @@ function main() {
     printHuman(payload);
   }
 
-  process.exit(payload.summary.fail > 0 || (args.failOnSkip && payload.summary.skip > 0) ? 1 : 0);
+  process.exitCode = payload.summary.fail > 0 || (args.failOnSkip && payload.summary.skip > 0) ? 1 : 0;
 }
 
 main();

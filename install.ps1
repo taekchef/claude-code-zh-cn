@@ -59,12 +59,19 @@ function write-unpublished-window-note {
 function test-binary-writable {
     param([string]$Path)
     if (-not (Test-Path $Path)) { return $false }
-    try {
-        $fs = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-        $fs.Close()
-        return $true
-    } catch {
-        return $false
+    # Windows 在刚执行 CLI 自检后可能短暂保留共享句柄；只重试共享冲突，始终要求独占写入成功。
+    for ($attempt = 0; $attempt -lt 12; $attempt++) {
+        try {
+            $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $stream.Dispose()
+            return $true
+        } catch {
+            $cause = $_.Exception
+            while ($cause.InnerException) { $cause = $cause.InnerException }
+            $script:NativeWriteFailure = $cause.Message
+            if (($cause.HResult -band 0xffff) -ne 32 -or $attempt -eq 11) { return $false }
+            Start-Sleep -Milliseconds 250
+        }
     }
 }
 
@@ -1197,7 +1204,7 @@ function patch-native-bun {
         $procs = find-claude-processes
         $procList = ($procs | ForEach-Object { "PID=$($_.Id)" }) -join ", "
         if (-not $procList) { $procList = "（未列出 claude 进程，可能由其他句柄占用）" }
-        Write-CN "  原生二进制被运行中的 Claude Code 进程占用，无法写入（$procList）" Red
+        Write-CN "  原生二进制无法独占写入（$procList）：$script:NativeWriteFailure" Red
         Write-CN "  请手动退出所有 Claude Code 实例（关闭所有 CC 窗口，含当前会话），然后重新运行 install.ps1。" Yellow
         Write-CN "  Layer 1~3（settings / 插件目录 / hooks）已在本会话写入；CLI Patch 待所有实例退出后重跑才能完成。" Yellow
         write-support-window-link

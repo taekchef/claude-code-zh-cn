@@ -232,7 +232,7 @@ jobs:
           node-version: 24
 
       - name: Install native verification dependency
-        run: npm install --no-save node-lief@1.3.2
+        run: npm install --global node-lief@1.3.2
 
       - name: Resolve candidate version
         id: version
@@ -258,6 +258,17 @@ jobs:
           $ErrorActionPreference = "Stop"
           "json_path=$JsonPath" >> $env:GITHUB_OUTPUT
           exit $Status
+
+      - name: Verify Windows install lifecycle
+        shell: pwsh
+        run: |
+          $Report = Get-Content "${{ steps.verify.outputs.json_path }}" -Raw | ConvertFrom-Json
+          $Result = $Report.results[0]
+          if ($Result.nativeVerification.container -eq "bytecode") {
+            $Binary = $Result.nativeVerification.bytecodeTranslations.backup -replace '\.zh-cn-backup$', ''
+            node scripts/verify-native-install.js "$Binary"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Upload Windows native candidate JSON
         if: always()
