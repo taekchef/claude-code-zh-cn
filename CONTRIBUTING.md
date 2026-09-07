@@ -128,5 +128,5 @@ node scripts/verify-settings-sources.js
 
 - `npm` 安装：稳定支持
 - `macOS 官方安装器`：实验性支持
-- `Linux x64 glibc 原生二进制`：仅实验性支持已验证的 `2.1.220`
+- `Linux x64 glibc 原生二进制`：实验性支持已验证的 `2.1.220`、`2.1.242`、`2.1.252`、`2.1.260`、`2.1.263`；完整版本清单以[支持矩阵](./docs/support-matrix.md)为准
 - `Linux ARM64 / musl / 其他原生形态`：暂不支持 CLI Patch
