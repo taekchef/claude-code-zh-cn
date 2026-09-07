@@ -25,13 +25,19 @@ function patchStringPool(buffer, translations) {
   let patched = 0, tooLong = 0;
   // ponytail: 单遍扫描 Bun 数据中的精确字符串和条目头；格式变化时扩展版本化解析器。
   for (let offset = 0; offset + 8 <= buffer.length; offset++) {
-    const flags = buffer[offset + 3];
-    if (flags !== 0x80 && flags !== 0) continue;
-    const length = buffer.readUInt32LE(offset) & 0x00ffffff;
+    // CachedUniquedStringImplBase (2.1.242): relative pointer, bool flags, length.
+    // Later shared-pool records: length | is8Bit << 31, hash, characters.
+    const cached = offset + 16 <= buffer.length && buffer.readUInt32LE(offset) === 16 &&
+      buffer.readUInt32LE(offset + 4) === 0 && (buffer[offset + 8] & 0x36) === 0;
+    const flags = cached ? buffer[offset + 8] : buffer[offset + 3];
+    if (!cached && flags !== 0x80 && flags !== 0) continue;
+    const length = buffer.readUInt32LE(offset + (cached ? 12 : 0)) & 0x7fffffff;
     if (!lengths.has(length)) continue;
-    const bytes = length * (flags === 0x80 ? 1 : 2);
-    if (offset + 8 + bytes > buffer.length) continue;
-    const en = buffer.toString(flags === 0x80 ? "latin1" : "utf16le", offset + 8, offset + 8 + bytes);
+    const narrow = cached ? (flags & 1) !== 0 : flags === 0x80;
+    const bytes = length * (narrow ? 1 : 2);
+    const start = offset + (cached ? 16 : 8);
+    if (start + bytes > buffer.length) continue;
+    const en = buffer.toString(narrow ? "latin1" : "utf16le", start, start + bytes);
     const zh = table.get(en);
     if (!zh) continue;
     found.add(en);
@@ -39,12 +45,13 @@ function patchStringPool(buffer, translations) {
     if (replacement.length > bytes) {
       tooLong++;
     } else {
-      buffer.writeUInt32LE(zh.length, offset); // UTF-16 code units, including surrogate pairs.
-      buffer.fill(0, offset + 8, offset + 8 + bytes);
-      replacement.copy(buffer, offset + 8);
+      buffer.writeUInt32LE(zh.length, offset + (cached ? 12 : 0)); // UTF-16 code units.
+      if (cached) buffer[offset + 8] &= ~1;
+      buffer.fill(0, start, start + bytes);
+      replacement.copy(buffer, start);
       patched++;
     }
-    offset += 7 + bytes;
+    offset = start + bytes - 1;
   }
   return { patched, notFound: table.size - found.size, tooLong };
 }

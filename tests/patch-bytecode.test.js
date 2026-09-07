@@ -24,6 +24,18 @@ test("bytecode translation preserves adjacent entries and uses UTF-16 code units
   assert.equal(astral.readUInt32LE(0), "思考𠮷".length);
 });
 
+test("2.1.242 cached strings preserve relative pointers and atom flags", () => {
+  const header = Buffer.from("1000000000000000c912008009000000", "hex");
+  const next = entry("untouched");
+  const pool = Buffer.concat([header, Buffer.from("Pondering"), next]);
+  assert.equal(patchStringPool(pool, [{ en: "Pondering", zh: "思索中" }]).patched, 1);
+  assert.equal(pool.readBigUInt64LE(), 16n);
+  assert.equal(pool.readUInt32LE(8), 0x800012c8);
+  assert.equal(pool.readUInt32LE(12), 3);
+  assert.equal(pool.subarray(16, 22).toString("utf16le"), "思索中");
+  assert.deepEqual(pool.subarray(25), next);
+});
+
 test("no match, oversized translations and protected contracts leave bytes intact", () => {
   for (const translation of [
     { en: "absent", zh: "不存在" },
