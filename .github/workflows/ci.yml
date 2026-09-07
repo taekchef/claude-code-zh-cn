@@ -100,8 +100,10 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
         run: |
-          $Versions = node -p 'require("./scripts/upstream-compat.config.json").support.windowsNativeExperimental.representatives.filter((_, i) => i % 4 === Number(process.env.SHARD)).join(",")'
-          node scripts/verify-upstream-compat.js --skip-latest --native-windows-x64 --json --baseline "$Versions" --verify-install --fail-on-skip
+          $AllVersions = (Get-Content scripts/upstream-compat.config.json -Raw | ConvertFrom-Json).support.windowsNativeExperimental.representatives
+          $Versions = @(for ($i = [int]$env:SHARD; $i -lt $AllVersions.Count; $i += 4) { $AllVersions[$i] })
+          if ($Versions.Count -eq 0) { throw "Empty Windows verification shard" }
+          node scripts/verify-upstream-compat.js --skip-latest --native-windows-x64 --json --baseline "$($Versions -join ',')" --verify-install --fail-on-skip
 
   macos-bytecode-compat:
     name: macos-bytecode-compat
