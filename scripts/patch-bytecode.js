@@ -11,6 +11,8 @@ const io = require("../bun-binary-io.js");
 // spinner 完成态/进度词：传统 Layer 4 在 patch-cli.js 用结构锚定替换它们，
 // bytecode 容器按常量池整串匹配即可。这些词在常量池里只作显示值（无逻辑
 // 比较/对象键），整串替换安全；Baked 桶短译成双字才放得下。
+// 词表与 patch-cli.js 的 statusVerbs / 动词数组同源（后者是 Layer 4 的锚点），
+// 改动其中一处时两处都要跟。
 const BUILTIN_SPINNER_TRANSLATIONS = [
   { en: "Baked", zh: "烤了" },
   { en: "Brewed", zh: "沏了" },
@@ -42,9 +44,10 @@ function patchStringPool(buffer, translations) {
     if (table.has(item.en) && table.get(item.en) !== item.zh) throw new Error(`翻译冲突：${item.en}`);
     table.set(item.en, item.zh);
   }
-  // 内置补充词只在主表缺省时生效，避免与 cli-translations.json 冲突
+  // 内置补充词只在主表缺省时生效，避免与 cli-translations.json 冲突；
+  // 主表标记 skipPatch 的条目仍受保护，内置词不得绕过。
   for (const item of BUILTIN_SPINNER_TRANSLATIONS) {
-    if (!table.has(item.en)) table.set(item.en, item.zh);
+    if (!table.has(item.en) && !protectedText.has(item.en)) table.set(item.en, item.zh);
   }
   const lengths = new Set([...table.keys()].map(en => en.length));
   const found = new Set();

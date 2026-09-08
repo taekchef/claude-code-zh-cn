@@ -89,3 +89,11 @@ test("master table wins over built-in extras on key collision", () => {
   assert.equal(patchStringPool(pool, [{ en: "Churned", zh: "自定义" }]).patched, 1);
   assert.equal(pool.subarray(8, 14).toString("utf16le"), "自定义");
 });
+
+test("skipPatch contracts stay protected even when a built-in extra matches", () => {
+  const pool = entry("Thought");
+  const original = Buffer.from(pool);
+  const result = patchStringPool(pool, [{ en: "Thought", zh: "思考了", skipPatch: "model-prompt-contract" }]);
+  assert.equal(result.patched, 0);
+  assert.deepEqual(pool, original);
+});
