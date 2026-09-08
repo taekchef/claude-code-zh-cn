@@ -6,6 +6,25 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.16.0] - 2026-09-09
+
+### 新增
+
+- macOS arm64、Windows x64、Linux x64 glibc native 支持窗口从 `2.1.263` 扩展到 `2.1.265`：
+  - 三平台全链路验证（extract / 字节码常量池 patch / repack / `--version` 启动自检 / 11 个稳定显示面的运行审计）；macOS 在本机验证，Linux 与 Windows 通过 `native-latest-candidate` workflow 验证。
+  - 实测翻译：macOS `1,151` 处、Windows / Linux `1,145` 处（`2.1.263` 分别为 `1,139` / `1,133`）；`2.1.265` 相对 `2.1.263` 新增的上游文案有 12 条已被现有词条命中。
+- 支持矩阵、README 徽章与窗口表、安装包支持清单、`plugin/support-window.json` 由配置同步生成。
+
+### 翻译覆盖
+
+- `2.1.265` 的运行边界通过，展示文案覆盖为 PARTIAL（232 个警告，集中在各命令 `--help` 的长描述文本）：未收录的新文案以及译文超过原占位长度的条目继续保留英文，不代表完整界面已汉化。
+
+### 验证
+
+- macOS `2.1.265` 本机离线 `verify-upstream-compat.js --native-macos-arm64` PASS（native 1151、display runtime 11/11、coverage PARTIAL 232）。
+- Linux / Windows `2.1.265` 通过 `native-latest-candidate` workflow（run [34284732129](https://github.com/taekchef/claude-code-zh-cn/actions/runs/34284732129)）验证全部 PASS，证据 artifact 已归档。
+- 全量 `node --test tests/*.test.js` 与 `preflight` 通过。
+
 ## [2.15.1] - 2026-09-09
 
 ### 修复
