@@ -18,9 +18,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 <!-- readme-support-window:badges:start -->
 [![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
-[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.263-green)](./docs/support-matrix.md)
-[![Linux native](https://img.shields.io/badge/linux%20native-2.1.220--2.1.263-green)](./docs/support-matrix.md)
-[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.263-green)](./docs/support-matrix.md)
+[![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.265-green)](./docs/support-matrix.md)
+[![Linux native](https://img.shields.io/badge/linux%20native-2.1.220--2.1.265-green)](./docs/support-matrix.md)
+[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.265-green)](./docs/support-matrix.md)
 <!-- readme-support-window:badges:end -->
 [![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
 [![Codex 中文版](https://img.shields.io/badge/Codex%20中文版-codex--code--zh--cn-blue)](https://github.com/taekchef/codex-code-zh-cn)
@@ -227,8 +227,8 @@ Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被�
 | `npm install -g @anthropic-ai/claude-code`（latest） | macOS / Windows native 新版先本机自检；Linux native 仅启用已发布窗口 |
 | `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.112` | 官方安装器指定已验证旧版本（需要 `node-lief`） |
 | `curl -fsSL https://claude.ai/install.sh \| sh`（latest） | macOS 新版先本机自检；Linux x64 glibc 仅启用支持矩阵列出的实际版本 |
-| `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.263` | Linux x64 glibc 已验证版本（需要 `node-lief >=1.3.0`）；不含 arm64、musl 或未验证版本 |
-| `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.263` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
+| `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.265` | Linux x64 glibc 已验证版本（需要 `node-lief >=1.3.0`）；不含 arm64、musl 或未验证版本 |
+| `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.265` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
 
 > **native binary 说明**：官方安装器和新版 npm 包安装的是原生程序。插件会按容器格式翻译：源码构建提取并写回 JS，字节码构建在原字符串占位内写入中文；译文超过占位长度时保留英文。两条路径均在启动自检通过后记录成功，macOS 还会重新签名。已验证版本见[支持矩阵](./docs/support-matrix.md)，不代表完整中文覆盖。Linux x64 glibc 仅启用矩阵列出的版本，需要 `node-lief >=1.3.0`。Windows 更新 Claude Code 后，请关闭所有 Claude Code 窗口，再重跑 `install.ps1`。
 
@@ -277,10 +277,10 @@ Claude Code 更新后，npm / macOS native 安装会在首次会话启动时**�
 |------|-----------|------|
 | macOS / Linux / WSL · npm 全局安装 | `2.1.92 - 2.1.112` | 翻译最完整；launcher 启动前自修复 + `session-start` 兜底 |
 | macOS · 官方安装器（native） | `2.1.110 - 2.1.112` | 需要 `node-lief` |
-| macOS · native binary（arm64） | `2.1.113 - 2.1.263` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
-| Linux · native binary（x64 glibc） | `2.1.220 - 2.1.263` | 需要 `node-lief >=1.3.0`；仅支持矩阵列出的版本，不含 arm64、musl |
+| macOS · native binary（arm64） | `2.1.113 - 2.1.265` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| Linux · native binary（x64 glibc） | `2.1.220 - 2.1.265` | 需要 `node-lief >=1.3.0`；仅支持矩阵列出的版本，不含 arm64、musl |
 | Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
-| Windows · native .exe（x64） | `2.1.113 - 2.1.263` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| Windows · native .exe（x64） | `2.1.113 - 2.1.265` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Linux · 其他官方安装器形态 | 暂无已验证版本 | 仅 Layer 1~3 生效 |
 
 > - **macOS / Windows 版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时副本上翻译并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。
