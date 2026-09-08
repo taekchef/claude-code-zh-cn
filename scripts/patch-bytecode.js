@@ -8,6 +8,28 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const io = require("../bun-binary-io.js");
 
+// spinner 完成态/进度词：传统 Layer 4 在 patch-cli.js 用结构锚定替换它们，
+// bytecode 容器按常量池整串匹配即可。这些词在常量池里只作显示值（无逻辑
+// 比较/对象键），整串替换安全；Baked 桶短译成双字才放得下。
+const BUILTIN_SPINNER_TRANSLATIONS = [
+  { en: "Baked", zh: "烤了" },
+  { en: "Brewed", zh: "沏了" },
+  { en: "Churned", zh: "翻搅了" },
+  { en: "Cogitated", zh: "琢磨了" },
+  { en: "Cooked", zh: "烹饪了" },
+  { en: "Crunched", zh: "嚼了" },
+  { en: "Sautéed", zh: "翻炒了" },
+  { en: "Saut\\xE9ed", zh: "翻炒了" },
+  { en: "Worked", zh: "忙活了" },
+  { en: "Thought", zh: "思考了" },
+  { en: "almost done thinking", zh: "即将完成思考" },
+  { en: "thinking some more", zh: "继续思考中" },
+  { en: "thinking more", zh: "深入思考" },
+  { en: "still thinking", zh: "仍在思考" },
+  { en: "Needs input", zh: "需要输入" },
+  { en: "Ready for review", zh: "待审核" },
+];
+
 function patchStringPool(buffer, translations) {
   if (!Array.isArray(translations)) throw new Error("翻译表必须是数组");
   const table = new Map();
@@ -19,6 +41,10 @@ function patchStringPool(buffer, translations) {
     if (protectedText.has(item.en)) continue;
     if (table.has(item.en) && table.get(item.en) !== item.zh) throw new Error(`翻译冲突：${item.en}`);
     table.set(item.en, item.zh);
+  }
+  // 内置补充词只在主表缺省时生效，避免与 cli-translations.json 冲突
+  for (const item of BUILTIN_SPINNER_TRANSLATIONS) {
+    if (!table.has(item.en)) table.set(item.en, item.zh);
   }
   const lengths = new Set([...table.keys()].map(en => en.length));
   const found = new Set();

@@ -67,3 +67,25 @@ test("translation boundary rejects malformed or conflicting entries", () => {
   }
   assert.deepEqual(pool, entry("Pondering"));
 });
+
+// 内置补充翻译表：spinner 完成态/进度词。传统 Layer 4 在 patch-cli.js 里
+// 用结构锚定替换它们；bytecode 容器按常量池整串匹配，只要这些词在池里
+// 只作显示值（无逻辑比较/对象键），全局替换就是安全的。
+test("built-in extras translate spinner completion verbs even with an empty master table", () => {
+  const pool = entry("Churned");
+  assert.equal(patchStringPool(pool, []).patched, 1);
+  assert.equal(pool.readUInt32LE(0), 3); // 3 UTF-16 code units
+  assert.equal(pool.subarray(8, 14).toString("utf16le"), "翻搅了");
+});
+
+test("built-in verb fits within a shorter bucket (Baked 5B -> 烤了)", () => {
+  const pool = entry("Baked");
+  assert.equal(patchStringPool(pool, []).patched, 1);
+  assert.equal(pool.subarray(8, 12).toString("utf16le"), "烤了");
+});
+
+test("master table wins over built-in extras on key collision", () => {
+  const pool = entry("Churned");
+  assert.equal(patchStringPool(pool, [{ en: "Churned", zh: "自定义" }]).patched, 1);
+  assert.equal(pool.subarray(8, 14).toString("utf16le"), "自定义");
+});
