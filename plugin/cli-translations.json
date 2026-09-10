@@ -241,6 +241,10 @@
     "zh": " · 运行 /reload-plugins 以生效"
   },
   {
+    "en": " · done ",
+    "zh": "· 完成"
+  },
+  {
     "en": " · enter to collapse",
     "zh": " · 按 Enter 折叠"
   },
@@ -899,6 +903,10 @@
   {
     "en": "Background this session?",
     "zh": "将此会话转入后台？"
+  },
+  {
+    "en": "Background work is running",
+    "zh": "后台任务正在运行"
   },
   {
     "en": "Backgrounded agent",
@@ -2641,6 +2649,10 @@
     "zh": "退出并手动修复"
   },
   {
+    "en": "Exit and stop tasks",
+    "zh": "退出并停止任务"
+  },
+  {
     "en": "Exit plan mode?",
     "zh": "退出计划模式？"
   },
@@ -3880,6 +3892,10 @@
   {
     "en": "Move this session to a new working directory",
     "zh": "将会话切换到新的工作目录"
+  },
+  {
+    "en": "Move to background and exit",
+    "zh": "转到后台并退出"
   },
   {
     "en": "Multi-file Changes",
@@ -5388,6 +5404,10 @@
     "zh": "运行中…"
   },
   {
+    "en": "Running… ",
+    "zh": "运行中…"
+  },
+  {
     "en": "Runs in Claude Code on the web. When the plan is ready,",
     "zh": "在 Claude Code 网页版中运行。方案就绪后，"
   },
@@ -5471,6 +5491,10 @@
   {
     "en": "Searching for",
     "zh": "搜索中"
+  },
+  {
+    "en": "Searching for ",
+    "zh": "正在搜索 "
   },
   {
     "en": "Searching with Claude…",
@@ -6069,6 +6093,10 @@
     "zh": "状态："
   },
   {
+    "en": "Stay",
+    "zh": "保持"
+  },
+  {
     "en": "Stop and wait for limit to reset",
     "zh": "停止并等待限额重置"
   },
@@ -6319,6 +6347,10 @@
   {
     "en": "The following patterns will be ignored:",
     "zh": "以下模式将被忽略："
+  },
+  {
+    "en": "The following will stop when you exit:",
+    "zh": "退出后以下任务将停止："
   },
   {
     "en": "The sandbox has the following restrictions:",
@@ -7642,6 +7674,10 @@
     "zh": "claude doctor"
   },
   {
+    "en": "completed in background",
+    "zh": "已在后台完成"
+  },
+  {
     "en": "confirm and save",
     "zh": "确认并保存"
   },
@@ -7864,6 +7900,10 @@
   {
     "en": "shells still running",
     "zh": "个 shell 仍在运行"
+  },
+  {
+    "en": "still running in background",
+    "zh": "仍在后台运行"
   },
   {
     "en": "stop agents",

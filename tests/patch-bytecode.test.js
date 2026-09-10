@@ -2,6 +2,8 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { patchStringPool } = require("../scripts/patch-bytecode.js");
 
 function entry(text, wide = false) {
@@ -96,4 +98,123 @@ test("skipPatch contracts stay protected even when a built-in extra matches", ()
   const result = patchStringPool(pool, [{ en: "Thought", zh: "思考了", skipPatch: "model-prompt-contract" }]);
   assert.equal(result.patched, 0);
   assert.deepEqual(pool, original);
+});
+
+// 粘贴/截断附件的协议碎片不能翻译：Bun 把 `[Pasted text #${id} +${n} lines]`
+// 模板拆成常量池静态段，翻译 ` lines]` 会让运行时识别附件的正则失配，
+// 模型只收到占位符字面量而不是真实粘贴内容。
+test("paste/truncate protocol fragments in the pool are never translated", () => {
+  const pool = entry(" lines]", true);
+  const original = Buffer.from(pool);
+  const result = patchStringPool(pool, [{ en: " lines]", zh: " 行]" }]);
+  assert.equal(result.patched, 0);
+  assert.deepEqual(pool, original);
+});
+
+test("protocol fragment protection does not block neighbouring UI strings", () => {
+  const fragment = entry(" lines]", true);
+  const pool = Buffer.concat([fragment, entry("Pondering")]);
+  const result = patchStringPool(pool, [
+    { en: " lines]", zh: " 行]" },
+    { en: "Pondering", zh: "思索中" },
+  ]);
+  assert.equal(result.patched, 1);
+  assert.deepEqual(pool.subarray(0, fragment.length), fragment);
+  const contentStart = fragment.length + 8;
+  assert.equal(pool.subarray(contentStart, contentStart + 6).toString("utf16le"), "思索中");
+});
+
+// 回归：` (ctrl+o to expand)` 是 19B 窄槽，最多放 9 个 UTF-16 单元（18B）。
+// 主表译文 ` (ctrl+o 展开)`（24B）给明文路径用，放进池槽会被静默跳过（tooLong），
+// 用户只看到英文；池内专用短译由 POOL_TRANSLATIONS 提供并覆盖主表。
+test("ctrl+o expand hint pool slot falls back to the narrow-slot translation", () => {
+  const table = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "..", "cli-translations.json"), "utf8")
+  );
+  const pool = entry(" (ctrl+o to expand)");
+  const result = patchStringPool(pool, table);
+  assert.equal(result.patched, 1, "zh must fit the 19-byte narrow slot instead of silently tooLong");
+  assert.equal(result.tooLong, 0);
+  assert.equal(pool.readUInt32LE(0) & 0x7fffffff, " ctrl+o展开".length);
+  assert.ok(
+    Buffer.from(" ctrl+o展开", "utf16le").length <= 19,
+    "pool translation must fit the 19-byte slot"
+  );
+});
+
+// `Shell cwd was reset to <dir>` 由明文正则解析以复位执行目录，译文会让解析
+// 失配、后续命令跑到错误目录。池里暂无完整条目，守卫纯属防御。
+test("regex-consumed Shell cwd reset message is never translated", () => {
+  const pool = entry("Shell cwd was reset to ");
+  const original = Buffer.from(pool);
+  const result = patchStringPool(pool, [{ en: "Shell cwd was reset to ", zh: "Shell cwd 已被重置到 " }]);
+  assert.equal(result.patched, 0);
+  assert.deepEqual(pool, original);
+});
+
+test("logical-consumed guard does not block neighbouring UI strings", () => {
+  const fragment = entry("Shell cwd was reset to ");
+  const pool = Buffer.concat([fragment, entry("Pondering")]);
+  const result = patchStringPool(pool, [
+    { en: "Shell cwd was reset to ", zh: "Shell cwd 已被重置到 " },
+    { en: "Pondering", zh: "思索中" },
+  ]);
+  assert.equal(result.patched, 1);
+  assert.deepEqual(pool.subarray(0, fragment.length), fragment);
+});
+
+// 池内专用片段：只在池里当展示片段的串（+N lines / Added / completed / timeout）。
+// 主表不含这些键——写进 cli-translations.json 会让明文路径在协议模板或提示词里
+// 误替换（如 ` lines` 与协议的 ` lines]` 相邻）。这里核对它们放得进真实槽宽。
+test("pool-only UI fragments translate without entering the plaintext table", () => {
+  const mainKeys = new Set(
+    JSON.parse(fs.readFileSync(path.join(__dirname, "..", "cli-translations.json"), "utf8"))
+      .map((e) => e.en)
+  );
+  const slots = [
+    ["Added ", "新增 ", 6],
+    [" lines", " 行", 6],
+    [" completed", " 已完成", 10],
+    ["timeout ", "超时 ", 8],
+    [" · timeout ", " ·超时 ", 11],
+    [" for ", "耗时", 5],
+    ["searched for", "搜索了", 12],
+    ["patterns", "个模式", 8],
+  ];
+  for (const [en, zh, bytes] of slots) {
+    assert.ok(!mainKeys.has(en), `${en} must stay out of the plaintext table`);
+    assert.ok(Buffer.from(zh, "utf16le").length <= bytes, `${en} zh fits ${bytes}B slot`);
+    const pool = entry(en);
+    assert.equal(patchStringPool(pool, []).patched, 1, `${en} must patch from the pool-only table`);
+    assert.equal(pool.subarray(8, 8 + Buffer.from(zh, "utf16le").length).toString("utf16le"), zh);
+  }
+});
+
+
+// "译文存在但静默 tooLong 不生效" 再次出现。槽宽来自 2.1.260 实测。
+test("newly added pool UI phrases fit their real pool slot widths", () => {
+  const map = new Map(
+    JSON.parse(fs.readFileSync(path.join(__dirname, "..", "cli-translations.json"), "utf8"))
+      .map((e) => [e.en, e])
+  );
+  const slots = [
+    ["Background work is running", 26],
+    ["The following will stop when you exit:", 38],
+    ["Exit and stop tasks", 19],
+    ["Move to background and exit", 27],
+    ["Stay", 4],
+    ["completed in background", 23],
+    ["still running in background", 27],
+    ["Running… ", 18],
+    [" · done ", 8],
+    ["Searching for ", 14],
+  ];
+  for (const [en, bytes] of slots) {
+    const zh = map.get(en)?.zh;
+    assert.ok(zh, `translation exists for ${en}`);
+    assert.ok(
+      Buffer.from(zh, "utf16le").length <= bytes,
+      `${en} zh fits ${bytes}B slot (got ${Buffer.from(zh, "utf16le").length}B)`
+    );
+  }
 });

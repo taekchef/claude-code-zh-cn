@@ -602,3 +602,24 @@ test("spinner verbs contain no CJK-plus-English-ing mixed suffixes", () => {
     );
   }
 });
+
+// 新增的池内 UI 串用词固定，防止后续误改（尤其是会触发静默 tooLong 的窄槽）。
+test("pool-localized exit dialog and status phrases use the curated wording", () => {
+  const map = translationMap();
+  const expected = new Map([
+    ["Background work is running", "后台任务正在运行"],
+    ["The following will stop when you exit:", "退出后以下任务将停止："],
+    ["Exit and stop tasks", "退出并停止任务"],
+    ["Move to background and exit", "转到后台并退出"],
+    ["Stay", "保持"],
+    ["completed in background", "已在后台完成"],
+    ["still running in background", "仍在后台运行"],
+    ["Running… ", "运行中…"],
+    [" · done ", "· 完成"],
+    ["Searching for ", "正在搜索 "],
+    [" (ctrl+o to expand)", " (ctrl+o 展开)"],
+  ]);
+  for (const [en, zh] of expected) {
+    assert.equal(map.get(en), zh, `entry ${en}`);
+  }
+});
