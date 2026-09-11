@@ -46,8 +46,13 @@ const PROTOCOL_FRAGMENTS = new Set([
 
 // `Shell cwd was reset to <dir>` 由明文正则（Egt）消费，用于把执行目录复位；
 // 翻译会让解析失配、后续命令跑到错误目录。池里暂无完整条目，守卫纯属防御。
+// `Agent "`（minify 名 `Wet`）与 `" finished`（`Xir`）是逻辑前缀/后缀对：agent
+// 任务列表靠 `startsWith(Wet) && endsWith(Xir)` 识别完成通知，同一常量还用于生成
+// 模型可见的 `<task-notification>` 摘要。池里确有 7B `Agent "` 条目，翻译会让任务
+// 识别失配、协议混入中文，必须拒绝。
 const LOGIC_CONSUMED_FRAGMENTS = new Set([
   "Shell cwd was reset to ",
+  'Agent "',
 ]);
 
 // 池内专用译文。两类用途：
@@ -65,6 +70,18 @@ const POOL_TRANSLATIONS = new Map([
   [" for ", "耗时"], // 5B 窄槽最多 2 个单元；`思考了 for 7s` -> `思考了耗时7s`
   ["searched for", "搜索了"],
   ["patterns", "个模式"], // 单数 `pattern` 与 Grep 工具参数共享，不动
+  // 2.1.260 用户反馈缺口：Waiting for task 前缀、chord 附加指示、后台 agent
+  // 启动/完成、Goal 状态词、Task Output 工具名。均只在池里作展示片段，进主表
+  // 会被明文路径在协议模板/提示词里误替换。槽宽来自本机 2.1.260 实测。
+  ["\xA0\xA0\xA0\xA0\xA0Waiting for task", "\xA0\xA0等待任务"],
+  ["give additional instructions", "给出额外指示"],
+  [" background agents launched", " 个后台 Agent 启动"],
+  ['Background agent "', '后台 Agent"'],
+  [" finished", " 已完成"],
+  ["Goal achieved", "目标已达成"],
+  ["Goal could not be achieved", "目标未能达成"],
+  ["Goal not yet met… continuing", "目标尚未达成…继续"],
+  ["Task Output", "任务输出"],
 ]);
 
 function patchStringPool(buffer, translations) {

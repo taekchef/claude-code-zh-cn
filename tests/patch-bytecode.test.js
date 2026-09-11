@@ -152,6 +152,18 @@ test("regex-consumed Shell cwd reset message is never translated", () => {
   assert.deepEqual(pool, original);
 });
 
+// `Agent "`（Bun 内 minify 名 `Wet`）与 `" finished`（`Xir`）是一对逻辑前缀/后缀：
+// agent 任务列表靠 `startsWith(Wet) && r.endsWith(Xir)` 识别完成通知，同一常量还用于
+// 生成模型可见的 `<task-notification><summary>Agent "…" finished</summary>` 协议文本。
+// 翻译会让任务识别失配、协议文本混入中文，故池里确有这个 7B 条目也必须拒绝。
+test("agent task notification prefix consumed by startsWith/endsWith is never translated", () => {
+  const pool = entry('Agent "');
+  const original = Buffer.from(pool);
+  const result = patchStringPool(pool, [{ en: 'Agent "', zh: "后台" }]);
+  assert.equal(result.patched, 0);
+  assert.deepEqual(pool, original);
+});
+
 test("logical-consumed guard does not block neighbouring UI strings", () => {
   const fragment = entry("Shell cwd was reset to ");
   const pool = Buffer.concat([fragment, entry("Pondering")]);
@@ -187,6 +199,40 @@ test("pool-only UI fragments translate without entering the plaintext table", ()
     const pool = entry(en);
     assert.equal(patchStringPool(pool, []).patched, 1, `${en} must patch from the pool-only table`);
     assert.equal(pool.subarray(8, 8 + Buffer.from(zh, "utf16le").length).toString("utf16le"), zh);
+  }
+});
+
+
+// 2.1.260 用户反馈的六类缺口：Waiting for task 前缀、chord 附加指示、后台
+// agent 启动/完成、Goal 状态词、Task Output 工具名。全部只作池内展示片段，
+// 写进 cli-translations.json 会让明文路径在协议模板或提示词里误替换，故走
+// POOL_TRANSLATIONS。槽宽来自本机 2.1.260 实测（窄槽按 UTF-16 单元、宽槽按字节）。
+test("2.1.260 reported gaps: pool-only UI fragments translate within slot width", () => {
+  const mainKeys = new Set(
+    JSON.parse(fs.readFileSync(path.join(__dirname, "..", "cli-translations.json"), "utf8"))
+      .map((e) => e.en)
+  );
+  const slots = [
+    ["\xA0\xA0\xA0\xA0\xA0Waiting for task", "\xA0\xA0等待任务", 21, false],
+    ["give additional instructions", "给出额外指示", 28, false],
+    [" background agents launched", " 个后台 Agent 启动", 27, false],
+    ['Background agent "', '后台 Agent"', 18, false],
+    [" finished", " 已完成", 9, false],
+    ["Goal achieved", "目标已达成", 13, false],
+    ["Goal could not be achieved", "目标未能达成", 26, false],
+    ["Goal not yet met… continuing", "目标尚未达成…继续", 56, true],
+    ["Task Output", "任务输出", 11, false],
+  ];
+  for (const [en, zh, bytes, wide] of slots) {
+    assert.ok(!mainKeys.has(en), `${en} must stay out of the plaintext table`);
+    assert.ok(
+      Buffer.from(zh, "utf16le").length <= bytes,
+      `${en} zh fits ${bytes}B slot (got ${Buffer.from(zh, "utf16le").length}B)`
+    );
+    const pool = entry(en, wide);
+    assert.equal(patchStringPool(pool, []).patched, 1, `${en} must patch from the pool-only table`);
+    const rep = Buffer.from(zh, "utf16le");
+    assert.equal(pool.subarray(8, 8 + rep.length).toString("utf16le"), zh);
   }
 });
 
