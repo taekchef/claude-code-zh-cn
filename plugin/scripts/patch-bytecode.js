@@ -32,6 +32,68 @@ const BUILTIN_SPINNER_TRANSLATIONS = [
   { en: "Ready for review", zh: "待审核" },
 ];
 
+// 粘贴/截断附件的协议占位符碎片。Bun 把 `[Pasted text #${id} +${n} lines]` 这类
+// 运行时解析的模板拆成常量池静态段，翻译任一静态段都会让识别附件的正则失配，
+// 模型只收到占位符字面量而不是真实粘贴内容。patch-cli.js 的
+// isProtectedProtocolLiteral 只覆盖明文路径，这里补齐 bytecode 池。
+// 注意 ` more lines]` 是折叠行数提示的 UI 文案，可翻译，不在保护之列。
+const PROTOCOL_FRAGMENTS = new Set([
+  "[Pasted text #",
+  " lines]",
+  "[...Truncated text",
+  "[Image #",
+]);
+
+// `Shell cwd was reset to <dir>` 由明文正则（Egt）消费，用于把执行目录复位；
+// 翻译会让解析失配、后续命令跑到错误目录。池里暂无完整条目，守卫纯属防御。
+// `Agent "`（minify 名 `Wet`）与 `" finished`（`Xir`）是逻辑前缀/后缀对：agent
+// 任务列表靠 `startsWith(Wet) && endsWith(Xir)` 识别完成通知，同一常量还用于生成
+// 模型可见的 `<task-notification>` 摘要。池里确有 7B `Agent "` 条目，翻译会让任务
+// 识别失配、协议混入中文，必须拒绝。
+const LOGIC_CONSUMED_FRAGMENTS = new Set([
+  "Shell cwd was reset to ",
+  'Agent "',
+]);
+
+// 池内专用译文。两类用途：
+// 1) 修正主表里放不进窄槽的条目（如 ctrl+o，主表长译 24B 装不进 19B 窄槽）；
+// 2) 只在 Bun 常量池里作展示片段的串——写进 cli-translations.json 会让明文路径
+//    （patch-cli.js）在协议模板或提示词里误替换，故只在此维护、不走主表。
+// 槽宽来自 2.1.260 实测，译文超宽会被静默跳过，改动后用测试核对。
+const POOL_TRANSLATIONS = new Map([
+  [" (ctrl+o to expand)", " ctrl+o展开"],
+  ["Added ", "新增 "],
+  [" lines", " 行"],
+  [" completed", " 已完成"],
+  ["timeout ", "超时 "],
+  [" · timeout ", " ·超时 "],
+  [" for ", "耗时"], // 5B 窄槽最多 2 个单元；`思考了 for 7s` -> `思考了耗时7s`
+  ["searched for", "搜索了"],
+  ["patterns", "个模式"], // 单数 `pattern` 与 Grep 工具参数共享，不动
+  // 2.1.260 用户反馈缺口：Waiting for task 前缀、chord 附加指示、后台 agent
+  // 启动/完成、Goal 状态词、Task Output 工具名。均只在池里作展示片段，进主表
+  // 会被明文路径在协议模板/提示词里误替换。槽宽来自本机 2.1.260 实测。
+  ["\xA0\xA0\xA0\xA0\xA0Waiting for task", "\xA0\xA0等待任务"],
+  ["give additional instructions", "给出额外指示"],
+  [" background agents launched", " 个后台 Agent 启动"],
+  ['Background agent "', '后台 Agent"'],
+  [" finished", " 已完成"],
+  ["Goal achieved", "目标已达成"],
+  ["Goal could not be achieved", "目标未能达成"],
+  ["Goal not yet met… continuing", "目标尚未达成…继续"],
+  ["Task Output", "任务输出"],
+  // 上下文压缩后 banner `✻ Conversation compacted (ctrl+o for history)` 又显示英文：
+  // 主表键 `✻ Conversation compacted (` 不匹配池条目（✻ 由组件单独渲染，@111563738
+  // children:[mB,"Conversation compacted (",Aw," for history)"]），池里是 24B 的
+  // `Conversation compacted (`。尾段 ` for history)` 还被 summarized hint @112441011
+  // 的模板共用，头段一并翻避免中英混。`ctrl+o` 是键位变量（保留），` for history`
+  // （12B）是 Compacted 状态行 detail（@111406312 `${f} for history`）。槽宽实测。
+  ["Conversation compacted (", "对话已压缩（"],
+  ["Conversation summarized (", "对话已摘要（"],
+  [" for history)", " 查看历史）"],
+  [" for history", " 查看历史"],
+]);
+
 function patchStringPool(buffer, translations) {
   if (!Array.isArray(translations)) throw new Error("翻译表必须是数组");
   const table = new Map();
@@ -40,7 +102,7 @@ function patchStringPool(buffer, translations) {
     if (!item || typeof item.en !== "string" || typeof item.zh !== "string" || !item.en || !item.zh) {
       throw new Error("翻译条目必须包含非空 en / zh 字符串");
     }
-    if (protectedText.has(item.en)) continue;
+    if (protectedText.has(item.en) || PROTOCOL_FRAGMENTS.has(item.en) || LOGIC_CONSUMED_FRAGMENTS.has(item.en)) continue;
     if (table.has(item.en) && table.get(item.en) !== item.zh) throw new Error(`翻译冲突：${item.en}`);
     table.set(item.en, item.zh);
   }
@@ -48,6 +110,10 @@ function patchStringPool(buffer, translations) {
   // 主表标记 skipPatch 的条目仍受保护，内置词不得绕过。
   for (const item of BUILTIN_SPINNER_TRANSLATIONS) {
     if (!table.has(item.en) && !protectedText.has(item.en)) table.set(item.en, item.zh);
+  }
+  // 池内专用译文直接写入池表（可覆盖主表同名值）；协议/逻辑守卫优先级最高。
+  for (const [en, zh] of POOL_TRANSLATIONS) {
+    if (!protectedText.has(en) && !PROTOCOL_FRAGMENTS.has(en) && !LOGIC_CONSUMED_FRAGMENTS.has(en)) table.set(en, zh);
   }
   const lengths = new Set([...table.keys()].map(en => en.length));
   const found = new Set();

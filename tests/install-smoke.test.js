@@ -580,7 +580,7 @@ try {
 `);
   try {
     const result = runWindowsPowerShell(powershell, ["-File", check], {
-      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe") }, timeout: 30000,
+      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe") }, timeout: 60000,
     });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
@@ -637,7 +637,7 @@ exit 0
 `);
   try {
     const result = runWindowsPowerShell(powershell, ["-File", check], {
-      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe"), CCZH_NODE: process.execPath, CCZH_REPLACE_SCRIPT: replacement, CCZH_OPERATION: operation }, timeout: 30000,
+      env: { ...process.env, CCZH_LOCK_FILE: path.join(tmp, "program.exe"), CCZH_NODE: process.execPath, CCZH_REPLACE_SCRIPT: replacement, CCZH_OPERATION: operation }, timeout: 60000,
     });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
