@@ -264,3 +264,41 @@ test("newly added pool UI phrases fit their real pool slot widths", () => {
     );
   }
 });
+
+// 回归：上下文压缩后的 `✻ Conversation compacted (ctrl+o for history)` banner 又显示英文。
+// 主表键是 `✻ Conversation compacted (`，但池条目是 `Conversation compacted (`（✻ 由独立
+// 组件渲染，@111563738 children:[mB,"Conversation compacted (",Aw," for history)"]），
+// 键不匹配故池路径长期未命中。尾段 ` for history)` 还被 summarized hint @112441011 的
+// 模板 `` `Conversation summarized (${io} for history)` `` 共用，只翻尾段会造成中英混，
+// 故 summarized 头段一并翻。四条均为展示层片段，走 POOL_TRANSLATIONS。
+// ` for history)` 主表已有长译 ` 查看历史记录)`（14B），放不进 13B 窄槽，池内用短译覆盖；
+// 其余三条主表无对应键，池内独有。槽宽 2.1.260 实测。
+test("conversation compacted/summarized banner fragments translate within slot width", () => {
+  const main = new Map(
+    JSON.parse(fs.readFileSync(path.join(__dirname, "..", "cli-translations.json"), "utf8"))
+      .map((e) => [e.en, e.zh])
+  );
+  const slots = [
+    ["Conversation compacted (", "对话已压缩（", 24, false],
+    ["Conversation summarized (", "对话已摘要（", 25, false],
+    [" for history)", " 查看历史）", 13, false],
+    [" for history", " 查看历史", 12, false],
+  ];
+  for (const [en, zh, bytes, wide] of slots) {
+    const mainZh = main.get(en);
+    if (mainZh !== undefined) {
+      assert.ok(
+        Buffer.from(mainZh, "utf16le").length > bytes,
+        `${en} main zh (${mainZh}) must exceed ${bytes}B, otherwise no pool override is needed`
+      );
+    }
+    assert.ok(
+      Buffer.from(zh, "utf16le").length <= bytes,
+      `${en} pool zh fits ${bytes}B slot (got ${Buffer.from(zh, "utf16le").length}B)`
+    );
+    const pool = entry(en, wide);
+    assert.equal(patchStringPool(pool, []).patched, 1, `${en} must patch from the pool-only table`);
+    const rep = Buffer.from(zh, "utf16le");
+    assert.equal(pool.subarray(8, 8 + rep.length).toString("utf16le"), zh);
+  }
+});

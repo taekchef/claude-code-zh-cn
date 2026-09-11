@@ -82,6 +82,16 @@ const POOL_TRANSLATIONS = new Map([
   ["Goal could not be achieved", "目标未能达成"],
   ["Goal not yet met… continuing", "目标尚未达成…继续"],
   ["Task Output", "任务输出"],
+  // 上下文压缩后 banner `✻ Conversation compacted (ctrl+o for history)` 又显示英文：
+  // 主表键 `✻ Conversation compacted (` 不匹配池条目（✻ 由组件单独渲染，@111563738
+  // children:[mB,"Conversation compacted (",Aw," for history)"]），池里是 24B 的
+  // `Conversation compacted (`。尾段 ` for history)` 还被 summarized hint @112441011
+  // 的模板共用，头段一并翻避免中英混。`ctrl+o` 是键位变量（保留），` for history`
+  // （12B）是 Compacted 状态行 detail（@111406312 `${f} for history`）。槽宽实测。
+  ["Conversation compacted (", "对话已压缩（"],
+  ["Conversation summarized (", "对话已摘要（"],
+  [" for history)", " 查看历史）"],
+  [" for history", " 查看历史"],
 ]);
 
 function patchStringPool(buffer, translations) {
