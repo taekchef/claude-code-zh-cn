@@ -189,8 +189,10 @@ function syncCcSwitch(dbFile, overlay) {
   }
 
   // sqlite3 CLI 兼容路径：把合并后的 JSON 写到临时文件，用 readfile() 读入
-  const mergedFile = path.join(os.tmpdir(), `cczh-ccswitch-merged-${process.pid}.json`);
+  let mergedDir;
   try {
+    mergedDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-ccswitch-"));
+    const mergedFile = path.join(mergedDir, "merged.json");
     const mergedJson = mergeCurrent(ccSwitchReadCommonConfig(dbFile));
     fs.writeFileSync(mergedFile, mergedJson, { mode: 0o600 });
     const escaped = mergedFile.replace(/'/g, "''");
@@ -204,7 +206,7 @@ function syncCcSwitch(dbFile, overlay) {
     return { ok: false, reason: error.message || "同步失败", backup };
   } finally {
     try {
-      fs.unlinkSync(mergedFile);
+      if (mergedDir) fs.rmSync(mergedDir, { recursive: true, force: true });
     } catch {
       // ignore
     }

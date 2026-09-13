@@ -297,7 +297,12 @@ test(`CC Switch ${backend} sync preserves existing fields and rejects invalid co
     assert.ok(merged.spinnerTipsOverride.tips.length >= 40);
     for (const invalid of ["not json", "[]", "null"]) {
       put.run("common_config_claude", invalid);
-      assert.equal(syncCcSwitch(dbFile, { language: "Chinese" }).ok, false);
+      const result = backend === "node"
+        ? syncCcSwitch(dbFile, { language: "Chinese" })
+        : JSON.parse(execFileSync(process.execPath, ["--no-experimental-sqlite", "-e",
+          'process.stdout.write(JSON.stringify(require(process.argv[1]).syncCcSwitch(process.argv[2], {language:"Chinese"})))',
+          setupScript, dbFile], { encoding: "utf8" }));
+      assert.equal(result.ok, false);
       assert.equal(read(), invalid);
     }
   } finally {
