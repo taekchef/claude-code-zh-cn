@@ -177,6 +177,8 @@ claude plugin install claude-code-zh-cn@claude-code-zh-cn --scope user
 
 ### 完整安装脚本（本地开发 / 离线 / 旧版 Claude Code）
 
+**内网服务器没有网络或没有预装 Node.js：** 请按[离线安装指南](docs/offline-install.md)准备便携运行环境、依赖和本地源码。当前完整插件仍需要 Node.js，不能仅复制插件目录就省略运行环境。
+
 首屏命令会从本项目最新 GitHub Release 下载源码包，然后执行同一套 `install.sh`。它和官方安装器的区别：
 
 | 命令 | 装什么 | 什么时候用 |

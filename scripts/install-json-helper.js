@@ -25,17 +25,7 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function deepMerge(base, override) {
-  const result = { ...base };
-  for (const [key, value] of Object.entries(override)) {
-    if (isPlainObject(result[key]) && isPlainObject(value)) {
-      result[key] = deepMerge(result[key], value);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
-}
+const { deepMerge } = require("../plugin/scripts/build-overlay.js");
 
 function buildOverlay(baseFile, verbsFile, tipsFile) {
   const base = readJson(baseFile);

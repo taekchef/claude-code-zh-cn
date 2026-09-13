@@ -52,6 +52,8 @@ test("install.sh works without python3 when node is available", { skip: unixOnly
 
   fs.mkdirSync(home, { recursive: true });
   linkCommands(binDir, ["node", "cp", "mkdir", "find", "chmod", "cat", "sed", "head", "which", "date", "tr", "dirname"]);
+  fs.mkdirSync(path.join(home, ".cc-switch"));
+  fs.writeFileSync(path.join(home, ".cc-switch", "cc-switch.db"), "untouched");
 
   const result = spawnSync("/bin/bash", [path.join(repoRoot, "install.sh")], {
     cwd: repoRoot,
@@ -65,6 +67,8 @@ test("install.sh works without python3 when node is available", { skip: unixOnly
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stderr, /未找到 sqlite3.*通用配置未同步/);
+  assert.equal(fs.readFileSync(path.join(home, ".cc-switch", "cc-switch.db"), "utf8"), "untouched");
 
   const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
   assert.equal(settings.language, "Chinese");

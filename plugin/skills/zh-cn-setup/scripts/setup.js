@@ -25,6 +25,7 @@ const { spawnSync } = require("node:child_process");
 
 const {
   buildOverlay,
+  deepMerge,
   fillMissingKeys,
   writeSettings,
   resolvePluginRoot,
@@ -157,13 +158,19 @@ function syncCcSwitch(dbFile, overlay) {
     return { ok: false, reason: "无法备份数据库" };
   }
 
-  const mergedJson = JSON.stringify(overlay, null, 2);
+  function mergeCurrent(raw) {
+    const current = JSON.parse((raw || "").replace(/^\uFEFF/, ""));
+    if (!isPlainObject(current)) throw new Error("通用配置不是有效 JSON 对象，未写入");
+    return JSON.stringify(deepMerge(current, overlay), null, 2);
+  }
   const DatabaseSync = nodeSqlite();
   if (DatabaseSync) {
     try {
       const db = new DatabaseSync(dbFile);
       try {
         db.exec("begin immediate");
+        const row = db.prepare("select value from settings where key=?").get("common_config_claude");
+        const mergedJson = mergeCurrent(row?.value);
         db.prepare("insert or replace into settings(key,value) values(?, ?)")
           .run("common_config_claude", mergedJson);
         db.prepare("delete from settings where key=?")
@@ -184,7 +191,8 @@ function syncCcSwitch(dbFile, overlay) {
   // sqlite3 CLI 兼容路径：把合并后的 JSON 写到临时文件，用 readfile() 读入
   const mergedFile = path.join(os.tmpdir(), `cczh-ccswitch-merged-${process.pid}.json`);
   try {
-    fs.writeFileSync(mergedFile, mergedJson);
+    const mergedJson = mergeCurrent(ccSwitchReadCommonConfig(dbFile));
+    fs.writeFileSync(mergedFile, mergedJson, { mode: 0o600 });
     const escaped = mergedFile.replace(/'/g, "''");
     const sql = `begin immediate; insert or replace into settings(key,value) values('common_config_claude', CAST(readfile('${escaped}') AS TEXT)); delete from settings where key='common_config_claude_cleared'; commit;`;
     const result = spawnSync("sqlite3", [dbFile, sql], { encoding: "utf8", windowsHide: true });
@@ -192,6 +200,8 @@ function syncCcSwitch(dbFile, overlay) {
       return { ok: false, reason: "写入失败", backup };
     }
     return { ok: true, backup };
+  } catch (error) {
+    return { ok: false, reason: error.message || "同步失败", backup };
   } finally {
     try {
       fs.unlinkSync(mergedFile);

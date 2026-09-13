@@ -3,12 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const setupScript = path.join(repoRoot, "plugin", "skills", "zh-cn-setup", "scripts", "setup.js");
 const {
   ccSwitchConfigStatus,
+  syncCcSwitch,
   fillMissingKeys,
   reportPatchStatus,
   reportSkillTranslation,
@@ -270,3 +271,39 @@ test("reportPatchStatus keeps hook-based guidance on non-Windows", () => {
     assert.doesNotMatch(out, /install\.ps1 -UpdateOnly/);
   });
 });
+
+// Real database regression: no sqlite3 executable is needed on Node 24.
+for (const backend of ["node", "sqlite3"]) {
+test(`CC Switch ${backend} sync preserves existing fields and rejects invalid config`, {
+  skip: backend === "sqlite3" && spawnSync("sqlite3", ["--version"]).status !== 0 ? "requires sqlite3" : false,
+}, () => {
+  const { DatabaseSync } = require("node:sqlite");
+  const { tmp, home } = makeTmpHome();
+  const dbFile = path.join(home, ".cc-switch", "cc-switch.db");
+  fs.mkdirSync(path.dirname(dbFile), { recursive: true });
+  const db = new DatabaseSync(dbFile);
+  db.exec("create table settings(key text primary key, value text)");
+  const original = { includeCoAuthoredBy: false, enabledPlugins: { "claude-code-zh-cn@claude-code-zh-cn": true }, spinnerTipsOverride: { custom: "preserved" } };
+  const put = db.prepare("insert or replace into settings values(?, ?)");
+  const read = () => db.prepare("select value from settings where key=?").get("common_config_claude").value;
+  try {
+    put.run("common_config_claude", JSON.stringify(original));
+    runSetup(home, path.join(repoRoot, "plugin"), { ZH_CN_CCSWITCH_SYNC: "1", ...(backend === "sqlite3" ? { NODE_OPTIONS: "--no-experimental-sqlite" } : { PATH: "" }) });
+    const merged = JSON.parse(read());
+    assert.equal(merged.includeCoAuthoredBy, false);
+    assert.deepEqual(merged.enabledPlugins, original.enabledPlugins);
+    assert.equal(merged.spinnerTipsOverride.custom, "preserved");
+    assert.equal(merged.language, "Chinese");
+    assert.ok(merged.spinnerTipsOverride.tips.length >= 40);
+    for (const invalid of ["not json", "[]", "null"]) {
+      put.run("common_config_claude", invalid);
+      assert.equal(syncCcSwitch(dbFile, { language: "Chinese" }).ok, false);
+      assert.equal(read(), invalid);
+    }
+  } finally {
+    db.close();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+}

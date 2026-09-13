@@ -1096,10 +1096,7 @@ sync_ccswitch_common_config() {
     [ -f "$db_file" ] || return 0
 
     if ! command -v sqlite3 >/dev/null 2>&1; then
-        if [ "$UPDATE_ONLY" != true ] && [ "$SKIP_BANNER" != "1" ]; then
-            echo -e "${YELLOW}检测到 CC Switch，但未找到 sqlite3，无法自动检查/同步通用配置。${NC}"
-            ccswitch_manual_steps
-        fi
+        echo -e "${YELLOW}检测到 CC Switch，但未找到 sqlite3，通用配置未同步；可运行插件的 zh-cn-setup（Node.js 22.13+ 内置 SQLite）或在 CC Switch 中手动合并。${NC}" >&2
         return 0
     fi
 

@@ -35,6 +35,18 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function deepMerge(base, override) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (isPlainObject(result[key]) && isPlainObject(value)) {
+      result[key] = deepMerge(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 // 与 install-json-helper.js buildOverlay 同款算法。base/verbs/tips 缺失时优雅降级。
 function buildOverlay(pluginRoot) {
   const baseFile = path.join(pluginRoot, "settings-overlay.json");
@@ -154,4 +166,4 @@ if (require.main === module) {
   main(process.argv.slice(2));
 }
 
-module.exports = { buildOverlay, fillMissingKeys, writeSettings, resolvePluginRoot, PLUGIN_KEYS };
+module.exports = { deepMerge, buildOverlay, fillMissingKeys, writeSettings, resolvePluginRoot, PLUGIN_KEYS };
