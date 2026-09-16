@@ -541,7 +541,7 @@ if ($InstallInfo) {
                     reason = "running-executable-locked"
                     recordedAt = [DateTimeOffset]::Now.ToUnixTimeSeconds()
                 } | ConvertTo-Json -Compress | Out-File -FilePath $NativePatchPendingFile -Encoding utf8
-                $AutoPatchMsg = "（Windows 不改写正在运行的 claude.exe；本次保持原版可用。关闭所有 Claude Code 窗口后，按 https://github.com/taekchef/claude-code-zh-cn#windows-原生安装 重跑 install.ps1，即可安全补上仍能匹配的中文文案）"
+                $AutoPatchMsg = "（Windows 不改写正在运行的 claude.exe；本次保持原版可用。关闭占用窗口后，通过已安装的 claude 启动器再次启动，会自动验证并补汉化，无需重装）"
             }
         } else {
             Remove-Item $NativePatchPendingFile -Force -ErrorAction SilentlyContinue

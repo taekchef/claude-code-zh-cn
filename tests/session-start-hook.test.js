@@ -175,6 +175,8 @@ if (cmd === "detect") {
   process.stdout.write(readVersion(process.argv[3]));
 } else if (cmd === "hash") {
   process.stdout.write(require("node:crypto").createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
+} else if (cmd === "probe") {
+  process.stdout.write("source-js");
 } else if (cmd === "extract") {
   fs.copyFileSync(process.argv[3], process.argv[4]);
 } else if (cmd === "repack") {
@@ -189,7 +191,7 @@ if (cmd === "detect") {
 }
 
 function nativeShellFixture(version, body = "NATIVE") {
-  return `#!/usr/bin/env bash\necho '${version} (Claude Code)'\nexit 0\n// Version: ${version}\n${body}\n`;
+  return `#!/usr/bin/env bash\necho '${version} (Claude Code) 中文帮助'\nexit 0\n// Version: ${version}\n${body}\n`;
 }
 
 test("session-start repairs settings from cached overlay before emitting JSON", () => {
@@ -507,8 +509,8 @@ test("Windows session-start hook never rewrites the running native exe and recor
   assert.match(script, /\$Kind -eq "native-bun"/);
   assert.match(script, /\.native-patch-pending\.json/);
   assert.match(script, /正在运行的 claude\.exe/);
-  assert.match(script, /关闭所有 Claude Code 窗口后.*重跑 install\.ps1/);
-  assert.match(script, /github\.com\/taekchef\/claude-code-zh-cn#windows-原生安装/);
+  assert.match(script, /关闭占用窗口后.*再次启动/);
+  assert.match(script, /无需重装/);
   assert.doesNotMatch(script, /\$AutoPatchMsg = Invoke-NativePatch \$Target/);
 });
 
@@ -518,7 +520,7 @@ test("Unix session-start serializes native and npm patch transactions", () => {
   assert.match(script, /patch_lock_path\(\)/);
   assert.match(script, /mkdir "\$PATCH_LOCK_DIR"/);
   assert.match(script, /kill -0 "\$lock_pid"/);
-  assert.match(script, /acquire_patch_lock "\$NATIVE_BINARY"/);
+  assert.match(script, /scripts\/native-repair\.js/);
   assert.match(script, /acquire_patch_lock "\$CLI_FILE"/);
   assert.match(script, /release_patch_lock/);
   assert.match(script, /trap cleanup EXIT/);
@@ -1493,6 +1495,8 @@ if (cmd === "detect") {
   process.stdout.write(readVersion(process.argv[3]));
 } else if (cmd === "hash") {
   process.stdout.write(require("node:crypto").createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
+} else if (cmd === "probe") {
+  process.stdout.write("source-js");
 } else if (cmd === "extract") {
   fs.copyFileSync(process.argv[3], process.argv[4]);
 } else if (cmd === "repack") {
@@ -1533,7 +1537,7 @@ printf '1'
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(fs.readFileSync(fakeBinary, "utf8"), "// Version: 2.1.140\nCLEAN BACKUP\n");
+  assert.equal(fs.readFileSync(fakeBinary, "utf8"), "// Version: 2.1.140\nORIGINAL\n");
   assert.equal(fs.readFileSync(markerFile, "utf8").trim(), "native|2.1.140|stale|old-revision");
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
@@ -1572,6 +1576,8 @@ if (cmd === "detect") {
   process.stdout.write(readVersion(process.argv[3]));
 } else if (cmd === "hash") {
   process.stdout.write(require("node:crypto").createHash("sha256").update(fs.readFileSync(process.argv[3])).digest("hex"));
+} else if (cmd === "probe") {
+  process.stdout.write("source-js");
 } else if (cmd === "extract") {
   fs.copyFileSync(process.argv[3], process.argv[4]);
 } else if (cmd === "repack") {
@@ -1614,7 +1620,7 @@ printf '1'
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(fs.readFileSync(fakeBinary, "utf8"), cleanBackup);
+  assert.equal(fs.readFileSync(fakeBinary, "utf8"), nativeShellFixture("2.1.175", "ORIGINAL"));
   assert.notEqual(
     fs.statSync(fakeBinary).ino,
     Number(fs.readFileSync(repackedInodeFile, "utf8")),

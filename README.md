@@ -217,7 +217,7 @@ install.ps1 会自动完成与 install.sh 相同的步骤：正式插件注册�
 
 > **Windows native .exe 用户先装 node-lief**：如果当前 Claude Code 是 2.1.113+ native `.exe`，请先运行 `npm install -g node-lief` 再装插件。未安装时 Layer 4 CLI Patch 会跳过，Layer 1~3 不受影响。也可以继续通过 [WSL](https://learn.microsoft.com/zh-cn/windows/wsl/install) 使用 `install.sh`。
 
-Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被系统锁定的 `claude.exe`。先照常使用；方便时关闭所有 Claude Code 窗口，再回到本项目目录重跑上面的 `install.ps1`，安装器会完成补丁、启动自检和失败回滚。
+Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被系统锁定的 `claude.exe`。关闭占用窗口后，再通过已安装的 `claude` 启动器启动，会在启动前完成补丁和自检，无需重装插件。
 
 
 ### 各安装方式的中文化程度
@@ -226,13 +226,13 @@ Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被�
 | 安装方式 | 中文化程度 |
 |---------|-----------|
 | `npm install -g @anthropic-ai/claude-code@2.1.112` | 最完整（推荐） |
-| `npm install -g @anthropic-ai/claude-code`（latest） | macOS / Windows native 新版先本机自检；Linux native 仅启用已发布窗口 |
+| `npm install -g @anthropic-ai/claude-code`（latest） | macOS / Windows native 新版先本机自检；Linux x64 glibc 新版先本机自检 |
 | `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.112` | 官方安装器指定已验证旧版本（需要 `node-lief`） |
-| `curl -fsSL https://claude.ai/install.sh \| sh`（latest） | macOS 新版先本机自检；Linux x64 glibc 仅启用支持矩阵列出的实际版本 |
+| `curl -fsSL https://claude.ai/install.sh \| sh`（latest） | macOS 新版先本机自检；Linux x64 glibc 新版先本机自检 |
 | `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.265` | Linux x64 glibc 已验证版本（需要 `node-lief >=1.3.0`）；不含 arm64、musl 或未验证版本 |
 | `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.265` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
 
-> **native binary 说明**：官方安装器和新版 npm 包安装的是原生程序。插件会按容器格式翻译：源码构建提取并写回 JS，字节码构建在原字符串占位内写入中文；译文超过占位长度时保留英文。两条路径均在启动自检通过后记录成功，macOS 还会重新签名。已验证版本见[支持矩阵](./docs/support-matrix.md)，不代表完整中文覆盖。Linux x64 glibc 仅启用矩阵列出的版本，需要 `node-lief >=1.3.0`。Windows 更新 Claude Code 后，请关闭所有 Claude Code 窗口，再重跑 `install.ps1`。
+> **native binary 说明**：官方安装器和新版 npm 包安装的是原生程序。插件会按容器格式翻译：源码构建提取并写回 JS，字节码构建在原字符串占位内写入中文；译文超过占位长度时保留英文。两条路径均在启动自检通过后记录成功，macOS 还会重新签名。已验证版本见[支持矩阵](./docs/support-matrix.md)，不代表完整中文覆盖。Linux x64 glibc 未收录版本须通过本机验证，需要 `node-lief >=1.3.0`。Windows 更新 Claude Code 后，请关闭所有 Claude Code 窗口，再通过已安装的 `claude` 启动器启动。
 
 安装脚本会自动检测安装方式，无需手动选择。
 <!-- readme-support-window:install-advice:end -->
@@ -268,7 +268,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\doctor.ps1   # Windows
 
 ### 更新
 
-Claude Code 更新后，npm / macOS native 安装会在首次会话启动时**自动检测版本变更并重新 patch**；Windows native 会保留原版可用，并提示关闭窗口后重跑安装器。新版先本机自检；只有格式、依赖、提取或自检失败才跳过原生 Layer 4，不会让 CLI 失效。
+通过安装器安装启动入口后，Claude Code 更新或同版本重装会在下次运行 `claude` 时**先检测文件变化，再验证并补汉化**；Windows 文件被其他窗口占用时，需要关闭占用窗口后再次启动。新版先本机自检；只有格式、依赖、提取或自检失败才跳过原生 Layer 4，不会让 CLI 失效。
 
 插件本体发布新 Release 后，正式安装态由 Claude Code 插件管理器更新。独立兜底安装只做限时检查并提示，不会在会话启动途中原地覆盖自身；本地源码安装用户在会话结束后运行 `git pull && ./install.sh`（Windows：`git pull` 后重跑 `install.ps1`）。
 
@@ -280,15 +280,15 @@ Claude Code 更新后，npm / macOS native 安装会在首次会话启动时**�
 | macOS / Linux / WSL · npm 全局安装 | `2.1.92 - 2.1.112` | 翻译最完整；launcher 启动前自修复 + `session-start` 兜底 |
 | macOS · 官方安装器（native） | `2.1.110 - 2.1.112` | 需要 `node-lief` |
 | macOS · native binary（arm64） | `2.1.113 - 2.1.265` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
-| Linux · native binary（x64 glibc） | `2.1.220 - 2.1.265` | 需要 `node-lief >=1.3.0`；仅支持矩阵列出的版本，不含 arm64、musl |
+| Linux · native binary（x64 glibc） | `2.1.220 - 2.1.265` | 需要 `node-lief >=1.3.0`；未收录版本先本机验证，不含 arm64、musl |
 | Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
 | Windows · native .exe（x64） | `2.1.113 - 2.1.265` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Linux · 其他官方安装器形态 | 暂无已验证版本 | 仅 Layer 1~3 生效 |
 
 > - **macOS / Windows 版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时副本上翻译并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。
-> - **Linux 不走 provisional**：Linux x64 glibc 仅启用支持矩阵列出的已验证版本；arm64、musl 和未验证的新版本不执行 CLI Patch。
+> - **Linux 本机验证**：Linux x64 glibc 的未收录版本先按程序结构和启动自检验证；不支持 arm64、musl，不代表未来版本全量兼容。
 > - **失败不伤 CLI**：补丁、重打包或启动自检任一步失败，都会保留或恢复原文件；失败只影响中文覆盖，不影响 Claude Code 使用。
-> - **Windows 不热改运行中的 exe**：Claude Code 更新后先保持原版可用；关闭所有 Claude Code 窗口，再按 Windows 安装命令重跑 `install.ps1`，由安装器补丁并自检。
+> - **Windows 不热改运行中的 exe**：Claude Code 更新后先保持原版可用；关闭占用窗口后通过已安装的 `claude` 启动器再次启动，自动补丁并自检，无需重装。
 > - **格式变化才停手**：如果未来版本不再是可识别的 native 格式、依赖缺失、提取失败或启动自检失败，只跳过 Layer 4，Layer 1~3 继续生效。
 > - **矩阵只记录证据**：纯上游兼容证据可以更新支持矩阵，不要求插件升版；只有插件代码、翻译或 manifest 变化才发布新版。
 > - **已验证版本完整清单**（含个别未收录版本）见 [docs/support-matrix.md](./docs/support-matrix.md)，由脚本自动生成。

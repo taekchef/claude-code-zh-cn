@@ -42,7 +42,7 @@ function usage() {
     "Usage: node scripts/prepare-native-release-closeout.js --native-version <claude-code-version> [--date YYYY-MM-DD]",
     "",
     "Bumps plugin/manifest.json by one patch version and prepends a CHANGELOG entry",
-    "for an automated macOS native latest closeout PR.",
+    "for an automated three-platform native latest closeout PR.",
     "",
   ].join("\n");
 }
@@ -87,7 +87,7 @@ function changelogEntry({ pluginVersion, nativeVersion, date }) {
     "",
     "### 改进",
     "",
-    `- macOS native latest 自动 closeout 跟进 Claude Code \`${nativeVersion}\`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 \`${pluginVersion}\`，合并后可按发布流程创建 \`v${pluginVersion}\`。`,
+    `- 三平台 native latest 自动 closeout 跟进 Claude Code \`${nativeVersion}\`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 \`${pluginVersion}\`，合并后可按发布流程创建 \`v${pluginVersion}\`。`,
     "",
     "### 验证",
     "",

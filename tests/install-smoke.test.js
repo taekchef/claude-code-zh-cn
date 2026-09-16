@@ -190,15 +190,15 @@ function addLinuxNativeSupport(sourceRepo, version = "2.1.220") {
 
 test("Linux native install prompt requires node-lief 1.3.0 or newer", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.sh"), "utf8");
-  assert.match(script, /Linux native patch 需要 node-lief >= 1\.3\.0/);
-  assert.match(script, /npm install -g node-lief@\^1\.3\.0/);
+  assert.match(script, /scripts\/native-repair\.js/);
+  assert.match(fs.readFileSync(path.join(repoRoot, "plugin/support-window.json"), "utf8"), /node-lief >=1\.3\.0/);
 });
 
-test("install smoke supports verified Linux x64 but rejects arm64 and provisional latest", { skip: unixShellRequired }, () => {
+test("install smoke supports verified Linux x64 and locally validates new versions but rejects arm64 and musl", { skip: unixShellRequired }, () => {
   const cases = [
     { version: "2.1.220", arch: "x86_64", platform: "linux-x64", patched: true },
     { version: "2.1.220", arch: "aarch64", platform: "linux-arm64", patched: false },
-    { version: "2.1.221", arch: "x86_64", platform: "linux-x64", patched: false },
+    { version: "2.1.221", arch: "x86_64", platform: "linux-x64", patched: true },
     { version: "2.1.220", arch: "x86_64", platform: "linux-x64-musl", forcePlatform: true, patched: false },
   ];
 
@@ -213,7 +213,7 @@ test("install smoke supports verified Linux x64 but rejects arm64 and provisiona
 
     addLinuxNativeSupport(sourceRepo);
     fs.mkdirSync(fakeBin, { recursive: true });
-    fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${item.version} (Claude Code)'\n`, { mode: 0o755 });
+    fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${item.version} (Claude Code) 中文帮助'\n`, { mode: 0o755 });
     fs.writeFileSync(
       path.join(fakeBin, "uname"),
       `#!/usr/bin/env bash\nif [ "$1" = "-s" ]; then echo Linux; else echo ${item.arch}; fi\n`,
@@ -245,7 +245,7 @@ test("install smoke supports verified Linux x64 but rejects arm64 and provisiona
     if (item.patched) {
       assert.match(
         fs.readFileSync(path.join(pluginRoot, ".patched-version"), "utf8").trim(),
-        /^native\|2\.1\.220\|[a-f0-9]+\|[a-f0-9]{16}$/,
+        new RegExp(`^native\\|${escapeRegex(item.version)}\\|[a-f0-9]+\\|[a-f0-9]{16}`),
         "published Linux support must use a verified marker"
       );
     } else {
@@ -268,7 +268,7 @@ test("install smoke provisionally self-verifies a future native release instead 
   const profileFile = path.join(home, ".zshrc");
 
   fs.mkdirSync(fakeBin, { recursive: true });
-  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${unsupportedNativeVersion} (Claude Code)'\n`);
+  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${unsupportedNativeVersion} (Claude Code) 中文帮助'\n`);
   fs.chmodSync(fakeClaude, 0o755);
   const sourceHash = crypto.createHash("sha256").update(fs.readFileSync(fakeClaude)).digest("hex");
 
@@ -312,7 +312,7 @@ test("install smoke can provisionally self-verify newer same-minor native binari
   const profileFile = path.join(home, ".zshrc");
 
   fs.mkdirSync(fakeBin, { recursive: true });
-  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${provisionalNativeVersion} (Claude Code)'\n`);
+  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${provisionalNativeVersion} (Claude Code) 中文帮助'\n`);
   fs.chmodSync(fakeClaude, 0o755);
 
   const sourceHash = crypto
@@ -385,10 +385,10 @@ test("install smoke restores native backup when runtime self-check fails", { ski
 
   const output = `${result.stdout}\n${result.stderr}`;
   assert.equal(result.status, 0, output);
-  assert.match(output, /本机启动自检失败/, "runtime failure should be visible to the user");
+  assert.match(output, /汉化未完成/, "runtime failure should be visible to the user");
   assert.equal(fs.readFileSync(invokedFile, "utf8"), "repack", "install should reach native repack");
   assert.equal(fs.readFileSync(fakeClaude, "utf8"), originalBinary, "failed runtime self-check must restore backup");
-  assert.notEqual(fs.statSync(fakeClaude).ino, originalInode, "restore must replace the inode instead of truncating a running ELF");
+  assert.equal(fs.statSync(fakeClaude).ino, originalInode, "failed candidate must not replace the original inode");
   assert.equal(fs.existsSync(path.join(pluginRoot, ".patched-version")), false, "failed self-check must not write success marker");
 });
 
@@ -404,7 +404,7 @@ test("install smoke provisionally self-verifies excluded in-window native binari
   const profileFile = path.join(home, ".zshrc");
 
   fs.mkdirSync(fakeBin, { recursive: true });
-  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${excludedNativeVersion} (Claude Code)'\n`);
+  fs.writeFileSync(fakeClaude, `#!/usr/bin/env bash\necho '${excludedNativeVersion} (Claude Code) 中文帮助'\n`);
   fs.chmodSync(fakeClaude, 0o755);
   const sourceHash = crypto
     .createHash("sha256")
@@ -464,16 +464,10 @@ test("native compat and Windows install smoke are wired into CI", () => {
   );
 });
 
-test("native rollback surfaces atomic restore failures", () => {
-  const installer = fs.readFileSync(path.join(repoRoot, "install.sh"), "utf8");
-  const hook = fs.readFileSync(path.join(repoRoot, "plugin", "hooks", "session-start"), "utf8");
-
-  assert.match(installer, /glibcVersionRuntime/);
-  assert.match(hook, /glibcVersionRuntime/);
-  assert.doesNotMatch(installer, /replace_native_binary_from_file[^\n]+\|\| true/);
-  assert.doesNotMatch(hook, /replace_native_binary_from_file[^\n]+\|\| true/);
-  assert.match(installer, /自动恢复失败；原始备份仍保留/);
-  assert.match(hook, /自动 patch 失败且无法恢复；原始备份已保留/);
+test("native transactions validate a candidate before touching the original", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "scripts/native-repair.js"), "utf8");
+  assert.ok(script.indexOf('run(candidate, ["--help"]') < script.indexOf('fs.renameSync(candidate, target)'));
+  assert.match(script, /hash\(target\) !== currentHash/);
 });
 
 test("install.ps1 gates launcher injection to Windows old npm cli.js installs", () => {
@@ -492,57 +486,10 @@ test("install.ps1 gates launcher injection to Windows old npm cli.js installs", 
   assert.doesNotMatch(launcherDetector, /npm root -g/, "launcher gating must not use global npm fallback");
 });
 
-test("install.ps1 gates Windows native patch through support window and node-lief", () => {
+test("Windows installer delegates native patch to the shared transaction", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
-  const completionStart = script.indexOf("function completion");
-  const completionEnd = script.indexOf("# ======== 依赖检查 ========");
-  const nativePatchStart = script.indexOf("function patch-native-bun");
-  const nativePatchEnd = script.indexOf("function initial-patch");
-  const completion = script.slice(completionStart, completionEnd);
-  const nativePatch = script.slice(nativePatchStart, nativePatchEnd);
-
-  assert.match(script, /function patch-native-bun/);
-  assert.match(script, /windowsNativeExperimental/);
-  assert.match(script, /is-supported-windows-native-version/);
-  assert.match(script, /can-try-provisional-windows-native-version/);
-  assert.match(script, /compare-version \$Version \(\[string\]\$entry\.floor\)/);
-  assert.match(script, /\$SupportMatrixUrl = "https:\/\/github\.com\/taekchef\/claude-code-zh-cn\/blob\/main\/docs\/support-matrix\.md"/);
-  assert.match(script, /function write-support-window-link \{/);
-  assert.match(completion, /write-support-window-link/);
-  assert.match(nativePatch, /原生二进制 patch helper 缺失[\s\S]+write-support-window-link[\s\S]+return/);
-  assert.match(nativePatch, /暂不支持 CLI Patch[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
-  assert.match(nativePatch, /需要安装 node-lief[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
-  assert.match(nativePatch, /本机自验证未找到可 patch 内容[\s\S]+write-support-window-link[\s\S]+return/);
-  assert.match(nativePatch, /Windows 原生二进制 patch 失败[\s\S]+write-support-window-link[\s\S]+\$script:CliPatchStatusSummary/);
-  assert.match(nativePatch, /原生二进制无法独占写入[\s\S]+请手动退出所有 Claude Code 实例[\s\S]+write-support-window-link[\s\S]+exit 1/);
-  assert.match(nativePatch, /test-binary-writable \$BinaryPath/);
-  assert.match(script, /node \$helper check-deps/);
-  assert.match(script, /node \$helper extract \$BinaryPath \$tmpJs/);
-  assert.match(script, /node \$helper repack \$BinaryPath \$tmpJs/);
-  assert.match(nativePatch, /node \$helper probe \$BinaryPath/);
-  assert.match(
-    nativePatch,
-    /\$containerLayout -eq "bytecode"[\s\S]+patch-bytecode\.js[\s\S]+\$LASTEXITCODE/
-  );
-  const probeIndex = nativePatch.indexOf("node $helper probe $BinaryPath");
-  const backupIndex = nativePatch.indexOf("已备份原生二进制");
-  assert.ok(
-    probeIndex >= 0 && backupIndex > probeIndex,
-    "bytecode container pre-check must run before any binary backup/rewrite"
-  );
-  assert.match(script, /--version/);
-  const repackIndex = nativePatch.indexOf("node $helper repack $BinaryPath $tmpJs");
-  const runtimeCheckIndex = nativePatch.indexOf("$verifiedVersion = get-native-version-from-execution $BinaryPath");
-  const modeMessageIndex = nativePatch.indexOf('if ($patchMode -eq "provisional")', repackIndex);
-  assert.ok(repackIndex >= 0 && runtimeCheckIndex > repackIndex, "Windows native repack must be followed by a runtime check");
-  assert.ok(
-    runtimeCheckIndex < modeMessageIndex,
-    "verified and provisional Windows native patches must both pass the real --version check"
-  );
-  assert.match(script, /DISABLE_AUTOUPDATER/);
-  assert.match(script, /provisional\|win32-x64\|\$\{sourceHash\}/);
-  assert.match(script, /\.patched-version/);
-  assert.doesNotMatch(script, /Windows PE 二进制暂不支持 patch/);
+  assert.match(script, /scripts\\native-repair\.js/);
+  assert.match(script, /\$LASTEXITCODE -eq 0/);
 });
 
 test("Windows write guard waits for transient sharing but rejects a held lock", { skip: windowsPowerShellRequired }, () => {

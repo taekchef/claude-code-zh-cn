@@ -139,7 +139,7 @@ test("support matrix limits Linux native to x64 glibc 2.1.220", () => {
 
   assert.match(markdown, /Linux native binary \(x64 glibc\) \| 2\.1\.220 - 2\.1\.220 \| experimental/);
   assert.match(markdown, /2\.1\.220 PASS\(native ELF x64 glibc\)/);
-  assert.match(markdown, /Linux 仅启用已发布的 x64 glibc 版本，不尝试 provisional latest/);
+  assert.match(markdown, /Linux x64 glibc 未收录版本也可启动前本机验证/);
   assert.doesNotMatch(markdown, /Linux[^\n]*新版可本机自检/);
 });
 

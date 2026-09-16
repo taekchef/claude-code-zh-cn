@@ -17,6 +17,7 @@ const files = [
   "bun-binary-io.js",
   "compute-patch-revision.sh",
   "scripts/patch-bytecode.js",
+  "scripts/native-repair.js",
 ];
 const hash = crypto.createHash("sha256");
 

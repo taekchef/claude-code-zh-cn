@@ -244,7 +244,7 @@ test("support boundary guard allows only the published Linux x64 glibc version",
         libc: "glibc",
         packageName: "@anthropic-ai/claude-code-linux-x64",
         requires: ["node-lief >=1.3.0"],
-        allowProvisional: false,
+        allowProvisional: true,
       },
     },
   });
@@ -252,8 +252,8 @@ test("support boundary guard allows only the published Linux x64 glibc version",
   const result = runGuard(repo);
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /verified x64 glibc versions only/);
-  assert.match(result.stdout, /no provisional latest/);
+  assert.match(result.stdout, /x64 glibc local validation/);
+  assert.match(result.stdout, /no arm64 or musl/);
 });
 
 test("support boundary guard rejects Linux native scope drift", () => {
@@ -269,7 +269,7 @@ test("support boundary guard rejects Linux native scope drift", () => {
         libc: "musl",
         packageName: "@anthropic-ai/claude-code-linux-arm64",
         requires: ["node-lief"],
-        allowProvisional: true,
+        allowProvisional: false,
       },
     },
   });
@@ -282,7 +282,7 @@ test("support boundary guard rejects Linux native scope drift", () => {
   assert.match(result.stdout, /linuxNativeExperimental libc 必须是 glibc/);
   assert.match(result.stdout, /linuxNativeExperimental packageName 必须是 @anthropic-ai\/claude-code-linux-x64/);
   assert.match(result.stdout, /linuxNativeExperimental requires 必须包含 node-lief >=1\.3\.0/);
-  assert.match(result.stdout, /linuxNativeExperimental 必须禁用 provisional/);
+  assert.match(result.stdout, /linuxNativeExperimental 必须允许同平台本机验证/);
 });
 
 test("support boundary guard allows PowerShell old-npm wording and skipped native latest", () => {

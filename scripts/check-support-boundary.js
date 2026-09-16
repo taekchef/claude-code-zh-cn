@@ -183,9 +183,10 @@ function findLinuxNativeClaim(line) {
   }
 
   if (isAllowedLinuxNativeExperimentalLine(line)) return null;
+  if (/Linux x64 glibc 新版先本机自检/.test(line)) return null;
 
   if (!isSupportMatrixScopedLine(line)) {
-    return "Linux native 仅允许明确验证的 x64 glibc 版本，不能宣称 arm64 / musl / provisional latest";
+    return "Linux native 必须限定 x64 glibc，不得宣称 arm64 / musl 或未来版本全量支持";
   }
 
   return null;
@@ -282,7 +283,7 @@ function addSupportEntryFindings(findings, node, relative, pathParts, boundary) 
         [node.libc === "glibc", "linuxNativeExperimental libc 必须是 glibc"],
         [node.packageName === "@anthropic-ai/claude-code-linux-x64", "linuxNativeExperimental packageName 必须是 @anthropic-ai/claude-code-linux-x64"],
         [Array.isArray(node.requires) && node.requires.includes("node-lief >=1.3.0"), "linuxNativeExperimental requires 必须包含 node-lief >=1.3.0"],
-        [node.allowProvisional === false, "linuxNativeExperimental 必须禁用 provisional"],
+        [node.allowProvisional === true, "linuxNativeExperimental 必须允许同平台本机验证"],
       ]) {
         if (!valid) {
           findings.push({ file: relative, line: 1, message, text: `${entryPath}: ${JSON.stringify(node)}` });
@@ -368,7 +369,7 @@ function printOk(boundary) {
   console.log(`support-boundary-guard: OK`);
   console.log(`stable CLI Patch: ${boundary.stableRange}`);
   console.log(`native CLI Patch: only explicitly verified macOS / Windows / Linux experimental versions; no latest stable claim`);
-  console.log(`Linux native CLI Patch: verified x64 glibc versions only; no provisional latest`);
+  console.log(`Linux native CLI Patch: x64 glibc local validation; no arm64 or musl`);
 }
 
 function printFail(findings, boundary) {
@@ -377,7 +378,7 @@ function printFail(findings, boundary) {
   console.log(`- stable CLI Patch: ${boundary.stableRange}`);
   console.log(`- ${boundary.nativeBoundary}+ / latest: 不能写成 stable；native 只能写已验证 experimental 窗口`);
   console.log("- Windows native 只能写成 explicit experimental，不能写成 stable");
-  console.log("- Linux native 仅发布已验证的 x64 glibc 版本，不含 arm64 / musl / provisional latest");
+  console.log("- Linux native 发布清单只记录已验证的 x64 glibc 版本；未收录版本须通过本机验证，不含 arm64 / musl");
   console.log("");
 
   for (const finding of findings) {

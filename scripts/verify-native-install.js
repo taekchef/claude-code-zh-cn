@@ -10,6 +10,7 @@ const assert = require("node:assert/strict");
 const { execFileSync, execSync } = require("node:child_process");
 const repo = path.resolve(__dirname, "..");
 const source = process.argv[2];
+const nextSource = process.argv[3];
 if (!source) throw new Error("Usage: node scripts/verify-native-install.js <official-binary>");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-real-install-"));
 const home = path.join(tmp, "home");
@@ -48,7 +49,7 @@ const installer = action => windows
   ? run("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(repo, `${action}.ps1`), "-SkipBanner"])
   : run("bash", [path.join(repo, `${action}.sh`)]);
 try {
-  const original = hash();
+  let original = hash();
   installer("install");
   const patched = hash();
   assert.notEqual(patched, original, "installer must modify the official executable");
@@ -57,11 +58,29 @@ try {
   assert.match(run(target, ["--help"]), /[\u3400-\u9fff]/u);
   installer("install");
   assert.equal(hash(), patched, "reinstall must produce the same executable");
+  const launcher = windows
+    ? () => run("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(env.ZH_CN_LAUNCHER_BIN_DIR, "claude.ps1"), "--help"])
+    : () => run("bash", [path.join(env.ZH_CN_LAUNCHER_BIN_DIR, "claude"), "--help"]);
+  // 同版本重装覆盖汉化后，不运行安装器，只通过用户启动入口修复。
+  fs.copyFileSync(source, target);
+  assert.equal(hash(), original);
+  assert.match(launcher(), /[\u3400-\u9fff]/u);
+  assert.notEqual(hash(), original);
+  if (nextSource) {
+    const update = target + ".update";
+    fs.copyFileSync(nextSource, update);
+    fs.chmodSync(update, 0o755);
+    fs.renameSync(update, target);
+    original = hash();
+    assert.match(launcher(), /[\u3400-\u9fff]/u);
+    assert.notEqual(hash(), original, "new upstream version must be patched without reinstalling the plugin");
+    assert.equal(run(target, ["--version"]), run(nextSource, ["--version"]));
+  }
   installer("uninstall");
   assert.equal(hash(), original, "uninstall must restore the exact original bytes");
   assert.equal(fs.existsSync(target + ".zh-cn-backup"), false);
   assert.equal(fs.existsSync(plugin), false);
-  process.stdout.write(JSON.stringify({ install: "ok", doctor: "ok", reinstall: "ok", uninstall: "ok" }) + "\n");
+  process.stdout.write(JSON.stringify({ install: "ok", doctor: "ok", reinstall: "ok", prelaunchReinstall: "ok", ...(nextSource ? { upgrade: "ok" } : {}), uninstall: "ok" }) + "\n");
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
 }

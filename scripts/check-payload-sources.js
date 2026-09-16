@@ -20,6 +20,7 @@ const payloadPairs = [
   { source: "doctor.ps1", mirror: "plugin/bin/doctor.ps1" },
   { source: "scripts/zh-cn-doctor.js", mirror: "plugin/scripts/zh-cn-doctor.js" },
   { source: "scripts/patch-bytecode.js", mirror: "plugin/scripts/patch-bytecode.js" },
+  { source: "scripts/native-repair.js", mirror: "plugin/scripts/native-repair.js" },
 ];
 
 function fail(message) {

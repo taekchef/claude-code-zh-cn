@@ -458,3 +458,66 @@ jobs:
           name: linux-native-latest-candidate
           path: ${{ steps.verify.outputs.json_path }}
           if-no-files-found: error
+
+  propose-update:
+    name: Open verified native support PR
+    needs: [verify, verify-windows, verify-linux]
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    concurrency:
+      group: native-support-pr
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: '*native-latest-candidate*'
+          path: /tmp/native-candidates
+          merge-multiple: true
+      - name: Promote the three verified reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mac=(/tmp/native-candidates/native-latest-candidate-*.json)
+          win=(/tmp/native-candidates/windows-native-latest-candidate-*.json)
+          linux=(/tmp/native-candidates/linux-native-candidate-*.json)
+          test "${#mac[@]}" = 1 && test "${#win[@]}" = 1 && test "${#linux[@]}" = 1
+          node scripts/promote-native-candidate.js --candidate "${mac[0]}" --platform macos --write
+          node scripts/promote-native-candidate.js --candidate "${win[0]}" --platform windows --write
+          node scripts/promote-native-candidate.js --candidate "${linux[0]}" --platform linux --write
+          if git diff --quiet; then exit 0; fi
+          VERSION="$(node -e 'const s=require("./scripts/upstream-compat.config.json").support;const v=[s.macosNativeExperimental.ceiling,s.windowsNativeExperimental.ceiling,s.linuxNativeExperimental.ceiling];if(new Set(v).size!==1)process.exit(1);process.stdout.write(v[0]);')"
+          BRANCH="codex/native-latest-${VERSION}"
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then exit 0; fi
+          node scripts/generate-plugin-support-window.js --write
+          node scripts/generate-support-matrix.js
+          node scripts/sync-readme-support-window.js --write
+          node scripts/prepare-native-release-closeout.js --native-version "$VERSION"
+          node scripts/sync-doc-derived-counts.js --write
+          git switch -c "$BRANCH"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/upstream-compat.config.json plugin/support-window.json docs/support-matrix.md README.md plugin/manifest.json CHANGELOG.md AGENTS.md CLAUDE.md
+          git commit -m "chore: verify Claude Code ${VERSION} on three platforms"
+          bash scripts/preflight.sh --base origin/main --skip-release-state
+          git push origin "$BRANCH"
+          cat > /tmp/native-pr.md <<BODY
+          三个平台的新版验证均通过，更新 Claude Code ${VERSION} 的发布验证清单。
+
+          已运行本地预检；自动触发分支 CI。新增文案仍需审核，不代表完整中文覆盖；本 PR 不自动合并或发布。
+          BODY
+          gh pr create --head "$BRANCH" --base main --title "跟进 Claude Code ${VERSION} 三平台验证" --body-file /tmp/native-pr.md
+          # GITHUB_TOKEN 创建 PR 不触发 pull_request；显式运行同一提交的完整 CI。
+          gh workflow run ci.yml --ref "$BRANCH"

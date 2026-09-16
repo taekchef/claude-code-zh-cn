@@ -59,6 +59,7 @@ if (Remove-LauncherFile $LauncherFile) {
 if (Remove-LauncherFile $LauncherPs1File) {
     $removedLauncher = $true
 }
+if ($removedLauncher -and (Test-Path "$LauncherBinDir/resolve-runtime.js")) { Remove-Item "$LauncherBinDir/resolve-runtime.js" -Force }
 # 清理空目录
 if (Test-Path $LauncherBinDir) {
     $remaining = Get-ChildItem $LauncherBinDir -ErrorAction SilentlyContinue

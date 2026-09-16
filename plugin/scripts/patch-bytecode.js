@@ -210,6 +210,8 @@ function restoreBinary(binaryPath) {
     fs.copyFileSync(backup, candidate);
     io.withWindowsFileRetry(() => fs.renameSync(candidate, binaryPath));
     io.withWindowsFileRetry(() => fs.unlinkSync(backup));
+    fs.rmSync(binaryPath + ".zh-cn-repair.json", { force: true });
+    fs.rmSync(binaryPath + ".zh-cn-repair.json.pending", { force: true });
     return { restored: true, version };
   } finally {
     io.withWindowsFileRetry(() => fs.rmSync(tempDir, { recursive: true, force: true }));

@@ -43,7 +43,7 @@ test("plugin support window is generated from compat config", () => {
     libc: "glibc",
     packageName: "@anthropic-ai/claude-code-linux-x64",
     requires: ["node-lief >=1.3.0"],
-    allowProvisional: false,
+    allowProvisional: true,
   });
   assert.ok(!JSON.stringify(parsed).includes("latest"));
 });

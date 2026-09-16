@@ -11,7 +11,7 @@ const STABLE_INSTALL_CMD = `npm install -g @anthropic-ai/claude-code@${STABLE_PI
 const CLAUDE_UPDATER_BOUNDARY =
   "DISABLE_AUTOUPDATER 归 Claude Code 本体；本插件只更新中文插件和重 patch，不能保证阻止本体升级。请以 claude doctor 的 Updates 段为准。";
 const UNPUBLISHED_WINDOW_GUIDANCE =
-  "升到未发布支持窗口时，先看 docs/support-matrix.md；未收录就等插件 Release，或临时退回已验证版本";
+  "发布验证见 docs/support-matrix.md；未收录版本通过启动器先做本机验证，不等于发布验证或完整中文覆盖";
 const PATCH_REVISION_FILES = [
   "patch-cli.sh",
   "patch-cli.js",
@@ -19,6 +19,7 @@ const PATCH_REVISION_FILES = [
   "bun-binary-io.js",
   "compute-patch-revision.sh",
   "scripts/patch-bytecode.js",
+  "scripts/native-repair.js",
 ];
 const NPM_RESIDUE_PROBES = [
   "Quick safety check",

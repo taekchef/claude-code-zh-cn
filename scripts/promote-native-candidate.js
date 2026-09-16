@@ -28,7 +28,7 @@ const platforms = {
     requireCodeSignature: false,
     requireCompleteVerification: true,
     notesSubject: "Linux x64 glibc native binary experimental",
-    notesSuffix: "仅启用已验证版本；不支持 arm64、musl 或 provisional latest。",
+    notesSuffix: "同平台未收录版本须通过本机验证；不支持 arm64、musl。",
   },
   windows: {
     label: "Windows",
@@ -40,7 +40,7 @@ const platforms = {
     requireCompleteVerification: false,
     notesSubject: "Windows x64 native binary experimental",
     notesSuffix:
-      "不代表 future latest 自动稳定。高于该窗口但仍在同一 minor 线的版本，install.ps1 可在安装时做本机自验证并以 provisional 方式启用；这不等于已发布支持窗口。",
+      "不代表 future latest 自动稳定。未收录版本可在启动前做本机自验证并以 provisional 方式启用；这不等于已发布支持窗口。",
   },
 };
 

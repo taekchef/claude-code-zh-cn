@@ -595,6 +595,8 @@ function detect-launcher-install {
         return $null
     }
 
+    $nativeInfo = (& node "$PluginDst/bun-binary-io.js" detect $realPath 2>$null | Out-String).Trim()
+    if ($nativeInfo.StartsWith("native-bun:")) { return $nativeInfo }
     $claudeDir = Split-Path -Parent $realPath
     $candidates = @(
         (Join-Path $claudeDir "..\lib\node_modules\@anthropic-ai\claude-code\cli.js"),
@@ -954,7 +956,7 @@ function install-launcher {
         $kind = ($installInfo -split ':', 2)[0]
     }
 
-    if ($kind -ne "npm") {
+    if ($kind -ne "npm" -and $kind -ne "native-bun") {
         remove-launcher-artifacts
         if (-not $SkipBanner) {
             Write-CN "当前安装方式不是 npm cli.js，已跳过 launcher PATH 注入" Yellow
@@ -969,6 +971,7 @@ function install-launcher {
         return
     }
     New-Item -ItemType Directory -Force -Path $LauncherBinDir | Out-Null
+    Copy-Item "$PluginSrc\scripts\resolve-runtime.js" "$LauncherBinDir\resolve-runtime.js" -Force
     Copy-Item "$PluginSrc\bin\claude-launcher.ps1" "$LauncherBinDir\claude.ps1" -Force
     Copy-Item "$PluginSrc\bin\claude-launcher.cmd" "$LauncherBinDir\claude.cmd" -Force
 
@@ -1158,159 +1161,14 @@ function get-native-version-from-execution {
 
 function patch-native-bun {
     param([string]$BinaryPath)
-    $helper = "$PluginDst\bun-binary-io.js"
-    if (-not (Test-Path $helper)) {
-        $helper = "$PluginSrc\bun-binary-io.js"
-    }
-    if (-not (Test-Path $helper)) {
-        Write-CN "原生二进制 patch helper 缺失，已跳过 CLI Patch" Yellow
-        write-support-window-link
-        $script:CliPatchStatusSummary = "已跳过（原生二进制 helper 缺失）"
-        return
-    }
-
-    Write-Host ""
-    Write-CN "检测到 Windows 原生二进制安装" Blue
-    Write-Host "  二进制路径: $BinaryPath"
-
-    $currentVersion = (node $helper version $BinaryPath 2>$null)
-    if ($currentVersion) { $currentVersion = $currentVersion.Trim() }
-
-    $patchMode = "verified"
-    if (is-supported-windows-native-version $currentVersion) {
-        $patchMode = "verified"
-    } elseif (can-try-provisional-windows-native-version $currentVersion) {
-        $patchMode = "provisional"
+    $result = & node "$PluginDst\scripts\native-repair.js" $BinaryPath $PluginDst
+    if ($LASTEXITCODE -eq 0) {
+        $script:CliPatchStatusOk = $true
+        $script:CliPatchStatusSummary = "本机自验证通过（未纳入已发布支持窗口的版本标记为 provisional）"
     } else {
-        $displayVersion = $currentVersion
-        if (-not $displayVersion) { $displayVersion = "unknown" }
-        Write-CN "当前 Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch，已跳过 CLI Patch（安全退出）" Yellow
-        write-support-window-link
-        write-updater-boundary-note
-        Write-CN "  下一步：如果是 Claude Code 自动升到未发布窗口，请等插件发布支持，或临时安装支持窗口内版本。" Yellow
-        $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制版本 $displayVersion 暂不支持 CLI Patch）"
-        return
+        $script:CliPatchStatusSummary = "汉化未完成；关闭占用窗口后再次启动即可重试，无需重装"
     }
-
-    if ($patchMode -eq "provisional") {
-        Write-Host "  版本: $currentVersion（未纳入已发布支持窗口，安装时本机自验证）"
-        write-support-window-link
-        write-unpublished-window-note
-    } else {
-        Write-Host "  版本: $currentVersion（已验证）"
-    }
-
-    if (-not (test-binary-writable $BinaryPath)) {
-        $procs = find-claude-processes
-        $procList = ($procs | ForEach-Object { "PID=$($_.Id)" }) -join ", "
-        if (-not $procList) { $procList = "（未列出 claude 进程，可能由其他句柄占用）" }
-        Write-CN "  原生二进制无法独占写入（$procList）：$script:NativeWriteFailure" Red
-        Write-CN "  请手动退出所有 Claude Code 实例（关闭所有 CC 窗口，含当前会话），然后重新运行 install.ps1。" Yellow
-        Write-CN "  Layer 1~3（settings / 插件目录 / hooks）已在本会话写入；CLI Patch 待所有实例退出后重跑才能完成。" Yellow
-        write-support-window-link
-        $script:CliPatchStatusSummary = "已中止（原生二进制被运行中的 Claude Code 占用，需手动退出所有 claude 实例后重跑）"
-        Write-CN "脚本停止。" Red
-        exit 1
-    }
-
-    $depStatus = (node $helper check-deps 2>$null)
-    if (-not $depStatus -or $depStatus.Trim() -ne "ok") {
-        Write-CN "需要安装 node-lief 来支持 Windows native patch" Yellow
-        Write-Host "  运行: npm install -g node-lief"
-        Write-Host "  然后重新运行 install.ps1"
-        write-support-window-link
-        $script:CliPatchStatusSummary = "已跳过（Windows native CLI Patch 需要 node-lief）"
-        return
-    }
-
-    $containerLayout = ((& node $helper probe $BinaryPath 2>$null) | Out-String).Trim()
-
-    $tmpJs = Join-Path $TmpDir "claude-zh-cn-extract-$PID.js"
-    $backupFile = "$BinaryPath.zh-cn-backup"
-    New-Item -Force -ItemType Directory -Path $TmpDir | Out-Null
-
-    $backupVersion = ""
-    if (Test-Path $backupFile) {
-        $backupVersion = (node $helper version $backupFile 2>$null)
-        if ($backupVersion) { $backupVersion = $backupVersion.Trim() }
-    }
-
-    if ((Test-Path $backupFile) -and $currentVersion -and $backupVersion -eq $currentVersion) {
-        Copy-Item $backupFile $BinaryPath -Force
-        Write-CN "已从备份恢复原始原生二进制（版本一致: $currentVersion）" Green
-    } else {
-        Copy-Item $BinaryPath $backupFile -Force
-        Write-CN "已备份原生二进制（版本: $currentVersion）" Green
-    }
-
-    $sourceHash = (node $helper hash $BinaryPath 2>$null)
-    if ($sourceHash) { $sourceHash = $sourceHash.Trim() }
-    if (-not $sourceHash) { $sourceHash = "unknown" }
-
-    try {
-        $translationsFile = Join-Path $PluginDst "cli-translations.json"
-        if ($containerLayout -eq "bytecode") {
-            $patchCount = node "$PluginDst\scripts\patch-bytecode.js" patch $BinaryPath $translationsFile
-            if ($LASTEXITCODE -ne 0) { throw "bytecode patch failed" }
-        } else {
-            node $helper extract $BinaryPath $tmpJs | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "extract failed" }
-            $patchScript = Join-Path $PluginDst "patch-cli.js"
-            $patchCount = node $patchScript $tmpJs $translationsFile 2>$null
-            if ($LASTEXITCODE -ne 0) { throw "patch-cli failed" }
-        }
-        if (-not $patchCount) { $patchCount = "0" }
-
-        if ([int]$patchCount -gt 0) {
-            if ($containerLayout -ne "bytecode") {
-                node $helper repack $BinaryPath $tmpJs | Out-Null
-                if ($LASTEXITCODE -ne 0) { throw "repack failed" }
-            }
-            Write-Host "  正在运行 --version 做启动自检..."
-            $verifiedVersion = get-native-version-from-execution $BinaryPath
-            if ($verifiedVersion -ne $currentVersion) { throw "self verification failed" }
-            if ($patchMode -eq "provisional") {
-                Write-CN "本机自验证通过，已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
-                $script:CliPatchStatusSummary = "Windows native 本机自验证中文化（${patchCount} 处硬编码文字，未纳入已发布支持窗口）"
-            } else {
-                Write-CN "已 patch Windows 原生二进制（${patchCount} 处硬编码文字）" Green
-                $script:CliPatchStatusSummary = "Windows native 中文化（${patchCount} 处硬编码文字）"
-            }
-            $script:CliPatchStatusOk = $true
-        } else {
-            Write-CN "Windows 原生二进制无新增改动（可能已是最新状态）" Yellow
-            if ($patchMode -eq "provisional") {
-                $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制本机自验证未找到可 patch 内容）"
-                write-support-window-link
-                return
-            } else {
-                $script:CliPatchStatusSummary = "Windows native 无新增改动（可能已是最新状态）"
-                $script:CliPatchStatusOk = $true
-            }
-        }
-    } catch {
-        Write-CN "Windows 原生二进制 patch 失败，正在从备份恢复..." Red
-        if (Test-Path $backupFile) {
-            Copy-Item $backupFile $BinaryPath -Force -ErrorAction SilentlyContinue
-        }
-        write-support-window-link
-        $script:CliPatchStatusSummary = "已跳过（Windows 原生二进制 patch 失败）"
-        return
-    } finally {
-        Remove-Item $tmpJs -Force -ErrorAction SilentlyContinue
-    }
-
-    $patchRevision = get-patch-revision $PluginDst
-    $finalHash = (node $helper hash $BinaryPath 2>$null)
-    if ($finalHash) { $finalHash = $finalHash.Trim() }
-    if ($patchRevision -and $currentVersion) {
-        if (-not $finalHash) { $finalHash = "unknown" }
-        if ($patchMode -eq "provisional") {
-            "native|${currentVersion}|${finalHash}|${patchRevision}|provisional|win32-x64|${sourceHash}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
-        } else {
-            "native|${currentVersion}|${finalHash}|${patchRevision}" | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
-        }
-    }
+    Write-CN $script:CliPatchStatusSummary Yellow
 }
 
 function initial-patch {

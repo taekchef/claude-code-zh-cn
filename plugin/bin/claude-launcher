@@ -6,6 +6,17 @@ PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/claude-code-zh-cn}"
 MARKER_FILE="$PLUGIN_ROOT/.patched-version"
 LAUNCHER_BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 WARNING_PREFIX="[claude-code-zh-cn]"
+RESOLVER="$LAUNCHER_BIN_DIR/resolve-runtime.js"
+[ -f "$RESOLVER" ] || RESOLVER="$LAUNCHER_BIN_DIR/../scripts/resolve-runtime.js"
+if [ -f "$RESOLVER" ]; then
+    PLUGIN_ROOT="$(node "$RESOLVER")"
+fi
+if [ -n "$PLUGIN_ROOT" ] && [ "${ZH_CN_LAUNCHER_DISPATCHED:-}" != "1" ] && [ -f "$PLUGIN_ROOT/bin/claude-launcher" ]; then
+    exec env ZH_CN_LAUNCHER_DISPATCHED=1 ZH_CN_LAUNCHER_BIN_DIR="$LAUNCHER_BIN_DIR" bash "$PLUGIN_ROOT/bin/claude-launcher" "$@"
+fi
+LAUNCHER_BIN_DIR="${ZH_CN_LAUNCHER_BIN_DIR:-$LAUNCHER_BIN_DIR}"
+MARKER_FILE="$PLUGIN_ROOT/.patched-version"
+
 
 log_warning() {
     printf "%s %s\n" "$WARNING_PREFIX" "$1" >&2
@@ -174,6 +185,10 @@ main() {
     install_info="$(detect_installation "$real_claude")"
     install_kind="${install_info%%:*}"
     install_target="${install_info#*:}"
+
+    if [ "$install_kind" = "native-bun" ] && [ -n "$PLUGIN_ROOT" ]; then
+        node "$PLUGIN_ROOT/scripts/native-repair.js" "$install_target" "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/claude-code-zh-cn}" >/dev/null || true
+    fi
 
     if [ "$install_kind" = "npm" ] && [ -f "$install_target" ]; then
         current_marker="$(compute_current_marker "$install_target" 2>/dev/null || true)"
