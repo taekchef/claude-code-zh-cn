@@ -122,7 +122,7 @@ print_completion() {
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo ""
         if [[ "$(native_platform)" == linux-* ]]; then
-            echo -e "  ${YELLOW}!${NC} Linux native patch：仅对已验证支持窗口开放"
+            echo -e "  ${YELLOW}!${NC} Linux x64 glibc 未收录版本会先本机验证；不支持 arm64、musl"
         else
             echo -e "  ${YELLOW}!${NC} 官方安装器 native patch：已验证版本有公开证据；更高可识别版本会在安装时本机自验证"
         fi

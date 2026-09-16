@@ -251,7 +251,7 @@ test("install smoke supports verified Linux x64 and locally validates new versio
     } else {
       assert.match(output, /暂不支持 CLI Patch/);
       assert.doesNotMatch(output, /版本: .*未纳入已发布支持窗口/);
-      assert.match(output, /Linux native patch：仅对已验证支持窗口开放/);
+      assert.match(output, /不支持 arm64、musl/);
     }
   }
 });
