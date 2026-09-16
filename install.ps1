@@ -1166,7 +1166,7 @@ function patch-native-bun {
         $script:CliPatchStatusOk = $true
         $script:CliPatchStatusSummary = "本机自验证通过（未纳入已发布支持窗口的版本标记为 provisional）"
     } else {
-        $script:CliPatchStatusSummary = "汉化未完成；关闭占用窗口后再次启动即可重试，无需重装"
+        $script:CliPatchStatusSummary = "汉化未完成；请查看具体错误提示，未写入成功标记"
     }
     Write-CN $script:CliPatchStatusSummary Yellow
 }

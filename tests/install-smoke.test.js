@@ -228,9 +228,7 @@ test("install smoke supports verified Linux x64 and locally validates new versio
         PATH: `${fakeBin}:${process.env.PATH}`,
         CLAUDE_PLUGIN_ROOT: pluginRoot,
         ZH_CN_REAL_CLAUDE: fakeClaude,
-        ...(process.platform === "linux" && !item.forcePlatform
-          ? {}
-          : { ZH_CN_NATIVE_PLATFORM: item.platform }),
+        ZH_CN_NATIVE_PLATFORM: item.platform,
         ZH_CN_LAUNCHER_BIN_DIR: path.join(home, ".claude", "bin"),
         ZH_CN_PROFILE_FILES: path.join(home, ".zshrc"),
         GIT_TERMINAL_PROMPT: "0",
@@ -668,10 +666,10 @@ test(
 
     const output = `${result.stdout}\n${result.stderr}`;
     assert.equal(result.status, 0, output);
-    assert.match(output, /原生二进制/, output);
-    assert.match(output, /暂不支持 (?:CLI )?Patch/i, output);
-    assert.equal(fs.existsSync(path.join(launcherBin, "claude.cmd")), false, "unsupported native exe must not install launcher");
-    assert.equal(fs.existsSync(path.join(launcherBin, "claude.ps1")), false, "unsupported native exe must not install launcher");
+    assert.match(output, /汉化未完成/, output);
+    assert.match(output, /未改动程序/, output);
+    assert.equal(fs.existsSync(path.join(launcherBin, "claude.cmd")), true, "native launcher remains available to retry after an upstream update");
+    assert.equal(fs.existsSync(path.join(launcherBin, "claude.ps1")), true, "native launcher remains available to retry after an upstream update");
     assert.equal(fs.existsSync(markerFile), false, "unsupported native exe must not write a success marker");
     assert.equal(readUserPath(powershell), beforeUserPath, "smoke must not mutate persistent Windows user PATH");
   }
