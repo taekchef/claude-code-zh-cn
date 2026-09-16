@@ -18,7 +18,7 @@
 
 - 验证等级只表示公开证据和翻译覆盖程度，不是运行门禁。
 - `stable`：代表版本段已通过 compat matrix，且 npm 路径具备启动前自修复。
-- `experimental`：已有 native 运行和显示面证据；更高可识别版本也会先本机自检，已知文案继续中文，未知文案保留英文（适用于 macOS arm64、Windows x64、Linux x64 glibc）。
+- `experimental`：已有 native 运行和显示面证据；更高可识别版本也会先本机自检，已知文案继续中文，未知文案保留英文（平台范围见下表）。
 - Linux x64 glibc 未收录版本也可启动前本机验证（provisional）；不支持 arm64、musl，不代表未来版本全量兼容。
 - `unsupported`：该平台或二进制格式不执行原生 Layer 4；正式插件的 Layer 1~3 继续可用。
 
