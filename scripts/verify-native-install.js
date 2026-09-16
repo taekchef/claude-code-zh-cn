@@ -9,6 +9,7 @@ const crypto = require("node:crypto");
 const assert = require("node:assert/strict");
 const { execFileSync, execSync } = require("node:child_process");
 const repo = path.resolve(__dirname, "..");
+const { withWindowsFileRetry } = require("../bun-binary-io.js");
 const source = process.argv[2];
 const nextSource = process.argv[3];
 if (!source) throw new Error("Usage: node scripts/verify-native-install.js <official-binary>");
@@ -62,7 +63,7 @@ try {
     ? () => run("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(env.ZH_CN_LAUNCHER_BIN_DIR, "claude.ps1"), "--help"])
     : () => run("bash", [path.join(env.ZH_CN_LAUNCHER_BIN_DIR, "claude"), "--help"]);
   // 同版本重装覆盖汉化后，不运行安装器，只通过用户启动入口修复。
-  fs.copyFileSync(source, target);
+  withWindowsFileRetry(() => fs.copyFileSync(source, target));
   assert.equal(hash(), original);
   assert.match(launcher(), /[\u3400-\u9fff]/u);
   assert.notEqual(hash(), original);
@@ -70,7 +71,7 @@ try {
     const update = target + ".update";
     fs.copyFileSync(nextSource, update);
     fs.chmodSync(update, 0o755);
-    fs.renameSync(update, target);
+    withWindowsFileRetry(() => fs.renameSync(update, target));
     original = hash();
     assert.match(launcher(), /[\u3400-\u9fff]/u);
     assert.notEqual(hash(), original, "new upstream version must be patched without reinstalling the plugin");
