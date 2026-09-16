@@ -77,6 +77,10 @@ jobs:
       - name: Verify Linux native baseline
         run: node scripts/verify-upstream-compat.js --skip-latest --native-linux-x64 --fail-on-skip --json --verify-install
 
+      - name: Verify upgrade through the installed launcher
+        shell: bash
+        run: bash scripts/verify-native-upgrade.sh
+
   windows-native-compat:
     name: windows-native-compat (${{ matrix.shard }})
     runs-on: windows-2022
@@ -106,6 +110,11 @@ jobs:
           if ($Versions.Count -eq 0) { throw "Empty Windows verification shard" }
           node scripts/verify-upstream-compat.js --skip-latest --native-windows-x64 --json --baseline "$($Versions -join ',')" --verify-install --fail-on-skip
 
+      - name: Verify upgrade through the installed launcher
+        if: matrix.shard == 0
+        shell: bash
+        run: bash scripts/verify-native-upgrade.sh
+
   macos-bytecode-compat:
     name: macos-bytecode-compat
     runs-on: macos-15
@@ -123,3 +132,7 @@ jobs:
           VERSIONS="$(node -p 'require("./scripts/upstream-compat.config.json").support.macosNativeExperimental.representatives.filter(v => Number(v.split(".")[2]) >= 242).join(",")')"
           test -n "$VERSIONS"
           node scripts/verify-upstream-compat.js --baseline "$VERSIONS" --skip-latest --native-macos-arm64 --fail-on-skip --json --verify-install
+
+      - name: Verify upgrade through the installed launcher
+        shell: bash
+        run: bash scripts/verify-native-upgrade.sh

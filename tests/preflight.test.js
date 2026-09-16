@@ -57,7 +57,7 @@ test("preflight script is the local entrypoint for repo checks", () => {
     "node scripts/check-support-boundary.js",
     "node scripts/sync-readme-support-window.js --check",
     "node scripts/sync-doc-derived-counts.js --check",
-    "node --test tests/*.test.js",
+    "node --test --test-concurrency=4 tests/*.test.js",
     "node scripts/verify-upstream-compat.js",
     "node scripts/verify-release-state.js --github-repo taekchef/claude-code-zh-cn",
     "npm pack @anthropic-ai/claude-code@${VERSION} --silent",

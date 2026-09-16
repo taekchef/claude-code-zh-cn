@@ -157,7 +157,7 @@ run node scripts/generate-plugin-support-window.js --write
 run git diff --exit-code plugin/support-window.json
 
 step "Run tests"
-run node --test tests/*.test.js
+run node --test --test-concurrency=4 tests/*.test.js
 
 if [ "$RUN_RELEASE_STATE" -eq 1 ]; then
   step "Verify release state"

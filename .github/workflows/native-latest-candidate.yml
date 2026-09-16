@@ -509,7 +509,7 @@ jobs:
           git switch -c "$BRANCH"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/upstream-compat.config.json plugin/support-window.json docs/support-matrix.md README.md plugin/manifest.json CHANGELOG.md AGENTS.md CLAUDE.md
+          git add scripts/upstream-compat.config.json plugin/support-window.json docs/support-matrix.md README.md plugin/manifest.json plugin/.claude-plugin/plugin.json CHANGELOG.md AGENTS.md CLAUDE.md
           git commit -m "chore: verify Claude Code ${VERSION} on three platforms"
           bash scripts/preflight.sh --base origin/main --skip-release-state
           git push origin "$BRANCH"

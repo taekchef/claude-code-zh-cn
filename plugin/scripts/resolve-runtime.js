@@ -8,7 +8,9 @@ function resolveRuntime() {
   const config = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
   const id = "claude-code-zh-cn@claude-code-zh-cn";
   const legacy = path.join(config, "plugins/claude-code-zh-cn");
-  if (read(path.join(config, "settings.json")).enabledPlugins?.[id] === false && !fs.existsSync(path.join(legacy, ".official-fallback-disabled"))) return "";
+  if (read(path.join(config, "settings.json")).enabledPlugins?.[id] === false) {
+    return fs.existsSync(path.join(legacy, ".official-fallback-disabled")) ? (process.env.CLAUDE_PLUGIN_ROOT || legacy) : "";
+  }
   if (process.env.CLAUDE_PLUGIN_ROOT) return process.env.CLAUDE_PLUGIN_ROOT;
   const entries = read(path.join(config, "plugins/installed_plugins.json")).plugins?.[id] || [];
   const installed = entries.find(e => e.scope === "user");

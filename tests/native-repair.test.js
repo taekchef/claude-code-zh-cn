@@ -107,3 +107,24 @@ test('a dead repair owner is reclaimed and does not require reinstalling', { ski
   assert.equal(f.run().status, 0);
   assert.match(fs.readFileSync(f.target, 'utf8'), /中文帮助/);
 });
+test('standalone installation does not select an unconfirmed old marketplace payload', t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cczh-resolver-'));
+  t.after(() => fs.rmSync(tmp, {recursive:true,force:true}));
+  const legacy = path.join(tmp,'plugins/claude-code-zh-cn');
+  fs.mkdirSync(legacy,{recursive:true});
+  fs.writeFileSync(path.join(legacy,'.official-fallback-disabled'),'standalone');
+  fs.writeFileSync(path.join(tmp,'settings.json'),JSON.stringify({enabledPlugins:{'claude-code-zh-cn@claude-code-zh-cn':false}}));
+  fs.writeFileSync(path.join(tmp,'plugins/installed_plugins.json'),JSON.stringify({plugins:{'claude-code-zh-cn@claude-code-zh-cn':[{scope:'user',installPath:'/old/plugin'}]}}));
+  const result=spawnSync(process.execPath,[path.join(repo,'plugin/scripts/resolve-runtime.js')],{env:{...process.env,CLAUDE_CONFIG_DIR:tmp,CLAUDE_PLUGIN_ROOT:''},encoding:'utf8'});
+  assert.equal(result.status,0);
+  assert.equal(result.stdout,legacy);
+});
+test('uninstall preserves a same-version upstream reinstall instead of restoring an older build', {skip:unix}, t => {
+  const f=fixture(t);
+  assert.equal(f.run().status,0);
+  const replacement=f.original('9.0.0')+'# upstream rebuilt\n';
+  fs.writeFileSync(f.target,replacement);
+  const {restoreBinary}=require('../scripts/patch-bytecode.js');
+  assert.equal(restoreBinary(f.target).preservedCurrent,true);
+  assert.equal(fs.readFileSync(f.target,'utf8'),replacement);
+});
