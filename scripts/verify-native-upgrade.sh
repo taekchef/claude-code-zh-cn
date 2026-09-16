@@ -14,4 +14,8 @@ for pair in "old:2.1.265" "new:$version"; do
 done
 binary=claude
 [ "$platform" != "win32-x64" ] || binary=claude.exe
-node "$repo/scripts/verify-native-install.js" "$work/old/package/$binary" "$work/new/package/$binary"
+old="$work/old/package/$binary"
+new="$work/new/package/$binary"
+[ -f "$old" ] || old="$work/old/package/bin/$binary"
+[ -f "$new" ] || new="$work/new/package/bin/$binary"
+node "$repo/scripts/verify-native-install.js" "$old" "$new"
