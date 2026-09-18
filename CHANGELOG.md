@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.17.1] - 2026-09-18
+
+### 改进
+
+- 三平台 native latest 自动 closeout 跟进 Claude Code `2.1.276`：验证通过后同步支持窗口、README / support matrix 派生产物，并把插件版本推进到 `2.17.1`，合并后可按发布流程创建 `v2.17.1`。
+
+### 验证
+
+- `Native Latest Candidate workflow`
+- `CI preflight`
+
 ## [2.17.0] - 2026-09-16
 
 ### 改进
