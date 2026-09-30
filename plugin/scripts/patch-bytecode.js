@@ -97,7 +97,7 @@ const POOL_TRANSLATIONS = new Map([
   ["Beta headers to include in API requests (API key users only)", "API 请求的 Beta headers（仅 key 用户）"],
 ]);
 
-function patchStringPool(buffer, translations) {
+function patchStringPool(buffer, translations, { mainTableOnly = false } = {}) {
   if (!Array.isArray(translations)) throw new Error("翻译表必须是数组");
   const table = new Map();
   const protectedText = new Set(translations.filter(t => t?.skipPatch).map(t => t.en));
@@ -111,12 +111,15 @@ function patchStringPool(buffer, translations) {
   }
   // 内置补充词只在主表缺省时生效，避免与 cli-translations.json 冲突；
   // 主表标记 skipPatch 的条目仍受保护，内置词不得绕过。
-  for (const item of BUILTIN_SPINNER_TRANSLATIONS) {
-    if (!table.has(item.en) && !protectedText.has(item.en)) table.set(item.en, item.zh);
-  }
-  // 池内专用译文直接写入池表（可覆盖主表同名值）；协议/逻辑守卫优先级最高。
-  for (const [en, zh] of POOL_TRANSLATIONS) {
-    if (!protectedText.has(en) && !PROTOCOL_FRAGMENTS.has(en) && !LOGIC_CONSUMED_FRAGMENTS.has(en)) table.set(en, zh);
+  // mainTableOnly（no-match 探测用）跳过内置与池内注入，保证"空表必须零命中"的守卫语义。
+  if (!mainTableOnly) {
+    for (const item of BUILTIN_SPINNER_TRANSLATIONS) {
+      if (!table.has(item.en) && !protectedText.has(item.en)) table.set(item.en, item.zh);
+    }
+    // 池内专用译文直接写入池表（可覆盖主表同名值）；协议/逻辑守卫优先级最高。
+    for (const [en, zh] of POOL_TRANSLATIONS) {
+      if (!protectedText.has(en) && !PROTOCOL_FRAGMENTS.has(en) && !LOGIC_CONSUMED_FRAGMENTS.has(en)) table.set(en, zh);
+    }
   }
   const lengths = new Set([...table.keys()].map(en => en.length));
   const found = new Set();
@@ -163,7 +166,7 @@ function readContainer(binaryPath) {
   return { ...parsed, bunData: Buffer.from(parsed.bunData) };
 }
 
-function patchBinary(binaryPath, translations, { dryRun = false } = {}) {
+function patchBinary(binaryPath, translations, { dryRun = false, mainTableOnly = false } = {}) {
   binaryPath = fs.realpathSync(binaryPath);
   const version = io.readExecutableVersion(binaryPath);
   if (!version) throw new Error("原始 Claude Code 启动自检失败，未改动文件");
@@ -176,7 +179,7 @@ function patchBinary(binaryPath, translations, { dryRun = false } = {}) {
   if (payloadOffset < 0 || original.indexOf(bunData, payloadOffset + 1) !== -1) {
     throw new Error("无法唯一定位 Bun 数据，未改动文件");
   }
-  const summary = patchStringPool(bunData, translations);
+  const summary = patchStringPool(bunData, translations, { mainTableOnly });
   if (dryRun) return { ...summary, version, mode: "dry-run" };
   if (!summary.patched) throw new Error("没有命中可翻译的字节码条目，未改动文件");
   bunData.copy(original, payloadOffset);
@@ -240,11 +243,11 @@ function main() {
     process.stdout.write(JSON.stringify(restoreBinary(binaryPath)) + "\n");
     return;
   }
-  if (!["patch", "scan"].includes(command) || !binaryPath || !translationsPath || flags.some(f => !["--json", "--dry-run"].includes(f))) {
-    throw new Error("Usage: patch-bytecode.js <patch|scan> <binary> <translations.json> [--dry-run] [--json]");
+  if (!["patch", "scan"].includes(command) || !binaryPath || !translationsPath || flags.some(f => !["--json", "--dry-run", "--main-table-only"].includes(f))) {
+    throw new Error("Usage: patch-bytecode.js <patch|scan> <binary> <translations.json> [--dry-run] [--json] [--main-table-only]");
   }
   const translations = JSON.parse(fs.readFileSync(translationsPath, "utf8"));
-  const result = patchBinary(binaryPath, translations, { dryRun: command === "scan" || flags.includes("--dry-run") });
+  const result = patchBinary(binaryPath, translations, { dryRun: command === "scan" || flags.includes("--dry-run"), mainTableOnly: flags.includes("--main-table-only") });
   process.stdout.write(flags.includes("--json") ? JSON.stringify(result) + "\n" : String(result.patched) + "\n");
 }
 

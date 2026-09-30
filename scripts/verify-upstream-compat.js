@@ -572,7 +572,7 @@ function runNativeVerification(config, args, version, packageDir, kind) {
       const originalHash = hash(patchedBinary);
       const emptyTranslations = path.join(tmpDir, "empty-translations.json");
       fs.writeFileSync(emptyTranslations, "[]");
-      const noMatch = spawnFile("node", [engine, "patch", patchedBinary, emptyTranslations, "--json"], { encoding: "utf8" });
+      const noMatch = spawnFile("node", [engine, "patch", patchedBinary, emptyTranslations, "--json", "--main-table-only"], { encoding: "utf8" });
       if (noMatch.status === 0 || hash(patchedBinary) !== originalHash) fail("bytecode no-match must fail without changing the executable");
       bytecodePatch = JSON.parse(execFile("node", [engine, "patch", patchedBinary, args.translations || translationsPath, "--json"], {
         cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
