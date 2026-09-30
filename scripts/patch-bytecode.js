@@ -169,60 +169,6 @@ function patchStringPool(buffer, translations, { mainTableOnly = false } = {}) {
     }
     offset = start + bytes - 1;
   }
-  // 定向回退遍：单遍线性扫描会被误判的伪记录头吞掉后续真实记录（对齐盲区），
-  // 对未命中的词条按字节模式直接搜索并严格验证记录头后再原位替换。
-  for (const [en, zh] of table) {
-    if (found.has(en)) continue;
-    const replacement = Buffer.from(zh, "utf16le");
-    let seen = false, applied = false;
-    for (const narrow of [true, false]) {
-      const needle = Buffer.from(en, narrow ? "latin1" : "utf16le");
-      let pos = 0;
-      while ((pos = buffer.indexOf(needle, pos)) !== -1) {
-        seen = true;
-        // 记录头验证：非缓存格式头在 pos-8（length|is8Bit<<31, hash），
-        // CachedUniquedStringImplBase 头在 pos-16（16, 0, flags, length）。
-        let offset = -1, cached = false;
-        if (pos >= 8) {
-          const flags = buffer[pos - 8 + 3];
-          if ((buffer.readUInt32LE(pos - 8) & 0x7fffffff) === en.length &&
-              flags === (narrow ? 0x80 : 0x00)) {
-            offset = pos - 8;
-          }
-        }
-        if (offset === -1 && pos >= 16) {
-          const flags = buffer[pos - 16 + 8];
-          if (buffer.readUInt32LE(pos - 16) === 16 && buffer.readUInt32LE(pos - 16 + 4) === 0 &&
-              (flags & 0x36) === 0 && ((flags & 1) !== 0) === narrow &&
-              (buffer.readUInt32LE(pos - 16 + 12) & 0x7fffffff) === en.length) {
-            offset = pos - 16;
-            cached = true;
-          }
-        }
-        if (offset !== -1) {
-          const bytes = en.length * (narrow ? 1 : 2);
-          const start = pos;
-          if (start + bytes <= buffer.length) {
-            if (replacement.length > bytes) {
-              // 占位不够，保留英文
-            } else {
-              buffer.writeUInt32LE(zh.length, offset + (cached ? 12 : 0)); // UTF-16 code units.
-              if (cached) buffer[offset + 8] &= ~1;
-              buffer.fill(0, start, start + bytes);
-              replacement.copy(buffer, start);
-              patched++;
-              applied = true;
-            }
-          }
-        }
-        pos += needle.length;
-      }
-    }
-    if (seen) {
-      found.add(en);
-      if (!applied) tooLong++;
-    }
-  }
   return { patched, notFound: table.size - found.size, tooLong };
 }
 
