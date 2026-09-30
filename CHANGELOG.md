@@ -6,6 +6,20 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.20.0] - 2026-09-30
+
+### 新增
+
+- 字节码补丁新增**定向回退遍**：单遍线性扫描存在对齐盲区（误判伪记录头会吞掉后续真实记录），对未命中的词条按 latin1 / UTF-16 双编码直接搜索并严格验证记录头后原位替换。实测 2.1.285 补丁命中 1209 → 1246，notFound 703 → 497。
+
+### 翻译覆盖
+
+- 会话内 slash 命令描述批量落地（`uiTranslations` 2150 → 2172）：
+  - 收录新增命令：`/design` 系列、`/teleport`、`/ultraplan`、`/ultrareview`、`/web-setup`、`/cloud-plugins`、`/list-agents`、`/heapdump`、`/rate-limit-options`、`/bash`、`/memory`、`/output-style`、`/agents`。
+  - 修复超占位预算的死词条：`/permissions`、`/model`、`/copy`、`/mcp`、`/stop`、`/chrome`、`/tui`、`/brief`、`/radio`、`/stickers`、`/install*`、`/plugin`、`/schedule`、`/claude-code` 等。
+  - 快捷键提示面板碎片：`! for shell mode`、`/keybindings to customize`、` to undo`、`/model` 前缀、auto mode 切换提示等。
+- 精选措辞与池占位预算冲突的条目（如 `/betas`、`/mcp`、`/permissions`、`/stop` 等）采用双轨制：主表保留测试守护的精选措辞（legacy JS 路径无预算约束），池内经 `POOL_TRANSLATIONS` 用预算内短译文覆盖。
+
 ## [2.19.1] - 2026-09-30
 
 ### 修复

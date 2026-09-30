@@ -165,6 +165,10 @@
     "zh": " 取消"
   },
   {
+    "en": " to cycle between manual mode, auto-accept edit mode, and plan mode",
+    "zh": " 在手动模式、自动接受编辑模式与计划模式间切换"
+  },
+  {
     "en": " to expand)",
     "zh": " 展开)"
   },
@@ -179,6 +183,10 @@
   {
     "en": " to see full summary)",
     "zh": " 查看完整摘要)"
+  },
+  {
+    "en": " to undo",
+    "zh": "撤销"
   },
   {
     "en": " tokens · /autocompact",
@@ -278,7 +286,7 @@
   },
   {
     "en": "! for shell mode",
-    "zh": "! 进入 shell 模式"
+    "zh": "shell 模式"
   },
   {
     "en": "# Add HTTP server with headers:",
@@ -389,6 +397,10 @@
     "zh": "(按 esc 关闭)"
   },
   {
+    "en": "(removed) Ask Claude to create/manage subagents, or edit .claude/agents/",
+    "zh": "（已弃用）创建/管理 subagent 或编辑 agents/"
+  },
+  {
     "en": "(required)",
     "zh": "（必填）"
   },
@@ -475,6 +487,10 @@
   {
     "en": "A browser window will open for authentication",
     "zh": "将打开浏览器窗口进行认证"
+  },
+  {
+    "en": "A cloud session drafts a plan you can edit and approve",
+    "zh": "云端会话起草计划供你编辑和批准"
   },
   {
     "en": "A simple common HTTP client specifically for Google APIs and services.",
@@ -774,7 +790,7 @@
   },
   {
     "en": "Anthropic's agentic coding tool",
-    "zh": "Anthropic 的智能编程工具"
+    "zh": "Anthropic 编程工具"
   },
   {
     "en": "Any Bash command",
@@ -859,6 +875,10 @@
   {
     "en": "Author: ",
     "zh": "作者："
+  },
+  {
+    "en": "Authorize design-system access for /design-sync with your claude.ai account",
+    "zh": "用 claude.ai 账号授权 design-system 访问"
   },
   {
     "en": "Auto mode",
@@ -1331,6 +1351,10 @@
   {
     "en": "Choose the text style that looks best with your terminal",
     "zh": "选择在你的终端中显示效果最好的文字样式"
+  },
+  {
+    "en": "Choose whether cloud sessions use the plugins enabled on this machine",
+    "zh": "选择云端会话是否使用本机启用的插件"
   },
   {
     "en": "Chrome extension not detected · https://claude.ai/chrome to install",
@@ -1822,7 +1846,7 @@
   },
   {
     "en": "Continue the current session in Claude Desktop",
-    "zh": "在 Claude Desktop 中继续当前会话"
+    "zh": "在 Claude Desktop 继续会话"
   },
   {
     "en": "Continue the most recent conversation in the current directory",
@@ -2321,6 +2345,10 @@
     "zh": "由于提示注入风险，仅在你信任的代码上使用"
   },
   {
+    "en": "Dump the JS heap to the Desktop; on Linux with no Desktop folder, the home directory",
+    "zh": "把 JS 堆转储到桌面；Linux 无桌面目录时写到主目录"
+  },
+  {
     "en": "Dump the JS heap to ~/Desktop",
     "zh": "将 JS heap dump 到 ~/Desktop"
   },
@@ -2379,6 +2407,10 @@
   {
     "en": "Each subagent has its own context window, custom system prompt, and specific tools.",
     "zh": "每个子 Agent 有独立的上下文窗口、自定义系统提示和专属工具。"
+  },
+  {
+    "en": "Edit CLAUDE.md files and memory settings",
+    "zh": "编辑 CLAUDE.md 与记忆设置"
   },
   {
     "en": "Edit Claude memory files",
@@ -2978,6 +3010,10 @@
     "zh": "使用 Claude Code on the web 查找并验证当前分支中的 bug"
   },
   {
+    "en": "Find and verify bugs in your branch using a cloud session",
+    "zh": "用云端会话查找并验证分支中的 bug"
+  },
+  {
     "en": "Fix errors",
     "zh": "修复错误"
   },
@@ -3128,6 +3164,10 @@
   {
     "en": "Graceful shutdown requested by team lead",
     "zh": "团队负责人请求优雅关闭"
+  },
+  {
+    "en": "Grant Claude agent access to your Design projects",
+    "zh": "授权 agent 访问你的 Design 项目"
   },
   {
     "en": "Guest passes are not currently available.",
@@ -3379,7 +3419,7 @@
   },
   {
     "en": "Install Claude Code native build",
-    "zh": "安装 Claude Code 原生构建"
+    "zh": "安装原生构建版本"
   },
   {
     "en": "Install Claude Code native build. Use [target] to specify version (stable, latest, or specific version)",
@@ -3646,6 +3686,14 @@
     "zh": "列出已安装插件"
   },
   {
+    "en": "List output styles or switch to one",
+    "zh": "列出或切换输出风格"
+  },
+  {
+    "en": "List subagents, teammates, and other Claude sessions you can message",
+    "zh": "列出可发消息的 subagent、队友和其他会话"
+  },
+  {
     "en": "List, create, and delete loops",
     "zh": "列出、创建和删除循环任务"
   },
@@ -3862,6 +3910,10 @@
     "zh": "MCP 工具"
   },
   {
+    "en": "Make a new Design artifact from a brief",
+    "zh": "从需求简报创建 Design 产物"
+  },
+  {
     "en": "Make auto mode your default permission mode?",
     "zh": "要将 auto mode 设为默认权限模式吗？"
   },
@@ -3932,6 +3984,10 @@
   {
     "en": "Manage plugins",
     "zh": "管理插件"
+  },
+  {
+    "en": "Manage usage limits and upgrade options",
+    "zh": "管理用量限制与升级选项"
   },
   {
     "en": "Managed agents",
@@ -5524,6 +5580,10 @@
     "zh": "审查你的回答"
   },
   {
+    "en": "Revoke Claude agent access to your Design projects",
+    "zh": "撤销 agent 对 Design 项目的访问"
+  },
+  {
     "en": "Rewind code (checkpoints)",
     "zh": "代码回退（检查点）"
   },
@@ -5550,6 +5610,10 @@
   {
     "en": "Run Setup hooks with maintenance trigger, then continue",
     "zh": "以 maintenance 触发器运行 Setup Hook，然后继续"
+  },
+  {
+    "en": "Run a bash command in a persistent shell. State (cwd, env vars) persists across calls.",
+    "zh": "在持久 shell 中运行 bash 命令，目录与环境变量跨调用保持"
   },
   {
     "en": "Run a cloud-hosted multi-agent code review of the current branch (or a PR number / base branch) and print the findings",
@@ -5817,6 +5881,10 @@
     "zh": "将本会话放到后台并释放终端"
   },
   {
+    "en": "Send this session to the cloud, or resume one from claude.ai",
+    "zh": "把本会话送到云端，或从 claude.ai 恢复会话"
+  },
+  {
     "en": "Sending SIGINT to MCP server process",
     "zh": "向 MCP 服务器进程发送 SIGINT"
   },
@@ -5945,6 +6013,10 @@
     "zh": "设置 Claude Code 使用的 AI 模型"
   },
   {
+    "en": "Set the AI model for Claude Code (currently ",
+    "zh": "设置 Claude 的 AI 模型（当前 "
+  },
+  {
     "en": "Set the AI model for Claude Code (currently ${lH(W5())})",
     "zh": "设置 Claude Code 使用的 AI 模型（当前为 ${lH(W5())}）"
   },
@@ -5970,11 +6042,15 @@
   },
   {
     "en": "Set up Claude GitHub Actions for a repository",
-    "zh": "为仓库设置 Claude GitHub Actions"
+    "zh": "为仓库配置 GitHub Actions"
   },
   {
     "en": "Set up a long-lived authentication token (requires Claude subscription)",
     "zh": "设置长期身份验证 token（需要 Claude 订阅）"
+  },
+  {
+    "en": "Set up cloud sessions with your GitHub account",
+    "zh": "用 GitHub 账号设置云端会话"
   },
   {
     "en": "Setting sources",
