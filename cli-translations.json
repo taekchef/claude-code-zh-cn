@@ -601,6 +601,10 @@
     "zh": "调整鼠标滚轮滚动速度"
   },
   {
+    "en": "Admin-managed (policy) settings still apply. Auth, model selection, built-in tools and plugins, and permissions work normally. Sets CLAUDE_CODE_SAFE_MODE=1.",
+    "zh": "管理员托管（policy）设置仍生效。认证、模型选择、内置工具与插件、权限正常工作。设 CLAUDE_CODE_SAFE_MODE=1。"
+  },
+  {
     "en": "Advisor Tool",
     "zh": "Advisor Tool"
   },
@@ -2206,7 +2210,7 @@
   },
   {
     "en": "Disable all skills",
-    "zh": "禁用所有 skills"
+    "zh": "禁用 skills"
   },
   {
     "en": "Disable an enabled plugin",
@@ -2482,7 +2486,7 @@
   },
   {
     "en": "Enable SendUserMessage tool for agent-to-user communication",
-    "zh": "启用 SendUserMessage 工具，用于 Agent 向用户通信"
+    "zh": "启用 SendUserMessage 与用户通信"
   },
   {
     "en": "Enable a disabled plugin",
@@ -3311,7 +3315,7 @@
   },
   {
     "en": "Include all hook lifecycle events in the output stream (only works with --output-format=stream-json)",
-    "zh": "在输出流中包含所有 Hook 生命周期事件（仅 --output-format=stream-json 有效）"
+    "zh": "包含全部 hook 生命周期事件（需 --output-format=stream-json）"
   },
   {
     "en": "Include all hook lifecycle events in the output stream (only works with --output-format=stream-json)g",
@@ -6277,6 +6281,10 @@
     "zh": "在后台启动会话并立即返回。打印 `claude attach`、`logs`、`stop`、`rm` 所需的 id（`claude agents` 可列出）。配合 --resume <session-id> 时沿用同一 ID 在后台继续该会话；若会话已在运行则启动副本并说明"
   },
   {
+    "en": "Start with all customizations (CLAUDE.md, skills, installed plugins, hooks, MCP servers, custom commands and agents, output styles, workflows, custom themes, keybindings, and more) disabled ",
+    "zh": "以禁用全部自定义项的状态启动（CLAUDE.md、skills、已安装插件、hooks、MCP 服务器、自定义命令与 agent、输出风格、workflows、自定义主题、键位等）"
+  },
+  {
     "en": "Start with all customizations (CLAUDE.md, skills, installed plugins, hooks, MCP servers, custom commands and agents, output styles, workflows, custom themes, keybindings, and more) disabled — useful for troubleshooting a broken configuration. Admin-managed (policy) settings still apply. Auth, model selection, built-in tools and plugins, and permissions work normally. Sets CLAUDE_CODE_SAFE_MODE=1.",
     "zh": "以禁用全部自定义项的状态启动（CLAUDE.md、skills、已安装插件、hooks、MCP 服务器、自定义命令与 agent、输出风格、workflows、自定义主题、键位等）——适合排查损坏的配置。管理员托管（policy）设置仍生效。认证、模型选择、内置工具与插件、权限正常工作。设置 CLAUDE_CODE_SAFE_MODE=1。"
   },
@@ -8464,6 +8472,10 @@
   {
     "en": "· You may need to restart iTerm2 after enabling",
     "zh": "· 启用后可能需要重启 iTerm2"
+  },
+  {
+    "en": "— useful for troubleshooting a broken configuration. ",
+    "zh": "——适合排查损坏的配置。"
   },
   {
     "en": "• Agents:",

@@ -92,6 +92,9 @@ const POOL_TRANSLATIONS = new Map([
   ["Conversation summarized (", "对话已摘要（"],
   [" for history)", " 查看历史）"],
   [" for history", " 查看历史"],
+  // 主表精选译文（37 字符）超过 --betas 帮助描述的池占位（60B narrow，预算 30），
+  // tooLong 会整条跳过；池内用预算内的短译文，主表措辞留给其他展示面。
+  ["Beta headers to include in API requests (API key users only)", "API 请求的 Beta headers（仅 key 用户）"],
 ]);
 
 function patchStringPool(buffer, translations) {
