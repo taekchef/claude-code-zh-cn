@@ -6,6 +6,16 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.19.0] - 2026-09-30
+
+### 翻译覆盖
+
+- 补齐主 `claude --help` 的 flag 描述翻译（40 条，`uiTranslations` 2130 → 2148）：`--bg`、`--bare`、`--safe-mode`、`--restricted`、`--cloud`、`--effort`、`--model`、`--output-format`、`--permission-prompts`、`--tmux` 等新增与改写文案。
+- 修复 15 条因译文超过字节码占位预算而从未生效的旧词条（按补丁器 UTF-16 占位规则收紧译文，如 `--chrome`、`--debug`、`--fork-session`、`--output-format` 等）。
+
+### 说明
+
+- 字节码补丁为原位替换：译文（UTF-16）必须装入原字符串占位，narrow 存储的 ASCII 原文预算为原文字符数的一半；本批译文全部按预算写入。
 ## [2.18.0] - 2026-09-30
 
 ### 翻译覆盖

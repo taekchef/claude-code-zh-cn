@@ -28,12 +28,20 @@
     "zh": " (已安装)"
   },
   {
+    "en": " (mine + shared)",
+    "zh": "（我的 + 共享）"
+  },
+  {
     "en": " (p to expand)",
     "zh": " (p 展开)"
   },
   {
     "en": " (required to block unix domain sockets)",
     "zh": " （阻止 Unix domain socket 时需要）"
+  },
+  {
+    "en": " (shared)",
+    "zh": "（共享）"
   },
   {
     "en": " (truncated)",
@@ -112,12 +120,20 @@
     "zh": "（仅本次会话）。选择模型将取消此设置。"
   },
   {
+    "en": " for verbose output",
+    "zh": " 查看详细输出"
+  },
+  {
     "en": " in progress, ",
     "zh": " 进行中，"
   },
   {
     "en": " instead of Claude account subscription token. Either unset",
     "zh": " 而非 Claude 账号订阅令牌。请取消设置"
+  },
+  {
+    "en": " lines]",
+    "zh": " 行]"
   },
   {
     "en": " navigate · ",
@@ -261,6 +277,10 @@
     "zh": "! 进入 bash 模式"
   },
   {
+    "en": "! for shell mode",
+    "zh": "! 进入 shell 模式"
+  },
+  {
     "en": "# Add HTTP server with headers:",
     "zh": "# 添加带 headers 的 HTTP 服务器："
   },
@@ -275,6 +295,10 @@
   {
     "en": "# Add stdio server with subprocess flags:",
     "zh": "# 添加带子进程 flag 的 stdio 服务器："
+  },
+  {
+    "en": "${...}\nShell cwd was reset to ${...}",
+    "zh": "${...}\nShell 已将 cwd 重置为 ${...}"
   },
   {
     "en": "${...} completed",
@@ -299,6 +323,10 @@
   {
     "en": "& for background",
     "zh": "& 后台运行"
+  },
+  {
+    "en": "(${...} \\xB7 timeout ${...})",
+    "zh": "(${...} \\xB7 超时 ${...})"
   },
   {
     "en": "((empty message))",
@@ -369,6 +397,14 @@
     "zh": "(tab 切换，esc 关闭)"
   },
   {
+    "en": "(timeout ${...})",
+    "zh": "(超时 ${...})"
+  },
+  {
+    "en": "- Remote workspace:",
+    "zh": "- 远程工作区："
+  },
+  {
     "en": "- auto: Use the default effort level for your model",
     "zh": "- auto：使用当前模型的默认思考强度"
   },
@@ -399,6 +435,10 @@
   {
     "en": "/plan to preview",
     "zh": "/plan 预览"
+  },
+  {
+    "en": "/release-notes for more",
+    "zh": "/release-notes 了解更多"
   },
   {
     "en": "/rename to add a name",
@@ -443,6 +483,10 @@
   {
     "en": "ANTHROPIC_API_KEY already exists in repository secrets!",
     "zh": "ANTHROPIC_API_KEY 已存在于仓库密钥中！"
+  },
+  {
+    "en": "API Usage Billing",
+    "zh": "API 用量与计费"
   },
   {
     "en": "API key",
@@ -495,6 +539,10 @@
   {
     "en": "Activate pending plugin changes in the current session",
     "zh": "在当前会话中激活待处理的插件更改"
+  },
+  {
+    "en": "Activating plugin\\u2026",
+    "zh": "正在激活插件…"
   },
   {
     "en": "Active days:",
@@ -637,6 +685,10 @@
     "zh": "允许降级到稳定版"
   },
   {
+    "en": "Allow the use of your chats and coding sessions to train and improve Anthropic AI models.",
+    "zh": "允许使用你的聊天和编程会话，用于训练和改进 Anthropic AI 模型。"
+  },
+  {
     "en": "Allow unsandboxed fallback",
     "zh": "允许非沙箱回退"
   },
@@ -653,8 +705,16 @@
     "zh": "已由自动模式分类器允许"
   },
   {
+    "en": "Already in plan mode.",
+    "zh": "已处于计划模式。"
+  },
+  {
     "en": "Also requested:",
     "zh": "同时请求："
+  },
+  {
+    "en": "Also require publishing the report to claude.ai (already the default when your account supports it); explains why if unavailable",
+    "zh": "同时要求将报告发布到 claude.ai（账号支持时已为默认行为）；若不可用则说明原因"
   },
   {
     "en": "Also try: ",
@@ -715,6 +775,10 @@
   {
     "en": "Any Bash command",
     "zh": "任意 Bash 命令"
+  },
+  {
+    "en": "Any key closes this panel.",
+    "zh": "任意键关闭此面板。"
   },
   {
     "en": "Append a system prompt to the default system prompt",
@@ -797,6 +861,14 @@
     "zh": "自动模式"
   },
   {
+    "en": "Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.",
+    "zh": "Auto mode 让 Claude 自动处理权限请求：执行前检查每次工具调用是否存在风险动作或 prompt injection，放行评估为低风险的操作，拦截其余操作。"
+  },
+  {
+    "en": "Auto mode works better when it knows your environment. Takes about a minute.",
+    "zh": "了解你的环境后 Auto mode 表现更好。大约需要 1 分钟。"
+  },
+  {
     "en": "Auto-allow mode:",
     "zh": "自动允许模式："
   },
@@ -815,6 +887,10 @@
   {
     "en": "Auto-compact window reset to model default",
     "zh": "自动压缩窗口已重置为模型默认值"
+  },
+  {
+    "en": "Auto-compact window size (auto, or 100k–1M tokens)",
+    "zh": "自动压缩窗口大小（auto，或 100k–1M tokens）"
   },
   {
     "en": "Auto-compact window: ",
@@ -883,6 +959,10 @@
   {
     "en": "Back to plugin list",
     "zh": "返回插件列表"
+  },
+  {
+    "en": "Background command ",
+    "zh": "后台命令 "
   },
   {
     "en": "Background dialog dismissed",
@@ -1281,6 +1361,10 @@
     "zh": "Claude Code 是基于 Anthropic API 的智能编程 CLI。"
   },
   {
+    "en": "Claude Code keybindings configuration. Customize keyboard shortcuts by context.",
+    "zh": "Claude Code 键位配置，按上下文自定义快捷键。"
+  },
+  {
     "en": "Claude Code needs your input",
     "zh": "Claude Code 需要您的输入"
   },
@@ -1335,6 +1419,10 @@
   {
     "en": "Claude found these results:",
     "zh": "Claude 找到了以下结果："
+  },
+  {
+    "en": "Claude has context of ",
+    "zh": "Claude 的上下文包含 "
   },
   {
     "en": "Claude in Chrome (Beta) settings",
@@ -1490,7 +1578,7 @@
   },
   {
     "en": "Comma-separated list of setting sources to load (user, project, local).",
-    "zh": "要加载的设置来源列表（逗号分隔：user、project、local）。"
+    "zh": "要加载的设置来源（逗号分隔：user/project/local）。"
   },
   {
     "en": "Command cannot be empty",
@@ -1657,6 +1745,10 @@
     "zh": "配置用量额度，达到限制后继续工作"
   },
   {
+    "en": "Configured marketplaces:",
+    "zh": "已配置的插件市场："
+  },
+  {
     "en": "Confirm you want to restore",
     "zh": "确认要恢复"
   },
@@ -1793,6 +1885,10 @@
     "zh": "Claude Code 会话费用"
   },
   {
+    "en": "Couldn't share the transcript.",
+    "zh": "无法分享对话记录。"
+  },
+  {
     "en": "Count of CLI sessions started",
     "zh": "CLI 会话启动次数"
   },
@@ -1809,6 +1905,10 @@
     "zh": "在当前点创建对话的分支"
   },
   {
+    "en": "Create a cloud session with the given description, or attach to an existing one by session ID or claude.ai/code URL",
+    "zh": "创建云端会话并附描述，或按会话 ID / claude.ai/code URL 接入已有会话"
+  },
+  {
     "en": "Create a git commit",
     "zh": "创建 git commit"
   },
@@ -1823,6 +1923,10 @@
   {
     "en": "Create a new animation from scratch",
     "zh": "从零开始创建新动画"
+  },
+  {
+    "en": "Create a new cloud session that runs on the given self-hosted environment (ccpool_...).",
+    "zh": "在指定自托管环境（ccpool_...）上创建新云端会话。"
   },
   {
     "en": "Create a new git worktree for this session (optionally specify a name)",
@@ -1842,7 +1946,7 @@
   },
   {
     "en": "Create a tmux session for the worktree (requires --worktree). Uses iTerm2 native panes when available; use --tmux=classic for traditional tmux.",
-    "zh": "为 worktree 创建 tmux 会话（需要 --worktree）。可用时使用 iTerm2 原生窗格；使用 --tmux=classic 可启用传统 tmux。"
+    "zh": "为 worktree 创建 tmux 会话（需 --worktree）。有 iTerm2 用原生 pane，否则 --tmux=classic"
   },
   {
     "en": "Create a {name}--v{version} git tag for a plugin release, validating that plugin.json and any enclosing marketplace entry agree",
@@ -1991,6 +2095,10 @@
   {
     "en": "Deeper reasoning than high, just below maximum (${...})",
     "zh": "比 high 更深入的推理，仅次于 max（${...}）"
+  },
+  {
+    "en": "Default (English)",
+    "zh": "默认（英语）"
   },
   {
     "en": "Default (recommended)",
@@ -2313,6 +2421,10 @@
     "zh": "思考强度"
   },
   {
+    "en": "Effort level for the current session (",
+    "zh": "当前会话的思考强度 ("
+  },
+  {
     "en": "Effort level for the current session (${...})",
     "zh": "当前会话的 effort 级别（${...}）"
   },
@@ -2353,6 +2465,10 @@
     "zh": "启用 Chrome 中的 Claude 集成"
   },
   {
+    "en": "Enable Option+Enter key binding for newlines and disable the audible bell (skipped in screen-reader mode)",
+    "zh": "启用 Option+Enter 换行键位并关闭提示音（读屏模式下跳过）"
+  },
+  {
     "en": "Enable Option+Enter key binding for newlines and visual bell",
     "zh": "启用 Option+Enter 换行键绑定和视觉铃声"
   },
@@ -2383,6 +2499,10 @@
   {
     "en": "Enable automatic fallback to specified model when the default model is overloaded or not available (only works with --print)",
     "zh": "默认模型过载或不可用时自动回退到指定模型（仅 --print 有效）"
+  },
+  {
+    "en": "Enable automatic fallback to specified model(s) when the default model is overloaded or not available. Accepts a comma-separated list to try each in order. Re-tries the primary at the start of each user turn.",
+    "zh": "默认模型过载或不可用时自动回退到指定模型。接受逗号分隔列表按顺序尝试，每轮用户输入开始时重试主模型。"
   },
   {
     "en": "Enable automatic fallback to specified model(s) when the default model is overloaded or not available. Accepts a comma-separated list to try each in order. Re-tries the primary at the start of each user turn. (only works with --print)",
@@ -2439,6 +2559,10 @@
   {
     "en": "Enable with stable channel",
     "zh": "使用 stable 频道启用"
+  },
+  {
+    "en": "Enabled plan mode",
+    "zh": "已启用计划模式"
   },
   {
     "en": "Ensure you have access to this repository",
@@ -2663,6 +2787,10 @@
   {
     "en": "Exit the REPL",
     "zh": "退出 REPL"
+  },
+  {
+    "en": "Exited plan mode",
+    "zh": "已退出计划模式"
   },
   {
     "en": "Explanation unavailable",
@@ -2902,6 +3030,10 @@
     "zh": "强制安装，即使已安装"
   },
   {
+    "en": "Forward subagent text and thinking blocks as assistant/user messages with parent_tool_use_id set (only works with --print and --output-format=stream-json)",
+    "zh": "把 subagent 文本和 thinking 块以 parent_tool_use_id 转发（需 --print 与 stream-json）"
+  },
+  {
     "en": "Free space:",
     "zh": "可用空间："
   },
@@ -3004,6 +3136,10 @@
   {
     "en": "Having trouble? See manual setup instructions at:",
     "zh": "遇到问题？查看手动安装说明："
+  },
+  {
+    "en": "Held message from another session",
+    "zh": "来自另一会话的待审消息"
   },
   {
     "en": "Help improve Claude",
@@ -3178,6 +3314,10 @@
     "zh": "在输出流中包含所有 Hook 生命周期事件（仅 --output-format=stream-json 有效）"
   },
   {
+    "en": "Include all hook lifecycle events in the output stream (only works with --output-format=stream-json)g",
+    "zh": "包含全部 hook 生命周期事件（需 --output-format=stream-json）"
+  },
+  {
     "en": "Include available plugins from marketplaces (requires --json)",
     "zh": "包含插件市场中的可用插件（需要 --json）"
   },
@@ -3214,8 +3354,12 @@
     "zh": "输入与控制"
   },
   {
+    "en": "Input completed",
+    "zh": "输入完成"
+  },
+  {
     "en": "Input format (only works with --print): \"text\" (default), or \"stream-json\" (realtime streaming input)",
-    "zh": "输入格式（仅 --print 有效）：\"text\"（默认）或 \"stream-json\"（实时流式输入）"
+    "zh": "输入格式（仅 --print）：\"text\"（默认）或 \"stream-json\"（实时流式输入）"
   },
   {
     "en": "Input format (only works with --print): \"text\" (default), or \"stream-json\" (realtime streaming input) (choices: \"text\", \"stream-json\")",
@@ -3334,8 +3478,20 @@
     "zh": "结构化输出校验用 JSON Schema。示例：{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}"
   },
   {
+    "en": "JSON Schema for structured output validation. Example: {\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}d",
+    "zh": "结构化输出校验的 JSON Schema。示例：{\"type\":\"object\",…}"
+  },
+  {
     "en": "JSON object defining custom agents (e.g. '{\"reviewer\": {\"description\": \"Reviews code\", \"prompt\": \"You are a code reviewer\"}}')",
     "zh": "定义自定义 Agent 的 JSON 对象（例如 '{\"reviewer\": {\"description\": \"审查代码\", \"prompt\": \"你是代码审查员\"}}'）"
+  },
+  {
+    "en": "JSON object defining custom agents, or with --print the path to a file that holds one (e.g. '{\"reviewer\": {\"description\": \"Reviews code\", \"prompt\": \"You are a code reviewer\"}}')",
+    "zh": "自定义 Agent 的 JSON 对象，或 --print 时为定义文件路径（如 '{\"reviewer\": {…}}'）"
+  },
+  {
+    "en": "Keep the HTML report local only; skip publishing it to claude.ai",
+    "zh": "仅在本地保留 HTML 报告；跳过发布到 claude.ai"
   },
   {
     "en": "Keep worktree",
@@ -3518,6 +3674,10 @@
     "zh": "仅为当前会话从目录或 .zip 加载插件（可重复：--plugin-dir A --plugin-dir B.zip）（默认：[]）"
   },
   {
+    "en": "Load a plugin from a directory or .zip for this session only; a folder of plugins loads each child (repeatable: --plugin-dir A --plugin-dir B.zip)",
+    "zh": "仅本次会话从目录或 .zip 加载插件；插件目录会加载其中每个子插件（可重复：--plugin-dir A --plugin-dir B.zip）"
+  },
+  {
     "en": "Load failed",
     "zh": "加载失败"
   },
@@ -3698,6 +3858,10 @@
     "zh": "MCP 工具"
   },
   {
+    "en": "Make auto mode your default permission mode?",
+    "zh": "要将 auto mode 设为默认权限模式吗？"
+  },
+  {
     "en": "Make bypass-permissions mode available to dispatched sessions without defaulting to it",
     "zh": "让分派会话可使用 bypass-permissions 模式，但不默认启用"
   },
@@ -3818,6 +3982,10 @@
     "zh": "消息 "
   },
   {
+    "en": "Message body (this is what will be delivered):",
+    "zh": "消息正文（将投递以下内容）："
+  },
+  {
     "en": "Messages after this point will be summarized.",
     "zh": "此位置之后的消息将被摘要。"
   },
@@ -3834,12 +4002,20 @@
     "zh": "Microsoft Foundry 资源"
   },
   {
+    "en": "Minimal mode: skip hooks (those defined in settings and by installed plugins; features built into Claude Code are unaffected), LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery. Sets CLAUDE_CODE_SIMPLE=1. Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read). 3P providers (Bedrock/Vertex/Foundry) use their own credentials. Skills still resolve via /skill-name. Explicitly provide context via: --system-prompt[-file], --append-system-prompt[-file], --add-dir (CLAUDE.md dirs), --mcp-config, --settings, --agents, --plugin-dir.",
+    "zh": "最小模式：跳过 hooks（settings 与插件定义的；内置功能不受影响）、LSP、插件同步、keychain 读取与 CLAUDE.md 自动发现；设 CLAUDE_CODE_SIMPLE=1。Anthropic 认证仅限 ANTHROPIC_API_KEY 或 --settings 的 apiKeyHelper（不读 OAuth/keychain）；第三方供应商用各自凭据；Skills 仍经 /skill-name 解析；上下文显式提供：--system-prompt、--append-system-prompt、--add-dir、--mcp-config、--settings、--agents、--plugin-dir。"
+  },
+  {
     "en": "Minimal mode: skip hooks, LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery. Sets CLAUDE_CODE_SIMPLE=1. Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read). 3P providers (Bedrock/Vertex/Foundry) use their own credentials. Skills still resolve via /skill-name. Explicitly provide context via: --system-prompt[-file], --append-system-prompt[-file], --add-dir (CLAUDE.md dirs), --mcp-config, --settings, --agents, --plugin-dir.",
     "zh": "极简模式：跳过 hooks、LSP、插件同步、归因、自动记忆、后台预取、钥匙串读取和 CLAUDE.md 自动发现。设置 CLAUDE_CODE_SIMPLE=1。Anthropic 身份验证严格使用 ANTHROPIC_API_KEY 或通过 --settings 配置的 apiKeyHelper（不会读取 OAuth 和钥匙串）。第三方 provider（Bedrock/Vertex/Foundry）使用各自凭据。Skills 仍可通过 /skill-name 解析。请显式提供上下文：--system-prompt[-file]、--append-system-prompt[-file]、--add-dir（CLAUDE.md 目录）、--mcp-config、--settings、--agents、--plugin-dir。"
   },
   {
     "en": "Missing dependencies",
     "zh": "缺少依赖"
+  },
+  {
+    "en": "Mobile notification sent.",
+    "zh": "移动通知已发送。"
   },
   {
     "en": "Model & output",
@@ -3852,6 +4028,10 @@
   {
     "en": "Model for the current session. Provide an alias for the latest model (e.g. 'fable', 'opus', or 'sonnet') or a model's full name (e.g. 'claude-fable-5').",
     "zh": "当前会话使用的模型。可提供最新模型别名（例如 'fable'、'opus' 或 'sonnet'），也可提供模型完整名称（例如 'claude-fable-5'）。"
+  },
+  {
+    "en": "Model for the current session. Provide an alias for the latest model (e.g. 'fable', 'opus', or 'sonnet') or a model's full name.",
+    "zh": "当前会话的模型。提供最新模型的别名（如 'fable'、'opus'、'sonnet'）或模型全名。"
   },
   {
     "en": "Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-opus-4-8').",
@@ -3900,6 +4080,10 @@
   {
     "en": "Multi-file Changes",
     "zh": "多文件改动"
+  },
+  {
+    "en": "Navigation completed",
+    "zh": "导航完成"
   },
   {
     "en": "Neither — skip setup",
@@ -4330,6 +4514,10 @@
     "zh": "在编辑器中打开"
   },
   {
+    "en": "Open in the Claude Desktop app instead of the terminal (with --continue or --resume <id> to pick the session)",
+    "zh": "在 Claude Desktop 打开而非终端（用 --continue 或 --resume 选会话）"
+  },
+  {
     "en": "Open or create your keybindings configuration file",
     "zh": "打开或创建你的 keybindings 配置文件"
   },
@@ -4406,6 +4594,10 @@
     "zh": "Option 作为 Meta 键"
   },
   {
+    "en": "Option+Enter for newlines",
+    "zh": "Option+Enter 换行"
+  },
+  {
     "en": "Options shown when the Pro plan Claude Code trial has ended",
     "zh": "Pro 计划 Claude Code 试用结束时显示的选项"
   },
@@ -4432,7 +4624,7 @@
   },
   {
     "en": "Output format (only works with --print): \"text\" (default), \"json\" (single result), or \"stream-json\" (realtime streaming)",
-    "zh": "输出格式（仅 --print 有效）：\"text\"（默认）、\"json\"（单次结果）或 \"stream-json\"（实时流式输出）"
+    "zh": "输出格式（仅 --print）：\"text\"（默认）、\"json\"（单结果）或 \"stream-json\"（实时流式）"
   },
   {
     "en": "Output format (only works with --print): \"text\" (default), \"json\" (single result), or \"stream-json\" (realtime streaming) (choices: \"text\", \"json\", \"stream-json\")",
@@ -4536,8 +4728,16 @@
     "zh": "计划审批请求来自"
   },
   {
+    "en": "Plan Approved by ",
+    "zh": "计划批准人："
+  },
+  {
     "en": "Plan Mode",
     "zh": "计划模式"
+  },
+  {
+    "en": "Plan Rejected by ",
+    "zh": "计划拒绝人："
   },
   {
     "en": "Plan a large change; background agents each open a PR",
@@ -4796,6 +4996,10 @@
     "zh": "打印响应并退出（适合管道）。注意：Claude 以非交互模式运行时会跳过工作区信任对话框（例如使用 -p，或 stdout 不是 TTY，如管道/重定向输出）。只在你信任的目录中使用。"
   },
   {
+    "en": "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when Claude is run in non-interactive mode (via -p, or when stdout is not a TTY, e.g. piped or redirected output). Only use this in directories you trust. Settings files that fail validation are silently ignored in this mode (no error dialog is shown).",
+    "zh": "打印响应并退出（适合管道）。注意：以非交互模式运行 Claude 时（通过 -p，或 stdout 非 TTY，如管道或重定向输出）会跳过工作区信任对话框。请只在信任的目录中使用。此模式下校验失败的 settings 文件被静默忽略（无错误对话框）。"
+  },
+  {
     "en": "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when Claude is run with the -p mode. Only use this flag in directories you trust.",
     "zh": "打印响应并退出（适合管道）。注意：使用 -p 模式运行 Claude 时会跳过工作区信任对话框。只在你信任的目录中使用此 flag。"
   },
@@ -4889,7 +5093,7 @@
   },
   {
     "en": "Re-emit user messages from stdin back on stdout for acknowledgment (only works with --input-format=stream-json and --output-format=stream-json)",
-    "zh": "将 stdin 中的用户消息重新输出到 stdout 作为确认（仅 --input-format=stream-json 且 --output-format=stream-json 有效）"
+    "zh": "把 stdin 用户消息回显到 stdout 作确认（需 stream-json 输入与输出）"
   },
   {
     "en": "Read aborted",
@@ -4958,6 +5162,10 @@
   {
     "en": "Reconnection failed after authentication",
     "zh": "认证后重连失败"
+  },
+  {
+    "en": "Record the system prompt once per conversation and reuse it verbatim on every request and resume. on (the default): the prompt is rendered on the conversation's first request — a --system-prompt or --append-system-prompt included — sent, and recorded; every later request and resume sends the record as-is, even when a later launch passes different text, until the conversation is compacted. off: never record; the prompt is rendered fresh every request (for iterating on prompt text). No effect where system-prompt recording is not yet enabled.",
+    "zh": "每次对话记录一次系统提示，并在每次请求和 resume 时原样复用。on（默认）：提示在对话首个请求时渲染——含 --system-prompt 或 --append-system-prompt——发送并记录；后续请求和 resume 一律发送记录内容，即使后续启动传入不同文本，直到对话被压缩。off：不记录；每次请求重新渲染（适合调试提示文本）。未启用系统提示记录的场景无效果。"
   },
   {
     "en": "Redirecting to authorization URL",
@@ -5196,6 +5404,10 @@
     "zh": "恢复代码和/或对话到之前的状态…"
   },
   {
+    "en": "Restricted mode: removes the built-in tools that run commands or code (Bash, PowerShell, REPL and the other code-running tools) and WebFetch unless --tools names them, and ignores user, project and local settings files (managed settings and --settings still apply; add --strict-mcp-config to skip MCP servers too). Also confines the file tools to the working directories (--add-dir included), refuses bypassPermissions, and lets only a person or the configured permission handler approve writes to settings, git and tool-configuration files.",
+    "zh": "受限模式：移除可运行命令或代码的内置工具（Bash、PowerShell、REPL 等）和 WebFetch（除非 --tools 指定），并忽略 user、project、local 设置文件（managed settings 与 --settings 仍生效；加 --strict-mcp-config 可同时跳过 MCP 服务器）。同时把文件工具限制在工作目录内（含 --add-dir），拒绝 bypassPermissions，且仅允许人或配置的权限处理器批准写入 settings、git 与工具配置文件。"
+  },
+  {
     "en": "Result of a rewindFiles operation.",
     "zh": "rewindFiles 操作的结果。"
   },
@@ -5368,16 +5580,16 @@
     "zh": "针对插件运行评测用例（evals/**/case.yaml 或 evals/**/prompt.md + graders/*.md），并报告评分结果。目标可以是路径、插件名或插件市场 id；已安装插件和 skills-dir 插件都会解析（并添加无插件基线分支）"
   },
   {
+    "en": "Run the authoring interview (already the default in a terminal); requires an interactive terminal",
+    "zh": "运行创作访谈（终端中已为默认行为）；需要交互式终端"
+  },
+  {
     "en": "Run the enterprise auth/telemetry gateway",
     "zh": "运行企业认证/遥测网关"
   },
   {
     "en": "Run ultraplan",
     "zh": "运行 ultraplan"
-  },
-  {
-    "en": "run in background",
-    "zh": "运行到后台"
   },
   {
     "en": "Run ultrareview in the cloud?",
@@ -5467,6 +5679,10 @@
   {
     "en": "Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts.",
     "zh": "扫描你的 transcripts 中常见的只读 Bash 和 MCP 工具调用，然后把优先 allowlist 写入项目 .claude/settings.json，减少权限确认。"
+  },
+  {
+    "en": "Scanning local sessions…",
+    "zh": "正在扫描本地会话…"
   },
   {
     "en": "Scope: ",
@@ -5607,14 +5823,6 @@
   {
     "en": "Sending ping with timeout",
     "zh": "发送 ping 超时"
-  },
-  {
-    "en": "(timeout ${...})",
-    "zh": "(超时 ${...})"
-  },
-  {
-    "en": "(${...} \\xB7 timeout ${...})",
-    "zh": "(${...} \\xB7 超时 ${...})"
   },
   {
     "en": "Sending token request to endpoint:",
@@ -5805,16 +6013,16 @@
     "zh": "分享对话记录"
   },
   {
-    "en": "${...}\nShell cwd was reset to ${...}",
-    "zh": "${...}\nShell 已将 cwd 重置为 ${...}"
-  },
-  {
     "en": "Shell command failed",
     "zh": "Shell 命令失败"
   },
   {
     "en": "Shell details dismissed",
     "zh": "Shell 详情已关闭"
+  },
+  {
+    "en": "Shift+Enter for newlines",
+    "zh": "Shift+Enter 换行"
   },
   {
     "en": "Shot distribution",
@@ -5993,6 +6201,10 @@
     "zh": "跳过访谈，立即规划"
   },
   {
+    "en": "Skip the interactive picker. On headless surfaces, pass --yes=<digest> from the `/import` preview.",
+    "zh": "跳过交互式选择器。在无界面环境中，传入 `/import` 预览给出的 --yes=<digest>。"
+  },
+  {
     "en": "Skip workflow update (configure secrets only)",
     "zh": "跳过工作流更新（仅配置密钥）"
   },
@@ -6061,6 +6273,14 @@
     "zh": "以后台 Agent 启动会话并立即返回（用 `claude agents` 管理）"
   },
   {
+    "en": "Start the session in the background and return immediately. Prints the id that `claude attach`, `logs`, `stop` and `rm` take; `claude agents` lists them. With --resume <session-id>, continues that session in the background under the same ID, or starts a copy and says so when the session is already running",
+    "zh": "在后台启动会话并立即返回。打印 `claude attach`、`logs`、`stop`、`rm` 所需的 id（`claude agents` 可列出）。配合 --resume <session-id> 时沿用同一 ID 在后台继续该会话；若会话已在运行则启动副本并说明"
+  },
+  {
+    "en": "Start with all customizations (CLAUDE.md, skills, installed plugins, hooks, MCP servers, custom commands and agents, output styles, workflows, custom themes, keybindings, and more) disabled — useful for troubleshooting a broken configuration. Admin-managed (policy) settings still apply. Auth, model selection, built-in tools and plugins, and permissions work normally. Sets CLAUDE_CODE_SAFE_MODE=1.",
+    "zh": "以禁用全部自定义项的状态启动（CLAUDE.md、skills、已安装插件、hooks、MCP 服务器、自定义命令与 agent、输出风格、workflows、自定义主题、键位等）——适合排查损坏的配置。管理员托管（policy）设置仍生效。认证、模型选择、内置工具与插件、权限正常工作。设置 CLAUDE_CODE_SAFE_MODE=1。"
+  },
+  {
     "en": "Start with all customizations (CLAUDE.md, skills, plugins, hooks, MCP servers, custom commands and agents, output styles, workflows, custom themes, keybindings, and more) disabled \\u2014 useful for troubleshooting a broken configuration. Admin-managed (policy) settings still apply. Auth, model selection, built-in tools, and permissions work normally. Sets CLAUDE_CODE_SAFE_MODE=1.",
     "zh": "启动时禁用所有自定义内容（CLAUDE.md、skills、plugins、Hooks、MCP servers、自定义命令和 Agent、output styles、workflows、自定义主题、keybindings 等）——用于排查损坏配置。管理员托管（policy）设置仍会生效。认证、模型选择、内置工具和权限正常工作。设置 CLAUDE_CODE_SAFE_MODE=1。"
   },
@@ -6099,6 +6319,10 @@
   {
     "en": "Stop and wait for limit to reset",
     "zh": "停止并等待限额重置"
+  },
+  {
+    "en": "Stop hook feedback",
+    "zh": "Stop hook 反馈"
   },
   {
     "en": "Stop this background session; transcript and worktree are kept",
@@ -6193,6 +6417,10 @@
     "zh": "切换 Anthropic 账号"
   },
   {
+    "en": "Switch models when a message is flagged",
+    "zh": "当消息被标记时切换模型"
+  },
+  {
     "en": "Switch to the Marketplaces tab to view allowed sources.",
     "zh": "切换到插件市场标签页查看允许的来源。"
   },
@@ -6217,6 +6445,14 @@
     "zh": "当前会话使用的系统提示词"
   },
   {
+    "en": "System tools",
+    "zh": "系统工具"
+  },
+  {
+    "en": "System tools (deferred)",
+    "zh": "系统工具（延迟）"
+  },
+  {
     "en": "Tab ID to identify which tab group this operation applies to",
     "zh": "标识此操作应用于哪个标签组的标签 ID"
   },
@@ -6231,6 +6467,10 @@
   {
     "en": "Tab: Next field · Enter: Save and continue",
     "zh": "Tab：下一字段 · Enter：保存并继续"
+  },
+  {
+    "en": "Tabs read",
+    "zh": "已读取标签页"
   },
   {
     "en": "Tap to answer",
@@ -6251,6 +6491,14 @@
   {
     "en": "Task not ready",
     "zh": "任务未就绪"
+  },
+  {
+    "en": "Teach auto mode about your environment, plus optional rule tweaks",
+    "zh": "让 auto mode 了解你的环境，并可选微调规则"
+  },
+  {
+    "en": "Teach auto mode about your environment?",
+    "zh": "要让 auto mode 了解你的环境吗？"
   },
   {
     "en": "Teach mode is not active. Call request_teach_access first.",
@@ -6297,6 +6545,10 @@
     "zh": "正在传送到会话…"
   },
   {
+    "en": "Terminal and mobile notification sent.",
+    "zh": "终端和移动通知已发送。"
+  },
+  {
     "en": "Terminal progress bar",
     "zh": "终端进度条"
   },
@@ -6307,6 +6559,10 @@
   {
     "en": "Thank you for your report!",
     "zh": "感谢你的反馈！"
+  },
+  {
+    "en": "Thanks \\u2014 noted as a bad memory.",
+    "zh": "谢谢 — 已标记为不良记忆。"
   },
   {
     "en": "Thanks for sharing your transcript!",
@@ -6487,6 +6743,10 @@
   {
     "en": "Tip: You can enable auto-connect to IDE in /config or with the --ide flag",
     "zh": "提示：可以在 /config 或使用 --ide 标志启用自动连接 IDE"
+  },
+  {
+    "en": "Tips for getting started",
+    "zh": "新手入门提示"
   },
   {
     "en": "To add hooks, edit settings.json directly or ask Claude.",
@@ -6671,6 +6931,10 @@
   {
     "en": "URL",
     "zh": "URL"
+  },
+  {
+    "en": "URL for a signed configuration document. Claude Code exits if it cannot load it or it does not cover the selected model. Setting CLAUDE_CODE_CLIENT_DATA_URL instead keeps the URL out of the process list",
+    "zh": "签名配置文档的 URL。Claude Code 加载失败或未覆盖所选模型时退出。改设 CLAUDE_CODE_CLIENT_DATA_URL 可避免该 URL 出现在进程列表"
   },
   {
     "en": "URL: ",
@@ -7242,6 +7506,10 @@
     "zh": "你的 Bedrock 模型启用的位置。"
   },
   {
+    "en": "Who answers permission prompts with --print: \"host\" (the SDK host or --permission-prompt-tool) or \"none\" (nobody: anything that would prompt is denied automatically; the permission mode still decides everything else)",
+    "zh": "--print 模式下由谁响应权限提示：\"host\"（SDK 宿主或 --permission-prompt-tool）或 \"none\"（无人响应：本会触发提示的操作自动拒绝；其余仍由权限模式决定）"
+  },
+  {
     "en": "Will install:",
     "zh": "将安装："
   },
@@ -7316,6 +7584,10 @@
   {
     "en": "Write debug logs to a specific file path (implicitly enables debug mode)",
     "zh": "将调试日志写入指定文件路径（隐式启用调试模式）"
+  },
+  {
+    "en": "Write the self-contained HTML report (scores, prompts, grader verdicts) to <path> instead of the results dir",
+    "zh": "将自包含 HTML 报告（评分、提示词和评分器结论）写入 <path>，而不是结果目录"
   },
   {
     "en": "Write unit tests for all new utilities",
@@ -7406,6 +7678,10 @@
     "zh": "是，移除"
   },
   {
+    "en": "Yes, set auto mode as my default permission mode",
+    "zh": "是，将 auto mode 设为我的默认权限模式"
+  },
+  {
     "en": "Yes, use recommended settings",
     "zh": "是，使用推荐设置"
   },
@@ -7444,6 +7720,10 @@
   {
     "en": "You can help improve Claude ",
     "zh": "你可以帮助改进 Claude "
+  },
+  {
+    "en": "You can share details with /feedback instead.",
+    "zh": "你可以改用 /feedback 分享详细信息。"
   },
   {
     "en": "You can try installing manually:",
@@ -7491,8 +7771,16 @@
     "zh": "您的使用额度已用完"
   },
   {
+    "en": "You're out of usage credits. /model to switch models.",
+    "zh": "用量额度已用完。用 /model 切换模型。"
+  },
+  {
     "en": "You've hit your fast limit",
     "zh": "你已达到快速模式限额"
+  },
+  {
+    "en": "You've hit your team's shared budget. /model to switch models.",
+    "zh": "已达到团队共享预算上限。用 /model 切换模型。"
   },
   {
     "en": "You've spent $5 on the Anthropic API this session.",
@@ -7608,6 +7896,14 @@
     "zh": "[思考]"
   },
   {
+    "en": "\\u2014 Self-hosted environments \\u2014",
+    "zh": "— 自托管环境 —"
+  },
+  {
+    "en": "\\xB7 ask your administrator to trust the configured sandbox CA \\u2014 see https://code.claude.com/docs/en/sandboxing",
+    "zh": "· 请联系管理员信任已配置的沙箱 CA — 参见 https://code.claude.com/docs/en/sandboxing"
+  },
+  {
     "en": "accept edits",
     "zh": "接受编辑"
   },
@@ -7658,6 +7954,14 @@
     "zh": "自动模式"
   },
   {
+    "en": "auto-accept edits",
+    "zh": "自动接受编辑"
+  },
+  {
+    "en": "backslash (\\) + return (\\u23CE) for newline",
+    "zh": "反斜杠 (\\) + 回车 (\\u23CE) 换行"
+  },
+  {
     "en": "built-in (macOS)",
     "zh": "内置 (macOS)"
   },
@@ -7674,6 +7978,10 @@
     "zh": "claude doctor"
   },
   {
+    "en": "claude.ai rejected the session token. Run /login, then reconnect.",
+    "zh": "claude.ai 拒绝了会话令牌。请运行 /login，然后重新连接。"
+  },
+  {
     "en": "completed in background",
     "zh": "已在后台完成"
   },
@@ -7682,12 +7990,20 @@
     "zh": "确认并保存"
   },
   {
+    "en": "connected \\xB7 session token rejected",
+    "zh": "已连接 · 会话令牌被拒绝"
+  },
+  {
     "en": "controls how long Claude thinks before answering.",
     "zh": "控制 Claude 回答前思考多久。"
   },
   {
     "en": "ctrl + z to suspend",
     "zh": "ctrl + z 挂起"
+  },
+  {
+    "en": "ctrl+j for newline",
+    "zh": "ctrl+j 换行"
   },
   {
     "en": "ctrl+o to expand",
@@ -7702,8 +8018,20 @@
     "zh": "d 断开 · 空格 显示二维码 · Enter/Esc 关闭"
   },
   {
+    "en": "database write committed",
+    "zh": "数据库写入已提交"
+  },
+  {
+    "en": "database write not committed",
+    "zh": "数据库写入未提交"
+  },
+  {
     "en": "default:",
     "zh": "默认："
+  },
+  {
+    "en": "dialog waiting",
+    "zh": "对话框等待中"
   },
   {
     "en": "display help for command",
@@ -7748,6 +8076,14 @@
   {
     "en": "for tricky bugs,",
     "zh": "处理棘手 bug 时用"
+  },
+  {
+    "en": "for verbose output",
+    "zh": "查看详细输出"
+  },
+  {
+    "en": "git metadata is not collected from this machine",
+    "zh": "未从此计算机收集 Git 元数据"
   },
   {
     "en": "hatching a coding buddy…",
@@ -7830,8 +8166,16 @@
     "zh": "新任务？/clear 保存 "
   },
   {
+    "en": "no comment threads yet",
+    "zh": "暂无评论线程"
+  },
+  {
     "en": "no matches ",
     "zh": "无匹配项 "
+  },
+  {
+    "en": "no such document",
+    "zh": "文档不存在"
   },
   {
     "en": "not found",
@@ -7850,8 +8194,20 @@
     "zh": "在编辑器中打开"
   },
   {
+    "en": "opens agents",
+    "zh": "打开 Agent 视图"
+  },
+  {
     "en": "opens docs",
     "zh": "打开文档"
+  },
+  {
+    "en": "or /rewind to undo this turn's file edits",
+    "zh": "或用 /rewind 撤销本轮文件编辑"
+  },
+  {
+    "en": "paste images",
+    "zh": "粘贴图片"
   },
   {
     "en": "plan mode on",
@@ -7866,6 +8222,10 @@
     "zh": "按任意键"
   },
   {
+    "en": "read 1 comment thread (filtered)",
+    "zh": "已读取 1 个评论线程（已筛选）"
+  },
+  {
     "en": "recap:",
     "zh": "会话回顾:"
   },
@@ -7874,8 +8234,28 @@
     "zh": "全部拒绝"
   },
   {
+    "en": "replied to comment thread",
+    "zh": "已回复评论线程"
+  },
+  {
+    "en": "reply needs thread activation by the user",
+    "zh": "需要用户先激活该评论线程才能回复"
+  },
+  {
+    "en": "reply not posted (summon already answered)",
+    "zh": "未发布回复（召唤已得到回应）"
+  },
+  {
+    "en": "requested thread not in this result",
+    "zh": "请求的评论线程不在此结果中"
+  },
+  {
     "en": "run /terminal-setup",
     "zh": "运行 /terminal-setup"
+  },
+  {
+    "en": "run in background",
+    "zh": "运行到后台"
   },
   {
     "en": "running workflow at any time with /workflows, or disable dynamic workflows in /config.",
@@ -7894,12 +8274,24 @@
     "zh": "搜索历史"
   },
   {
+    "en": "shell mode",
+    "zh": "shell 模式"
+  },
+  {
     "en": "shell still running",
     "zh": "个 shell 仍在运行"
   },
   {
     "en": "shells still running",
     "zh": "个 shell 仍在运行"
+  },
+  {
+    "en": "shift + \\u23CE for newline",
+    "zh": "shift + \\u23CE 换行"
+  },
+  {
+    "en": "stash prompt",
+    "zh": "暂存提示词"
   },
   {
     "en": "still running in background",
@@ -7916,6 +8308,10 @@
   {
     "en": "subagents in parallel \\u2014 which counts against your usage limit. Stop a",
     "zh": "这些用量会计入你的使用限制。可以随时停止"
+  },
+  {
+    "en": "switch model",
+    "zh": "切换模型"
   },
   {
     "en": "sync cycle modes for all · Esc close",
@@ -7958,6 +8354,10 @@
     "zh": "切换模型"
   },
   {
+    "en": "to switch models. Fable for the hardest problems, Opus for complex work, Sonnet for most tasks, Haiku for quick questions. Each trades speed for depth.",
+    "zh": "切换模型。Fable 适合最难的问题，Opus 适合复杂工作，Sonnet 适合大多数任务，Haiku 适合快速提问，各自在速度与深度之间取舍。"
+  },
+  {
     "en": "to toggle",
     "zh": "切换"
   },
@@ -7992,6 +8392,10 @@
   {
     "en": "toggle selection",
     "zh": "切换选择"
+  },
+  {
+    "en": "toggle tasks",
+    "zh": "切换任务"
   },
   {
     "en": "toggle transcript",
@@ -8202,331 +8606,7 @@
     "zh": "⧉ 已选行"
   },
   {
-    "en": " lines]",
-    "zh": " 行]"
-  },
-  {
     "en": "📝 Keep thinking...",
     "zh": "📝 继续思考中..."
-  },
-  {
-    "en": "Background command ",
-    "zh": "后台命令 "
-  },
-  {
-    "en": "Tips for getting started",
-    "zh": "新手入门提示"
-  },
-  {
-    "en": "/release-notes for more",
-    "zh": "/release-notes 了解更多"
-  },
-  {
-    "en": "API Usage Billing",
-    "zh": "API 用量与计费"
-  },
-  {
-    "en": "System tools",
-    "zh": "系统工具"
-  },
-  {
-    "en": "System tools (deferred)",
-    "zh": "系统工具（延迟）"
-  },
-  {
-    "en": "Switch models when a message is flagged",
-    "zh": "当消息被标记时切换模型"
-  },
-  {
-    "en": "Default (English)",
-    "zh": "默认（英语）"
-  },
-  {
-    "en": "opens agents",
-    "zh": "打开 Agent 视图"
-  },
-  {
-    "en": "requested thread not in this result",
-    "zh": "请求的评论线程不在此结果中"
-  },
-  {
-    "en": "no comment threads yet",
-    "zh": "暂无评论线程"
-  },
-  {
-    "en": "read 1 comment thread (filtered)",
-    "zh": "已读取 1 个评论线程（已筛选）"
-  },
-  {
-    "en": "replied to comment thread",
-    "zh": "已回复评论线程"
-  },
-  {
-    "en": "reply not posted (summon already answered)",
-    "zh": "未发布回复（召唤已得到回应）"
-  },
-  {
-    "en": "reply needs thread activation by the user",
-    "zh": "需要用户先激活该评论线程才能回复"
-  },
-  {
-    "en": "no such document",
-    "zh": "文档不存在"
-  },
-  {
-    "en": "database write committed",
-    "zh": "数据库写入已提交"
-  },
-  {
-    "en": "database write not committed",
-    "zh": "数据库写入未提交"
-  },
-  {
-    "en": "- Remote workspace:",
-    "zh": "- 远程工作区："
-  },
-  {
-    "en": "git metadata is not collected from this machine",
-    "zh": "未从此计算机收集 Git 元数据"
-  },
-  {
-    "en": "connected \\xB7 session token rejected",
-    "zh": "已连接 · 会话令牌被拒绝"
-  },
-  {
-    "en": "claude.ai rejected the session token. Run /login, then reconnect.",
-    "zh": "claude.ai 拒绝了会话令牌。请运行 /login，然后重新连接。"
-  },
-  {
-    "en": "Activating plugin\\u2026",
-    "zh": "正在激活插件…"
-  },
-  {
-    "en": "\\u2014 Self-hosted environments \\u2014",
-    "zh": "— 自托管环境 —"
-  },
-  {
-    "en": "\\xB7 ask your administrator to trust the configured sandbox CA \\u2014 see https://code.claude.com/docs/en/sandboxing",
-    "zh": "· 请联系管理员信任已配置的沙箱 CA — 参见 https://code.claude.com/docs/en/sandboxing"
-  },
-  {
-    "en": "Message body (this is what will be delivered):",
-    "zh": "消息正文（将投递以下内容）："
-  },
-  {
-    "en": "Held message from another session",
-    "zh": "来自另一会话的待审消息"
-  },
-  {
-    "en": "Couldn't share the transcript.",
-    "zh": "无法分享对话记录。"
-  },
-  {
-    "en": "You can share details with /feedback instead.",
-    "zh": "你可以改用 /feedback 分享详细信息。"
-  },
-  {
-    "en": "Thanks \\u2014 noted as a bad memory.",
-    "zh": "谢谢 — 已标记为不良记忆。"
-  },
-  {
-    "en": "Write the self-contained HTML report (scores, prompts, grader verdicts) to <path> instead of the results dir",
-    "zh": "将自包含 HTML 报告（评分、提示词和评分器结论）写入 <path>，而不是结果目录"
-  },
-  {
-    "en": "Also require publishing the report to claude.ai (already the default when your account supports it); explains why if unavailable",
-    "zh": "同时要求将报告发布到 claude.ai（账号支持时已为默认行为）；若不可用则说明原因"
-  },
-  {
-    "en": "Keep the HTML report local only; skip publishing it to claude.ai",
-    "zh": "仅在本地保留 HTML 报告；跳过发布到 claude.ai"
-  },
-  {
-    "en": "Run the authoring interview (already the default in a terminal); requires an interactive terminal",
-    "zh": "运行创作访谈（终端中已为默认行为）；需要交互式终端"
-  },
-  {
-    "en": "Skip the interactive picker. On headless surfaces, pass --yes=<digest> from the `/import` preview.",
-    "zh": "跳过交互式选择器。在无界面环境中，传入 `/import` 预览给出的 --yes=<digest>。"
-  },
-  {
-    "en": "Scanning local sessions…",
-    "zh": "正在扫描本地会话…"
-  },
-  {
-    "en": "Claude has context of ",
-    "zh": "Claude 的上下文包含 "
-  },
-  {
-    "en": "Plan Approved by ",
-    "zh": "计划批准人："
-  },
-  {
-    "en": "Plan Rejected by ",
-    "zh": "计划拒绝人："
-  },
-  {
-    "en": "Stop hook feedback",
-    "zh": "Stop hook 反馈"
-  },
-  {
-    "en": "Enabled plan mode",
-    "zh": "已启用计划模式"
-  },
-  {
-    "en": "Already in plan mode.",
-    "zh": "已处于计划模式。"
-  },
-  {
-    "en": "Exited plan mode",
-    "zh": "已退出计划模式"
-  },
-  {
-    "en": "Allow the use of your chats and coding sessions to train and improve Anthropic AI models.",
-    "zh": "允许使用你的聊天和编程会话，用于训练和改进 Anthropic AI 模型。"
-  },
-  {
-    "en": "Any key closes this panel.",
-    "zh": "任意键关闭此面板。"
-  },
-  {
-    "en": "dialog waiting",
-    "zh": "对话框等待中"
-  },
-  {
-    "en": "Configured marketplaces:",
-    "zh": "已配置的插件市场："
-  },
-  {
-    "en": "Navigation completed",
-    "zh": "导航完成"
-  },
-  {
-    "en": "Tabs read",
-    "zh": "已读取标签页"
-  },
-  {
-    "en": "Input completed",
-    "zh": "输入完成"
-  },
-  {
-    "en": "Terminal and mobile notification sent.",
-    "zh": "终端和移动通知已发送。"
-  },
-  {
-    "en": "Mobile notification sent.",
-    "zh": "移动通知已发送。"
-  },
-  {
-    "en": " (shared)",
-    "zh": "（共享）"
-  },
-  {
-    "en": " (mine + shared)",
-    "zh": "（我的 + 共享）"
-  },
-  {
-    "en": "! for shell mode",
-    "zh": "! 进入 shell 模式"
-  },
-  {
-    "en": "shell mode",
-    "zh": "shell 模式"
-  },
-  {
-    "en": "auto-accept edits",
-    "zh": "自动接受编辑"
-  },
-  {
-    "en": "for verbose output",
-    "zh": "查看详细输出"
-  },
-  {
-    "en": " for verbose output",
-    "zh": " 查看详细输出"
-  },
-  {
-    "en": "paste images",
-    "zh": "粘贴图片"
-  },
-  {
-    "en": "toggle tasks",
-    "zh": "切换任务"
-  },
-  {
-    "en": "stash prompt",
-    "zh": "暂存提示词"
-  },
-  {
-    "en": "switch model",
-    "zh": "切换模型"
-  },
-  {
-    "en": "shift + \\u23CE for newline",
-    "zh": "shift + \\u23CE 换行"
-  },
-  {
-    "en": "ctrl+j for newline",
-    "zh": "ctrl+j 换行"
-  },
-  {
-    "en": "backslash (\\) + return (\\u23CE) for newline",
-    "zh": "反斜杠 (\\) + 回车 (\\u23CE) 换行"
-  },
-  {
-    "en": "Make auto mode your default permission mode?",
-    "zh": "要将 auto mode 设为默认权限模式吗？"
-  },
-  {
-    "en": "Yes, set auto mode as my default permission mode",
-    "zh": "是，将 auto mode 设为我的默认权限模式"
-  },
-  {
-    "en": "Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.",
-    "zh": "Auto mode 让 Claude 自动处理权限请求：执行前检查每次工具调用是否存在风险动作或 prompt injection，放行评估为低风险的操作，拦截其余操作。"
-  },
-  {
-    "en": "Auto mode works better when it knows your environment. Takes about a minute.",
-    "zh": "了解你的环境后 Auto mode 表现更好。大约需要 1 分钟。"
-  },
-  {
-    "en": "Teach auto mode about your environment?",
-    "zh": "要让 auto mode 了解你的环境吗？"
-  },
-  {
-    "en": "Teach auto mode about your environment, plus optional rule tweaks",
-    "zh": "让 auto mode 了解你的环境，并可选微调规则"
-  },
-  {
-    "en": "You're out of usage credits. /model to switch models.",
-    "zh": "用量额度已用完。用 /model 切换模型。"
-  },
-  {
-    "en": "You've hit your team's shared budget. /model to switch models.",
-    "zh": "已达到团队共享预算上限。用 /model 切换模型。"
-  },
-  {
-    "en": "to switch models. Fable for the hardest problems, Opus for complex work, Sonnet for most tasks, Haiku for quick questions. Each trades speed for depth.",
-    "zh": "切换模型。Fable 适合最难的问题，Opus 适合复杂工作，Sonnet 适合大多数任务，Haiku 适合快速提问，各自在速度与深度之间取舍。"
-  },
-  {
-    "en": "Option+Enter for newlines",
-    "zh": "Option+Enter 换行"
-  },
-  {
-    "en": "Shift+Enter for newlines",
-    "zh": "Shift+Enter 换行"
-  },
-  {
-    "en": "Enable Option+Enter key binding for newlines and disable the audible bell (skipped in screen-reader mode)",
-    "zh": "启用 Option+Enter 换行键位并关闭提示音（读屏模式下跳过）"
-  },
-  {
-    "en": "or /rewind to undo this turn's file edits",
-    "zh": "或用 /rewind 撤销本轮文件编辑"
-  },
-  {
-    "en": "Claude Code keybindings configuration. Customize keyboard shortcuts by context.",
-    "zh": "Claude Code 键位配置，按上下文自定义快捷键。"
   }
 ]
