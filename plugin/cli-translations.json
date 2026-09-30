@@ -8424,5 +8424,109 @@
   {
     "en": " (mine + shared)",
     "zh": "（我的 + 共享）"
+  },
+  {
+    "en": "! for shell mode",
+    "zh": "! 进入 shell 模式"
+  },
+  {
+    "en": "shell mode",
+    "zh": "shell 模式"
+  },
+  {
+    "en": "auto-accept edits",
+    "zh": "自动接受编辑"
+  },
+  {
+    "en": "for verbose output",
+    "zh": "查看详细输出"
+  },
+  {
+    "en": " for verbose output",
+    "zh": " 查看详细输出"
+  },
+  {
+    "en": "paste images",
+    "zh": "粘贴图片"
+  },
+  {
+    "en": "toggle tasks",
+    "zh": "切换任务"
+  },
+  {
+    "en": "stash prompt",
+    "zh": "暂存提示词"
+  },
+  {
+    "en": "switch model",
+    "zh": "切换模型"
+  },
+  {
+    "en": "shift + \\u23CE for newline",
+    "zh": "shift + \\u23CE 换行"
+  },
+  {
+    "en": "ctrl+j for newline",
+    "zh": "ctrl+j 换行"
+  },
+  {
+    "en": "backslash (\\) + return (\\u23CE) for newline",
+    "zh": "反斜杠 (\\) + 回车 (\\u23CE) 换行"
+  },
+  {
+    "en": "Make auto mode your default permission mode?",
+    "zh": "要将 auto mode 设为默认权限模式吗？"
+  },
+  {
+    "en": "Yes, set auto mode as my default permission mode",
+    "zh": "是，将 auto mode 设为我的默认权限模式"
+  },
+  {
+    "en": "Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.",
+    "zh": "Auto mode 让 Claude 自动处理权限请求：执行前检查每次工具调用是否存在风险动作或 prompt injection，放行评估为低风险的操作，拦截其余操作。"
+  },
+  {
+    "en": "Auto mode works better when it knows your environment. Takes about a minute.",
+    "zh": "了解你的环境后 Auto mode 表现更好。大约需要 1 分钟。"
+  },
+  {
+    "en": "Teach auto mode about your environment?",
+    "zh": "要让 auto mode 了解你的环境吗？"
+  },
+  {
+    "en": "Teach auto mode about your environment, plus optional rule tweaks",
+    "zh": "让 auto mode 了解你的环境，并可选微调规则"
+  },
+  {
+    "en": "You're out of usage credits. /model to switch models.",
+    "zh": "用量额度已用完。用 /model 切换模型。"
+  },
+  {
+    "en": "You've hit your team's shared budget. /model to switch models.",
+    "zh": "已达到团队共享预算上限。用 /model 切换模型。"
+  },
+  {
+    "en": "to switch models. Fable for the hardest problems, Opus for complex work, Sonnet for most tasks, Haiku for quick questions. Each trades speed for depth.",
+    "zh": "切换模型。Fable 适合最难的问题，Opus 适合复杂工作，Sonnet 适合大多数任务，Haiku 适合快速提问，各自在速度与深度之间取舍。"
+  },
+  {
+    "en": "Option+Enter for newlines",
+    "zh": "Option+Enter 换行"
+  },
+  {
+    "en": "Shift+Enter for newlines",
+    "zh": "Shift+Enter 换行"
+  },
+  {
+    "en": "Enable Option+Enter key binding for newlines and disable the audible bell (skipped in screen-reader mode)",
+    "zh": "启用 Option+Enter 换行键位并关闭提示音（读屏模式下跳过）"
+  },
+  {
+    "en": "or /rewind to undo this turn's file edits",
+    "zh": "或用 /rewind 撤销本轮文件编辑"
+  },
+  {
+    "en": "Claude Code keybindings configuration. Customize keyboard shortcuts by context.",
+    "zh": "Claude Code 键位配置，按上下文自定义快捷键。"
   }
 ]
