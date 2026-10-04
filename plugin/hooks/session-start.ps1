@@ -600,6 +600,11 @@ if (Test-Path $TmpDir) {
 # ======== Build output context ========
 $rawInput = [Console]::In.ReadToEnd()
 
+if ($env:DISABLE_PROMPT_INJECTION -eq "1") {
+    @{ hookSpecificOutput = @{ hookEventName = "SessionStart" } } | ConvertTo-Json -Compress -Depth 10
+    exit 0
+}
+
 $ctxLines = @(
     "## 中文本地化提示",
     "",

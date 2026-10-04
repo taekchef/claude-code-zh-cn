@@ -266,6 +266,87 @@ test("session-start repairs settings from cached overlay before emitting JSON", 
   assert.deepEqual(repaired.permissions, { allow: ["Bash(git status:*)"] });
 });
 
+test("session-start can disable prompt context without skipping updates, CLI patch or settings repair", (t) => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-disable-prompt-context-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const home = path.join(tmp, "home");
+  const pluginRoot = path.join(tmp, "plugin");
+  const pluginData = path.join(tmp, "data");
+  const fakeBin = path.join(tmp, "bin");
+  const fakeClaude = path.join(fakeBin, "claude");
+  const cliFile = path.join(tmp, "lib", "node_modules", "@anthropic-ai", "claude-code", "cli.js");
+  const settingsFile = path.join(home, ".claude", "settings.json");
+  const callsFile = path.join(tmp, "calls.log");
+
+  copyTree(path.join(repoRoot, "plugin"), pluginRoot);
+  fs.mkdirSync(pluginData, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(path.dirname(cliFile), { recursive: true });
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.writeFileSync(
+    path.join(pluginRoot, "bun-binary-io.js"),
+    `if (process.argv[2] === "detect") process.stdout.write(${JSON.stringify(`npm:${cliFile}`)});\n`
+  );
+  fs.writeFileSync(
+    fakeClaude,
+    `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> ${JSON.stringify(callsFile)}
+if [ "$1" = "plugin" ]; then printf 'updated\\n'; exit 0; fi
+printf '2.1.104 (Claude Code)\\n'
+`
+  );
+  fs.chmodSync(fakeClaude, 0o755);
+  fs.chmodSync(path.join(pluginRoot, "patch-cli.sh"), 0o755);
+
+  for (const value of [undefined, "0", "true", "1"]) {
+    fs.writeFileSync(cliFile, '#!/usr/bin/env node\n// Version: 2.1.104\nconst waiting="Waiting for permission\\u2026";\n');
+    fs.writeFileSync(path.join(pluginData, ".patched-version"), "2.1.104|stale\n");
+    fs.writeFileSync(settingsFile, JSON.stringify({ theme: "dark" }) + "\n");
+    fs.writeFileSync(callsFile, "");
+    const env = {
+      ...process.env,
+      HOME: home,
+      CLAUDE_PLUGIN_ROOT: pluginRoot,
+      CLAUDE_PLUGIN_DATA: pluginData,
+      ZH_CN_REAL_CLAUDE: fakeClaude,
+      ZH_CN_DISABLE_AUTO_UPDATE: "0",
+      ZH_CN_UPDATE_CHECK_INTERVAL_SECONDS: "0",
+      ZH_CN_SKILL_I18N_ENABLE: "0",
+      PATH: `${fakeBin}:${process.env.PATH}`,
+    };
+    delete env.DISABLE_PROMPT_INJECTION;
+    if (value !== undefined) env.DISABLE_PROMPT_INJECTION = value;
+    const result = spawnSync(process.execPath, [`${hookPath}.js`], {
+      cwd: repoRoot,
+      env,
+      input: "{}\n",
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const output = JSON.parse(result.stdout);
+    if (value === "1") {
+      assert.deepEqual(output, { hookSpecificOutput: { hookEventName: "SessionStart" } });
+    } else {
+      const context = output.hookSpecificOutput.additionalContext;
+      assert.equal(output.hookSpecificOutput.hookEventName, "SessionStart");
+      assert.match(context, /^## 中文本地化提示/);
+      assert.match(context, /## 机器配置保护/);
+      assert.match(context, /## 常见错误信息翻译参考/);
+      assert.match(context, /## 自动更新/);
+      assert.match(context, /## 自动修复/);
+    }
+    assert.match(fs.readFileSync(cliFile, "utf8"), /等待权限确认…/);
+    const settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
+    assert.equal(settings.language, "Chinese");
+    assert.equal(settings.spinnerTipsEnabled, true);
+    assert.equal(settings.theme, "dark");
+    assert.match(fs.readFileSync(callsFile, "utf8"), /plugin update claude-code-zh-cn@claude-code-zh-cn --scope user/);
+    assert.match(fs.readFileSync(path.join(pluginData, ".last-update-status"), "utf8"), /^ok marketplace /);
+  }
+});
+
 test("marketplace session-start keeps mutable state outside the versioned plugin cache", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-marketplace-state-"));
   const home = path.join(tmp, "home");

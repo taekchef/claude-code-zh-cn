@@ -7,6 +7,10 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 function fallbackOutput() {
+  if (process.env.DISABLE_PROMPT_INJECTION === "1") {
+    return { hookSpecificOutput: { hookEventName: "SessionStart" } };
+  }
+
   return {
     hookSpecificOutput: {
       hookEventName: "SessionStart",

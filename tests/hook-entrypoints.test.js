@@ -42,15 +42,20 @@ printf '%s\\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additiona
   assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, "forwarded");
 });
 
-test("Windows session-start hook preserves UTF-8 Chinese in redirected stdout", { skip: process.platform !== "win32" }, () => {
+test("Windows session-start hook preserves UTF-8 Chinese in redirected stdout", { skip: process.platform !== "win32" }, (t) => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-windows-utf8-"));
   const pluginRoot = path.join(tmp, "plugin");
   const hooksDir = path.join(pluginRoot, "hooks");
   const userProfile = path.join(tmp, "home");
   const pluginData = path.join(tmp, "data");
+  const configDir = path.join(userProfile, ".claude");
+  const settingsFile = path.join(configDir, "settings.json");
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
   fs.mkdirSync(hooksDir, { recursive: true });
-  fs.mkdirSync(userProfile, { recursive: true });
+  fs.mkdirSync(configDir, { recursive: true });
   fs.mkdirSync(pluginData, { recursive: true });
+  fs.writeFileSync(path.join(pluginRoot, "bun-binary-io.js"), 'process.stdout.write("unknown");\n');
+  fs.writeFileSync(path.join(pluginData, ".settings-overlay-cache.json"), JSON.stringify({ language: "Chinese" }) + "\n");
   fs.copyFileSync(
     path.join(repoRoot, "plugin", "hooks", "session-start.ps1"),
     path.join(hooksDir, "session-start.ps1")
@@ -71,8 +76,11 @@ test("Windows session-start hook preserves UTF-8 Chinese in redirected stdout", 
     TMP: tmp,
     CLAUDE_PLUGIN_ROOT: pluginRoot,
     CLAUDE_PLUGIN_DATA: pluginData,
+    CLAUDE_CONFIG_DIR: configDir,
     ZH_CN_DISABLE_AUTO_UPDATE: "1",
+    DISABLE_PROMPT_INJECTION: "0",
     PATH: [
+      path.dirname(process.execPath),
       path.join(systemRoot, "System32"),
       path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0"),
     ].join(path.delimiter),
@@ -96,6 +104,19 @@ test("Windows session-start hook preserves UTF-8 Chinese in redirected stdout", 
     assert.match(context, /^## 中文本地化提示/);
     assert.match(context, /你正在使用中文本地化版本/);
     assert.doesNotMatch(context, /�/);
+
+    fs.writeFileSync(settingsFile, JSON.stringify({ theme: "dark" }) + "\n");
+    const disabled = spawnSync(
+      command,
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path.join(hooksDir, "session-start.ps1")],
+      { input: "{}\n", env: { ...env, DISABLE_PROMPT_INJECTION: "1" }, timeout: 30_000 }
+    );
+    assert.equal(disabled.status, 0, disabled.stderr.toString("utf8") || disabled.stdout.toString("utf8"));
+    const disabledText = new TextDecoder("utf-8", { fatal: true }).decode(disabled.stdout);
+    assert.deepEqual(JSON.parse(disabledText), { hookSpecificOutput: { hookEventName: "SessionStart" } });
+    const settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
+    assert.equal(settings.language, "Chinese");
+    assert.equal(settings.theme, "dark");
   }
 });
 
@@ -143,6 +164,30 @@ test("session-start Node entrypoint fails open with valid JSON", { skip: process
   const output = JSON.parse(result.stdout);
   assert.equal(output.hookSpecificOutput.hookEventName, "SessionStart");
   assert.match(output.hookSpecificOutput.additionalContext, /Claude Code 本体保持原样可用/);
+});
+
+test("session-start Node entrypoint suppresses fallback context when disabled", (t) => {
+  for (const mode of ["missing", "failure", "invalid"]) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-disabled-fallback-"));
+    t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+    fs.copyFileSync(sessionEntrypoint, path.join(tmp, "session-start.js"));
+    if (mode !== "missing") {
+      const script = process.platform === "win32"
+        ? mode === "failure" ? "exit 1\n" : "Write-Output '{}'\n"
+        : mode === "failure" ? "exit 1\n" : "printf '%s\\n' '{}'\n";
+      fs.writeFileSync(path.join(tmp, process.platform === "win32" ? "session-start.ps1" : "session-start"), script);
+    }
+
+    const result = spawnSync(process.execPath, [path.join(tmp, "session-start.js")], {
+      input: "{}\n",
+      encoding: "utf8",
+      env: { ...process.env, DISABLE_PROMPT_INJECTION: "1" },
+      timeout: 30_000,
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.deepEqual(JSON.parse(result.stdout), { hookSpecificOutput: { hookEventName: "SessionStart" } });
+  }
 });
 
 test("notification Node entrypoint translates known notices and ignores unknown ones", () => {

@@ -383,6 +383,26 @@ Layer 1~3 完全不受 Claude Code 更新影响。Layer 4 的优雅降级闭环�
 
 ## 自定义
 
+### 关闭模型提示词注入
+
+SessionStart Hook 默认向模型注入中文回复规则、机器配置保护和错误译文参考，并按需附加插件更新、汉化修复状态。`DISABLE_PROMPT_INJECTION=1` 关闭整个 SessionStart `additionalContext`，包括异常时的回退提示词。
+
+在 `~/.claude/settings.json` 的现有 `env` 中添加以下变量，或在启动 Claude Code 前通过 shell 设置同名环境变量：
+
+```json
+{
+  "env": {
+    "DISABLE_PROMPT_INJECTION": "1"
+  }
+}
+```
+
+仅值为 `"1"` 时关闭注入；未设置或其他值保持默认开启。配置变更后重新启动 Claude Code 并开启新会话，已有会话中已注入的上下文不会撤回。
+
+该变量不关闭 CLI 汉化、spinner、通知翻译、settings 修复、插件更新检查或自动 patch，也不修改 `language: Chinese` 或独立的 Chinese Output Style。
+
+### 调整翻译
+
 想调整翻译？直接编辑对应的 JSON 文件：
 
 ```bash

@@ -603,6 +603,11 @@ fi
 # 读取用户输入
 read -r INPUT
 
+if [ "${DISABLE_PROMPT_INJECTION:-0}" = "1" ]; then
+    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart"}}'
+    exit 0
+fi
+
 # 输出中文上下文注入
 cat <<HOOK_OUTPUT
 {
