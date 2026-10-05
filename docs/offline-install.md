@@ -46,6 +46,8 @@ sha256sum cczh-offline.tar.gz > cczh-offline.tar.gz.sha256
 
 `node-lief` 用于原生 Claude Code 的界面补丁。必须带上完成安装后的整个 `deps/`，只下载一个 npm 压缩包不等于依赖已准备完整。通过组织允许的方式把压缩包和校验文件传入内网。
 
+**轻量替代（利用安装器自动离线安装）：** `node-lief@1.3.2` 的 npm 包自包含（无依赖、预编译二进制已内置），也可以只带一个安装包：在联网机器执行 `npm pack node-lief@1.3.2`，把产出的 `node-lief-1.3.2.tgz` 放进 `source/`（安装脚本同目录）或 `source/deps/`。内网安装时 `install.sh` 会检测到它并自动离线安装，无需 `NODE_PATH`。同名环境变量 `ZH_CN_NODE_LIEF_TGZ` 可指定任意路径的 tgz；Windows 的 `install.ps1` 同样支持。
+
 ## 2. 在内网服务器安装
 
 先关闭所有 Claude Code 会话，在压缩包所在目录校验并解压：

@@ -6,6 +6,17 @@
 - **次版本号**：新增功能或显著改进（比如新增 patch、新增翻译）
 - **修订号**：Bug 修复和小调整（比如修正一条翻译）
 
+## [2.22.0] - 2026-10-05
+
+### 新增
+
+- 安装器自动安装 node-lief：检测到原生 CLI 缺少该依赖时，install.sh / install.ps1 自动执行 `npm install -g node-lief@1.3.2`，不再要求用户手动安装（#258）。
+- 离线自动安装：把 `npm pack node-lief@1.3.2` 产出的 node-lief-1.3.2.tgz 放到安装脚本同目录或 `deps/` 下（或用 `ZH_CN_NODE_LIEF_TGZ` 指定路径），安装器优先从本地包离线安装，无网络也能启用 CLI Patch（#243）；`docs/offline-install.md` 补充该轻量替代方案。
+
+### 修复
+
+- 修正 `plugin/scripts/install-json-helper.js` 的 build-overlay 引用路径，使其在插件目录布局下可独立运行（根目录副本不受影响）。
+
 ## [2.21.3] - 2026-10-05
 
 ### 修复

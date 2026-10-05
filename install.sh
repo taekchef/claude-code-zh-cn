@@ -142,6 +142,46 @@ detect_platform() {
     fi
 }
 
+# node-lief 是原生 CLI 界面补丁的依赖；缺失时自动安装（本地 tgz 优先，其次 npm 在线装）。
+# 失败只降级跳过 CLI Patch；install.sh 开着 set -e，此函数任何路径都必须返回 0。
+ensure_node_lief() {
+    if [ "$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null)" = "ok" ]; then
+        return 0
+    fi
+    if ! command -v npm &>/dev/null; then
+        echo -e "${YELLOW}CLI Patch 需要 node-lief，但未找到 npm；请手动安装 npm install -g node-lief@1.3.2${NC}"
+        return 0
+    fi
+    local tgz=""
+    if [ -n "${ZH_CN_NODE_LIEF_TGZ:-}" ] && [ -f "$ZH_CN_NODE_LIEF_TGZ" ]; then
+        tgz="$ZH_CN_NODE_LIEF_TGZ"
+    else
+        local candidate
+        for candidate in "$SCRIPT_DIR"/node-lief-*.tgz "$SCRIPT_DIR"/deps/node-lief-*.tgz; do
+            if [ -f "$candidate" ]; then
+                tgz="$candidate"
+                break
+            fi
+        done
+    fi
+    if [ -n "$tgz" ]; then
+        echo "检测到本地 node-lief 安装包：$tgz，离线安装中…"
+        npm install -g "$tgz" >/dev/null 2>&1 || true
+    else
+        echo "未检测到 node-lief，自动安装 node-lief@1.3.2（离线环境见 docs/offline-install.md）…"
+        npm install -g node-lief@1.3.2 >/dev/null 2>&1 || true
+    fi
+    if [ "$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null)" = "ok" ]; then
+        echo -e "${GREEN}node-lief 已就绪${NC}"
+        return 0
+    fi
+    echo -e "${YELLOW}node-lief 自动安装失败；CLI Patch 将跳过，Layer 1~3（settings / 插件 / hooks / spinner）不受影响${NC}"
+    echo "  可手动安装 npm install -g node-lief@1.3.2（旧版本也需要升级到 1.3.2）；"
+    echo "  离线机器请提前 npm pack node-lief@1.3.2，把 node-lief-1.3.2.tgz 放到本脚本同目录或 deps/ 下，"
+    echo "  或用 ZH_CN_NODE_LIEF_TGZ 指定完整路径，安装器会自动从本地包离线安装"
+    return 0
+}
+
 check_dependencies() {
     if ! command -v node &>/dev/null; then
         echo -e "${RED}错误：需要 node，请先安装${NC}"
@@ -162,9 +202,7 @@ check_dependencies() {
     install_info="$(detect_installation)"
     if [[ "${install_info:-}" == native-bun:* ]]; then
         echo "原生程序会按实际结构进行本机自验证；版本清单只记录发布验证结果。"
-        if [ "$(node "$PLUGIN_SRC/bun-binary-io.js" check-deps 2>/dev/null)" != "ok" ]; then
-            echo "CLI Patch 需要 node-lief（Linux x64 glibc 需要 >= 1.3.0）；请安装 npm install -g node-lief@1.3.2"
-        fi
+        ensure_node_lief
     fi
 }
 
