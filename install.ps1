@@ -162,7 +162,7 @@ function standalone(hook){
   if(typeof hook.command==="string"&&hook.command.indexOf("ZH_CN_STANDALONE_HOOK=1")!==-1)return true;
   if(hook.command!=="node"||!Array.isArray(hook.args)||hook.args.indexOf(standaloneArg)===-1)return false;
   var script=String(hook.args[0]||"");
-  return script===path.join(pluginRoot,"hooks","session-start.js")||script===path.join(pluginRoot,"hooks","notification.js");
+  return script===path.join(pluginRoot,"hooks","session-start.js")||script===path.join(pluginRoot,"hooks","notification.js")||script===path.join(pluginRoot,"hooks","user-prompt-submit.js");
 }
 var raw=fs.readFileSync(settingsFile,"utf8").replace(/^\uFEFF/,"");
 var settings=raw.trim()?JSON.parse(raw):{};
@@ -192,10 +192,13 @@ if(mode==="standalone"){
   if(!object(settings.hooks))settings.hooks={};
   if(!Array.isArray(settings.hooks.SessionStart))settings.hooks.SessionStart=[];
   if(!Array.isArray(settings.hooks.Notification))settings.hooks.Notification=[];
+  if(!Array.isArray(settings.hooks.UserPromptSubmit))settings.hooks.UserPromptSubmit=[];
   var session=path.join(pluginRoot,"hooks","session-start.js");
   var notification=path.join(pluginRoot,"hooks","notification.js");
+  var languageSwitch=path.join(pluginRoot,"hooks","user-prompt-submit.js");
   settings.hooks.SessionStart.push({matcher:"startup|resume|clear|compact",hooks:[{type:"command",command:"node",args:[session,standaloneArg],async:false}]});
   settings.hooks.Notification.push({matcher:"",hooks:[{type:"command",command:"node",args:[notification,standaloneArg],async:false,timeout:10}]});
+  settings.hooks.UserPromptSubmit.push({matcher:"",hooks:[{type:"command",command:"node",args:[languageSwitch,standaloneArg],async:false,timeout:120}]});
   changed=true;
 }
 if(mode==="official-retry"){
@@ -430,6 +433,10 @@ process.stdout.write(path.resolve(file));
 }
 
 function register-official-plugin {
+    if ($env:ZH_CN_PREFER_STANDALONE -eq "1") {
+        select-safe-plugin-fallback "已选择本地独立插件入口"
+        return
+    }
     $claudeCli = find-real-claude
     if (-not $claudeCli) {
         select-safe-plugin-fallback "未找到可用的 claude CLI"
@@ -559,6 +566,29 @@ function reconcile-standalone-hooks {
         }
         $script:PluginRuntimeMode = "official-unverified"
         Write-CN "备用 Hook 安全写入失败；为避免重复 Hook，本次保留官方入口。基础中文设置和 CLI Patch 仍保持可用。" Yellow
+    }
+}
+
+function sync-standalone-commands {
+    $commandRoot = Join-Path $env:USERPROFILE ".claude\commands"
+    $ownedText = "This command is handled by the claude-code-zh-cn UserPromptSubmit hook"
+    if ($PluginRuntimeMode -eq "standalone") {
+        New-Item -ItemType Directory -Force -Path $commandRoot | Out-Null
+    }
+    foreach ($name in @("chinese", "english", "zh", "en")) {
+        $destination = Join-Path $commandRoot ($name + ".md")
+        $source = Join-Path $PluginSrc ("commands\" + $name + ".md")
+        $owned = (Test-Path -LiteralPath $destination) -and
+            ([System.IO.File]::ReadAllText($destination, [System.Text.Encoding]::UTF8).Contains($ownedText))
+        if ($PluginRuntimeMode -eq "standalone") {
+            if ($owned -or -not (Test-Path -LiteralPath $destination)) {
+                Copy-Item -LiteralPath $source -Destination $destination -Force
+            } else {
+                Write-CN "保留已有用户命令：$destination（该快捷命令本次未接管）" Yellow
+            }
+        } elseif ($owned) {
+            Remove-Item -LiteralPath $destination -Force
+        }
     }
 }
 
@@ -1172,6 +1202,12 @@ function patch-native-bun {
 }
 
 function initial-patch {
+    $modeFile = Join-Path $PluginDst ".language-mode"
+    if ((Test-Path -LiteralPath $modeFile) -and ((Get-Content -LiteralPath $modeFile -Raw).Trim() -eq "en")) {
+        $script:CliPatchStatusSummary = "已选择英文；不自动补回中文，重启后由启动器校验并还原原版"
+        Write-CN $script:CliPatchStatusSummary Yellow
+        return
+    }
     $realClaude = find-real-claude
     if (-not $realClaude) {
         Write-CN "未找到 Claude Code，跳过 patch 步骤" Yellow
@@ -1218,7 +1254,9 @@ function write-metadata {
         $sourceRepo = $ScriptDir
     }
     if ($sourceRepo) {
-        "$sourceRepo" | Out-File -FilePath $SourceRepoFile -Encoding ascii -NoNewline
+        # 源码路径可能包含中文；ASCII 会把路径写成 ??，导致后续更新检查找不到仓库。
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($SourceRepoFile, $sourceRepo, $utf8NoBom)
     }
     $timestamp = [int][double]::Parse((Get-Date (Get-Date).ToUniversalTime() -UFormat %s))
     "$timestamp" | Out-File -FilePath $LastUpdateCheckFile -Encoding ascii -NoNewline
@@ -1231,8 +1269,15 @@ function Main {
     sync-plugin
     register-official-plugin
     install-launcher
-    merge-settings
+    $languageModeFile = Join-Path $PluginDst ".language-mode"
+    if ((Test-Path -LiteralPath $languageModeFile) -and ((Get-Content -LiteralPath $languageModeFile -Raw).Trim() -eq "en")) {
+        ensure-settings
+        Write-CN "已选择英文；重装保留该语言选择，不重新写入中文设置" Yellow
+    } else {
+        merge-settings
+    }
     reconcile-standalone-hooks
+    sync-standalone-commands
     write-metadata
     if (-not $UpdateOnly) {
         initial-patch

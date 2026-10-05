@@ -20,6 +20,22 @@ test("plugin hooks use cross-platform Node exec form", () => {
   assert.deepEqual(notification.args, ["${CLAUDE_PLUGIN_ROOT}/hooks/notification.js"]);
 });
 
+test("Windows standalone installer registers the language switch without duplicating user hooks", () => {
+  const installer = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  assert.match(installer, /settings\.hooks\.UserPromptSubmit\.push/);
+  assert.match(installer, /user-prompt-submit\.js/);
+  assert.match(installer, /hooks=entry\.hooks\.filter\(function\(hook\)\{return !standalone\(hook\)\}/);
+});
+
+test("Windows standalone mode installs slash command stubs without overwriting user commands", () => {
+  const installer = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  const uninstaller = fs.readFileSync(path.join(repoRoot, "uninstall.ps1"), "utf8");
+  assert.match(installer, /function sync-standalone-commands/);
+  assert.match(installer, /if \(\$owned -or -not \(Test-Path -LiteralPath \$destination\)\)/);
+  assert.match(uninstaller, /This command is handled by the claude-code-zh-cn UserPromptSubmit hook/);
+  assert.match(uninstaller, /hooks\/user-prompt-submit\.js/);
+});
+
 test("session-start Node entrypoint forwards valid platform hook JSON", { skip: process.platform === "win32" }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-entrypoint-"));
   const hooksDir = path.join(tmp, "hooks");

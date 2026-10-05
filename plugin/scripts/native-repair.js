@@ -15,9 +15,9 @@ function hash(file) {
   finally { fs.closeSync(fd); }
   return h.digest("hex");
 }
-function revision() {
+function revision(sourceRoot = root) {
   const h = crypto.createHash("sha256");
-  for (const file of revisionFiles) if (fs.existsSync(path.join(root, file))) h.update(file).update("\0").update(fs.readFileSync(path.join(root, file))).update("\0");
+  for (const file of revisionFiles) if (fs.existsSync(path.join(sourceRoot, file))) h.update(file).update("\0").update(fs.readFileSync(path.join(sourceRoot, file))).update("\0");
   return h.digest("hex").slice(0, 16);
 }
 function readJson(file) { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } }
@@ -48,7 +48,19 @@ function repair(input, stateRoot) {
     const verified = Object.values(support || {}).some(e => e.platform === host && e.versions?.includes(result.version));
     const value = `native|${result.version}|${result.patchedHash}|${patchRevision}` + (verified ? "" : `|provisional|${host}|${result.sourceHash}`);
     fs.writeFileSync(path.join(stateRoot, ".patched-version"), value + "\n");
+    // 已验证的当前文件覆盖旧的“运行中被占用”记录；其他目标的记录不能误删。
+    const configRoot = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+    for (const directory of new Set([stateRoot, path.join(configRoot, "plugins", "claude-code-zh-cn")])) {
+      const pendingPath = path.join(directory, ".native-patch-pending.json");
+      const pendingState = readJson(pendingPath);
+      if (pendingState?.target && path.resolve(pendingState.target) === target && pendingState.version === result.version) {
+        fs.rmSync(pendingPath, { force: true });
+      }
+    }
     return { ...result, mode: verified ? "verified" : "provisional" };
+  }
+  if (receipt?.patchedHash === currentHash && (!fs.existsSync(backup) || receipt.sourceHash !== hash(backup))) {
+    throw new Error("当前程序已有汉化记录，但原始备份缺失或指纹不符；未覆盖备份和程序");
   }
   if (receipt?.patchedHash === currentHash && receipt.revision === patchRevision) return marker({ ...receipt, changed: false });
   const lock = `${target}.zh-cn-lock`;
@@ -83,7 +95,7 @@ function repair(input, stateRoot) {
     fs.writeFileSync(path.join(lock, "pid"), `${process.pid}:${crypto.randomUUID()}`);
     if (hash(target) !== currentHash || fs.realpathSync(input) !== target) throw new Error("CC 在检查期间已更新，请再次启动");
     // 只有文件指纹和备份指纹同时匹配，才从备份重新应用新规则。
-    const source = receipt?.patchedHash === currentHash && fs.existsSync(backup) && receipt.sourceHash === hash(backup) ? backup : target;
+    const source = receipt?.patchedHash === currentHash ? backup : target;
     const sourceHash = hash(source);
     work = fs.mkdtempSync(path.join(path.dirname(target), ".zh-cn-prelaunch-"));
     const candidate = path.join(work, host === "win32-x64" ? "claude.exe" : "claude");
@@ -136,10 +148,29 @@ function repair(input, stateRoot) {
     fs.rmSync(lock, { recursive: true, force: true });
   }
 }
-module.exports = { repair, hash, revision, platform };
+function restore(input, stateRoot) {
+  const target = fs.realpathSync(input);
+  const lock = `${target}.zh-cn-lock`;
+  fs.mkdirSync(lock);
+  try {
+    const result = require("./patch-bytecode.js").restoreBinary(target);
+    if (result.restored) {
+      for (const state of [".patched-version", ".native-patch-pending.json"]) {
+        fs.rmSync(path.join(stateRoot, state), { force: true });
+      }
+    }
+    return result;
+  } finally {
+    fs.rmSync(lock, { recursive: true, force: true });
+  }
+}
+module.exports = { repair, restore, hash, revision, platform };
 if (require.main === module) {
   try {
-    const result = repair(process.argv[2], process.argv[3] || process.env.CLAUDE_PLUGIN_DATA || root);
+    const restoring = process.argv[2] === "restore";
+    const target = process.argv[restoring ? 3 : 2];
+    const stateRoot = process.argv[restoring ? 4 : 3] || process.env.CLAUDE_PLUGIN_DATA || root;
+    const result = restoring ? restore(target, stateRoot) : repair(target, stateRoot);
     process.stdout.write(JSON.stringify(result) + "\n");
   } catch (error) { process.stderr.write(`汉化未完成：${error.message}\n`); process.exitCode = 1; }
 }

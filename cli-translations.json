@@ -673,10 +673,6 @@
     "zh": "Agent："
   },
   {
-    "en": "Alias for --permission-mode bypassPermissions",
-    "zh": "--permission-mode bypassPermissions 的别名"
-  },
-  {
     "en": "All available plugins are already installed.",
     "zh": "所有可用插件都已安装。"
   },
@@ -8696,5 +8692,97 @@
   {
     "en": "📝 Keep thinking...",
     "zh": "📝 继续思考中..."
+  },
+  {
+    "en": "Inspect or reset auto mode classifier configuration",
+    "zh": "查看或重置 auto mode 分类配置"
+  },
+  {
+    "en": "Open a background session in this terminal. <id> is the short id that `claude --bg` prints and `claude agents` lists",
+    "zh": "在当前终端打开后台会话。<id> 是 claude --bg 或 claude agents 显示的短 ID"
+  },
+  {
+    "en": "Print a background session's recent terminal output",
+    "zh": "显示后台会话的近期终端输出"
+  },
+  {
+    "en": "Reset auto mode configuration to the shipped defaults by removing the autoMode section from your user settings file",
+    "zh": "删除用户设置中的 autoMode 配置，恢复默认值"
+  },
+  {
+    "en": "Show a plugin's options and which are unset, or save values from stdin with --values-stdin",
+    "zh": "查看插件选项及未设置项，或用 --values-stdin 从标准输入保存配置"
+  },
+  {
+    "en": "Delete all Claude Code state for a project (transcripts, tasks, file history, config entry)",
+    "zh": "删除项目的 Claude Code 状态（会话、任务、文件历史和配置）"
+  },
+  {
+    "en": "Restart a background session, or all of them with --all, so it runs the current Claude Code version",
+    "zh": "重启后台会话，或用 --all 重启全部，以使用当前 Claude Code 版本"
+  },
+  {
+    "en": "Delete a background session, and its worktree when that is safe. Works on sessions that have already exited",
+    "zh": "删除已退出的后台会话；条件允许时一并删除其 worktree"
+  },
+  {
+    "en": "Stop a background session. Its conversation is kept: `claude attach <id>` opens it again, `claude --resume` works once it is stopped",
+    "zh": "停止后台会话，保留对话；可用 claude attach <id> 或 claude --resume 恢复"
+  },
+  {
+    "en": "Stop a background session. Its conversation is kept; resume it later with `claude attach <id>`.",
+    "zh": "停止后台会话并保留对话；之后用 claude attach <id> 恢复"
+  },
+  {
+    "en": "With --json: also include completed background sessions",
+    "zh": "与 --json 配合：也包含已结束的后台会话"
+  },
+  {
+    "en": "Show only background sessions started under <path>",
+    "zh": "只显示在 <path> 启动的后台会话"
+  },
+  {
+    "en": "Alias for --permission-mode bypassPermissions",
+    "zh": "--permission-mode bypassPermissions 的别名"
+  },
+  {
+    "en": "Print active sessions (interactive and background) as a JSON array and exit (for scripting; does not require a TTY)",
+    "zh": "以 JSON 数组输出活跃会话（交互式和后台）后退出；适合脚本，不需要 TTY"
+  },
+  {
+    "en": "Load plugins from specified directory for the agent view and dispatched sessions; a folder of plugins loads each child (repeatable)",
+    "zh": "为 Agent 视图及分派会话加载指定目录的插件；目录中的每个子插件都会加载（可重复）"
+  },
+  {
+    "en": "Start dispatched sessions in restricted mode",
+    "zh": "以受限模式启动分派会话"
+  },
+  {
+    "en": "Add an MCP server (stdio, SSE, HTTP, or WebSocket) with a JSON string",
+    "zh": "用 JSON 字符串添加 MCP 服务（stdio、SSE、HTTP 或 WebSocket）"
+  },
+  {
+    "en": "Run a mod's tests",
+    "zh": "运行模块测试"
+  },
+  {
+    "en": "Validate a plugin or marketplace manifest, or the skills, agents, and commands in a directory",
+    "zh": "验证插件、市场清单或目录中的 skills、agents 与 commands"
+  },
+  {
+    "en": "Do not post the findings to the PR (the default; accepted for parity with the /ultrareview and /code-review ultra flags)",
+    "zh": "不把发现项发到 PR（默认）；此选项用于兼容 /ultrareview 与 /code-review ultra"
+  },
+  {
+    "en": "Post the finished review's findings to the PR as you (PR targets only; one plain comment, not a review)",
+    "zh": "以你的身份把审查结果发到 PR（仅 PR 目标；发一条普通评论，不创建 review）"
+  },
+  {
+    "en": "Maximum minutes to wait for the review to finish (default: 45)",
+    "zh": "等待审查完成的最长分钟数（默认：45）"
+  },
+  {
+    "en": "Switch between Claude models. Your pick becomes the default for new sessions. For other/previous model names, specify with --model.",
+    "zh": "切换 Claude 模型。所选模型将成为新会话默认值；其他或旧模型可通过 --model 指定。"
   }
 ]

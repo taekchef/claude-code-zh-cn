@@ -15,6 +15,12 @@ const windowsPowerShellRequired = process.platform !== "win32"
   ? "requires Windows PowerShell on Windows"
   : false;
 
+test("Windows installer preserves Unicode source repo paths in metadata", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "install.ps1"), "utf8");
+  assert.match(script, /\[System\.IO\.File\]::WriteAllText\(\$SourceRepoFile,\s*\$sourceRepo,\s*\$utf8NoBom\)/);
+  assert.doesNotMatch(script, /\$sourceRepo\s*\|\s*Out-File\s+-FilePath\s+\$SourceRepoFile\s+-Encoding\s+ascii/i);
+});
+
 function escapeRegex(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

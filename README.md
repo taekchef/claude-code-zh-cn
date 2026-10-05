@@ -20,7 +20,7 @@
 [![npm](https://img.shields.io/badge/npm-2.1.92--2.1.112-green)](./docs/support-matrix.md)
 [![macOS native](https://img.shields.io/badge/macos%20native-2.1.113--2.1.285-green)](./docs/support-matrix.md)
 [![Linux native](https://img.shields.io/badge/linux%20native-2.1.220--2.1.285-green)](./docs/support-matrix.md)
-[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.285-green)](./docs/support-matrix.md)
+[![Windows native](https://img.shields.io/badge/windows%20native-2.1.113--2.1.289-green)](./docs/support-matrix.md)
 <!-- readme-support-window:badges:end -->
 [![Version](https://img.shields.io/github/v/tag/taekchef/claude-code-zh-cn?label=Version&color=blue)](https://github.com/taekchef/claude-code-zh-cn/releases)
 [![Codex 中文版](https://img.shields.io/badge/Codex%20中文版-codex--code--zh--cn-blue)](https://github.com/taekchef/codex-code-zh-cn)
@@ -202,7 +202,7 @@ cd claude-code-zh-cn
 - ✅ 合并中文设置到 settings.json
 - ✅ 检测到 CC Switch 通用配置缺少中文设置时，先询问用户；同意后才同步
 - ✅ 优先通过 Claude Code 插件管理器登记 marketplace 并启用正式插件；注册不可用时才安装独立备用 Hook
-- ✅ 已验证版本直接使用公开证据；更高 native 版本也先本机自检。可 patch 硬编码文字（2172 条翻译；代表版本 `2.1.112` 实测 1749 处有效 patch）
+- ✅ 已验证版本直接使用公开证据；更高 native 版本也先本机自检。可 patch 硬编码文字（2194 条翻译；代表版本 `2.1.112` 实测 1749 处有效 patch）
 - ✅ 缺少 `node-lief`、native 格式变化、提取失败或自检失败时，只跳过 Layer 4；Layer 1~3 和 Claude Code 本体继续可用
 
 ### Windows 原生安装（完整脚本）
@@ -230,7 +230,7 @@ Claude Code 在 Windows 更新后，插件不会现场改写正在运行并被�
 | `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.112` | 官方安装器指定已验证旧版本（需要 `node-lief`） |
 | `curl -fsSL https://claude.ai/install.sh \| sh`（latest） | macOS 新版先本机自检；Linux x64 glibc 新版先本机自检 |
 | `curl -fsSL https://claude.ai/install.sh \| bash -s 2.1.285` | Linux x64 glibc 已验证版本（需要 `node-lief >=1.3.0`）；不含 arm64、musl 或未验证版本 |
-| `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.285` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
+| `powershell -File install.ps1` | Windows：旧 npm cli.js 最完整；native .exe `2.1.113 - 2.1.289` 内已验证版本需 `node-lief`；Claude 更新后关闭所有窗口并重跑 |
 
 > **native binary 说明**：官方安装器和新版 npm 包安装的是原生程序。插件会按容器格式翻译：源码构建提取并写回 JS，字节码构建在原字符串占位内写入中文；译文超过占位长度时保留英文。两条路径均在启动自检通过后记录成功，macOS 还会重新签名。已验证版本见[支持矩阵](./docs/support-matrix.md)，不代表完整中文覆盖。Linux x64 glibc 未收录版本须通过本机验证，需要 `node-lief >=1.3.0`。Windows 更新 Claude Code 后，请关闭所有 Claude Code 窗口，再通过已安装的 `claude` 启动器启动。
 
@@ -282,7 +282,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\doctor.ps1   # Windows
 | macOS · native binary（arm64） | `2.1.113 - 2.1.285` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Linux · native binary（x64 glibc） | `2.1.220 - 2.1.285` | 需要 `node-lief >=1.3.0`；未收录版本先本机验证，不含 arm64、musl |
 | Windows · npm（PowerShell） | `2.1.92 - 2.1.112` | 用 install.ps1，需 PowerShell 5.1+ |
-| Windows · native .exe（x64） | `2.1.113 - 2.1.285` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
+| Windows · native .exe（x64） | `2.1.113 - 2.1.289` 内的已验证版本 | 需要 `node-lief`；个别版本未收录，见支持矩阵 |
 | Linux · 其他官方安装器形态 | 暂无已验证版本 | 仅 Layer 1~3 生效 |
 
 > - **macOS / Windows 版本号不是运行门禁**：高于已知 native 下限、且仍能被识别的新版会先在本机临时副本上翻译并执行启动自检；通过后才替换。已有词条继续中文，新文案原样保留英文。
@@ -323,7 +323,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\doctor.ps1   # Windows
 | 中文上下文注入 | - | SessionStart Hook |
 | 通知翻译 | 6 条 | Notification Hook |
 | 输出风格 | - | Chinese Output Style |
-| UI 文字中文化 | 2172 条翻译，`2.1.112` 实测 1749 处有效 patch | CLI Patch（扫描真实双引号字符串 token 后逐条替换）+ 显示面审计 |
+| UI 文字中文化 | 2194 条翻译，`2.1.112` 实测 1749 处有效 patch | CLI Patch（扫描真实双引号字符串 token 后逐条替换）+ 显示面审计 |
 | 自动重 patch | - | 版本检测，更新后首次会话重新 patch |
 | 插件自动更新 | - | 正式安装态交给 Claude Code 插件管理器；独立兜底态只跟随已发布 Release |
 
@@ -489,7 +489,7 @@ Windows：现已支持通过 `install.ps1` 在 PowerShell 5.1+ 中原生安装�
 
 ## English
 
-**claude-code-zh-cn** is a Simplified Chinese localization plugin for [Claude Code CLI](https://github.com/anthropics/claude-code). It translates 187 spinner verbs, 41 spinner tips, 2172 UI translations, notification messages, and more. On unverified CLI versions, unmatched strings stay in English, and failed patches restore or preserve the original CLI. Verified version windows are documented in [docs/support-matrix.md](./docs/support-matrix.md).
+**claude-code-zh-cn** is a Simplified Chinese localization plugin for [Claude Code CLI](https://github.com/anthropics/claude-code). It translates 187 spinner verbs, 41 spinner tips, 2194 UI translations, notification messages, and more. On unverified CLI versions, unmatched strings stay in English, and failed patches restore or preserve the original CLI. Verified version windows are documented in [docs/support-matrix.md](./docs/support-matrix.md).
 
 ```bash
 curl -fsSL https://github.com/taekchef/claude-code-zh-cn/releases/latest/download/install-remote.sh | bash

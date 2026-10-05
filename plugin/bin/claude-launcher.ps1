@@ -34,8 +34,16 @@ if (-not $realClaude) {
 if ($pluginRoot -and (Test-Path "$pluginRoot/bun-binary-io.js")) {
     $detected = (& node "$pluginRoot/bun-binary-io.js" detect $realClaude | Out-String).Trim()
     if ($detected.StartsWith("native-bun:")) {
-        $stateRoot = Join-Path $env:USERPROFILE ".claude/plugins/claude-code-zh-cn"
-        & node "$pluginRoot/scripts/native-repair.js" $detected.Substring(11) $stateRoot | Out-Null
+        $configRoot = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".claude" }
+        $stateRoot = Join-Path $configRoot "plugins/claude-code-zh-cn"
+        $modeFile = Join-Path $stateRoot ".language-mode"
+        if ((Test-Path $modeFile) -and ((Get-Content -LiteralPath $modeFile -Raw).Trim() -eq "en")) {
+            if (Test-Path ($detected.Substring(11) + ".zh-cn-backup")) {
+                & node "$pluginRoot/scripts/native-repair.js" restore $detected.Substring(11) $stateRoot | Out-Null
+            }
+        } else {
+            & node "$pluginRoot/scripts/native-repair.js" $detected.Substring(11) $stateRoot | Out-Null
+        }
     }
 }
 $env:ZH_CN_REAL_CLAUDE = $realClaude

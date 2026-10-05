@@ -1,6 +1,6 @@
 ---
 name: english
-description: Switch Claude Code back to English (UI, spinner verbs and tips)
+description: 切换 Claude Code 为英文（界面、spinner 动词与提示）
 argument-hint: ""
 disable-model-invocation: true
 ---

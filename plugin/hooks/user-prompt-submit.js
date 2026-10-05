@@ -32,6 +32,18 @@ const TRANSLATIONS = path.join(PLUGIN_ROOT, "cli-translations.json");
 const BUN_IO = path.join(PLUGIN_ROOT, "bun-binary-io.js");
 const NODE = process.execPath;
 const DRY_RUN = process.env.CCZH_DRY_RUN === "1";
+const LANGUAGE_MODE_FILE = path.join(
+  process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude"),
+  "plugins", "claude-code-zh-cn", ".language-mode"
+);
+
+function saveLanguageMode(mode) {
+  if (DRY_RUN) return;
+  fs.mkdirSync(path.dirname(LANGUAGE_MODE_FILE), { recursive: true });
+  const temporary = `${LANGUAGE_MODE_FILE}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, `${mode}\n`, { mode: 0o600 });
+  fs.renameSync(temporary, LANGUAGE_MODE_FILE);
+}
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -147,6 +159,8 @@ function patchSupported(install) {
 /** 中文：patch CLI 硬编码文字（npm / native 均走既有安全工具链）。 */
 function patchCliChinese(install) {
   if (!install || !fs.existsSync(PATCH_CLI) || !fs.existsSync(TRANSLATIONS)) return null;
+  // Windows 锁定当前会话的 EXE；只记录语言选择，下一次启动前由统一事务修复。
+  if (install.kind === "native-bun" && process.platform === "win32") return "native-pending-restart";
   if (!patchSupported(install)) return null;
 
   try {
@@ -198,6 +212,7 @@ function patchCliChinese(install) {
 /** 英文：从 .zh-cn-backup 还原 CLI 原文。 */
 function restoreCliEnglish(install) {
   if (!install) return null;
+  if (install.kind === "native-bun" && process.platform === "win32") return "native-pending-restart";
   const backup = `${install.target}.zh-cn-backup`;
   if (!fs.existsSync(backup)) return null;
   if (DRY_RUN) return `${install.kind}-dry-run-restore`;
@@ -218,9 +233,10 @@ function switchLanguage(language) {
 
   if (language === "zh-CN") {
     settingsResult = applyChineseSettings();
+    saveLanguageMode("zh-CN");
     patchResult = patchCliChinese(install);
     const patchNote = patchResult
-      ? "，CLI 界面文案已重新 patch"
+      ? (patchResult === "native-pending-restart" ? "；下次启动前将验证并补齐 CLI 界面文案" : "，CLI 界面文案已重新 patch")
       : "；当前环境暂未识别可 patch 的 CLI 安装，界面文案可能仍需重启后由会话启动 Hook 修复";
     return {
       decision: "block",
@@ -232,8 +248,11 @@ function switchLanguage(language) {
   }
 
   settingsResult = applyEnglishSettings();
+  saveLanguageMode("en");
   patchResult = restoreCliEnglish(install);
-  const patchNote = patchResult ? "，CLI 原文已从备份还原" : "；未检测到 CLI 备份，界面文案保持现状";
+  const patchNote = patchResult === "native-pending-restart"
+    ? "；关闭当前终端会话后，下次启动前将校验备份并还原 CLI 原文"
+    : patchResult ? "，CLI 原文已从备份还原" : "；未检测到 CLI 备份，界面文案保持现状";
   return {
     decision: "block",
     reason:

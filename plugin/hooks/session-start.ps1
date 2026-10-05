@@ -38,6 +38,13 @@ $SourceRepoFile = Join-Path $StateRoot ".source-repo"
 $LastUpdateCheckFile = Join-Path $StateRoot ".last-update-check"
 $SettingsOverlayCacheFile = Join-Path $StateRoot ".settings-overlay-cache.json"
 $NativePatchPendingFile = Join-Path $StateRoot ".native-patch-pending.json"
+$LanguageModeRoot = if ($env:CLAUDE_CONFIG_DIR) {
+    Join-Path $env:CLAUDE_CONFIG_DIR "plugins\claude-code-zh-cn"
+} else { $LegacyPluginRoot }
+$LanguageModeFile = Join-Path $LanguageModeRoot ".language-mode"
+$LanguageMode = if (Test-Path -LiteralPath $LanguageModeFile) {
+    ([System.IO.File]::ReadAllText($LanguageModeFile, [System.Text.Encoding]::UTF8)).Trim()
+} else { "zh-CN" }
 $SettingsFile = if ($env:CLAUDE_CONFIG_DIR) {
     Join-Path $env:CLAUDE_CONFIG_DIR "settings.json"
 } else {
@@ -165,12 +172,8 @@ function Invoke-CommandWithTimeout {
 
 function Get-PatchRevision($Root) {
     $code = @'
-const crypto=require("crypto"),fs=require("fs"),path=require("path");
-const root=process.argv[2];
-const files=["patch-cli.sh","patch-cli.js","cli-translations.json","bun-binary-io.js","compute-patch-revision.sh","scripts/patch-bytecode.js"];
-const hash=crypto.createHash("sha256");
-for(const f of files){const t=path.join(root,f);if(!fs.existsSync(t))continue;hash.update(f);hash.update("\0");hash.update(fs.readFileSync(t));hash.update("\0")}
-process.stdout.write(hash.digest("hex").slice(0,16));
+const path=require("path");
+process.stdout.write(require(path.join(process.argv[2],"scripts","native-repair.js")).revision());
 '@
     Invoke-JsScript -Code $code -Arguments @($Root)
 }
@@ -323,102 +326,6 @@ if(changed){fs.writeFileSync(settingsFile,JSON.stringify(merged,null,2)+"\n")}
     node $overlayHelper ensure-settings $SettingsFile $PluginRoot 2>$null | Out-Null
 }
 
-function Invoke-NativePatch($Target) {
-    $helperFile = Join-Path $PluginRoot "bun-binary-io.js"
-    $patchFile = Join-Path $PluginRoot "patch-cli.js"
-    if (-not (Test-Path $helperFile) -or -not (Test-Path $patchFile)) { return "" }
-
-    $version = Read-NativeVersion $Target
-    $platform = Get-NativePlatform
-    $mode = ""
-    if (Test-SupportedNativeVersion $version $platform) {
-        $mode = "verified"
-    } elseif (Test-ProvisionalNativeVersion $version $platform) {
-        $mode = "provisional"
-    }
-    if (-not $mode) { return "" }
-
-    $revision = Get-PatchRevision $PluginRoot
-    if (-not $revision) { $revision = "unknown" }
-    $currentHash = Get-NativeHash $Target
-    $marker = ""
-    if (Test-Path $MarkerFile) {
-        $marker = [System.IO.File]::ReadAllText($MarkerFile, [System.Text.Encoding]::UTF8).Trim()
-    }
-    if (Test-NativeMarkerCurrent $marker $version $currentHash $revision $mode $platform) { return "" }
-
-    $depStatus = ((node $helperFile check-deps 2>$null) | Out-String).Trim()
-    if ($depStatus -ne "ok") { return "" }
-
-    $backupFile = "${Target}.zh-cn-backup"
-    $backupVersion = if (Test-Path $backupFile) { Read-NativeVersion $backupFile } else { "" }
-    try {
-        if ((Test-Path $backupFile) -and $backupVersion -eq $version) {
-            Copy-Item $backupFile $Target -Force -ErrorAction Stop
-        } else {
-            Copy-Item $Target $backupFile -Force -ErrorAction Stop
-        }
-    } catch {
-        return ""
-    }
-
-    $sourceHash = Get-NativeHash $Target
-    $tmpJs = Join-Path ([System.IO.Path]::GetTempPath()) ("claude-zh-cn-repatch-" + [System.IO.Path]::GetRandomFileName() + ".js")
-    $statusFile = Join-Path ([System.IO.Path]::GetTempPath()) ("cczh-native-patch-status-" + [System.IO.Path]::GetRandomFileName())
-    $logFile = Join-Path $StateRoot "patch.log"
-
-    try {
-        $containerLayout = ((node $helperFile probe "$Target" 2>$null) | Out-String).Trim()
-        if ($containerLayout -eq "bytecode") {
-            $patchCountText = ((node "$PluginRoot\scripts\patch-bytecode.js" patch "$Target" "$PluginRoot\cli-translations.json" 2>$null) | Out-String).Trim()
-            if ($LASTEXITCODE -ne 0) { return "（字节码自动汉化未通过验证，请关闭 Claude Code 后重跑安装器）" }
-            "ok" | Set-Content -Path $statusFile -Encoding ascii
-        } else {
-            node $helperFile extract "$Target" "$tmpJs" 2>$null | Out-Null
-            if ($LASTEXITCODE -ne 0) { return "" }
-            $patchCountText = ((node $patchFile "$tmpJs" "$PluginRoot\cli-translations.json" --status "$statusFile" --log "$logFile" 2>$null) | Out-String).Trim()
-        }
-        $patchCount = 0
-        [int]::TryParse($patchCountText, [ref]$patchCount) | Out-Null
-        $patchStatus = ""
-        if (Test-Path $statusFile) { $patchStatus = (Get-Content $statusFile -Raw).Trim() }
-        if (-not $patchStatus) { $patchStatus = if ($patchCount -gt 0) { "ok" } else { "noop" } }
-        if (@("ok", "partial", "noop") -notcontains $patchStatus) { return "" }
-
-        if ($patchCount -gt 0) {
-            $repackExit = 0
-            if ($containerLayout -ne "bytecode") {
-                node $helperFile repack "$Target" "$tmpJs" 2>$null | Out-Null
-                $repackExit = $LASTEXITCODE
-            }
-            if ($repackExit -ne 0 -or (Read-NativeVersionFromExecution $Target) -ne $version) {
-                Copy-Item $backupFile $Target -Force -ErrorAction SilentlyContinue
-                return ""
-            }
-        }
-
-        $finalHash = Get-NativeHash $Target
-        $finalMarker = "native|${version}|${finalHash}|${revision}"
-        if ($mode -eq "provisional") {
-            $finalMarker = "${finalMarker}|provisional|${platform}|${sourceHash}"
-        }
-        $finalMarker | Out-File -FilePath $MarkerFile -Encoding ascii -NoNewline
-
-        if ($mode -eq "provisional") {
-            return "（新版本已本机自验证，自动 patch ${patchCount} 处；未覆盖文案继续显示英文）"
-        }
-        if ($patchStatus -eq "partial") {
-            return "（已自动 patch ${patchCount} 处；未覆盖文案继续显示英文）"
-        }
-        if ($patchCount -gt 0) {
-            return "（已自动 patch ${patchCount} 处硬编码文字，启动自检通过）"
-        }
-        return ""
-    } finally {
-        Remove-Item $tmpJs, $statusFile -Force -ErrorAction SilentlyContinue
-    }
-}
-
 # ======== Auto Update ========
 $AutoUpdateMsg = ""
 
@@ -502,7 +409,7 @@ if ($ClaudeBin) {
     $InstallInfo = Get-InstallInfo $ClaudeBin
 }
 
-if ($InstallInfo) {
+if ($InstallInfo -and $LanguageMode -ne "en") {
     $Kind, $Target = $InstallInfo -split ':', 2
     if ($Kind -eq "native-bun" -and $Target -and (Test-Path $Target)) {
         # Windows 会锁住正在运行的 claude.exe；SessionStart 现场写回必然失败，
@@ -590,7 +497,7 @@ if ($InstallInfo) {
     }
 }
 
-Repair-SettingsFromCache
+if ($LanguageMode -ne "en") { Repair-SettingsFromCache }
 
 # ======== Cleanup tmp dir ========
 if (Test-Path $TmpDir) {
@@ -599,6 +506,12 @@ if (Test-Path $TmpDir) {
 
 # ======== Build output context ========
 $rawInput = [Console]::In.ReadToEnd()
+
+if ($LanguageMode -eq "en") {
+    @{ hookSpecificOutput = @{ hookEventName = "SessionStart"; additionalContext = "" } } |
+        ConvertTo-Json -Compress -Depth 10
+    exit 0
+}
 
 $ctxLines = @(
     "## 中文本地化提示",

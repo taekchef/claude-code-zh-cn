@@ -202,8 +202,10 @@ function hookBelongsToPlugin(hook){
   const knownHookSuffixes=[
     '/hooks/session-start',
     '/hooks/notification',
+    '/hooks/user-prompt-submit',
     '/hooks/session-start.js',
     '/hooks/notification.js',
+    '/hooks/user-prompt-submit.js',
     '/hooks/session-start.cmd',
     '/hooks/notification.cmd',
     '/hooks/session-start.ps1',
@@ -280,17 +282,19 @@ def plugin_hook($legacyLocalRegistration):
     (($command | contains("ZH_CN_STANDALONE_HOOK=1")) or
     ((($command == "node") or ($command | endswith("/node")) or ($command | endswith("/node.exe"))) and
       ($args | type) == "array" and ($args | index("--standalone")) != null and ($root | length) > 0 and
-      (($script == ($root + "/hooks/session-start.js")) or ($script == ($root + "/hooks/notification.js")))) or
+      (($script == ($root + "/hooks/session-start.js")) or ($script == ($root + "/hooks/notification.js")) or ($script == ($root + "/hooks/user-prompt-submit.js")))) or
     ($legacyLocalRegistration and ($command | contains("CLAUDE_PLUGIN_ROOT")) and
-      (($command | contains("/hooks/session-start")) or ($command | contains("/hooks/notification")))) or
+      (($command | contains("/hooks/session-start")) or ($command | contains("/hooks/notification")) or ($command | contains("/hooks/user-prompt-submit")))) or
     (($root | length) > 0 and
       (($command | contains($root + "/hooks/session-start")) or
        ($command | contains($root + "/hooks/notification")) or
+       ($command | contains($root + "/hooks/user-prompt-submit")) or
        ($command | contains($root + "/hooks-handlers/session-start.js")) or
        ($command | contains($root + "/hooks-handlers/notification.js")))) or
     (($command | contains("/local-zh-cn/")) and
       (($command | contains("/hooks/session-start")) or
        ($command | contains("/hooks/notification")) or
+       ($command | contains("/hooks/user-prompt-submit")) or
        ($command | contains("/hooks-handlers/session-start.js")) or
        ($command | contains("/hooks-handlers/notification.js")))))
   end;
@@ -348,14 +352,23 @@ $RESTORED = $false
 $claudeBin = (Get-Command claude -ErrorAction SilentlyContinue).Source
 $nativeHelper = Join-Path $PSScriptRoot "bun-binary-io.js"
 $bytecodeHelper = Join-Path $PSScriptRoot "scripts\patch-bytecode.js"
+$nativeRepairHelper = Join-Path $PSScriptRoot "scripts\native-repair.js"
 if ($claudeBin -and (Test-Path $nativeHelper)) {
     $detected = ((node $nativeHelper detect $claudeBin 2>$null) | Out-String).Trim()
     if ($detected.StartsWith("native-bun:")) { $claudeBin = $detected.Substring(11) }
 }
 if ($claudeBin -and (Test-Path "${claudeBin}.zh-cn-backup")) {
-    node $bytecodeHelper restore $claudeBin
+    if (Test-Path -LiteralPath $nativeRepairHelper) {
+        $restoreResult = (& node $nativeRepairHelper restore $claudeBin $PluginDst | Out-String).Trim() | ConvertFrom-Json
+    } else {
+        $restoreResult = (& node $bytecodeHelper restore $claudeBin | Out-String).Trim() | ConvertFrom-Json
+    }
     if ($LASTEXITCODE -ne 0) { throw "原生程序还原失败；插件与备份已保留，请关闭 Claude Code 后重试。" }
-    Write-Host "已还原原生二进制" -ForegroundColor Green
+    if ($restoreResult.restored) {
+        Write-Host "已还原原生二进制" -ForegroundColor Green
+    } elseif ($restoreResult.preservedCurrent) {
+        Write-Host "Claude Code 已由上游更新；保留当前程序，不用旧备份覆盖" -ForegroundColor Yellow
+    }
     $RESTORED = $true
 }
 
@@ -390,13 +403,24 @@ if ((Test-Path "$PluginDst/skill-i18n/restore.js") -and (Get-Command node -Error
     & node "$PluginDst/skill-i18n/restore.js" --all 2>$null | Out-Null
 }
 
-# 5. 移除插件目录
+# 5. 仅移除本插件安装的用户 slash 命令，不碰同名的用户自定义命令。
+$commandRoot = Join-Path $env:USERPROFILE ".claude\commands"
+$ownedText = "This command is handled by the claude-code-zh-cn UserPromptSubmit hook"
+foreach ($name in @("chinese", "english", "zh", "en")) {
+    $commandFile = Join-Path $commandRoot ($name + ".md")
+    if ((Test-Path -LiteralPath $commandFile) -and
+        [System.IO.File]::ReadAllText($commandFile, [System.Text.Encoding]::UTF8).Contains($ownedText)) {
+        Remove-Item -LiteralPath $commandFile -Force
+    }
+}
+
+# 6. 移除插件目录
 if (Test-Path $PluginDst) {
     Remove-Item -Recurse -Force $PluginDst
     Write-Host "已移除插件目录" -ForegroundColor Green
 }
 
-# 6. 清理 settings.json 备份
+# 7. 清理 settings.json 备份
 $backupPattern = "$env:USERPROFILE\.claude\settings.json.zh-cn-backup.*"
 Get-ChildItem $backupPattern -ErrorAction SilentlyContinue | Remove-Item -Force
 if ((Get-ChildItem $backupPattern -ErrorAction SilentlyContinue).Count -gt 0) {

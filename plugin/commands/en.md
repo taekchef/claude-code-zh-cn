@@ -1,6 +1,6 @@
 ---
 name: en
-description: Switch Claude Code back to English (short alias for /english)
+description: 切换 Claude Code 为英文（/english 的短别名）
 argument-hint: ""
 disable-model-invocation: true
 ---

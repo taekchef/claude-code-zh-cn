@@ -201,17 +201,7 @@ function parseMarker(marker) {
 }
 
 function computePatchRevision(root) {
-  const crypto = require("crypto");
-  const hash = crypto.createHash("sha256");
-  for (const relative of PATCH_REVISION_FILES) {
-    const file = path.join(root, relative);
-    if (!fs.existsSync(file)) continue;
-    hash.update(relative);
-    hash.update("\0");
-    hash.update(fs.readFileSync(file));
-    hash.update("\0");
-  }
-  return hash.digest("hex").slice(0, 16);
+  return require("./native-repair.js").revision(root);
 }
 
 function npmCliResidue(cliFile, probes = NPM_RESIDUE_PROBES) {
@@ -924,11 +914,41 @@ function runDoctor(options = {}) {
   }
 
   const hasFail = checks.some((item) => item.status === "fail");
+  const languageModeFile = path.join(homeDir, ".claude", "plugins", "claude-code-zh-cn", ".language-mode");
+  const languageMode = fs.existsSync(languageModeFile)
+    ? fs.readFileSync(languageModeFile, "utf8").trim() : "zh-CN";
+  let layer4State = { code: layer4Status, detail: layer4Detail };
+  if (kind === "native-bun" && target) {
+    const receiptPath = `${target}.zh-cn-repair.json`;
+    const pendingPath = path.join(pluginRoot, ".native-patch-pending.json");
+    let receipt = null, pending = null;
+    try { receipt = readJson(receiptPath); } catch {}
+    try { pending = readJson(pendingPath); } catch {}
+    const actualHash = nativeBinaryHash(bunBinaryIoPath, target);
+    const currentRevision = computePatchRevision(pluginRoot);
+    const current = receipt?.patchedHash === actualHash && receipt?.revision === currentRevision;
+    if (languageMode === "en") {
+      layer4State = { code: fs.existsSync(`${target}.zh-cn-backup`) ? "awaiting-restart" : "english", detail: "英文模式；下次启动前从已校验备份还原" };
+    } else if (current) {
+      layer4State = { code: "partial", detail: `已验证补丁 ${receipt.patched} 处；可见英文覆盖需另行审计` };
+    } else if (pending?.target && path.resolve(pending.target) === path.resolve(target)) {
+      layer4State = { code: "locked", detail: "运行中的 EXE 等待下次启动前修复" };
+    } else if (!checkNodeLief(bunBinaryIoPath)) {
+      layer4State = { code: "missing-deps", detail: "缺少 node-lief" };
+    } else if (receipt && receipt.patchedHash === actualHash) {
+      layer4State = { code: "awaiting-restart", detail: "补丁规则已更新，等待下次启动前重验证" };
+    } else {
+      layer4State = { code: "validation-failed", detail: "当前二进制没有有效补丁记录；检查修复日志" };
+    }
+    add("layer4-state", "Layer 4 当前状态", layer4State.code === "partial" ? "ok" : "warn", layer4State.detail);
+  }
   const summary = {
     ok: !hasFail,
     checks,
     recommendations: [...new Set(recommendations)],
     layer4Status,
+    layer4State,
+    languageMode,
     installKind: kind,
     cliVersion,
     runtimeIssue: runtimeIssue

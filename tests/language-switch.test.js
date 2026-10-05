@@ -42,6 +42,7 @@ test("/chinese merges language + spinner settings and blocks the prompt", () => 
   assert.equal(settings.spinnerTipsEnabled, true);
   assert.ok(Array.isArray(settings.spinnerVerbs.verbs));
   assert.ok(settings.spinnerVerbs.verbs.length >= 100);
+  assert.equal(fs.readFileSync(path.join(home, ".claude", "plugins", "claude-code-zh-cn", ".language-mode"), "utf8").trim(), "zh-CN");
 });
 
 test("/english removes language + spinner settings and blocks the prompt", () => {
@@ -63,6 +64,7 @@ test("/english removes language + spinner settings and blocks the prompt", () =>
   assert.equal(settings.language, undefined);
   assert.equal(settings.spinnerTipsEnabled, undefined);
   assert.equal(settings.keep, "user-value");
+  assert.equal(fs.readFileSync(path.join(home, ".claude", "plugins", "claude-code-zh-cn", ".language-mode"), "utf8").trim(), "en");
 });
 
 test("ordinary prompts pass through untouched", () => {
