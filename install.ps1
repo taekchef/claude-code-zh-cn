@@ -1201,6 +1201,43 @@ function patch-native-bun {
     Write-CN $script:CliPatchStatusSummary Yellow
 }
 
+function ensure-node-lief {
+    # node-lief 是原生 CLI 界面补丁的依赖；缺失时自动安装（本地 tgz 优先，其次 npm 在线装）。
+    # 失败只降级跳过 CLI Patch，不中断安装。
+    $bunIo = Join-Path $PluginDst "bun-binary-io.js"
+    if (-not (Test-Path -LiteralPath $bunIo)) { return }
+    $isOk = { ((& node $bunIo check-deps 2>$null | Out-String).Trim() -eq "ok") }
+    if (& $isOk) { return }
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-CN "CLI Patch 需要 node-lief，但未找到 npm；请手动安装 npm install -g node-lief@1.3.2" Yellow
+        return
+    }
+    $tgz = $null
+    if ($env:ZH_CN_NODE_LIEF_TGZ -and (Test-Path -LiteralPath $env:ZH_CN_NODE_LIEF_TGZ)) {
+        $tgz = $env:ZH_CN_NODE_LIEF_TGZ
+    } else {
+        foreach ($pattern in @("node-lief-*.tgz", "deps\node-lief-*.tgz")) {
+            $hit = Get-ChildItem -Path (Join-Path $ScriptDir $pattern) -File -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { $tgz = $hit.FullName; break }
+        }
+    }
+    if ($tgz) {
+        Write-CN "检测到本地 node-lief 安装包：$tgz，离线安装中…" Yellow
+        & npm install -g $tgz 2>$null | Out-Null
+    } else {
+        Write-CN "未检测到 node-lief，自动安装 node-lief@1.3.2（离线环境见 docs/offline-install.md）…" Yellow
+        & npm install -g node-lief@1.3.2 2>$null | Out-Null
+    }
+    if (& $isOk) {
+        Write-CN "node-lief 已就绪" Green
+        return
+    }
+    Write-CN "node-lief 自动安装失败；CLI Patch 将跳过，Layer 1~3（settings / 插件 / hooks / spinner）不受影响" Yellow
+    Write-CN "  可手动安装 npm install -g node-lief@1.3.2（旧版本也需要升级到 1.3.2）；" Yellow
+    Write-CN "  离线机器请提前 npm pack node-lief@1.3.2，把 node-lief-1.3.2.tgz 放到安装脚本同目录或 deps\ 下，" Yellow
+    Write-CN "  或用 ZH_CN_NODE_LIEF_TGZ 指定完整路径，安装器会自动从本地包离线安装" Yellow
+}
+
 function initial-patch {
     $modeFile = Join-Path $PluginDst ".language-mode"
     if ((Test-Path -LiteralPath $modeFile) -and ((Get-Content -LiteralPath $modeFile -Raw).Trim() -eq "en")) {
@@ -1229,6 +1266,7 @@ function initial-patch {
         }
         "native-bun" {
             if ($target -and (Test-Path $target)) {
+                ensure-node-lief
                 patch-native-bun $target
             }
         }

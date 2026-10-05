@@ -26,7 +26,9 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-const { deepMerge } = require("../plugin/scripts/build-overlay.js");
+// 本副本位于 plugin/scripts/，与根目录 scripts/install-json-helper.js 的目录布局不同，
+// build-overlay.js 与本文件同级；根目录副本才需要跨到 ../plugin/scripts/。
+const { deepMerge } = require("./build-overlay.js");
 
 function buildOverlay(baseFile, verbsFile, tipsFile) {
   const base = readJson(baseFile);
