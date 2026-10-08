@@ -522,3 +522,9 @@ See full documentation above (in Chinese). PRs and issues welcome!
 ---
 
 *本项目不是 Anthropic 官方产品。Claude Code 是 Anthropic Inc. 的商标。*
+
+---
+
+## 🔗 Friendly links
+
+- [Linux.do](https://linux.do)
