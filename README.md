@@ -10,6 +10,12 @@
 
 187 个趣味 spinner 动词，41 条中文提示，回复耗时中文化；另有 2007 条界面翻译。
 
+
+
+https://github.com/user-attachments/assets/ff572893-f927-402c-9217-f68f04f4c9d5
+
+
+
 > 🚀 **姊妹项目：我还做了一个 [codex-code-zh-cn](https://github.com/taekchef/codex-code-zh-cn) —— Codex CLI 简体中文版。**
 > 和这个一样的用法：直接输入 `codex` 就是中文界面，还能在会话里用 `/chinese`、`/english` 随时切换语言。欢迎来试试！
 
