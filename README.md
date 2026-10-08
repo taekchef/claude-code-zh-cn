@@ -31,22 +31,27 @@
 
 </div>
 
-> [!IMPORTANT]
-> <a href="https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link"><img src="./docs/assets/infistar-banner.png" alt="Infistar.cc 无限星河 — 一站式全球大模型 API 服务平台" width="640" /></a>
->
-> **📢 claude-code-zh-cn × Infistar.cc 无限星河**
->
-> 跑 Claude Code 自动写代码与长上下文会话，Token 消耗极大，还常卡在 429 与海外卡门槛 💸。推荐 Infistar 的中转服务，体验顺手：
->
-> ⚙️ **配置零成本**：设好 `ANTHROPIC_BASE_URL` 即跑，兼容 Claude Code 与汉化 Skill 引擎。
->
-> 🏷️ **价格打穿底层**：低至官方 0.1 折起，倍率透明，挂着 Agent 疯狂刷代码不心疼。
->
-> 🧩 **聚合主流旗舰**：Claude、DeepSeek、GPT、Gemini 一个 Key 全搞定，改名即用。
->
-> 💳 **国人友好**：人民币直付免海外卡，支持开票，全模型可验真防掺水。
->
-> 走 **[专属通道](https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link)** 注册送 $5 试跑额度，先领了跑几轮长会话测测代码生成效果 🚀！
+---
+
+## 📢 赞助商
+
+<div align="center">
+
+<a href="https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link"><img src="./docs/assets/infistar-banner.png" alt="Infistar.cc 无限星河 — 一站式全球大模型 API 服务平台" /></a>
+
+</div>
+
+**claude-code-zh-cn × [Infistar.cc](https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link) 无限星河**
+
+跑 Claude Code 自动写代码与长上下文会话，Token 消耗极大，还常卡在 429 与海外卡门槛 💸。
+
+推荐 Infistar 的中转服务，体验顺手：
+
+- ⚙️ **配置零成本**：设好 `ANTHROPIC_BASE_URL` 即跑，兼容 Claude Code 与汉化 Skill 引擎。
+- 🏷️ **价格打穿底层**：低至官方 0.1 折起，倍率透明，挂着 Agent 疯狂刷代码不心疼。
+- 🧩 **聚合主流旗舰**：Claude、DeepSeek、GPT、Gemini 一个 Key 全搞定，改名即用。
+- 💳 **国人友好**：人民币直付免海外卡，支持开票，全模型可验真防掺水。
+- 🎁 **专属福利**：通过[专属通道](https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link)注册送 $5 试跑额度，先领了跑几轮长会话测测代码生成效果 🚀！
 
 ---
 
