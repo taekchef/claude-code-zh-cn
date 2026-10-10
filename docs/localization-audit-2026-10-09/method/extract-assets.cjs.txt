@@ -1,0 +1,45 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
+const parse5=require('./tools/node_modules/parse5'),acorn=require('./tools/node_modules/acorn'),walk=require('./tools/node_modules/acorn-walk');
+const {contextRole}=require('./extract-inventory.cjs');
+const io=require('/Users/changfenhuang/projects/claude-code-zh-cn/bun-binary-io.js');
+const id=process.argv[2],binary=path.join(__dirname,'extracted',id,'package',id.startsWith('win')?'claude.exe':'claude');
+const {bunData,bunOffsets,moduleStructSize}=io.extractNativeBun(io.loadNodeLief(),binary);
+const assets=[],texts=[],errors=[];const dir=path.join(__dirname,'results',id,'assets');fs.mkdirSync(dir,{recursive:true});
+for(let c=bunOffsets.modulesPtr.offset;c<bunOffsets.modulesPtr.offset+bunOffsets.modulesPtr.length;c+=moduleStructSize){
+ const n=bunData.toString('utf8',bunData.readUInt32LE(c),bunData.readUInt32LE(c)+bunData.readUInt32LE(c+4));
+ if(n.endsWith('.js')||/\/(cli|claude)$/.test(n))continue;
+ const s=bunData.readUInt32LE(c+8),len=bunData.readUInt32LE(c+12),enc=bunData[c+moduleStructSize-4];
+ const raw=bunData.subarray(s,s+len);const compressed=raw.length>=4&&raw.readUInt32LE(0)===0xfd2fb528;
+ let decoded;try{decoded=compressed?zlib.zstdDecompressSync(raw):raw;}catch(e){errors.push({module:n,error:e.message});continue;}
+ const kind=/\.html/.test(n)?'embedded-html':/\.(md|txt)/.test(n)?'instruction-or-text-asset':'binary-asset';
+ assets.push({module:n,kind,compressed,bytes:len,decodedBytes:decoded.length});if(kind==='binary-asset')continue;
+ const source=decoded.toString(enc===1?'latin1':enc===2?'utf16le':'utf8');fs.writeFileSync(path.join(dir,path.basename(n)+'.txt'),source);
+ if(kind!=='embedded-html')continue;
+ const doc=parse5.parse(source,{sourceCodeLocationInfo:true});
+ function add(text,role,offset,end,context){if(!text||!/[A-Za-z]/.test(text))return;texts.push({text,role,module:n,offset,end,context});}
+ function visit(node,parent){
+   if(node.nodeName==='#text'&&!['script','style'].includes(parent?.tagName)){
+     const loc=node.sourceCodeLocation;add(node.value,'html-text',loc?.startOffset,loc?.endOffset,source.slice(Math.max(0,(loc?.startOffset||0)-80),(loc?.endOffset||0)+80));
+   }
+   for(const attr of node.attrs||[])if(['title','placeholder','aria-label','alt'].includes(attr.name)){const loc=node.sourceCodeLocation?.attrs?.[attr.name];add(attr.value,'html-attribute:'+attr.name,loc?.startOffset,loc?.endOffset,source.slice(Math.max(0,(loc?.startOffset||0)-80),(loc?.endOffset||0)+80));}
+   if(node.tagName==='script'){
+     const code=(node.childNodes||[]).map(c=>c.value||'').join('');const base=node.childNodes?.[0]?.sourceCodeLocation?.startOffset||0;
+     const type=(node.attrs||[]).find(a=>a.name==='type')?.value;
+     if(type==='application/json'||type==='importmap'){
+       try{JSON.parse(code);}catch(e){errors.push({module:n,offset:base,error:'JSON island: '+e.message});}
+       return;
+     }
+     if(code.trim())try{
+       const ast=acorn.parse(code,{ecmaVersion:'latest',sourceType:'module',allowReturnOutsideFunction:true,allowAwaitOutsideFunction:true});
+       walk.fullAncestor(ast,(item,_st,ances)=>{
+         const role=contextRole(item,ances,code);if(item.type==='Literal'&&typeof item.value==='string')add(item.value,'html-script:'+role.join(','),base+item.start,base+item.end,code.slice(Math.max(0,item.start-80),item.end+80));
+         if(item.type==='TemplateLiteral')add(item.quasis.map(q=>q.value.cooked??q.value.raw).join('${…}'),'html-script:template:'+role.join(','),base+item.start,base+item.end,code.slice(Math.max(0,item.start-80),item.end+80));
+       });
+     }catch(e){errors.push({module:n,offset:base,error:e.message});}
+   }
+   for(const child of node.childNodes||[])visit(child,node);if(node.content)visit(node.content,node);
+ }
+ visit(doc,null);
+}
+const out={id,assets,texts,errors};fs.writeFileSync(path.join(__dirname,'results',id,'assets.json'),JSON.stringify(out));console.log(id,JSON.stringify({assets:assets.length,htmlAssets:assets.filter(x=>x.kind==='embedded-html').length,texts:texts.length,errors}));

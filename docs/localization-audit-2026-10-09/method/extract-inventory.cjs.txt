@@ -1,0 +1,148 @@
+"use strict";
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+const zlib = require("node:zlib");
+const acorn = require("./tools/node_modules/acorn");
+const walk = require("./tools/node_modules/acorn-walk");
+const repo = "/Users/changfenhuang/projects/claude-code-zh-cn";
+const io = require(path.join(repo, "bun-binary-io.js"));
+const engine = require(path.join(repo, "scripts/patch-bytecode.js"));
+const translations = JSON.parse(fs.readFileSync(path.join(repo, "cli-translations.json"), "utf8"));
+const table = new Map(translations.filter(t=>!t.skipPatch).map(t=>[t.en,t.zh]));
+const protectedText = new Map(translations.filter(t=>t.skipPatch).map(t=>[t.en,t.skipPatch]));
+for (const [en,zh] of engine.POOL_TRANSLATIONS) if(!protectedText.has(en)) table.set(en,zh);
+const engineAst=acorn.parse(fs.readFileSync(path.join(repo,'scripts/patch-bytecode.js'),'utf8'),{ecmaVersion:'latest',sourceType:'script'});
+let builtins=[];
+walk.simple(engineAst,{VariableDeclarator(node){if(node.id.name==='BUILTIN_SPINNER_TRANSLATIONS')builtins=node.init.elements.map(o=>{const values=Object.fromEntries(o.properties.map(p=>[p.key.name,p.value.value]));return [values.en,values.zh];});}});
+if(!builtins.length)throw new Error('Cannot derive the engine builtin table');
+for(const [en,zh] of builtins) if(!table.has(en)&&!protectedText.has(en))table.set(en,zh);
+const uiKeys=new Set(['title','subtitle','label','description','text','message','body','placeholder','hint','tooltip','footer','header','children','emptyText','helpText','statusText','displayName','prompt','confirmationText','cancelText','confirmText','reason','confirmLabel','cancelLabel','userFacingName','defaultMessage','groupLabel']);
+const hardProtected=new Set(['[Pasted text #',' lines]','[...Truncated text','[Image #','Shell cwd was reset to ','Agent "']);
+function keyOf(node){return node?.type==='Identifier'?node.name:node?.type==='Literal'?String(node.value):null;}
+function contextRole(node,ancestors,source){
+  const roles=new Set(), parent=ancestors.at(-2);
+  if(parent?.type==='Property'&&parent.key===node&&!parent.computed)roles.add('object-key');
+  if(parent?.type==='MemberExpression'&&parent.property===node)roles.add('member-key');
+  if(parent?.type==='ImportDeclaration'||parent?.type==='ExportNamedDeclaration'||parent?.type==='ExportAllDeclaration')roles.add('module-path');
+  for(let i=ancestors.length-2;i>=Math.max(0,ancestors.length-7);i--){
+    const p=ancestors[i], child=ancestors[i+1];
+    const between=ancestors.slice(i+1,-1);
+    const staticPath=between.every(x=>['Literal','TemplateLiteral','TemplateElement','ArrayExpression','BinaryExpression','ConditionalExpression','LogicalExpression'].includes(x.type))
+      && between.every((x,j)=>!(x.type==='ConditionalExpression'&&x.test===ancestors[i+2+j])
+        && !(x.type==='BinaryExpression'&&!['+'].includes(x.operator)));
+    if(p.type==='Property'&&p.value===child){
+      const k=keyOf(p.key);
+      if(uiKeys.has(k))roles.add((staticPath?'property:':'inside-property:')+k);
+      else if(k&&staticPath)roles.add('data-property:'+k);
+      if(staticPath&&k==='description'&&p.kind==='get')roles.add('menu-description-getter');
+      if(staticPath&&['action','description'].includes(k)&&ancestors[i-1]?.type==='ObjectExpression'
+        && ancestors[i-1].properties.some(s=>keyOf(s.key)==='chord'))roles.add('key-hint-display');
+      if(staticPath&&['title','label','description','text','body','hint','tooltip','placeholder','header','footer','statusText','displayName','confirmationText','confirmLabel','cancelLabel'].includes(k)
+        && ancestors[i-1]?.type==='ObjectExpression'
+        && ancestors[i-1].properties.some(s=>['children','onCancel','onChange','onSelect','onSubmit','onComplete','inputGuide','dimColor','bold','notificationType','kind'].includes(keyOf(s.key))))roles.add('likely-display-object');
+    }
+    if(staticPath&&((p.type==='BinaryExpression'&&['===','!==','==','!='].includes(p.operator))||(p.type==='SwitchCase'&&p.test===child)))roles.add('logic-comparison');
+    if(p.type==='CallExpression'){
+      const callee=p.callee, name=callee.type==='MemberExpression'?keyOf(callee.property):keyOf(callee);
+      if(name==='createElement'&&p.arguments.indexOf(child)>=2)roles.add('render-child');
+      if(name==='createElement'&&p.arguments.indexOf(child)===0)roles.add('render-component');
+      if(staticPath&&['option','argument','command','addHelpText','description','summary'].includes(name))roles.add('cli-help:'+name);
+      if(['error','warn','log','write','writeFileSync','debug','info'].includes(name))roles.add('call:'+name);
+      if(['startsWith','endsWith','includes','match','test','replace','split','indexOf','get','set','has','emit','dispatch','send','trace','track','event','join'].includes(name))roles.add('consumed:'+name);
+      if(['t','jsx','jsxs'].includes(name))roles.add('possible-render');
+      if(callee.type==='MemberExpression'&&callee.object.type==='Identifier'&&['console','stdout','stderr'].includes(callee.object.name))roles.add('output-call');
+    }
+    if(p.type==='NewExpression'&&keyOf(p.callee)==='Error'&&staticPath)roles.add('error-text');
+  }
+  if(parent?.type==='TemplateLiteral')roles.add('template-part');
+  if(node.type==='TemplateLiteral')roles.add('dynamic-template');
+  return [...roles];
+}
+function main(){
+const id=process.argv[2];
+if(!id)throw new Error('package id required');
+const win=id.startsWith('win'),binary=path.join(__dirname,'extracted',id,'package',win?'claude.exe':'claude');
+const parsed=io.extractNativeBun(io.loadNodeLief(),binary);
+const {bunData,bunOffsets,moduleStructSize}=parsed;
+const inventory=new Map(), modules=[], parseErrors=[], unlinkedPoolCandidates=new Map();
+function add(text,node,ancestors,source,module){
+  if(typeof text!=='string'||!text)return;
+  let row=inventory.get(text);
+  if(!row){row={text,occurrences:0,roles:[],refs:[],locations:[],pool:[]};inventory.set(text,row);}
+  row.occurrences++;
+  const roles=contextRole(node,ancestors,source);
+  for(const role of roles)if(!row.roles.includes(role))row.roles.push(role);
+  row.locations.push({module:module.name,offset:node.start,end:node.end,roles,asset:module.loader===5});
+  if(row.refs.length<4||roles.some(role=>!row.refs.some(r=>r.roles.includes(role)))){
+    row.refs.push({module:module.name,offset:node.start,end:node.end,roles,asset:module.loader===5,context:source.slice(Math.max(0,node.start-130),Math.min(source.length,node.end+130)).replace(/[\r\n]+/g,' ')});
+  }
+}
+const moduleDir=path.join(__dirname,'results',id,'modules');fs.mkdirSync(moduleDir,{recursive:true});
+for(let cursor=bunOffsets.modulesPtr.offset;cursor<bunOffsets.modulesPtr.offset+bunOffsets.modulesPtr.length;cursor+=moduleStructSize){
+  const nameStart=bunData.readUInt32LE(cursor),nameLength=bunData.readUInt32LE(cursor+4);
+  const name=bunData.toString('utf8',nameStart,nameStart+nameLength);
+  const start=bunData.readUInt32LE(cursor+8),length=bunData.readUInt32LE(cursor+12);
+  const bytecodeLength=bunData.readUInt32LE(cursor+28),encoding=bunData[cursor+moduleStructSize-4],loader=bunData[cursor+moduleStructSize-3];
+  const module={name,length,bytecodeLength,encoding,loader};modules.push(module);
+  if(!length||(!name.endsWith('.js')&&!/\/(cli|claude)$/.test(name)))continue;
+  const raw=bunData.subarray(start,start+length);
+  const zstd=raw.length>=4&&raw.readUInt32LE(0)===0xfd2fb528;
+  const decoded=zstd?zlib.zstdDecompressSync(raw):raw;
+  module.compression=zstd?'zstd':null;module.sourceBytes=decoded.length;
+  const source=decoded.toString(encoding===1?'latin1':'utf8');
+  fs.writeFileSync(path.join(moduleDir,path.basename(name)+'.txt'),source);
+  try{
+    const ast=acorn.parse(source,{ecmaVersion:'latest',sourceType:'module',allowReturnOutsideFunction:true,allowAwaitOutsideFunction:true,allowHashBang:true});
+    walk.fullAncestor(ast,(node,_state,ancestors)=>{
+      if(node.type==='Literal'&&typeof node.value==='string')add(node.value,node,ancestors,source,module);
+      if(node.type==='TemplateLiteral'){
+        const full=node.quasis.map(q=>q.value.cooked??q.value.raw).join('${…}');
+        add(full,node,ancestors,source,module);
+        if(node.expressions.length)for(const q of node.quasis)add(q.value.cooked??q.value.raw,{...q,start:q.start,end:q.end},[...ancestors,q],source,module);
+      }
+    });
+  }catch(error){parseErrors.push({module:name,length,error:error.message});}
+}
+const patched=Buffer.from(bunData), patchSummary=engine.patchStringPool(patched,translations);
+let recordCount=0,unlinkedPoolRecordCount=0;
+for(let offset=0;offset+8<=bunData.length;offset++){
+  const cached=offset+16<=bunData.length&&bunData.readUInt32LE(offset)===16&&bunData.readUInt32LE(offset+4)===0&&(bunData[offset+8]&0x36)===0;
+  const flags=cached?bunData[offset+8]:bunData[offset+3];if(!cached&&flags!==0x80&&flags!==0)continue;
+  const len=bunData.readUInt32LE(offset+(cached?12:0))&0x7fffffff;
+  if(!len||len>100000)continue;
+  const narrow=cached?(flags&1)!==0:flags===0x80, bytes=len*(narrow?1:2), start=offset+(cached?16:8);
+  if(start+bytes>bunData.length)continue;
+  const text=bunData.toString(narrow?'latin1':'utf16le',start,start+bytes);
+  if(!inventory.has(text)&&!table.has(text)&&!protectedText.has(text)&&!hardProtected.has(text)){
+    if(/[A-Za-z]/.test(text)&&text.length<=20000&&!/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\uFFFD]/u.test(text)&&/^[\x09\x0A\x0D\x20-\x7E\u00A0-\uFFFF]+$/u.test(text)){
+      let extra=unlinkedPoolCandidates.get(text);if(!extra){extra={text,records:[]};unlinkedPoolCandidates.set(text,extra);}
+      extra.records.push({offset,narrow,bytes,format:cached?'cached':'shared'});unlinkedPoolRecordCount++;
+    }
+    continue;
+  }
+  let row=inventory.get(text);if(!row){row={text,occurrences:0,roles:['pool-only'],refs:[],locations:[],pool:[]};inventory.set(text,row);}
+  const zh=table.get(text), changed=!bunData.subarray(offset,start+bytes).equals(patched.subarray(offset,start+bytes));
+  row.pool.push({offset,narrow,bytes,format:cached?'cached':'shared',patched:changed,tooLong:!!zh&&Buffer.byteLength(zh,'utf16le')>bytes});
+  recordCount++;offset=start+bytes-1;
+}
+let ordinal=0;
+const rows=[...inventory.values()].sort((a,b)=>a.text.localeCompare(b.text));
+for(const row of rows){
+ row.id=++ordinal;
+ row.english=/[A-Za-z]/.test(row.text);
+ row.refCount=row.refs.length;row.referencesTruncated=row.locations.length>row.refs.length;
+ row.patchedSlots=row.pool.filter(p=>p.patched).length;
+ row.tooLongSlots=row.pool.filter(p=>p.tooLong).length;
+ row.untouchedSlots=row.pool.filter(p=>!p.patched).length;
+ row.translation=table.get(row.text)||null;
+ row.protection=protectedText.get(row.text)||(hardProtected.has(row.text)?'protocol-contract':null);
+ row.patchStatus=row.protection?'protected':row.pool.some(p=>p.patched)?(row.pool.some(p=>!p.patched)?'partial-pool':'patched-pool'):row.pool.some(p=>p.tooLong)?'too-long':row.translation?'table-only':row.pool.length?'missing-pool-translation':'source-only';
+}
+const result={id,inventoryStatus:parseErrors.length?'partial':'parsed-all-javascript',package:JSON.parse(fs.readFileSync(path.join(path.dirname(binary),'package.json'),'utf8')),sha256:crypto.createHash('sha256').update(fs.readFileSync(binary)).digest('hex'),bytes:fs.statSync(binary).size,format:parsed.format,bunBytes:bunData.length,moduleStructSize,modules,parseErrors,patchSummary,recordCount,unlinkedPoolRecordCount,unlinkedPoolCandidateCount:unlinkedPoolCandidates.size,counts:{uniqueStrings:rows.length,englishStrings:rows.filter(r=>r.english).length,occurrences:rows.reduce((n,r)=>n+r.occurrences,0),byPatchStatus:Object.fromEntries([...new Set(rows.map(r=>r.patchStatus))].map(s=>[s,rows.filter(r=>r.patchStatus===s).length]))},rows};
+fs.writeFileSync(path.join(__dirname,'results',id,'inventory.json'),JSON.stringify(result));
+fs.writeFileSync(path.join(__dirname,'results',id,'unlinked-pool-candidates.json'),JSON.stringify([...unlinkedPoolCandidates.values()]));
+console.log(JSON.stringify({...result,rows:undefined,modules:modules.length}));
+}
+module.exports={contextRole,uiKeys,keyOf};
+if(require.main===module)main();

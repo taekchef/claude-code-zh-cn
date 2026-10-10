@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-10",
+  "method": "Run the final patched native binary in a background PTY with a temporary user directory. A normal streamed model response from 127.0.0.1 provides mock rate-limit headers; the usage page then renders the quota analysis heading. No rendering or permission gates are patched by this probe.",
+  "paidAPI": false,
+  "results": [
+    {
+      "label": "delivery-usage-2.1.286",
+      "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.286/coverage-fix-runtime/claude",
+      "checks": {
+        "usageHeading": true
+      },
+      "paidAPI": false,
+      "mockServer": "127.0.0.1",
+      "passed": true
+    },
+    {
+      "label": "delivery-usage-2.1.295",
+      "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.295/coverage-fix-runtime/claude",
+      "checks": {
+        "usageHeading": true
+      },
+      "paidAPI": false,
+      "mockServer": "127.0.0.1",
+      "passed": true
+    }
+  ]
+}

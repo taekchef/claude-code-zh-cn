@@ -539,12 +539,15 @@ test("translations avoid legacy half-translated phrasing for key UX terms", () =
   }
 });
 
-test("translations do not leave raw marketplace wording in Chinese text", () => {
+test("translations use Chinese marketplace wording while preserving commands and IDs", () => {
   const allowlist = new Set([" · ./path/to/marketplace"]);
 
   for (const entry of loadTranslations()) {
-    if (!entry.zh.includes("marketplace")) continue;
     if (allowlist.has(entry.zh)) continue;
+    const prose = entry.zh
+      .replace(/\bclaude plugin marketplace(?:\s+[a-z][a-z-]*)?/g, "")
+      .replace(/\bplugin@marketplace\b/g, "");
+    if (!prose.includes("marketplace")) continue;
     assert.fail(`raw marketplace wording leaked into zh="${entry.zh}"`);
   }
 });

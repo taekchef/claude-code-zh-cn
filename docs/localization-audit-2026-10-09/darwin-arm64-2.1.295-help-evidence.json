@@ -1,0 +1,603 @@
+{
+  "id": "darwin-arm64-2.1.295",
+  "patch": {
+    "patched": 1342,
+    "notFound": 712,
+    "tooLong": 190,
+    "sourceModules": 0,
+    "sourceReplacements": 0,
+    "version": "2.1.295",
+    "backup": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.295/help-runtime/claude.zh-cn-backup",
+    "changed": true
+  },
+  "results": [
+    {
+      "args": [],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude [options] [command] [prompt]\n\nClaude Code - 默认启动交互式会话；使用 -p/--print 输出非交互结果\n\n参数：\n  prompt                                你的提示词\n\n选项：\n  --add-dir <directories...>            允许工具访问的额外目录\n  --agent <agent>                       当前会话的 Agent。覆盖 'agent' 设置。\n  --agents <json-or-file>               自定义 Agent 的 JSON 对象，或 --print\n                                        时为定义文件路径（如 '{\"reviewer\":\n                                        {…}}'）\n  --allow-dangerously-skip-permissions  允许把跳过所有权限检查作为可选项，但默认不启用。仅建议在无网络访问的沙箱中使用。\n  --allowedTools, --allowed-tools <tools...>\n      允许的工具名，用逗号或空格分隔\n  --append-system-prompt <prompt>       将系统提示追加到默认系统提示\n  --autocompact <auto|tokens>           自动压缩窗口大小（auto，或 100k–1M\n                                        tokens）\n  --ax-screen-reader                    渲染适合屏幕阅读器的输出（纯文本，没有装饰边框或动画）。\n  --bg, --background                    在后台启动会话并立即返回。打印 `claude\n                                        attach`、`logs`、`stop`、`rm` 所需的\n                                        id（`claude agents` 可列出）。配合\n                                        --resume <session-id> 时沿用同一 ID\n                                        在后台继续该会话；若会话已在运行则启动副本并说明\n  --bare                                最小模式：跳过 hooks（settings\n                                        与插件定义的；内置功能不受影响）、LSP、插件同步、keychain\n                                        读取与 CLAUDE.md 自动发现；设\n                                        CLAUDE_CODE_SIMPLE=1。Anthropic 认证仅限\n                                        ANTHROPIC_API_KEY 或 --settings 的\n                                        apiKeyHelper（不读\n                                        OAuth/keychain）；第三方供应商用各自凭据；Skills\n                                        仍经 /skill-name\n                                        解析；上下文显式提供：--system-prompt、--append-system-prompt、--add-dir、--mcp-config、--settings、--agents、--plugin-dir。\n  --betas <betas...>                    API 请求的 Beta headers（仅 key 用户）\n  --brief                               启用 SendUserMessage 与用户通信\n  --chrome                              启用 Chrome 集成\n  --cloud [description|session_id|url]  创建云端会话并附描述，或按会话 ID /\n                                        claude.ai/code URL 接入已有会话\n  -c, --continue                        继续当前目录中最近的对话\n  --dangerously-skip-permissions        跳过所有权限检查。仅建议在无网络访问的沙箱中使用。\n  -d, --debug [filter]                  启用调试，可选过滤分类（如 api,hooks）\n  --debug-file <path>                   将调试日志写入指定文件路径（隐式启用调试模式）\n  --desktop                             在 Claude Desktop 打开而非终端（用\n                                        --continue 或 --resume 选会话）\n  --disable-slash-commands              禁用 skills\n  --disallowedTools, --disallowed-tools <tools...>\n      禁用的工具名，用逗号或空格分隔\n  --effort <level>                      当前会话的思考强度 (low, medium, high,\n                                        xhigh, max)\n  --environment <environment_id>        在指定自托管环境（ccpool_...）上创建新云端会话。\n  --exclude-dynamic-system-prompt-sections\n      将本机信息从系统提示移到首条消息，复用提示缓存。仅默认提示生效；--system-prompt\n      下忽略。 (default: false)\n  --fallback-model <model>              默认模型过载或不可用时自动回退到指定模型。接受逗号分隔列表按顺序尝试，每轮用户输入开始时重试主模型。\n  --file <specs...>                     启动时下载文件；格式\n                                        file_id:relative_path\n  --fork-session                        恢复时创建新会话 ID，不复用原 ID（配合\n                                        --resume 或 --continue）\n  --forward-subagent-text               把 subagent 文本和 thinking 块以\n                                        parent_tool_use_id 转发（需 --print 与\n                                        stream-json）\n  --from-pr [value]                     通过 PR 编号/URL\n                                        恢复关联会话，或打开交互式选择器并可输入搜索词\n  -h, --help                            显示命令帮助\n  --ide                                 启动时自动连接 IDE（仅当恰好有一个可用\n                                        IDE 时）\n  --include-hook-events                 包含全部 hook 生命周期事件（需\n                                        --output-format=stream-json）\n  --include-partial-messages            输出实时消息片段（需 --print 和\n                                        --output-format=stream-json）\n  --input-format <format>               输入格式（仅 --print）：\"text\"（默认）或\n                                        \"stream-json\"（实时流式输入） (choices:\n                                        \"text\", \"stream-json\")\n  --json-schema <schema>                结构化输出用 JSON Schema 校验\n  --max-budget-usd <amount>             API 调用最大花费（仅 --print 模式有效）\n  --mcp-config <configs...>             从 JSON 文件或字符串加载 MCP\n                                        服务器（空格分隔）\n  --model <model>                       当前会话的模型。提供最新模型的别名（如\n                                        'fable'、'opus'、'sonnet'）或模型全名。\n  -n, --name <name>                     设置此会话的显示名称（显示在提示框、/resume\n                                        选择器和终端标题中）\n  --no-chrome                           关闭 Chrome 集成\n  --no-session-persistence              禁用会话持久化 -\n                                        会话不会保存到磁盘，也无法恢复（仅\n                                        --print 有效）\n  --output-format <format>              输出格式（仅\n                                        --print）：\"text\"（默认）、\"json\"（单结果）或\n                                        \"stream-json\"（实时流式） (choices:\n                                        \"text\", \"json\", \"stream-json\")\n  --permission-mode <mode>              当前会话使用的权限模式 (choices:\n                                        \"acceptEdits\", \"auto\",\n                                        \"bypassPermissions\", \"manual\",\n                                        \"dontAsk\", \"plan\")\n  --permission-prompts <target>         --print\n                                        模式下由谁响应权限提示：\"host\"（SDK\n                                        宿主或 --permission-prompt-tool）或\n                                        \"none\"（无人响应：本会触发提示的操作自动拒绝；其余仍由权限模式决定）\n                                        (choices: \"host\", \"none\", default:\n                                        \"host\")\n  --plugin-dir <path>                   仅本次会话从目录或 .zip\n                                        加载插件；插件目录会加载其中每个子插件（可重复：--plugin-dir\n                                        A --plugin-dir B.zip） (default: [])\n  --plugin-url <url>                    仅本次会话从 URL 加载插件\n                                        .zip（可重复指定 --plugin-url）\n                                        (default: [])\n  -p, --print                           打印响应并退出（适合管道）。注意：以非交互模式运行\n                                        Claude 时（通过 -p，或 stdout 非\n                                        TTY，如管道或重定向输出）会跳过工作区信任对话框。请只在信任的目录中使用。此模式下校验失败的\n                                        settings\n                                        文件被静默忽略（无错误对话框）。\n  --prompt-suggestions [value]          启用提示建议。在非交互模式下，每轮结束后输出一条预测的下一步提示。\n                                        (choices: \"true\", \"false\", \"1\", \"0\",\n                                        \"yes\", \"no\", \"on\", \"off\", preset:\n                                        \"true\")\n  --remote-control [name]               启动启用远程控制的交互式会话（可指定名称）\n  --remote-control-session-name-prefix <prefix>\n      自动生成的远程控制会话名前缀（默认：主机名）\n  --replay-user-messages                把 stdin 用户消息回显到 stdout\n                                        作确认（需 stream-json 输入与输出）\n  --restricted                          受限模式：移除可运行命令或代码的内置工具（Bash、PowerShell、REPL\n                                        等）和 WebFetch（除非 --tools\n                                        指定），并忽略 user、project、local\n                                        设置文件（managed settings 与 --settings\n                                        仍生效；加 --strict-mcp-config\n                                        可同时跳过 MCP\n                                        服务器）。同时把文件工具限制在工作目录内（含\n                                        --add-dir），拒绝\n                                        bypassPermissions，且仅允许人或配置的权限处理器批准写入\n                                        settings、git 与工具配置文件。\n  -r, --resume [value]                  通过 session ID\n                                        恢复对话，或打开交互式选择器并可输入搜索词\n  --safe-mode                           以禁用全部自定义项的状态启动（CLAUDE.md、skills、已安装插件、hooks、MCP\n                                        服务器、自定义命令与\n                                        agent、输出风格、workflows、自定义主题、键位等）——适合排查损坏的配置。管理员托管（policy）设置仍生效。认证、模型选择、内置工具与插件、权限正常工作。设\n                                        CLAUDE_CODE_SAFE_MODE=1。\n  --session-id <uuid>                   使用指定的会话 ID（必须是有效 UUID）\n  --setting-sources <sources>           要加载的设置来源（逗号分隔：user/project/local）。\n  --settings <file-or-json>             用于加载额外设置的 settings JSON\n                                        文件路径或 JSON 字符串\n  --strict-mcp-config                   仅用 --mcp-config 的 MCP\n                                        服务，忽略其他配置\n  --system-prompt <prompt>              当前会话使用的系统提示词\n  --system-prompt-snapshot <on|off>     每次对话记录一次系统提示，并在每次请求和\n                                        resume\n                                        时原样复用。on（默认）：提示在对话首个请求时渲染——含\n                                        --system-prompt 或\n                                        --append-system-prompt——发送并记录；后续请求和\n                                        resume\n                                        一律发送记录内容，即使后续启动传入不同文本，直到对话被压缩。off：不记录；每次请求重新渲染（适合调试提示文本）。未启用系统提示记录的场景无效果。\n                                        (choices: \"on\", \"off\")\n  --teleport [session]                  恢复 teleport 会话，可选指定会话 ID\n  --tmux                                为 worktree 创建 tmux 会话（需\n                                        --worktree）。有 iTerm2 用原生\n                                        pane，否则 --tmux=classic\n  --tools <tools...>                    从内置集合中指定可用工具列表。使用 \"\"\n                                        禁用所有工具，使用 \"default\"\n                                        启用所有工具，或指定工具名（例如\n                                        \"Bash,Edit,Read\"）。\n  --verbose                             覆盖配置中的详细模式设置\n  -v, --version                         输出版本号\n  -w, --worktree [name]                 为此会话创建新的 git\n                                        worktree（可指定名称）\n\n命令：\n  agents [options]                      管理后台 Agent\n  attach <id|name>                      Open a background session in this\n                                        terminal. <id> is the short id that\n                                        `claude --bg` prints and `claude agents`\n                                        lists. Part of the session name works\n                                        too\n  auth                                  管理身份验证\n  auto-mode                             查看或重置 auto mode 分类配置\n  doctor                                检查 Claude Code\n                                        安装健康状态。会读取当前目录中的设置文件且不触发信任提示。要执行可修复问题的完整检查，请在会话中运行\n                                        /doctor。\n  gateway [options]                     运行企业认证/遥测网关\n  import [options] [source]             从其他 AI 编程代理导入配置到 Claude Code\n  install [options] [target]            安装 Claude Code；[target]\n                                        指定版本（stable/latest/版本号）\n  logs <id|name>                        显示后台会话的近期终端输出\n  mcp                                   配置和管理 MCP 服务器\n  plugin|plugins                        管理插件\n  purge [options] [path]                删除项目的 Claude Code\n                                        状态（会话、任务、文件历史和配置）\n  respawn [options] [id]                重启后台会话，或用 --all\n                                        重启全部，以使用当前 Claude Code 版本\n  rm <id>                               删除已退出的后台会话；条件允许时一并删除其\n                                        worktree\n  setup-token                           设置长期身份验证 token（需要 Claude\n                                        订阅）\n  stop|kill <id>                        停止后台会话，保留对话；可用 claude\n                                        attach <id> 或 claude --resume 恢复\n  ultrareview [options] [target]        在云端运行多 Agent\n                                        代码审查，目标可为当前分支、PR\n                                        编号或基准分支，并打印结果\n  update|upgrade                        检查更新并安装可用版本\n",
+      "stderr": "",
+      "children": [
+        "agents",
+        "attach",
+        "auth",
+        "auto-mode",
+        "doctor",
+        "gateway",
+        "import",
+        "install",
+        "logs",
+        "mcp",
+        "purge",
+        "respawn",
+        "rm",
+        "setup-token",
+        "ultrareview"
+      ]
+    },
+    {
+      "args": [
+        "agents"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude agents [options]\n\n管理后台 Agent\n\n选项：\n  --add-dir <directory>                 允许分派会话访问的额外目录（可重复）\n  --agent <agent>                       从 Agent 视图分派会话时使用的默认\n                                        Agent。会覆盖 'agent' 设置。\n  --all                                 与 --json 配合：也包含已结束的后台会话\n  --allow-dangerously-skip-permissions  让分派会话可使用 bypass-permissions\n                                        模式，但不默认启用\n  --cwd <path>                          只显示在 <path> 启动的后台会话\n  --dangerously-skip-permissions        --permission-mode 的别名\n  --effort <level>                      从 Agent 视图分派会话时使用的默认 effort\n                                        级别\n  -h, --help                            显示命令帮助\n  --json                                以 JSON\n                                        数组输出活跃会话（交互式和后台）后退出；适合脚本，不需要\n                                        TTY\n  --mcp-config <config>                 应用到分派会话的 MCP\n                                        服务器配置（可重复）\n  --model <model>                       从 Agent 视图分派会话时使用的默认模型\n  --permission-mode <mode>              从 Agent\n                                        视图分派会话时使用的默认权限模式\n  --plugin-dir <path>                   为 Agent\n                                        视图及分派会话加载指定目录的插件；目录中的每个子插件都会加载（可重复）\n  --restricted                          以受限模式启动分派会话\n  --setting-sources <sources>           要加载的设置来源（逗号分隔：user/project/local）。\n  --settings <file-or-json>             用于 Agent 视图和分派会话的设置文件或\n                                        JSON\n  --strict-mcp-config                   分派会话仅用 --mcp-config 的 MCP 服务\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auth"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auth [options] [command]\n\n管理身份验证\n\n选项：\n  -h, --help        显示命令帮助\n\n命令：\n  help [command]    显示命令帮助\n  login [options]   登录 Anthropic 账号\n  logout            退出你的 Anthropic 账号\n  status [options]  显示身份验证状态\n",
+      "stderr": "",
+      "children": [
+        "login",
+        "logout",
+        "status"
+      ]
+    },
+    {
+      "args": [
+        "auto-mode"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auto-mode [options] [command]\n\n查看或重置 auto mode 分类配置\n\n选项：\n  -h, --help          显示命令帮助\n\n命令：\n  config              以 JSON 显示 auto mode 配置；用户设置优先\n  critique [options]  获取 auto mode 规则反馈\n  defaults [options]  以 JSON 显示 auto mode 默认规则\n  help [command]      显示命令帮助\n  reset [options]     删除用户设置中的 autoMode 配置，恢复默认值\n",
+      "stderr": "",
+      "children": [
+        "config",
+        "critique",
+        "defaults",
+        "reset"
+      ]
+    },
+    {
+      "args": [
+        "doctor"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude doctor [options]\n\n检查 Claude Code\n安装健康状态。会读取当前目录中的设置文件且不触发信任提示。要执行可修复问题的完整检查，请在会话中运行\n/doctor。\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "install"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude install [options] [target]\n\n安装 Claude Code；[target] 指定版本（stable/latest/版本号）\n\n选项：\n  --force     强制安装，即使已安装\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp [options] [command]\n\n配置和管理 MCP 服务器\n\n选项：\n  -h, --help                            显示命令帮助\n\n命令：\n  add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code.\n  \n  Examples:\n    # Add HTTP server:\n    claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n  \n    # Add HTTP server with headers:\n    claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"\n  \n    # Add stdio server with environment variables:\n    claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n  \n    # Add stdio server with subprocess flags:\n    claude mcp add my-server -- my-command --some-flag arg1\n  add-from-claude-desktop [options]     Import MCP servers from Claude Desktop\n                                        (Mac and WSL only)\n  add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or\n                                        WebSocket) with a JSON string\n  get <name>                            Get details about an MCP server.\n                                        Unapproved .mcp.json servers are shown\n                                        as ⏸ Pending approval and not connected\n                                        to; approved servers are health-checked\n                                        unless disabled for this project.\n  help [command]                        显示命令帮助\n  list                                  List configured MCP servers. Unapproved\n                                        .mcp.json servers are shown as ⏸ Pending\n                                        approval and not connected to; approved\n                                        servers are health-checked unless\n                                        disabled for this project.\n  login [options] <name>                认证 MCP 服务（HTTP/SSE/claude.ai）\n  logout <name>                         清除 MCP 服务器已保存的 OAuth 凭据\n  remove [options] <name>               移除 MCP 服务器\n  reset-project-choices                 重置此项目内所有已批准和已拒绝的项目级（.mcp.json）服务器\n  serve [options]                       启动 MCP 服务\n",
+      "stderr": "",
+      "children": [
+        "add",
+        "add-from-claude-desktop",
+        "add-json",
+        "get",
+        "list",
+        "login",
+        "logout",
+        "remove",
+        "reset-project-choices",
+        "serve"
+      ]
+    },
+    {
+      "args": [
+        "plugin"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin|plugins [options] [command]\n\n管理插件\n\n选项：\n  -h, --help                           显示命令帮助\n\n命令：\n  configure [options] <plugin>         查看插件选项及未设置项，或用\n                                       --values-stdin 从标准输入保存配置\n  details [options] <name>             显示插件组件清单和预计 token 成本\n  disable [options] [plugin]           禁用已启用的插件\n  enable [options] <plugin>            启用已禁用的插件\n  eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml\n                                       or prompt.md + graders/*.md; the eval dir\n                                       is evals/ unless --eval-dir or the\n                                       manifest says otherwise) against a plugin\n                                       and report scored results. Target is a\n                                       path, a plugin name, or a\n                                       `plugin@marketplace` id — installed and\n                                       skills-dir plugins both resolve (and add\n                                       a no-plugin baseline arm). It loads the\n                                       plugin and runs its eval suite (prompts,\n                                       graders; scaffold scripts and real MCP\n                                       servers only when you opt in) on your\n                                       machine, as you: only evaluate plugins\n                                       you trust — the run's sandboxing limits\n                                       what a malicious plugin can reach but is\n                                       not a guarantee, and a bundled suite\n                                       passing is not a security vetting. The\n                                       first run in an untrusted plugin\n                                       directory asks you to confirm\n                                       (--trust-plugin answers for CI)\n  help [command]                       显示命令帮助\n  init|new [options] <name>            在 ~/.claude/skills/<name>/\n                                       创建插件；下次加载\n  install|i [options] <plugin>         从可用插件市场安装插件（使用\n                                       plugin@插件市场名 指定插件市场）\n  list [options]                       列出已安装插件\n  marketplace                          管理插件市场\n  prune|autoremove [options]           移除不再需要的自动安装依赖\n  tag [options] [path]                 为插件发布创建 {name}--v{version} git\n                                       tag，并校验 plugin.json\n                                       与所属插件市场条目一致\n  test [dir]                           运行模块测试\n  uninstall|remove [options] <plugin>  卸载已安装插件\n  update [options] <plugin>            将插件更新到最新版本（需要重启后生效）\n  validate [options] <path>            验证插件、市场清单或目录中的\n                                       skills、agents 与 commands\n",
+      "stderr": "",
+      "children": [
+        "configure",
+        "details",
+        "disable",
+        "enable",
+        "eval",
+        "list",
+        "marketplace",
+        "tag",
+        "test",
+        "update",
+        "validate"
+      ]
+    },
+    {
+      "args": [
+        "setup-token"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude setup-token [options]\n\n设置长期身份验证 token（需要 Claude 订阅）\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "update"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude update|upgrade [options]\n\n检查更新并安装可用版本\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "ultrareview"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude ultrareview [options] [target]\n\n在云端运行多 Agent 代码审查，目标可为当前分支、PR 编号或基准分支，并打印结果\n\n选项：\n  -h, --help           显示命令帮助\n  --json               输出原始 bugs.json，不格式化\n  --no-post            不把发现项发到 PR（默认）；此选项用于兼容 /ultrareview 与\n                       /code-review ultra\n  --post               以你的身份把审查结果发到 PR（仅 PR\n                       目标；发一条普通评论，不创建 review）\n  --timeout <minutes>  等待审查完成的最长分钟数（默认：45）\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "attach"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude attach <id|name>\n\n  Open the background session in this terminal. ← returns to agent view, Ctrl+Z drops back to your shell. The session keeps running either way. Part of the session name works in place of the id. Put a name with spaces in quotes.\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "gateway"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude gateway [options]\n\n运行企业认证/遥测网关\n\n选项：\n  --config <path>  Path to gateway YAML config\n  -h, --help       显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "import"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude import [options] [source]\n\n从其他 AI 编程代理导入配置到 Claude Code\n\n参数：\n  source      Which agent to import from (codex, gemini, cursor)\n\n选项：\n  --dry-run   Show what would be imported without writing anything\n  -h, --help  显示命令帮助\n  --yes       Skip the interactive picker. On headless surfaces, pass\n              --yes=<digest> from the `/import` preview.\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "logs"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude logs <id|name>\n\n  Print the background session's recent terminal output. Part of the session name works in place of the id. Put a name with spaces in quotes.\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "purge"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude purge [options] [path]\n\n删除项目的 Claude Code 状态（会话、任务、文件历史和配置）\n\n选项：\n  --all              Purge state for every project (mutually exclusive with\n                     [path])\n  --dry-run          List what would be deleted without deleting anything\n  -h, --help         显示命令帮助\n  -i, --interactive  Prompt for each item before deleting\n  -y, --yes          Skip confirmation prompt\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "respawn"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "Usage: claude respawn <id>|--all\n\n  Restart a background session (or all of them) so it picks up the current Claude binary.\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "rm"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "Usage: claude rm <id> [--discard-unpushed <commit>@<worktree-id>] [--force-remove-worktree <worktree-id>]\n\n  Delete a background session and its worktree. Unlike `stop`, works on already-exited sessions.\n  --discard-unpushed <commit>@<worktree-id>  also discard the worktree's unpushed commits (and any uncommitted changes) while it is still the same worktree at that commit — pass the value a previous 'claude rm <id>' reported\n  --force-remove-worktree <worktree-id>      delete the worktree directory even though the WorktreeRemove hook or git couldn't remove it (its repository must list it as a worktree, or have dropped it in a removal that couldn't delete it; no uncommitted changes to tracked files, submodules included; the branch is kept) — pass the value a previous 'claude rm <id>' reported\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auth",
+        "login"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auth login [options]\n\n登录 Anthropic 账号\n\n选项：\n  --claudeai       使用 Claude 订阅（默认）\n  --console        Use Anthropic Console (API usage billing) instead of Claude\n                   subscription\n  --email <email>  在登录页面预填邮箱地址\n  -h, --help       显示命令帮助\n  --sso            Force SSO login flow\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auth",
+        "logout"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auth logout [options]\n\n退出你的 Anthropic 账号\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auth",
+        "status"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auth status [options]\n\n显示身份验证状态\n\n选项：\n  -h, --help  显示命令帮助\n  --json      Output as JSON (default)\n  --text      Output as human-readable text\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auto-mode",
+        "config"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auto-mode config [options]\n\n以 JSON 显示 auto mode 配置；用户设置优先\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auto-mode",
+        "critique"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auto-mode critique [options]\n\n获取 auto mode 规则反馈\n\n选项：\n  -h, --help       显示命令帮助\n  --model <model>  Override which model is used\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auto-mode",
+        "defaults"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auto-mode defaults [options]\n\n以 JSON 显示 auto mode 默认规则\n\n选项：\n  -h, --help        显示命令帮助\n  --label <prefix>  Show only rules whose label starts with this prefix\n                    (case-insensitive)\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "auto-mode",
+        "reset"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude auto-mode reset [options]\n\n删除用户设置中的 autoMode 配置，恢复默认值\n\n选项：\n  -h, --help  显示命令帮助\n  -y, --yes   Skip the confirmation prompt\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "add"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp add [options] <name> <commandOrUrl> [args...]\n\nAdd an MCP server to Claude Code.\n\nExamples:\n  # Add HTTP server:\n  claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n\n  # Add HTTP server with headers:\n  claude mcp add --transport http corridor https://app.corridor.dev/api/mcp\n--header \"Authorization: Bearer ...\"\n\n  # Add stdio server with environment variables:\n  claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n\n  # Add stdio server with subprocess flags:\n  claude mcp add my-server -- my-command --some-flag arg1\n\n选项：\n  --callback-port <port>       OAuth 回调的固定端口（用于需要预注册重定向 URI\n                               的服务器）\n  --client-id <clientId>       OAuth client ID for HTTP/SSE servers\n  --client-secret              Prompt for OAuth client secret (or set\n                               MCP_CLIENT_SECRET env var)\n  -e, --env <env...>           Set environment variables (e.g. -e KEY=value)\n  -H, --header <header...>     Set headers for HTTP/SSE servers (e.g. -H\n                               \"X-Api-Key: abc123\" -H \"X-Custom: value\")\n  -h, --help                   显示命令帮助\n  -s, --scope <scope>          Configuration scope (local, user, or project)\n                               (default: \"local\")\n  -t, --transport <transport>  传输类型（stdio、sse、http）。未指定时默认\n                               stdio。\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "add-from-claude-desktop"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp add-from-claude-desktop [options]\n\nImport MCP servers from Claude Desktop (Mac and WSL only)\n\n选项：\n  -h, --help           显示命令帮助\n  -s, --scope <scope>  Configuration scope (local, user, or project) (default:\n                       \"local\")\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "add-json"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp add-json [options] <name> <json>\n\nAdd an MCP server (stdio, SSE, HTTP, or WebSocket) with a JSON string\n\n选项：\n  --client-secret      Prompt for OAuth client secret (or set MCP_CLIENT_SECRET\n                       env var)\n  -h, --help           显示命令帮助\n  -s, --scope <scope>  Configuration scope (local, user, or project) (default:\n                       \"local\")\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "get"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp get [options] <name>\n\nGet details about an MCP server. Unapproved .mcp.json servers are shown as ⏸\nPending approval and not connected to; approved servers are health-checked\nunless disabled for this project.\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "list"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp list [options]\n\nList configured MCP servers. Unapproved .mcp.json servers are shown as ⏸ Pending\napproval and not connected to; approved servers are health-checked unless\ndisabled for this project.\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "login"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp login [options] <name>\n\n认证 MCP 服务（HTTP/SSE/claude.ai）\n\n选项：\n  -h, --help    显示命令帮助\n  --no-browser  Print the authorization URL instead of opening a browser (for\n                SSH/headless sessions — paste the redirect URL back when\n                prompted)\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "logout"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp logout [options] <name>\n\n清除 MCP 服务器已保存的 OAuth 凭据\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "remove"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp remove [options] <name>\n\n移除 MCP 服务器\n\n选项：\n  -h, --help           显示命令帮助\n  -s, --scope <scope>  Configuration scope (local, user, or project) - if not\n                       specified, removes from whichever scope it exists in\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "reset-project-choices"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp reset-project-choices [options]\n\n重置此项目内所有已批准和已拒绝的项目级（.mcp.json）服务器\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "mcp",
+        "serve"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude mcp serve [options]\n\n启动 MCP 服务\n\n选项：\n  -d, --debug  Enable debug mode\n  -h, --help   显示命令帮助\n  --verbose    覆盖配置中的详细模式设置\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "configure"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin configure [options] <plugin>\n\n查看插件选项及未设置项，或用 --values-stdin 从标准输入保存配置\n\n选项：\n  -h, --help      显示命令帮助\n  --json          Output as JSON\n  --values-stdin  Read option values from stdin as a JSON object of single-line\n                  strings; options left out keep their values\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "details"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin details [options] <name>\n\n显示插件组件清单和预计 token 成本\n\n选项：\n  -h, --help  显示命令帮助\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "disable"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin disable [options] [plugin]\n\n禁用已启用的插件\n\n选项：\n  -a, --all            Disable all enabled plugins\n  -h, --help           显示命令帮助\n  --json               Print one machine-readable result line on stdout instead\n                       of the human message (same exit codes)\n  -s, --scope <scope>  Installation scope: user, project, local (default:\n                       auto-detect)\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "enable"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin enable [options] <plugin>\n\n启用已禁用的插件\n\n选项：\n  -h, --help           显示命令帮助\n  --json               Print one machine-readable result line on stdout instead\n                       of the human message (same exit codes)\n  -s, --scope <scope>  Installation scope: user, project, local (default:\n                       auto-detect)\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "eval"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin eval [options] [command] [target]\n\nRun eval cases (<eval dir>/**/case.yaml or prompt.md + graders/*.md; the eval\ndir is evals/ unless --eval-dir or the manifest says otherwise) against a plugin\nand report scored results. Target is a path, a plugin name, or a\n`plugin@marketplace` id — installed and skills-dir plugins both resolve (and add\na no-plugin baseline arm). It loads the plugin and runs its eval suite (prompts,\ngraders; scaffold scripts and real MCP servers only when you opt in) on your\nmachine, as you: only evaluate plugins you trust — the run's sandboxing limits\nwhat a malicious plugin can reach but is not a guarantee, and a bundled suite\npassing is not a security vetting. The first run in an untrusted plugin\ndirectory asks you to confirm (--trust-plugin answers for CI)\n\n选项：\n  --ablation <mode>         Run a no-plugin baseline arm and report the score\n                            delta (none | with-without; default: with-without\n                            whenever a plugin resolves — by name, or from the\n                            target path — and none when nothing does; under\n                            with-without, graders marked with-only, incl.\n                            `tool_used: Skill`, are a plugin-fired indicator\n                            rather than part of the score)\n  --allow-real-servers      With --mocks record: also start the plugin's REAL\n                            MCP server processes for servers that have no mock\n                            (they run as you, outside the OS sandbox that\n                            confines shell tools; use only on plugins you trust)\n  --allow-tools <tools...>  Operator grant for gated tools (Bash, Write, Edit,\n                            WebFetch, mcp__*). Supports Tool(pattern:*) syntax\n  --case <glob>             Filter cases by name glob\n  -j, --concurrency <n>     Run up to <n> agent runs at once (1-8; default 1).\n                            Each run is a full claude child on your own\n                            credential, so they share one rate limit; results\n                            and the report keep case order\n  --eval-dir <dir>          Directory name (below the plugin) that holds the\n                            eval cases; results go to <plugin>/<dir>/results/ —\n                            for an installed-plugin target, ./<dir>/results/\n                            with this flag, else ./evals/results/ (default dir:\n                            the manifest's experimental.evals value, else\n                            evals/)\n  -h, --help                显示命令帮助\n  --json [path]             Print the full run result (prompts, graders, per-run\n                            scores) as JSON to stdout, or write it to this .json\n                            file\n  --judge-model <model>     Override LLM-grader model (default: haiku)\n  --keep-temp               Preserve scaffold dirs for debugging\n  --max-cost-usd <usd>      Optional hard cost ceiling; abort and report partial\n                            results if hit (exit 2). The ceiling is checked\n                            before each run launches, so overrun is bounded to\n                            the runs in flight (one, or up to --concurrency) —\n                            when a run breaches, paid graders (llm/baseline) are\n                            skipped while free graders still score it. Runs are\n                            already bounded by max_turns and timeout_seconds —\n                            only set this when you need a strict budget\n  --mocks <mode>            Mock stand-ins for MCP servers, from <eval\n                            dir>/mocks/ (record | off; default: record). record:\n                            a plugin server with no mock is NOT started (see\n                            --allow-real-servers); off: no stand-ins, every real\n                            server starts (as you, outside the OS sandbox), its\n                            tools gated by --allow-tools\n  --model <model>           Override model for all cases\n  --no-publish              仅在本地保留 HTML 报告；跳过发布到 claude.ai\n  --no-scaffold             Explicitly skip scaffold_script\n  --output-dir <dir>        Directory for aggregate-result.json (default:\n                            ./<eval dir>/results/<timestamp>/)\n  --publish-report          同时要求将报告发布到\n                            claude.ai（账号支持时已为默认行为）；若不可用则说明原因\n  --report <path>           将自包含 HTML 报告（评分、提示词和评分器结论）写入\n                            <path>，而不是结果目录\n  --runs <n>                Override per-case runs (default: case.runs ?? 3)\n  --scaffold                Run each case's scaffold_script (runs\n                            author-supplied bash as you; off by default — only\n                            use on case files you authored)\n  --tag <tag...>            Filter cases by tag (repeatable)\n  --threshold <0..1>        Exit 1 if any case score is below this threshold\n                            (default: 1.0)\n  --trust-plugin            Assert that you trust this plugin's code and eval\n                            suite, and skip the first-run trust prompt (for CI;\n                            like --dangerously-skip-permissions, only pass it\n                            for plugins you would run yourself). Does not imply\n                            --scaffold, --allow-tools or --mocks off\n  --verbose                 Log per-message trace events to the debug log (use\n                            --debug-file to read them)\n\n命令：\n  init [options] [name]     Author an eval suite under the eval dir (evals/\n                            unless --eval-dir or the manifest says otherwise)\n                            via an interview that sources inputs and designs\n                            graders. Use --bare <name> for a blank single-case\n                            template.\n",
+      "stderr": "",
+      "children": [
+        "init"
+      ]
+    },
+    {
+      "args": [
+        "plugin",
+        "list"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin list [options]\n\n列出已安装插件\n\n选项：\n  --available           包含插件市场中的可用插件（需要 --json）\n  --data-size [plugin]  Measure each installed plugin's saved data directory, or\n                        only the named plugin's (requires --json)\n  -h, --help            显示命令帮助\n  --json                Output as JSON\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "marketplace"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin marketplace [options] [command]\n\n管理插件市场\n\n选项：\n  -h, --help                  显示命令帮助\n\n命令：\n  add [options] <source>      Add a marketplace from a URL, path, or GitHub repo\n  help [command]              显示命令帮助\n  list [options]              List all configured marketplaces\n  remove|rm [options] <name>  Remove a configured marketplace\n  update [options] [name]     Update marketplace(s) from their source - updates\n                              all if no name specified\n",
+      "stderr": "",
+      "children": [
+        "add",
+        "list",
+        "update"
+      ]
+    },
+    {
+      "args": [
+        "plugin",
+        "tag"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin tag [options] [path]\n\n为插件发布创建 {name}--v{version} git tag，并校验 plugin.json\n与所属插件市场条目一致\n\n选项：\n  --dry-run            Print what would be tagged without creating it\n  -f, --force          Skip the dirty-working-tree and tag-already-exists checks\n  -h, --help           显示命令帮助\n  -m, --message <msg>  Tag annotation message (use %s for the version)\n  --push               Push the tag to --remote after creating it\n  --remote <name>      Remote to push to with --push (default: \"origin\")\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "test"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "Usage: claude plugin test [dir]\n\n运行模块测试\n\n参数：\n  dir         The mod's folder (default: the current folder)\n\n选项：\n  -h, --help  Display help for command\n\nRuns every *.test.ts and *.test.tsx under dir, each file in a child of this\nbinary, in an environment like the one the mod's hooks run in. A test file\nimports its kit from 'claude-code/testing'. Exits 1 when a test fails.\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "update"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin update [options] <plugin>\n\n将插件更新到最新版本（需要重启后生效）\n\n选项：\n  --accept-command <sha256>  Accept the marketplace-declared command (a\n                             command-source install, or the headersHelper that\n                             fetches the archive) whose sha256 a previous --json\n                             run reported as shownCommand.sha256; counts as -y\n                             for exactly that command, for that plugin and\n                             marketplace catalog, and nothing else. If either\n                             changed (a refresh that moved the catalog counts),\n                             the run refuses and reports the command again, to\n                             be shown to a person again\n  -h, --help                 显示命令帮助\n  --json                     Print one machine-readable result line on stdout\n                             instead of the human message (same exit codes; a\n                             marketplace-declared command is still shown and\n                             must be confirmed — pass -y when not interactive)\n  -s, --scope <scope>        Installation scope: user, project, local, managed\n                             (default: auto-detect)\n  -y, --yes                  Accept the displayed marketplace-declared command\n                             without the confirmation prompt — a changed install\n                             command, or the headersHelper command that fetches\n                             its archive (required when stdin or stdout is not a\n                             TTY)\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "validate"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin validate [options] <path>\n\n验证插件、市场清单或目录中的 skills、agents 与 commands\n\n选项：\n  -h, --help  显示命令帮助\n  --json      Output the validation report as JSON (same exit codes)\n  --strict    Treat warnings as errors (exit 1). Use in CI to fail on\n              unrecognized fields, missing metadata, and other issues that the\n              runtime tolerates.\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "eval",
+        "init"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin eval init [options] [name]\n\nAuthor an eval suite under the eval dir (evals/ unless --eval-dir or the\nmanifest says otherwise) via an interview that sources inputs and designs\ngraders. Use --bare <name> for a blank single-case template.\n\n选项：\n  --bare             Write a blank template (prompt.md + graders/criteria.md)\n                     instead of running the interview\n  --eval-dir <dir>   Directory (below the current directory) to write cases into\n                     (default: experimental.evals from the plugin.json in the\n                     current directory, else evals/)\n  -h, --help         显示命令帮助\n  -i, --interactive  运行创作访谈（终端中已为默认行为）；需要交互式终端\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "marketplace",
+        "add"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin marketplace add [options] <source>\n\nAdd a marketplace from a URL, path, or GitHub repo\n\n选项：\n  --claudeai           Add the marketplace of this name that claude.ai hosts for\n                       you, by its listed name or its local name (see: claude\n                       plugin marketplace list)\n  -h, --help           显示命令帮助\n  --json               Print one machine-readable result line as the last line\n                       on stdout (same exit codes)\n  --scope <scope>      Where to declare the marketplace: user (default),\n                       project, or local\n  --sparse <paths...>  Limit checkout to specific directories via git\n                       sparse-checkout (for monorepos). Example: --sparse\n                       .claude-plugin plugins\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "marketplace",
+        "list"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin marketplace list [options]\n\nList all configured marketplaces\n\n选项：\n  -h, --help  显示命令帮助\n  --json      Output as JSON\n",
+      "stderr": "",
+      "children": []
+    },
+    {
+      "args": [
+        "plugin",
+        "marketplace",
+        "update"
+      ],
+      "status": 0,
+      "error": null,
+      "stdout": "用法：claude plugin marketplace update [options] [name]\n\nUpdate marketplace(s) from their source - updates all if no name specified\n\n选项：\n  -h, --help  显示命令帮助\n  --json      With a marketplace name: print one machine-readable result line as\n              the last line on stdout (same exit codes)\n",
+      "stderr": "",
+      "children": []
+    }
+  ]
+}

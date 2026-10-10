@@ -1,0 +1,464 @@
+{
+  "date": "2026-10-10",
+  "method": "Read and execute display components from the patched native container; this is separate from terminal interaction evidence.",
+  "topbar": {
+    "issueScreenshot": "https://raw.githubusercontent.com/huanglian666/image/master/uPic/cc-zh-cn-issue-260-skill-dialog.png",
+    "finding": "The photographed Chat / Diff / Code Review bar is in the terminal window toolbar, outside the terminal content. No standalone Code Review caption occurs in the CLI JavaScript literals; longer matches are workflow names, settings documentation, and changelog content.",
+    "decision": "Localize this package display fields; terminal host toolbar captions require changes in the host application."
+  },
+  "results": [
+    {
+      "version": "2.1.285",
+      "sourceHash": "51f09bd1e021d9fa8a1864c179799bd37cb39962a937935c5cf6823398e86db4",
+      "patchedHash": "d5a15f8608dd39be259f1654cd5ef34587891abab1549ce0e82c1a6c688c83c7",
+      "checks": {
+        "generatedHelpValuesPreserved": true,
+        "usageHeading": true,
+        "chatDisplayOnly": true,
+        "reviewDisplay": true,
+        "modelModuleUntouched": true
+      },
+      "display": {
+        "generatedHelp": {
+          "option": "说明 (可选值：\"host\", \"none\", 默认值：\"host\", 预设值：\"none\", 环境变量：CCZH_TEST_ENV)",
+          "argument": "说明 (可选值：\"host\", \"none\", 默认值：\"host\")",
+          "input": {
+            "description": "说明",
+            "argChoices": [
+              "host",
+              "none"
+            ],
+            "defaultValue": "host",
+            "presetArg": "none",
+            "optional": true,
+            "envVar": "CCZH_TEST_ENV",
+            "flags": "--environment <name>"
+          }
+        },
+        "usage": [
+          "哪些操作消耗了你的额度？",
+          "Approximate, based on local sessions on this machine — does not include other devices or claude.ai"
+        ],
+        "chat": [
+          {
+            "defaultMessage": "允许聊天",
+            "id": "0Cc9oG2J04"
+          },
+          {
+            "defaultMessage": "聊天",
+            "id": "WTrOy36sdu"
+          },
+          {
+            "defaultMessage": "启用聊天，用于简短问答和起草内容。",
+            "id": "z2x73mCBZ9"
+          }
+        ],
+        "review": "代码审查",
+        "modelHeading": "What's contributing to your limits usage?"
+      },
+      "modules": [
+        {
+          "name": "chunk-n3b1z5m4.js",
+          "role": "permission",
+          "sourceHash": "3369863fca7d031a6951ecdbd8a9442432527656863d1da5e3c609f14da009cb",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-xjc7gdgb.js",
+          "role": "key-hint",
+          "sourceHash": "64bb0b8cf860742652e68fc8f24be99b580a236cffa58a75d9c01788686a1954",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-b80z6w8h.js",
+          "role": "mcp-help",
+          "sourceHash": "9b23f9083d05e99ffff23d405af1321e5f90ce8fab5de7288455429dd8cadf7e",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-sbkxgvv8.js",
+          "role": "diff-panel",
+          "sourceHash": "be004e651371374a6433040b5e4ecbefbaf3a13214e9c0729c6c6b6690b02654",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-wv6p13aq.js",
+          "role": "help",
+          "sourceHash": "c323666b0b00e4cc1df4c4476283b7cc8a36a2ae660fa87715fde729882fb8a7",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-ymhmhwa4.js",
+          "role": "help",
+          "sourceHash": "6541d5a855ffccd5865f060e9792efb06e9e6f2aeebfbbd765d447a93dfe68d9",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-ssgd8zcr.js",
+          "role": "permission-reason",
+          "sourceHash": "637b64e2de9340f5fa14c44c8262e441b09b8934e7aea0a3642b42466d83fdc7",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-fz83gh21.js",
+          "role": "help",
+          "sourceHash": "1ef3a4107cb592f4a90ed3d21428a65d90aff30e5f6ace2ff4f6f5d82a702ed0",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-rrx4gpgm.js",
+          "role": "background-help",
+          "sourceHash": "6ab58dcfa5ecfe428b5a207502d7a1253093e9c9337651839474d39243cb09b5",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-at5kbrxv.js",
+          "role": "help",
+          "sourceHash": "3bfb3c4a50916cf046819676497afbf5b968154248133e46de3494fe8a5248d2",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-77zqw3rv.js",
+          "role": "help-formatter",
+          "sourceHash": "f34b3adde92999838e4e58a3d9377afa8ca727cce77c58d666c61d048e2e1083",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-y13zwdn8.js",
+          "role": "usage-panel",
+          "sourceHash": "6abce9776f80784a291626e34d0362e54fd07a0056e7c3e179a3ce3c7bb5a1c0",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-zdaxxncw.js",
+          "role": "chat-settings",
+          "sourceHash": "5cb082a5d9d785e9a5ce2848f473eb910bc4db69d3673ebee7fc8ece055cb416",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-98qpvhja.js",
+          "role": "review-label",
+          "sourceHash": "eebf46a3c7b17c9f1061c9c761affa0a67bdd15f08d7074f0dd663e6c8d3affc",
+          "parsed": true,
+          "bytecodeDisabled": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "version": "2.1.286",
+      "sourceHash": "75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433",
+      "patchedHash": "a807a24cea05fcfaf2a6ed8fcee1fea7723dec43837b3822847aff0aca84a1ac",
+      "checks": {
+        "generatedHelpValuesPreserved": true,
+        "usageHeading": true,
+        "chatDisplayOnly": true,
+        "reviewDisplay": true,
+        "modelModuleUntouched": true
+      },
+      "display": {
+        "generatedHelp": {
+          "option": "说明 (可选值：\"host\", \"none\", 默认值：\"host\", 预设值：\"none\", 环境变量：CCZH_TEST_ENV)",
+          "argument": "说明 (可选值：\"host\", \"none\", 默认值：\"host\")",
+          "input": {
+            "description": "说明",
+            "argChoices": [
+              "host",
+              "none"
+            ],
+            "defaultValue": "host",
+            "presetArg": "none",
+            "optional": true,
+            "envVar": "CCZH_TEST_ENV",
+            "flags": "--environment <name>"
+          }
+        },
+        "usage": [
+          "哪些操作消耗了你的额度？",
+          "Approximate, based on local sessions on this machine — does not include other devices or claude.ai"
+        ],
+        "chat": [
+          {
+            "defaultMessage": "允许聊天",
+            "id": "0Cc9oG2J04"
+          },
+          {
+            "defaultMessage": "聊天",
+            "id": "WTrOy36sdu"
+          },
+          {
+            "defaultMessage": "启用聊天，用于简短问答和起草内容。",
+            "id": "z2x73mCBZ9"
+          }
+        ],
+        "review": "代码审查",
+        "modelHeading": "What's contributing to your limits usage?"
+      },
+      "modules": [
+        {
+          "name": "chunk-40vr59jt.js",
+          "role": "permission",
+          "sourceHash": "55d2388c28d2553173ec2422e18efd220b875074a36e936261a7578a8cdcb8cb",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-6a3bbf4y.js",
+          "role": "key-hint",
+          "sourceHash": "85d04a6d678320376ff8b4a09c01472996ab66a7a315185d8ef40c8792ab0d80",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-rwrv0nks.js",
+          "role": "mcp-help",
+          "sourceHash": "d7715407cc9ece1ac9789271c962487a76a6c5e2bfe9d0ebfcc9d1fd79726e41",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-smc54qjt.js",
+          "role": "diff-panel",
+          "sourceHash": "30bcf4d4970bf832138cc868aa1d834d1918e8c0a0e4769cec6c8303f475aaac",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-hxxkrcey.js",
+          "role": "help",
+          "sourceHash": "94993eee6ff89457f30f6940e039a79500a09711ed50f054a65ce83cc4508a7b",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-k6fc52zf.js",
+          "role": "help",
+          "sourceHash": "9ab7fb732738b44a52c84785f6e63e2ec1a97c1c3b81c562bd7501510d2efdc9",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-pnyt6sw9.js",
+          "role": "permission-reason",
+          "sourceHash": "5bec5c891a356cdc5eb4a3abbdbb0f4f4796766b52957da960616b449cfe40f4",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-yajwtwra.js",
+          "role": "help",
+          "sourceHash": "0c4fae8e2f1cc45b4c26b15f1be3f8ab653665ed7afeab67cc0b39bea39eeaa6",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-31x2vsqf.js",
+          "role": "background-help",
+          "sourceHash": "4395647b58f02fb614cf48f06be875b2e1f10d6c523d085e8073044c783c8e9c",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-1m81t3j7.js",
+          "role": "help",
+          "sourceHash": "e02da076fb1875cbd2875ffe58d1dd0b2c65d0c6a3e0874a1954d8770ff75a8e",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-0c86z2z1.js",
+          "role": "help-formatter",
+          "sourceHash": "00300a09ba4a9b51490e6c03bd7805792c8d22cb6dc7ebe9444788d27a6f3e3c",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-p7yh4jny.js",
+          "role": "usage-panel",
+          "sourceHash": "bbb77b96a4c4903a4ed1285fd7316ff1ad5c26466caa2a4420ae12d938096c07",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-4s4g0jzx.js",
+          "role": "chat-settings",
+          "sourceHash": "71c83d237f43e35d65750e66279f11c4d0fda5f5a21d2047f361f9c3b889c99f",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-j79yyf65.js",
+          "role": "review-label",
+          "sourceHash": "aec4fe8d1a14ae16d6a2d063a1c4af24fb495e31d2fce10e524816d350bcb297",
+          "parsed": true,
+          "bytecodeDisabled": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "version": "2.1.295",
+      "sourceHash": "0116ee2e0a513900b633d9951367f18747686478e2b462805b8c31609f047f70",
+      "patchedHash": "a377a90bdd5ee1dcc4580a74d59d8dd4b04b53f6a2a40bc3145f02b816e61dc5",
+      "checks": {
+        "generatedHelpValuesPreserved": true,
+        "usageHeading": true,
+        "chatDisplayOnly": true,
+        "reviewDisplay": true,
+        "modelModuleUntouched": true
+      },
+      "display": {
+        "generatedHelp": {
+          "option": "说明 (可选值：\"host\", \"none\", 默认值：\"host\", 预设值：\"none\", 环境变量：CCZH_TEST_ENV)",
+          "argument": "说明 (可选值：\"host\", \"none\", 默认值：\"host\")",
+          "input": {
+            "description": "说明",
+            "argChoices": [
+              "host",
+              "none"
+            ],
+            "defaultValue": "host",
+            "presetArg": "none",
+            "optional": true,
+            "envVar": "CCZH_TEST_ENV",
+            "flags": "--environment <name>"
+          }
+        },
+        "usage": [
+          "哪些操作消耗了你的额度？",
+          "Approximate, based on local sessions on this machine — does not include other devices or claude.ai"
+        ],
+        "chat": [
+          {
+            "defaultMessage": "允许聊天",
+            "id": "0Cc9oG2J04"
+          },
+          {
+            "defaultMessage": "聊天",
+            "id": "WTrOy36sdu"
+          },
+          {
+            "defaultMessage": "启用聊天，用于简短问答和起草内容。",
+            "id": "z2x73mCBZ9"
+          }
+        ],
+        "review": "代码审查",
+        "modelHeading": "What's contributing to your limits usage?"
+      },
+      "modules": [
+        {
+          "name": "chunk-bhz7hapx.js",
+          "role": "permission",
+          "sourceHash": "9b8c47baa27045a6e314b3837c561f02ee15e9d25e30b781e4cb726fb3c368e3",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-p52mhbqz.js",
+          "role": "key-hint",
+          "sourceHash": "fde24b98766cd2d35a74704be1e19141805a854e1db110a1a6cf143c4d8cef39",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-j54ybdtc.js",
+          "role": "mcp-help",
+          "sourceHash": "371055c1ca8701bc2b59436862fce98e8024bb893c5ed9495c129df6f4bbfb4b",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-8mmnqsff.js",
+          "role": "diff-panel",
+          "sourceHash": "4061c32bb5c77e687bae1ff6c777c79696e1d383017cf1a5ad0516dd1d9aa189",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-4ypdmt1d.js",
+          "role": "help",
+          "sourceHash": "316f5eff5813016d6cf0f6d27bee470fa22aad15525cddbc664e2b38261b392d",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-ayj73b9e.js",
+          "role": "help",
+          "sourceHash": "d441a764e3c690e51bf2caf6a09f8677b6e96838a1bb7d578e286c8a12d782d8",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-2sxvm4dn.js",
+          "role": "permission-reason",
+          "sourceHash": "de2b1659048ca375bebe53c6b3c6415eed6c2cb604cbb289ac2d247c5efafe45",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-ccqktn4p.js",
+          "role": "help",
+          "sourceHash": "44b9b5d19b0e5d12dc3e5fcdc6d02f52ab0c599264166fa74ebc8dd67938bf91",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-cwxe0n05.js",
+          "role": "background-help",
+          "sourceHash": "8626443b6755b4ea5afc4ccb5d0bfcf4bb7c835c0b58f0eac2a432e80d29661f",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-cbxhnd80.js",
+          "role": "help",
+          "sourceHash": "3113e3e22d3b261a2a4d4f28bd7cf7915b3be2d88851f62f6208b734fbddaa7b",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-vtap7ff6.js",
+          "role": "help-formatter",
+          "sourceHash": "5ac51a0e57158e7099d272c39f153c3c0ea91aa95ee11af6189b57eb8d75144d",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-ncctg2ag.js",
+          "role": "usage-panel",
+          "sourceHash": "7423c3cfa1c6d516d45dfc91fefcf3408ef1c5bde162cd27bb983440f662f3da",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-kzx145fg.js",
+          "role": "chat-settings",
+          "sourceHash": "35c0db39951938efd6012f47cd06025cb127887e4414b39d554a8db6a9ac8ece",
+          "parsed": true,
+          "bytecodeDisabled": true
+        },
+        {
+          "name": "chunk-v5wkdteh.js",
+          "role": "review-label",
+          "sourceHash": "6a9ad07e7cda32b27e3c0daadbccb917ecee4d75a404cb9fedc1b03653c05e94",
+          "parsed": true,
+          "bytecodeDisabled": true
+        }
+      ],
+      "passed": true
+    }
+  ]
+}

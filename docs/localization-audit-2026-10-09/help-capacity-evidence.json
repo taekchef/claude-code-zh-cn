@@ -1,0 +1,32 @@
+{
+  "package": "darwin-arm64-2.1.295",
+  "text": "Add an MCP server to Claude Code.\n\nExamples:\n  # Add HTTP server:\n  claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n\n  # Add HTTP server with headers:\n  claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"\n\n  # Add stdio server with environment variables:\n  claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n\n  # Add stdio server with subprocess flags:\n  claude mcp add my-server -- my-command --some-flag arg1",
+  "refs": [
+    {
+      "module": "/$bunfs/root/chunk-j54ybdtc.js",
+      "offset": 13996,
+      "end": 14495,
+      "roles": [
+        "cli-help:description",
+        "dynamic-template"
+      ],
+      "asset": false,
+      "context": "-z0817jfp.js\";import\"/$bunfs/root/chunk-nm2wz8n2.js\";function E(v,c){v.command(\"add <name> <commandOrUrl> [args...]\").description(`Add an MCP server to Claude Code. Examples:   # Add HTTP server:   claude mcp add --transport http sentry https://mcp.sentry.dev/mcp   # Add HTTP server with headers:   claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"   # Add stdio server with environment variables:   claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server   # Add stdio server with subprocess flags:   claude mcp add my-server -- my-command --some-flag arg1`).option(\"-s, --scope <scope>\",\"Configuration scope (local, user, or project)\",\"local\").option(\"-t, --transport <transport>\",\"Tran"
+    }
+  ],
+  "pool": [
+    {
+      "offset": 14293832,
+      "narrow": true,
+      "bytes": 497,
+      "format": "shared",
+      "patched": false,
+      "tooLong": false
+    }
+  ],
+  "proposal": "添加 MCP 服务。\n\n示例：\n  # 添加 HTTP 服务：\n  claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n\n  # 带请求头的 HTTP 服务：\n  claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"\n\n  # 带环境变量的 stdio 服务：\n  claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n\n  # 带子进程参数的 stdio 服务：\n  claude mcp add my-server -- my-command --some-flag arg1",
+  "proposalUtf16Bytes": 796,
+  "commandExamples": "  claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n  claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"\n  claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n  claude mcp add my-server -- my-command --some-flag arg1",
+  "commandExamplesUtf16Bytes": 602,
+  "decision": "保留命令示例；现有窄槽无法装入完整中文，需原生显示能力验证"
+}

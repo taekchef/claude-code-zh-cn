@@ -1,0 +1,21 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const acorn=require('./tools/node_modules/acorn'),walk=require('./tools/node_modules/acorn-walk');
+const {contextRole}=require('./extract-inventory.cjs');
+const id=process.argv[2],file=path.join(__dirname,'results',id,'inventory.json');
+const result=JSON.parse(fs.readFileSync(file,'utf8')),map=new Map(result.rows.map(row=>[row.text,row]));
+for(const row of result.rows){row.roles=row.occurrences?[]:['pool-only'];row.refs=[];row.locations=[];row.occurrences=0;}
+let errors=[];
+function add(text,node,ancestors,source,module){if(!text)return;let row=map.get(text);if(!row)return;row.occurrences++;
+const roles=contextRole(node,ancestors,source);for(const role of roles)if(!row.roles.includes(role))row.roles.push(role);
+row.locations.push({module:module.name,offset:node.start,end:node.end,roles,asset:module.loader===5});
+if(row.refs.length<4||roles.some(role=>!row.refs.some(r=>r.roles.includes(role))))row.refs.push({module:module.name,offset:node.start,end:node.end,roles,asset:module.loader===5,context:source.slice(Math.max(0,node.start-130),Math.min(source.length,node.end+130)).replace(/[\r\n]+/g,' ')});
+}
+for(const module of result.modules){const p=path.join(__dirname,'results',id,'modules',path.basename(module.name)+'.txt');if(!fs.existsSync(p))continue;const source=fs.readFileSync(p,'utf8');
+try{const ast=acorn.parse(source,{ecmaVersion:'latest',sourceType:'module',allowReturnOutsideFunction:true,allowAwaitOutsideFunction:true,allowHashBang:true});walk.fullAncestor(ast,(node,_s,ancestors)=>{
+if(node.type==='Literal'&&typeof node.value==='string')add(node.value,node,ancestors,source,module);
+if(node.type==='TemplateLiteral'){add(node.quasis.map(q=>q.value.cooked??q.value.raw).join('${…}'),node,ancestors,source,module);if(node.expressions.length)for(const q of node.quasis)add(q.value.cooked??q.value.raw,q,[...ancestors,q],source,module);}
+});}catch(error){errors.push({module:module.name,error:error.message});}}
+for(const row of result.rows){row.refCount=row.refs.length;row.referencesTruncated=row.locations.length>row.refs.length;}
+result.parseErrors=errors;result.inventoryStatus=errors.length?'partial':'parsed-all-javascript';result.methodRevision=2;
+fs.writeFileSync(file,JSON.stringify(result));console.log(id,JSON.stringify({errors,strings:map.size}));

@@ -89,3 +89,30 @@ test("command stubs exist for /chinese /english /zh /en", () => {
     assert.match(fs.readFileSync(file, "utf8"), /disable-model-invocation:\s*true/);
   }
 });
+
+test("native /chinese failure preserves the installed patch and reports a repair failure", { skip: process.platform === "win32" }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-native-lang-"));
+  const pluginRoot = path.join(home, "plugin");
+  const target = path.join(home, "claude");
+  fs.mkdirSync(path.join(pluginRoot, "scripts"), { recursive: true });
+  fs.writeFileSync(target, "existing Chinese binary");
+  fs.writeFileSync(`${target}.zh-cn-backup`, "original English binary");
+  fs.writeFileSync(path.join(pluginRoot, "patch-cli.js"), "process.exit(0)");
+  fs.writeFileSync(path.join(pluginRoot, "cli-translations.json"), "[]");
+  fs.writeFileSync(path.join(pluginRoot, "bun-binary-io.js"), `
+    if (process.argv[2] === 'detect') console.log('native-bun:' + ${JSON.stringify(target)});
+    else if (process.argv[2] === 'check-deps') console.log('ok');
+    else process.exit(3);
+  `);
+  fs.writeFileSync(path.join(pluginRoot, "scripts", "native-repair.js"), "console.error('新版结构验证失败'); process.exit(1)");
+  const result = spawnSync(process.execPath, [hookFile], {
+    input: JSON.stringify({ prompt: "/chinese" }), encoding: "utf8",
+    env: { ...process.env, HOME: home, CLAUDE_CONFIG_DIR: path.join(home, ".claude"), CLAUDE_PLUGIN_ROOT: pluginRoot, CLAUDE_BIN: target, CCZH_DRY_RUN: "" },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.readFileSync(target, "utf8"), "existing Chinese binary");
+  assert.equal(fs.readFileSync(`${target}.zh-cn-backup`, "utf8"), "original English binary");
+  assert.match(JSON.parse(result.stdout).reason, /修复失败/);
+  assert.doesNotMatch(JSON.parse(result.stdout).reason, /未识别/);
+  fs.rmSync(home, { recursive: true, force: true });
+});

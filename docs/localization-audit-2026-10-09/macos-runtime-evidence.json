@@ -1,0 +1,2018 @@
+{
+  "packageName": "@anthropic-ai/claude-code",
+  "baseline": [
+    "2.1.286",
+    "2.1.295"
+  ],
+  "results": [
+    {
+      "version": "2.1.286",
+      "kind": "native",
+      "status": "pass",
+      "runtimeStatus": "pass",
+      "coverage": {
+        "status": "partial",
+        "issueCount": 42,
+        "issues": [
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_65",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_103",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_185",
+            "command": "top_help",
+            "match": "project                               Manage Claude Code project state"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_9",
+            "command": "mcp_help",
+            "match": "add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_12",
+            "command": "mcp_help",
+            "match": "# Add HTTP server:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_15",
+            "command": "mcp_help",
+            "match": "# Add HTTP server with headers:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_18",
+            "command": "mcp_help",
+            "match": "# Add stdio server with environment variables:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_21",
+            "command": "mcp_help",
+            "match": "# Add stdio server with subprocess flags:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_23",
+            "command": "mcp_help",
+            "match": "add-from-claude-desktop [options]     Import MCP servers from Claude Desktop"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_24",
+            "command": "mcp_help",
+            "match": "(Mac and WSL only)"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_25",
+            "command": "mcp_help",
+            "match": "add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_26",
+            "command": "mcp_help",
+            "match": "WebSocket) with a JSON string"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_27",
+            "command": "mcp_help",
+            "match": "get <name>                            Get details about an MCP server."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_28",
+            "command": "mcp_help",
+            "match": "Unapproved .mcp.json servers are shown"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_29",
+            "command": "mcp_help",
+            "match": "as ⏸ Pending approval and not connected"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_30",
+            "command": "mcp_help",
+            "match": "to; approved servers are health-checked"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_31",
+            "command": "mcp_help",
+            "match": "unless disabled for this project."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_33",
+            "command": "mcp_help",
+            "match": "list                                  List configured MCP servers. Unapproved"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_34",
+            "command": "mcp_help",
+            "match": ".mcp.json servers are shown as ⏸ Pending"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_35",
+            "command": "mcp_help",
+            "match": "approval and not connected to; approved"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_36",
+            "command": "mcp_help",
+            "match": "servers are health-checked unless"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_37",
+            "command": "mcp_help",
+            "match": "disabled for this project."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_14",
+            "command": "plugin_help",
+            "match": "eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_15",
+            "command": "plugin_help",
+            "match": "or prompt.md + graders/*.md; the eval dir"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_16",
+            "command": "plugin_help",
+            "match": "is evals/ unless --eval-dir or the"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_17",
+            "command": "plugin_help",
+            "match": "manifest says otherwise) against a plugin"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "and report scored results. Target is a"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_19",
+            "command": "plugin_help",
+            "match": "path, a plugin name, or a"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_20",
+            "command": "plugin_help",
+            "match": "`plugin@marketplace` id — installed and"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_21",
+            "command": "plugin_help",
+            "match": "skills-dir plugins both resolve (and add"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_22",
+            "command": "plugin_help",
+            "match": "a no-plugin baseline arm). It loads the"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_23",
+            "command": "plugin_help",
+            "match": "plugin and runs its eval suite (prompts,"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_24",
+            "command": "plugin_help",
+            "match": "graders; scaffold scripts and real MCP"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_25",
+            "command": "plugin_help",
+            "match": "servers only when you opt in) on your"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_26",
+            "command": "plugin_help",
+            "match": "machine, as you: only evaluate plugins"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_27",
+            "command": "plugin_help",
+            "match": "you trust — the run's sandboxing limits"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_28",
+            "command": "plugin_help",
+            "match": "what a malicious plugin can reach but is"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_29",
+            "command": "plugin_help",
+            "match": "not a guarantee, and a bundled suite"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_30",
+            "command": "plugin_help",
+            "match": "passing is not a security vetting. The"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_31",
+            "command": "plugin_help",
+            "match": "first run in an untrusted plugin"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_32",
+            "command": "plugin_help",
+            "match": "directory asks you to confirm"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_33",
+            "command": "plugin_help",
+            "match": "(--trust-plugin answers for CI)"
+          }
+        ]
+      },
+      "patchCount": 1344,
+      "residue": [],
+      "missingRequired": [],
+      "nativeVerification": {
+        "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+        "platform": "darwin-arm64",
+        "detect": "native-bun",
+        "container": "bytecode",
+        "extract": "not-applicable",
+        "repack": "not-applicable",
+        "bytecodePatch": "ok",
+        "bytecodeTranslations": {
+          "patched": 1344,
+          "notFound": 706,
+          "tooLong": 194,
+          "sourceModules": 0,
+          "sourceReplacements": 0,
+          "version": "2.1.286",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-mqxMvZ/claude-patched.zh-cn-backup",
+          "changed": true
+        },
+        "bytecodeLifecycle": {
+          "noMatch": "ok",
+          "repeat": "ok",
+          "uninstall": "ok"
+        },
+        "codeSignature": "ok",
+        "versionOutput": "2.1.286 (Claude Code)"
+      },
+      "displayAudit": {
+        "status": "partial",
+        "commandCount": 11,
+        "issueCount": 42,
+        "warningCount": 42,
+        "failureCount": 0,
+        "commands": [
+          {
+            "id": "top_help",
+            "args": [
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 3,
+            "warningCount": 3
+          },
+          {
+            "id": "agents_help",
+            "args": [
+              "agents",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auth_help",
+            "args": [
+              "auth",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auto_mode_help",
+            "args": [
+              "auto-mode",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "doctor_help",
+            "args": [
+              "doctor",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "install_help",
+            "args": [
+              "install",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "mcp_help",
+            "args": [
+              "mcp",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 19,
+            "warningCount": 19
+          },
+          {
+            "id": "plugin_help",
+            "args": [
+              "plugin",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 20,
+            "warningCount": 20
+          },
+          {
+            "id": "setup_token_help",
+            "args": [
+              "setup-token",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "update_help",
+            "args": [
+              "update",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "ultrareview_help",
+            "args": [
+              "ultrareview",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          }
+        ],
+        "issues": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_65",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_103",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_185",
+            "command": "top_help",
+            "match": "project                               Manage Claude Code project state"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_9",
+            "command": "mcp_help",
+            "match": "add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_12",
+            "command": "mcp_help",
+            "match": "# Add HTTP server:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_15",
+            "command": "mcp_help",
+            "match": "# Add HTTP server with headers:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_18",
+            "command": "mcp_help",
+            "match": "# Add stdio server with environment variables:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_21",
+            "command": "mcp_help",
+            "match": "# Add stdio server with subprocess flags:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_23",
+            "command": "mcp_help",
+            "match": "add-from-claude-desktop [options]     Import MCP servers from Claude Desktop"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_24",
+            "command": "mcp_help",
+            "match": "(Mac and WSL only)"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_25",
+            "command": "mcp_help",
+            "match": "add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_26",
+            "command": "mcp_help",
+            "match": "WebSocket) with a JSON string"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_27",
+            "command": "mcp_help",
+            "match": "get <name>                            Get details about an MCP server."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_28",
+            "command": "mcp_help",
+            "match": "Unapproved .mcp.json servers are shown"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_29",
+            "command": "mcp_help",
+            "match": "as ⏸ Pending approval and not connected"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_30",
+            "command": "mcp_help",
+            "match": "to; approved servers are health-checked"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_31",
+            "command": "mcp_help",
+            "match": "unless disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_33",
+            "command": "mcp_help",
+            "match": "list                                  List configured MCP servers. Unapproved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_34",
+            "command": "mcp_help",
+            "match": ".mcp.json servers are shown as ⏸ Pending"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_35",
+            "command": "mcp_help",
+            "match": "approval and not connected to; approved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_36",
+            "command": "mcp_help",
+            "match": "servers are health-checked unless"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_37",
+            "command": "mcp_help",
+            "match": "disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_14",
+            "command": "plugin_help",
+            "match": "eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_15",
+            "command": "plugin_help",
+            "match": "or prompt.md + graders/*.md; the eval dir"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_16",
+            "command": "plugin_help",
+            "match": "is evals/ unless --eval-dir or the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_17",
+            "command": "plugin_help",
+            "match": "manifest says otherwise) against a plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "and report scored results. Target is a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_19",
+            "command": "plugin_help",
+            "match": "path, a plugin name, or a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_20",
+            "command": "plugin_help",
+            "match": "`plugin@marketplace` id — installed and"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_21",
+            "command": "plugin_help",
+            "match": "skills-dir plugins both resolve (and add"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_22",
+            "command": "plugin_help",
+            "match": "a no-plugin baseline arm). It loads the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_23",
+            "command": "plugin_help",
+            "match": "plugin and runs its eval suite (prompts,"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_24",
+            "command": "plugin_help",
+            "match": "graders; scaffold scripts and real MCP"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_25",
+            "command": "plugin_help",
+            "match": "servers only when you opt in) on your"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_26",
+            "command": "plugin_help",
+            "match": "machine, as you: only evaluate plugins"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_27",
+            "command": "plugin_help",
+            "match": "you trust — the run's sandboxing limits"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_28",
+            "command": "plugin_help",
+            "match": "what a malicious plugin can reach but is"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_29",
+            "command": "plugin_help",
+            "match": "not a guarantee, and a bundled suite"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_30",
+            "command": "plugin_help",
+            "match": "passing is not a security vetting. The"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_31",
+            "command": "plugin_help",
+            "match": "first run in an untrusted plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_32",
+            "command": "plugin_help",
+            "match": "directory asks you to confirm"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_33",
+            "command": "plugin_help",
+            "match": "(--trust-plugin answers for CI)"
+          }
+        ],
+        "warnings": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_65",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_103",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_185",
+            "command": "top_help",
+            "match": "project                               Manage Claude Code project state"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_9",
+            "command": "mcp_help",
+            "match": "add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_12",
+            "command": "mcp_help",
+            "match": "# Add HTTP server:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_15",
+            "command": "mcp_help",
+            "match": "# Add HTTP server with headers:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_18",
+            "command": "mcp_help",
+            "match": "# Add stdio server with environment variables:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_21",
+            "command": "mcp_help",
+            "match": "# Add stdio server with subprocess flags:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_23",
+            "command": "mcp_help",
+            "match": "add-from-claude-desktop [options]     Import MCP servers from Claude Desktop"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_24",
+            "command": "mcp_help",
+            "match": "(Mac and WSL only)"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_25",
+            "command": "mcp_help",
+            "match": "add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_26",
+            "command": "mcp_help",
+            "match": "WebSocket) with a JSON string"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_27",
+            "command": "mcp_help",
+            "match": "get <name>                            Get details about an MCP server."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_28",
+            "command": "mcp_help",
+            "match": "Unapproved .mcp.json servers are shown"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_29",
+            "command": "mcp_help",
+            "match": "as ⏸ Pending approval and not connected"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_30",
+            "command": "mcp_help",
+            "match": "to; approved servers are health-checked"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_31",
+            "command": "mcp_help",
+            "match": "unless disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_33",
+            "command": "mcp_help",
+            "match": "list                                  List configured MCP servers. Unapproved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_34",
+            "command": "mcp_help",
+            "match": ".mcp.json servers are shown as ⏸ Pending"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_35",
+            "command": "mcp_help",
+            "match": "approval and not connected to; approved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_36",
+            "command": "mcp_help",
+            "match": "servers are health-checked unless"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_37",
+            "command": "mcp_help",
+            "match": "disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_14",
+            "command": "plugin_help",
+            "match": "eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_15",
+            "command": "plugin_help",
+            "match": "or prompt.md + graders/*.md; the eval dir"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_16",
+            "command": "plugin_help",
+            "match": "is evals/ unless --eval-dir or the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_17",
+            "command": "plugin_help",
+            "match": "manifest says otherwise) against a plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "and report scored results. Target is a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_19",
+            "command": "plugin_help",
+            "match": "path, a plugin name, or a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_20",
+            "command": "plugin_help",
+            "match": "`plugin@marketplace` id — installed and"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_21",
+            "command": "plugin_help",
+            "match": "skills-dir plugins both resolve (and add"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_22",
+            "command": "plugin_help",
+            "match": "a no-plugin baseline arm). It loads the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_23",
+            "command": "plugin_help",
+            "match": "plugin and runs its eval suite (prompts,"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_24",
+            "command": "plugin_help",
+            "match": "graders; scaffold scripts and real MCP"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_25",
+            "command": "plugin_help",
+            "match": "servers only when you opt in) on your"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_26",
+            "command": "plugin_help",
+            "match": "machine, as you: only evaluate plugins"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_27",
+            "command": "plugin_help",
+            "match": "you trust — the run's sandboxing limits"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_28",
+            "command": "plugin_help",
+            "match": "what a malicious plugin can reach but is"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_29",
+            "command": "plugin_help",
+            "match": "not a guarantee, and a bundled suite"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_30",
+            "command": "plugin_help",
+            "match": "passing is not a security vetting. The"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_31",
+            "command": "plugin_help",
+            "match": "first run in an untrusted plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_32",
+            "command": "plugin_help",
+            "match": "directory asks you to confirm"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_33",
+            "command": "plugin_help",
+            "match": "(--trust-plugin answers for CI)"
+          }
+        ],
+        "failures": []
+      }
+    },
+    {
+      "version": "2.1.295",
+      "kind": "native",
+      "status": "pass",
+      "runtimeStatus": "pass",
+      "coverage": {
+        "status": "partial",
+        "issueCount": 45,
+        "issues": [
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_61",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_99",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_167",
+            "command": "top_help",
+            "match": "attach <id|name>                      Open a background session in this"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_168",
+            "command": "top_help",
+            "match": "terminal. <id> is the short id that"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_169",
+            "command": "top_help",
+            "match": "`claude --bg` prints and `claude agents`"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_170",
+            "command": "top_help",
+            "match": "lists. Part of the session name works"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_9",
+            "command": "mcp_help",
+            "match": "add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_12",
+            "command": "mcp_help",
+            "match": "# Add HTTP server:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_15",
+            "command": "mcp_help",
+            "match": "# Add HTTP server with headers:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_18",
+            "command": "mcp_help",
+            "match": "# Add stdio server with environment variables:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_21",
+            "command": "mcp_help",
+            "match": "# Add stdio server with subprocess flags:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_23",
+            "command": "mcp_help",
+            "match": "add-from-claude-desktop [options]     Import MCP servers from Claude Desktop"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_24",
+            "command": "mcp_help",
+            "match": "(Mac and WSL only)"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_25",
+            "command": "mcp_help",
+            "match": "add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_26",
+            "command": "mcp_help",
+            "match": "WebSocket) with a JSON string"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_27",
+            "command": "mcp_help",
+            "match": "get <name>                            Get details about an MCP server."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_28",
+            "command": "mcp_help",
+            "match": "Unapproved .mcp.json servers are shown"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_29",
+            "command": "mcp_help",
+            "match": "as ⏸ Pending approval and not connected"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_30",
+            "command": "mcp_help",
+            "match": "to; approved servers are health-checked"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_31",
+            "command": "mcp_help",
+            "match": "unless disabled for this project."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_33",
+            "command": "mcp_help",
+            "match": "list                                  List configured MCP servers. Unapproved"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_34",
+            "command": "mcp_help",
+            "match": ".mcp.json servers are shown as ⏸ Pending"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_35",
+            "command": "mcp_help",
+            "match": "approval and not connected to; approved"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_36",
+            "command": "mcp_help",
+            "match": "servers are health-checked unless"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_37",
+            "command": "mcp_help",
+            "match": "disabled for this project."
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_14",
+            "command": "plugin_help",
+            "match": "eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_15",
+            "command": "plugin_help",
+            "match": "or prompt.md + graders/*.md; the eval dir"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_16",
+            "command": "plugin_help",
+            "match": "is evals/ unless --eval-dir or the"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_17",
+            "command": "plugin_help",
+            "match": "manifest says otherwise) against a plugin"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "and report scored results. Target is a"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_19",
+            "command": "plugin_help",
+            "match": "path, a plugin name, or a"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_20",
+            "command": "plugin_help",
+            "match": "`plugin@marketplace` id — installed and"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_21",
+            "command": "plugin_help",
+            "match": "skills-dir plugins both resolve (and add"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_22",
+            "command": "plugin_help",
+            "match": "a no-plugin baseline arm). It loads the"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_23",
+            "command": "plugin_help",
+            "match": "plugin and runs its eval suite (prompts,"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_24",
+            "command": "plugin_help",
+            "match": "graders; scaffold scripts and real MCP"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_25",
+            "command": "plugin_help",
+            "match": "servers only when you opt in) on your"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_26",
+            "command": "plugin_help",
+            "match": "machine, as you: only evaluate plugins"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_27",
+            "command": "plugin_help",
+            "match": "you trust — the run's sandboxing limits"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_28",
+            "command": "plugin_help",
+            "match": "what a malicious plugin can reach but is"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_29",
+            "command": "plugin_help",
+            "match": "not a guarantee, and a bundled suite"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_30",
+            "command": "plugin_help",
+            "match": "passing is not a security vetting. The"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_31",
+            "command": "plugin_help",
+            "match": "first run in an untrusted plugin"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_32",
+            "command": "plugin_help",
+            "match": "directory asks you to confirm"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_33",
+            "command": "plugin_help",
+            "match": "(--trust-plugin answers for CI)"
+          }
+        ]
+      },
+      "patchCount": 1342,
+      "residue": [],
+      "missingRequired": [],
+      "nativeVerification": {
+        "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+        "platform": "darwin-arm64",
+        "detect": "native-bun",
+        "container": "bytecode",
+        "extract": "not-applicable",
+        "repack": "not-applicable",
+        "bytecodePatch": "ok",
+        "bytecodeTranslations": {
+          "patched": 1342,
+          "notFound": 712,
+          "tooLong": 190,
+          "sourceModules": 0,
+          "sourceReplacements": 0,
+          "version": "2.1.295",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-X4KuxT/claude-patched.zh-cn-backup",
+          "changed": true
+        },
+        "bytecodeLifecycle": {
+          "noMatch": "ok",
+          "repeat": "ok",
+          "uninstall": "ok"
+        },
+        "codeSignature": "ok",
+        "versionOutput": "2.1.295 (Claude Code)"
+      },
+      "displayAudit": {
+        "status": "partial",
+        "commandCount": 11,
+        "issueCount": 45,
+        "warningCount": 45,
+        "failureCount": 0,
+        "commands": [
+          {
+            "id": "top_help",
+            "args": [
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 6,
+            "warningCount": 6
+          },
+          {
+            "id": "agents_help",
+            "args": [
+              "agents",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auth_help",
+            "args": [
+              "auth",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auto_mode_help",
+            "args": [
+              "auto-mode",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "doctor_help",
+            "args": [
+              "doctor",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "install_help",
+            "args": [
+              "install",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "mcp_help",
+            "args": [
+              "mcp",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 19,
+            "warningCount": 19
+          },
+          {
+            "id": "plugin_help",
+            "args": [
+              "plugin",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 20,
+            "warningCount": 20
+          },
+          {
+            "id": "setup_token_help",
+            "args": [
+              "setup-token",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "update_help",
+            "args": [
+              "update",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "ultrareview_help",
+            "args": [
+              "ultrareview",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          }
+        ],
+        "issues": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_61",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_99",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_167",
+            "command": "top_help",
+            "match": "attach <id|name>                      Open a background session in this"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_168",
+            "command": "top_help",
+            "match": "terminal. <id> is the short id that"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_169",
+            "command": "top_help",
+            "match": "`claude --bg` prints and `claude agents`"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_170",
+            "command": "top_help",
+            "match": "lists. Part of the session name works"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_9",
+            "command": "mcp_help",
+            "match": "add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_12",
+            "command": "mcp_help",
+            "match": "# Add HTTP server:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_15",
+            "command": "mcp_help",
+            "match": "# Add HTTP server with headers:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_18",
+            "command": "mcp_help",
+            "match": "# Add stdio server with environment variables:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_21",
+            "command": "mcp_help",
+            "match": "# Add stdio server with subprocess flags:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_23",
+            "command": "mcp_help",
+            "match": "add-from-claude-desktop [options]     Import MCP servers from Claude Desktop"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_24",
+            "command": "mcp_help",
+            "match": "(Mac and WSL only)"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_25",
+            "command": "mcp_help",
+            "match": "add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_26",
+            "command": "mcp_help",
+            "match": "WebSocket) with a JSON string"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_27",
+            "command": "mcp_help",
+            "match": "get <name>                            Get details about an MCP server."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_28",
+            "command": "mcp_help",
+            "match": "Unapproved .mcp.json servers are shown"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_29",
+            "command": "mcp_help",
+            "match": "as ⏸ Pending approval and not connected"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_30",
+            "command": "mcp_help",
+            "match": "to; approved servers are health-checked"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_31",
+            "command": "mcp_help",
+            "match": "unless disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_33",
+            "command": "mcp_help",
+            "match": "list                                  List configured MCP servers. Unapproved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_34",
+            "command": "mcp_help",
+            "match": ".mcp.json servers are shown as ⏸ Pending"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_35",
+            "command": "mcp_help",
+            "match": "approval and not connected to; approved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_36",
+            "command": "mcp_help",
+            "match": "servers are health-checked unless"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_37",
+            "command": "mcp_help",
+            "match": "disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_14",
+            "command": "plugin_help",
+            "match": "eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_15",
+            "command": "plugin_help",
+            "match": "or prompt.md + graders/*.md; the eval dir"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_16",
+            "command": "plugin_help",
+            "match": "is evals/ unless --eval-dir or the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_17",
+            "command": "plugin_help",
+            "match": "manifest says otherwise) against a plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "and report scored results. Target is a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_19",
+            "command": "plugin_help",
+            "match": "path, a plugin name, or a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_20",
+            "command": "plugin_help",
+            "match": "`plugin@marketplace` id — installed and"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_21",
+            "command": "plugin_help",
+            "match": "skills-dir plugins both resolve (and add"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_22",
+            "command": "plugin_help",
+            "match": "a no-plugin baseline arm). It loads the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_23",
+            "command": "plugin_help",
+            "match": "plugin and runs its eval suite (prompts,"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_24",
+            "command": "plugin_help",
+            "match": "graders; scaffold scripts and real MCP"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_25",
+            "command": "plugin_help",
+            "match": "servers only when you opt in) on your"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_26",
+            "command": "plugin_help",
+            "match": "machine, as you: only evaluate plugins"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_27",
+            "command": "plugin_help",
+            "match": "you trust — the run's sandboxing limits"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_28",
+            "command": "plugin_help",
+            "match": "what a malicious plugin can reach but is"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_29",
+            "command": "plugin_help",
+            "match": "not a guarantee, and a bundled suite"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_30",
+            "command": "plugin_help",
+            "match": "passing is not a security vetting. The"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_31",
+            "command": "plugin_help",
+            "match": "first run in an untrusted plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_32",
+            "command": "plugin_help",
+            "match": "directory asks you to confirm"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_33",
+            "command": "plugin_help",
+            "match": "(--trust-plugin answers for CI)"
+          }
+        ],
+        "warnings": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_61",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_99",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_167",
+            "command": "top_help",
+            "match": "attach <id|name>                      Open a background session in this"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_168",
+            "command": "top_help",
+            "match": "terminal. <id> is the short id that"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_169",
+            "command": "top_help",
+            "match": "`claude --bg` prints and `claude agents`"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_170",
+            "command": "top_help",
+            "match": "lists. Part of the session name works"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_9",
+            "command": "mcp_help",
+            "match": "add [options] <name> <commandOrUrl> [args...]  Add an MCP server to Claude Code."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_12",
+            "command": "mcp_help",
+            "match": "# Add HTTP server:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_15",
+            "command": "mcp_help",
+            "match": "# Add HTTP server with headers:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_18",
+            "command": "mcp_help",
+            "match": "# Add stdio server with environment variables:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_21",
+            "command": "mcp_help",
+            "match": "# Add stdio server with subprocess flags:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_23",
+            "command": "mcp_help",
+            "match": "add-from-claude-desktop [options]     Import MCP servers from Claude Desktop"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_24",
+            "command": "mcp_help",
+            "match": "(Mac and WSL only)"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_25",
+            "command": "mcp_help",
+            "match": "add-json [options] <name> <json>      Add an MCP server (stdio, SSE, HTTP, or"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_26",
+            "command": "mcp_help",
+            "match": "WebSocket) with a JSON string"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_27",
+            "command": "mcp_help",
+            "match": "get <name>                            Get details about an MCP server."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_28",
+            "command": "mcp_help",
+            "match": "Unapproved .mcp.json servers are shown"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_29",
+            "command": "mcp_help",
+            "match": "as ⏸ Pending approval and not connected"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_30",
+            "command": "mcp_help",
+            "match": "to; approved servers are health-checked"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_31",
+            "command": "mcp_help",
+            "match": "unless disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_33",
+            "command": "mcp_help",
+            "match": "list                                  List configured MCP servers. Unapproved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_34",
+            "command": "mcp_help",
+            "match": ".mcp.json servers are shown as ⏸ Pending"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_35",
+            "command": "mcp_help",
+            "match": "approval and not connected to; approved"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_36",
+            "command": "mcp_help",
+            "match": "servers are health-checked unless"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "mcp_help_line_37",
+            "command": "mcp_help",
+            "match": "disabled for this project."
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_14",
+            "command": "plugin_help",
+            "match": "eval [options] [target]              Run eval cases (<eval dir>/**/case.yaml"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_15",
+            "command": "plugin_help",
+            "match": "or prompt.md + graders/*.md; the eval dir"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_16",
+            "command": "plugin_help",
+            "match": "is evals/ unless --eval-dir or the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_17",
+            "command": "plugin_help",
+            "match": "manifest says otherwise) against a plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "and report scored results. Target is a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_19",
+            "command": "plugin_help",
+            "match": "path, a plugin name, or a"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_20",
+            "command": "plugin_help",
+            "match": "`plugin@marketplace` id — installed and"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_21",
+            "command": "plugin_help",
+            "match": "skills-dir plugins both resolve (and add"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_22",
+            "command": "plugin_help",
+            "match": "a no-plugin baseline arm). It loads the"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_23",
+            "command": "plugin_help",
+            "match": "plugin and runs its eval suite (prompts,"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_24",
+            "command": "plugin_help",
+            "match": "graders; scaffold scripts and real MCP"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_25",
+            "command": "plugin_help",
+            "match": "servers only when you opt in) on your"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_26",
+            "command": "plugin_help",
+            "match": "machine, as you: only evaluate plugins"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_27",
+            "command": "plugin_help",
+            "match": "you trust — the run's sandboxing limits"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_28",
+            "command": "plugin_help",
+            "match": "what a malicious plugin can reach but is"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_29",
+            "command": "plugin_help",
+            "match": "not a guarantee, and a bundled suite"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_30",
+            "command": "plugin_help",
+            "match": "passing is not a security vetting. The"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_31",
+            "command": "plugin_help",
+            "match": "first run in an untrusted plugin"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_32",
+            "command": "plugin_help",
+            "match": "directory asks you to confirm"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_33",
+            "command": "plugin_help",
+            "match": "(--trust-plugin answers for CI)"
+          }
+        ],
+        "failures": []
+      }
+    }
+  ],
+  "summary": {
+    "pass": 2,
+    "fail": 0,
+    "skip": 0,
+    "coveragePartial": 2
+  }
+}

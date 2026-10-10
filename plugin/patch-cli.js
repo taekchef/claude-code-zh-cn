@@ -750,6 +750,17 @@ function translateFastModeTemplateLiteral(literal) {
     return true;
 }
 
+function translateSkillPermissionTemplateLiteral(literal) {
+    const expressions = literal.parts?.filter((part) => part.type === "expr") ?? [];
+    const texts = literal.parts?.filter((part) => part.type === "text") ?? [];
+    if (expressions.length !== 1 || texts.length !== 2 ||
+        texts[0].value !== 'Use skill "' || texts[1].value !== '"?') return false;
+    texts[0].value = "使用技能“";
+    texts[1].value = "”？";
+    literal.text = literal.parts.map((part) => part.value).join("");
+    return true;
+}
+
 function applyDynamicLiteralTranslations(text) {
     const statusVerbs = new Map([
         ["Baked", "烘焙了"],
@@ -1802,7 +1813,7 @@ if (translationsFile && fs.existsSync(translationsFile)) {
 
     for (const literal of literals) {
         if (literal.quote === "`") {
-            if (translateFastModeTemplateLiteral(literal)) {
+            if (translateFastModeTemplateLiteral(literal) || translateSkillPermissionTemplateLiteral(literal)) {
                 literalsChanged = true;
                 count++;
             }

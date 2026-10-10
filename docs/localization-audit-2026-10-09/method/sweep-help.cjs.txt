@@ -1,0 +1,22 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),{execFileSync,spawnSync}=require('node:child_process');
+const root='/Users/changfenhuang/projects/claude-code-zh-cn',id=process.argv[2];
+const dir=path.join(__dirname,'results',id,'help-runtime');fs.mkdirSync(dir,{recursive:true});
+const binary=path.join(dir,'claude');fs.copyFileSync(path.join(__dirname,'extracted',id,'package','claude'),binary);fs.chmodSync(binary,0o755);
+const isolatedHome=path.join(dir,'home');fs.mkdirSync(isolatedHome,{recursive:true});
+const env={...process.env,HOME:isolatedHome,USERPROFILE:isolatedHome,CLAUDE_CONFIG_DIR:path.join(isolatedHome,'.claude'),XDG_CONFIG_HOME:path.join(isolatedHome,'.config'),XDG_DATA_HOME:path.join(isolatedHome,'.local','share'),XDG_CACHE_HOME:path.join(isolatedHome,'.cache'),DISABLE_AUTOUPDATER:'1',CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC:'1',NO_COLOR:'1',FORCE_COLOR:'0',CI:'1'};
+delete env.ANTHROPIC_API_KEY;delete env.ANTHROPIC_AUTH_TOKEN;delete env.CLAUDE_CODE_OAUTH_TOKEN;
+const patch=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/patch-bytecode.js'),'patch',binary,path.join(root,'cli-translations.json'),'--json'],{env,encoding:'utf8',timeout:60000,maxBuffer:8*1024*1024}));
+const config=JSON.parse(fs.readFileSync(path.join(root,'scripts/upstream-compat.config.json'),'utf8'));
+const results=[],queue=[[],...config.checks.displayAudit.commands.map(c=>c.args.filter(a=>a!=='--help'))],seen=new Set();
+while(queue.length){
+const args=queue.shift(),key=args.join(' ');if(seen.has(key))continue;seen.add(key);if(args.length>5||seen.size>250)throw new Error('Help tree exceeds declared audit boundary');
+const r=spawnSync(binary,[...args,'--help'],{env,cwd:dir,encoding:'utf8',timeout:12000,maxBuffer:8*1024*1024});
+const out=(r.stdout||'').replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g,'');
+const item={args,status:r.status,error:r.error?.message||null,stdout:out,stderr:r.stderr||'',children:[]};
+const section=out.split(/(?:^|\n)(?:Commands|命令)[：:]\s*\n/)[1];
+if(section&&r.status===0){for(const line of section.split(/\r?\n/)){const m=line.match(/^ {2}([a-z][a-z0-9-]*)(?=\s|$)/);if(m&&m[1]!=='help'){item.children.push(m[1]);queue.push([...args,m[1]]);}}}
+results.push(item);if(results.length%15===0)console.log(id+' help surfaces: '+results.length);
+}
+fs.writeFileSync(path.join(dir,'help-tree.json'),JSON.stringify({id,patch,results},null,2));
+console.log(JSON.stringify({id,surfaces:results.length,failed:results.filter(x=>x.status!==0).map(x=>({args:x.args,status:x.status,error:x.error})),patch}));

@@ -3211,7 +3211,8 @@
   },
   {
     "en": "Hook cancelled",
-    "zh": "Hook 已取消"
+    "zh": "Hook 已取消",
+    "skipPatch": true
   },
   {
     "en": "Hook details",
@@ -8784,5 +8785,485 @@
   {
     "en": "Switch between Claude models. Your pick becomes the default for new sessions. For other/previous model names, specify with --model.",
     "zh": "切换 Claude 模型。所选模型将成为新会话默认值；其他或旧模型可通过 --model 指定。"
+  },
+  {
+    "en": "Use this skill?",
+    "zh": "使用此技能？"
+  },
+  {
+    "en": "Claude may use instructions, code, or files from this Skill.",
+    "zh": "Claude 可使用此技能的指令、代码或文件。"
+  },
+  {
+    "en": "Yes, and don't ask again for ",
+    "zh": "是，今后不再询问 "
+  },
+  {
+    "en": "Proceed?",
+    "zh": "继续吗？"
+  },
+  {
+    "en": "Working directory has changes",
+    "zh": "工作目录有改动"
+  },
+  {
+    "en": "Its settings declare project permission rules and/or additional directories. They apply only if you trust this directory explicitly (it is trusted through a parent directory so far).",
+    "zh": "此目录的设置包含权限规则或额外目录。明确信任此目录后才会生效；目前仅通过父目录间接信任。"
+  },
+  {
+    "en": "This directory configures hooks that run commands, declared in",
+    "zh": "此目录配置了会执行命令的 Hook，定义位于"
+  },
+  {
+    "en": " /plugin stats - Show skill usage and context costs",
+    "zh": " /plugin stats - 查看技能用量和上下文开销"
+  },
+  {
+    "en": " installed · restart to apply",
+    "zh": " 已安装 · 重启生效"
+  },
+  {
+    "en": "Create a pull request",
+    "zh": "创建 PR"
+  },
+  {
+    "en": "Answer questions about Claude Code features and settings",
+    "zh": "解答 Claude Code 功能和设置问题"
+  },
+  {
+    "en": "Create a skill that knows how to run this project’s app",
+    "zh": "创建运行项目的技能"
+  },
+  {
+    "en": "Launch this project’s app to see your change working",
+    "zh": "启动项目查看改动"
+  },
+  {
+    "en": "Guided setup — pick a role, install a plugin, try a skill, connect tools",
+    "zh": "引导设置：选择角色、安装插件、试用技能、连接工具"
+  },
+  {
+    "en": "Diagramming guidance for Artifacts",
+    "zh": "作品图示指南"
+  },
+  {
+    "en": "Publish a report Artifact from a template",
+    "zh": "用模板发布报告"
+  },
+  {
+    "en": "Which agent to import from (codex, gemini, cursor)",
+    "zh": "要导入哪个工具的会话（codex、gemini、cursor）"
+  },
+  {
+    "en": "Show what would be imported without writing anything",
+    "zh": "预览导入内容，不写入文件"
+  },
+  {
+    "en": "List what would be deleted without deleting anything",
+    "zh": "预览要删除的内容，不执行删除"
+  },
+  {
+    "en": "Prompt for each item before deleting",
+    "zh": "逐项确认后删除"
+  },
+  {
+    "en": "Skip confirmation prompt",
+    "zh": "跳过确认"
+  },
+  {
+    "en": "Restart every running background session",
+    "zh": "重启全部运行中的后台会话"
+  },
+  {
+    "en": "Disable all enabled plugins",
+    "zh": "停用全部插件"
+  },
+  {
+    "en": "Filter cases by tag (repeatable)",
+    "zh": "按标签筛选用例（可重复）"
+  },
+  {
+    "en": "Override which model is used",
+    "zh": "指定使用的模型"
+  },
+  {
+    "en": "Searching",
+    "zh": "搜索中"
+  },
+  {
+    "en": "Configuration error",
+    "zh": "配置错误"
+  },
+  {
+    "en": "Auto-memory",
+    "zh": "自动记忆"
+  },
+  {
+    "en": "No tool calls yet.",
+    "zh": "暂无工具调用。"
+  },
+  {
+    "en": " · reviewing ",
+    "zh": " · 审查中 "
+  },
+  {
+    "en": "1 teammate shut down",
+    "zh": "已停止 1 个协作 Agent"
+  },
+  {
+    "en": "Stop ultrareview?",
+    "zh": "停止深度审查？"
+  },
+  {
+    "en": "monthly limit · run /usage-credits to adjust",
+    "zh": "每月限额 · 用 /usage-credits 调整"
+  },
+  {
+    "en": "Sending request to your admin…",
+    "zh": "正在向管理员发出请求…"
+  },
+  {
+    "en": "Add an MCP server to Claude Code.\n\nExamples:\n  # Add HTTP server:\n  claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n\n  # Add HTTP server with headers:\n  claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"\n\n  # Add stdio server with environment variables:\n  claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n\n  # Add stdio server with subprocess flags:\n  claude mcp add my-server -- my-command --some-flag arg1",
+    "zh": "添加 MCP 服务。\n\n示例：\n  # 添加 HTTP 服务：\n  claude mcp add --transport http sentry https://mcp.sentry.dev/mcp\n\n  # 带请求头的 HTTP 服务：\n  claude mcp add --transport http corridor https://app.corridor.dev/api/mcp --header \"Authorization: Bearer ...\"\n\n  # 带环境变量的 stdio 服务：\n  claude mcp add my-server -e API_KEY=xxx -- npx my-mcp-server\n\n  # 带子进程参数的 stdio 服务：\n  claude mcp add my-server -- my-command --some-flag arg1"
+  },
+  {
+    "en": "Accept the displayed marketplace-declared command without the confirmation prompt — a changed install command, or the headersHelper command that fetches its archive (required when stdin or stdout is not a TTY)",
+    "zh": "接受已展示的市场命令，无需确认：包括变更后的安装命令，或下载归档的 headersHelper 命令（标准输入或输出不是终端时必需）"
+  },
+  {
+    "en": "Add the marketplace of this name that claude.ai hosts for you, by its listed name or its local name (see: claude plugin marketplace list)",
+    "zh": "按列出的名称或本地名称，添加 claude.ai 为你托管的同名插件市场（见：claude plugin marketplace list）"
+  },
+  {
+    "en": "Assert that you trust this plugin's code and eval suite, and skip the first-run trust prompt (for CI; like --dangerously-skip-permissions, only pass it for plugins you would run yourself). Does not imply --scaffold, --allow-tools or --mocks off",
+    "zh": "声明信任此插件的代码和评测套件，并跳过首次信任确认（用于 CI；与 --dangerously-skip-permissions 一样，仅用于你愿意亲自运行的插件）。不包含 --scaffold、--allow-tools 或 --mocks off"
+  },
+  {
+    "en": "Configuration scope (local, user, or project)",
+    "zh": "配置范围（local、user 或 project）"
+  },
+  {
+    "en": "Configuration scope (local, user, or project) - if not specified, removes from whichever scope it exists in",
+    "zh": "配置范围（local、user 或 project）；未指定时，从现有范围移除"
+  },
+  {
+    "en": "Directory (below the current directory) to write cases into (default: experimental.evals from the plugin.json in the current directory, else evals/)",
+    "zh": "写入用例的目录，位于当前目录下（默认取当前 plugin.json 的 experimental.evals，否则为 evals/）"
+  },
+  {
+    "en": "Directory for aggregate-result.json (default: ./<eval dir>/results/<timestamp>/)",
+    "zh": "aggregate-result.json 所在目录（默认：./<eval dir>/results/<timestamp>/）"
+  },
+  {
+    "en": "Directory name (below the plugin) that holds the eval cases; results go to <plugin>/<dir>/results/ — for an installed-plugin target, ./<dir>/results/ with this flag, else ./evals/results/ (default dir: the manifest's experimental.evals value, else evals/)",
+    "zh": "插件内的评测目录；结果写入 <plugin>/<dir>/results/。对已安装插件，指定此参数时写入 ./<dir>/results/，否则写入 ./evals/results/（默认目录取清单的 experimental.evals，否则为 evals/）"
+  },
+  {
+    "en": "Enable debug mode",
+    "zh": "启用调试模式"
+  },
+  {
+    "en": "Exit 1 if any case score is below this threshold (default: 1.0)",
+    "zh": "任一用例得分低于阈值时，以状态码 1 退出（默认：1.0）"
+  },
+  {
+    "en": "Explicitly skip scaffold_script",
+    "zh": "跳过 scaffold_script"
+  },
+  {
+    "en": "Filter cases by name glob",
+    "zh": "按名称通配符筛选用例"
+  },
+  {
+    "en": "Force SSO login flow",
+    "zh": "强制使用 SSO 登录"
+  },
+  {
+    "en": "Get details about an MCP server. Unapproved .mcp.json servers are shown as ⏸ Pending approval and not connected to; approved servers are health-checked unless disabled for this project.",
+    "zh": "查看 MCP 服务详情。未批准的 .mcp.json 服务显示为 ⏸ 待批准，不会连接；已批准的服务会检查健康状态，本项目已禁用的除外。"
+  },
+  {
+    "en": "Installation scope: ",
+    "zh": "安装范围："
+  },
+  {
+    "en": "Limit checkout to specific directories via git sparse-checkout (for monorepos). Example: --sparse .claude-plugin plugins",
+    "zh": "通过 git sparse-checkout 仅检出指定目录，适用于大型多项目仓库。示例：--sparse .claude-plugin plugins"
+  },
+  {
+    "en": "List configured MCP servers. Unapproved .mcp.json servers are shown as ⏸ Pending approval and not connected to; approved servers are health-checked unless disabled for this project.",
+    "zh": "列出 MCP 服务。未批准的 .mcp.json 服务显示为 ⏸ 待批准，不会连接；已批准的服务会检查健康状态，本项目已禁用的除外。"
+  },
+  {
+    "en": "Log per-message trace events to the debug log (use --debug-file to read them)",
+    "zh": "将逐条消息的追踪事件写入调试日志（用 --debug-file 查看）"
+  },
+  {
+    "en": "Measure each installed plugin's saved data directory, or only the named plugin's (requires --json)",
+    "zh": "统计所有已安装插件的保存数据大小，或仅统计指定插件（需 --json）"
+  },
+  {
+    "en": "Mock stand-ins for MCP servers, from <eval dir>/mocks/ (record | off; default: record). record: a plugin server with no mock is NOT started (see --allow-real-servers); off: no stand-ins, every real server starts (as you, outside the OS sandbox), its tools gated by --allow-tools",
+    "zh": "从 <eval dir>/mocks/ 使用 MCP 模拟服务（record 或 off；默认 record）。record：未提供模拟的插件服务不会启动，参见 --allow-real-servers。off：启动全部真实服务，以你的身份在系统沙盒外运行；工具仍需 --allow-tools 授权"
+  },
+  {
+    "en": "OAuth client ID for HTTP/SSE servers",
+    "zh": "HTTP/SSE 服务的 OAuth 客户端 ID"
+  },
+  {
+    "en": "Open a background session in this terminal. <id> is the short id that `claude --bg` prints and `claude agents` lists. Part of the session name works too",
+    "zh": "在此终端打开后台会话。<id> 是 claude --bg 输出、claude agents 列出的短编号；也可用会话名称的一部分"
+  },
+  {
+    "en": "Operator grant for gated tools (Bash, Write, Edit, WebFetch, mcp__*). Supports Tool(pattern:*) syntax",
+    "zh": "授权受限工具（Bash、Write、Edit、WebFetch、mcp__*）。支持 Tool(pattern:*) 语法"
+  },
+  {
+    "en": "Optional hard cost ceiling; abort and report partial results if hit (exit 2). ",
+    "zh": "可选的费用上限；达到时中止并报告部分结果（退出码 2）。"
+  },
+  {
+    "en": "Output as human-readable text",
+    "zh": "输出易读文本"
+  },
+  {
+    "en": "Output as JSON (default)",
+    "zh": "输出 JSON（默认）"
+  },
+  {
+    "en": "Output the validation report as JSON (same exit codes)",
+    "zh": "以 JSON 输出校验报告，退出码不变"
+  },
+  {
+    "en": "Override LLM-grader model (default: haiku)",
+    "zh": "指定模型评分器使用的模型（默认 haiku）"
+  },
+  {
+    "en": "Override model for all cases",
+    "zh": "为全部用例指定模型"
+  },
+  {
+    "en": "Override per-case runs (default: case.runs ?? 3)",
+    "zh": "指定每个用例的运行次数（默认：case.runs ?? 3）"
+  },
+  {
+    "en": "Preserve scaffold dirs for debugging",
+    "zh": "保留测试环境目录供调试"
+  },
+  {
+    "en": "Print one machine-readable result line as the last line on stdout (same exit codes)",
+    "zh": "将一条机器可读结果放在标准输出最后一行，退出码不变"
+  },
+  {
+    "en": "Print one machine-readable result line on stdout instead of the human message (same exit codes; a marketplace-declared command is still shown and must be confirmed — pass -y when not interactive)",
+    "zh": "将机器可读结果写入标准输出，退出码不变；仍需展示并确认市场命令，非交互时传入 -y"
+  },
+  {
+    "en": "Print one machine-readable result line on stdout instead of the human message (same exit codes)",
+    "zh": "将机器可读结果写入标准输出，退出码不变"
+  },
+  {
+    "en": "Print the authorization URL instead of opening a browser (for SSH/headless sessions — paste the redirect URL back when prompted)",
+    "zh": "输出授权网址而不打开浏览器，适用于 SSH 或无界面会话；按提示粘贴重定向网址"
+  },
+  {
+    "en": "Print the full run result (prompts, graders, per-run scores) as JSON to stdout, or write it to this .json file",
+    "zh": "以 JSON 将完整结果（提示、评分器、各次得分）输出到标准输出，或写入此 .json 文件"
+  },
+  {
+    "en": "Print what would be tagged without creating it",
+    "zh": "预览将创建的标签"
+  },
+  {
+    "en": "Prompt for OAuth client secret (or set MCP_CLIENT_SECRET env var)",
+    "zh": "询问 OAuth 客户端密钥，或设置 MCP_CLIENT_SECRET 环境变量"
+  },
+  {
+    "en": "Purge state for every project (mutually exclusive with [path])",
+    "zh": "清理全部项目的状态，与 [path] 互斥"
+  },
+  {
+    "en": "Push the tag to --remote after creating it",
+    "zh": "创建标签后推送到 --remote"
+  },
+  {
+    "en": "Read option values from stdin as a JSON object of single-line strings; options left out keep their values",
+    "zh": "从标准输入读取 JSON 对象形式的选项值，各值须为单行字符串；省略的选项保留原值"
+  },
+  {
+    "en": "Remote to push to with --push",
+    "zh": "配合 --push 使用的远端"
+  },
+  {
+    "en": "Run a no-plugin baseline arm and report the score delta (none | with-without; default: with-without whenever a plugin resolves — by name, or from the target path — and none when nothing does; under with-without, graders marked with-only, incl. `tool_used: Skill`, are a plugin-fired indicator rather than part of the score)",
+    "zh": "运行无插件基线并报告得分差（none 或 with-without；默认：解析出插件时为 with-without，否则为 none）。在 with-without 下，标为 with-only 的评分器（含 tool_used: Skill）仅指示插件是否触发，不计入得分"
+  },
+  {
+    "en": "Run each case's scaffold_script (runs author-supplied bash as you; off by default — only use on case files you authored)",
+    "zh": "运行各用例的 scaffold_script，以你的身份执行作者提供的 Bash。默认关闭，仅用于你自己编写的用例"
+  },
+  {
+    "en": "Run up to <n> agent runs at once (1-8; default 1). Each run is a full claude child on your own credential, so they share one rate limit; results and the report keep case order",
+    "zh": "最多同时运行 <n> 个代理（1–8，默认 1）。每次运行都是使用你凭据的完整 Claude 子进程，共享速率限制；结果和报告保持用例顺序"
+  },
+  {
+    "en": "Runs are already bounded by max_turns and timeout_seconds — only set this when you need a strict budget",
+    "zh": "运行已有 max_turns 和 timeout_seconds 限制；仅在需要严格预算时设置"
+  },
+  {
+    "en": "Set environment variables (e.g. -e KEY=value)",
+    "zh": "设置环境变量（如 -e KEY=value）"
+  },
+  {
+    "en": "Set headers for HTTP/SSE servers (e.g. -H \"X-Api-Key: abc123\" -H \"X-Custom: value\")",
+    "zh": "设置 HTTP/SSE 请求头（如 -H \"X-Api-Key: abc123\" -H \"X-Custom: value\"）"
+  },
+  {
+    "en": "Show only rules whose label starts with this prefix (case-insensitive)",
+    "zh": "仅显示标签以此前缀开头的规则，不区分大小写"
+  },
+  {
+    "en": "Skip the confirmation prompt",
+    "zh": "跳过确认"
+  },
+  {
+    "en": "Skip the dirty-working-tree and tag-already-exists checks",
+    "zh": "跳过工作区未提交改动及标签已存在的检查"
+  },
+  {
+    "en": "Tag annotation message (use %s for the version)",
+    "zh": "标签说明，版本号用 %s 占位"
+  },
+  {
+    "en": "The ceiling is checked before each run launches, so overrun is bounded to the runs in flight (one, or up to --concurrency) — when a run breaches, paid graders (llm/baseline) are skipped while free graders still score it. ",
+    "zh": "每次启动前检查费用上限，超额最多来自正在运行的任务（一个，或最多 --concurrency 个）。超额任务跳过收费的 llm/baseline 评分器，免费评分器仍计分。"
+  },
+  {
+    "en": "Treat warnings as errors (exit 1). Use in CI to fail on unrecognized fields, missing metadata, and other issues that the runtime tolerates.",
+    "zh": "将警告视为错误，退出码为 1。用于 CI 拦截未知字段、缺失元数据及运行时容忍的其他问题"
+  },
+  {
+    "en": "Use Anthropic Console (API usage billing) instead of Claude subscription",
+    "zh": "使用 Anthropic Console 的 API 用量计费，而非 Claude 订阅"
+  },
+  {
+    "en": "Where to declare the marketplace: user (default), project, or local",
+    "zh": "声明插件市场的范围：user（默认）、project 或 local"
+  },
+  {
+    "en": "With --mocks record: also start the plugin's REAL MCP server processes for servers that have no mock (they run as you, outside the OS sandbox that confines shell tools; use only on plugins you trust)",
+    "zh": "在 --mocks record 下，为没有模拟的服务启动真实 MCP 进程。这些进程以你的身份运行，位于限制命令工具的系统沙盒外；仅用于你信任的插件"
+  },
+  {
+    "en": "With a marketplace name: print one machine-readable result line as the last line on stdout (same exit codes)",
+    "zh": "指定市场名称时，将机器可读结果放在标准输出最后一行，退出码不变"
+  },
+  {
+    "en": "Write a blank template (prompt.md + graders/criteria.md) instead of running the interview",
+    "zh": "写入空白模板（prompt.md + graders/criteria.md），跳过访谈"
+  },
+  {
+    "en": "/permissions to let auto mode decide",
+    "zh": "用 /permissions 让自动模式决定"
+  },
+  {
+    "en": "/permissions to update rules",
+    "zh": "用 /permissions 更新规则"
+  },
+  {
+    "en": "Add a marketplace from a URL, path, or GitHub repo",
+    "zh": "从网址、路径或 GitHub 仓库添加插件市场"
+  },
+  {
+    "en": "Author an eval suite under the eval dir (evals/ unless --eval-dir or the manifest says otherwise) via an interview that sources inputs and designs graders. Use --bare <name> for a blank single-case template.",
+    "zh": "在评测目录下创建评测套件，默认 evals/，可由 --eval-dir 或清单指定。通过访谈收集输入并设计评分器；用 --bare <name> 创建单用例空白模板。"
+  },
+  {
+    "en": "It loads the plugin and runs its eval suite (prompts, graders; scaffold scripts and real MCP servers only when you opt in) on your machine, as you: only evaluate plugins you trust — the run's sandboxing limits what a malicious plugin can reach but is not a guarantee, and a bundled suite passing is not a security vetting. The first run in an untrusted plugin directory asks you to confirm (--trust-plugin answers for CI)",
+    "zh": "以你的身份在本机加载插件并运行其评测套件（提示、评分器；测试环境脚本及真实 MCP 服务仅在你选择启用时运行）。只评测你信任的插件：沙盒可限制恶意插件的访问范围，但不作安全保证；通过自带评测也不等于安全审查。首次运行不受信任目录中的插件需确认，CI 可用 --trust-plugin 回答。"
+  },
+  {
+    "en": "Run eval cases (<eval dir>/**/case.yaml or prompt.md + graders/*.md; the eval dir is evals/ unless --eval-dir or the manifest says otherwise) against a plugin and report scored results. ",
+    "zh": "运行插件评测用例（<eval dir>/**/case.yaml 或 prompt.md + graders/*.md；目录默认 evals/，可由 --eval-dir 或清单指定），报告评分结果。"
+  },
+  {
+    "en": "Target is a path, a plugin name, or a `plugin@marketplace` id — installed and skills-dir plugins both resolve (and add a no-plugin baseline arm). ",
+    "zh": "目标可以是路径、插件名称或 plugin@marketplace 标识；支持已安装插件及技能目录中的插件，并加入无插件基线。"
+  },
+  {
+    "en": "Update marketplace(s) from their source - updates all if no name specified",
+    "zh": "从来源更新插件市场，未指定名称时更新全部"
+  },
+  {
+    "en": "tell Claude what to do next",
+    "zh": "并告诉 Claude 接下来做什么"
+  },
+  {
+    "en": "tell Claude what to do differently",
+    "zh": "并告诉 Claude 换种做法"
+  },
+  {
+    "en": "  dir         The mod's folder (default: the current folder)",
+    "zh": "  dir         插件目录（默认：当前目录）"
+  },
+  {
+    "en": "  -h, --help  Display help for command",
+    "zh": "  -h, --help  显示命令帮助"
+  },
+  {
+    "en": "Runs every *.test.ts and *.test.tsx under dir, each file in a child of this",
+    "zh": "运行 dir 下全部 *.test.ts 和 *.test.tsx，每个文件各用本程序的子进程。"
+  },
+  {
+    "en": "binary, in an environment like the one the mod's hooks run in. A test file",
+    "zh": "运行环境与插件 Hook 类似；测试文件"
+  },
+  {
+    "en": "imports its kit from 'claude-code/testing'. Exits 1 when a test fails.",
+    "zh": "从 claude-code/testing 导入测试工具；任一测试失败时以状态码 1 退出。"
+  },
+  {
+    "en": "Print the background session's recent terminal output.",
+    "zh": "输出后台会话最近的终端内容。"
+  },
+  {
+    "en": "Open the background session in this terminal. ← returns to agent view, Ctrl+Z drops back to your shell. The session keeps running either way.",
+    "zh": "在此终端打开后台会话。← 返回代理视图；Ctrl+Z 返回命令行，两种情况下会话都会继续运行。"
+  },
+  {
+    "en": "Path to gateway YAML config",
+    "zh": "网关 YAML 配置路径"
+  },
+  {
+    "en": "Part of the session name works in place of the id. Put a name with spaces in quotes.",
+    "zh": "也可用会话名称的一部分代替编号；含空格的名称须加引号。"
+  },
+  {
+    "en": "Usage: claude respawn <id>|--all",
+    "zh": "用法：claude respawn <id>|--all"
+  },
+  {
+    "en": "Restart a background session (or all of them) so it picks up the current Claude binary.",
+    "zh": "重启一个或全部后台会话，以使用当前 Claude 程序。"
+  },
+  {
+    "en": "Delete a background session and its worktree. Unlike `stop`, works on already-exited sessions.",
+    "zh": "删除后台会话及其工作树。与 stop 不同，也适用于已经退出的会话。"
+  },
+  {
+    "en": "also discard the worktree's unpushed commits (and any uncommitted changes) while it is still the same worktree at that commit — pass the value a previous 'claude rm <id>' reported",
+    "zh": "同时丢弃工作树中未推送的提交及未提交改动，仅在工作树和提交仍匹配时执行；传入此前 claude rm <id> 报告的值"
+  },
+  {
+    "en": "delete the worktree directory even though the WorktreeRemove hook or git couldn't remove it (its repository must list it as a worktree, or have dropped it in a removal that couldn't delete it; no uncommitted changes to tracked files, submodules included; the branch is kept) — pass the value a previous 'claude rm <id>' reported",
+    "zh": "强制删除工作树目录，即使 WorktreeRemove Hook 或 git 未能移除。仓库须仍登记此工作树，或此前已注销但删除失败；包括子模块在内的已跟踪文件均不得有未提交改动，分支会保留。传入此前 claude rm <id> 报告的值"
+  },
+  {
+    "en": "List all configured marketplaces",
+    "zh": "列出全部已配置的插件市场"
+  },
+  {
+    "en": "Accept the marketplace-declared command (a command-source install, or the headersHelper that fetches the archive) whose sha256 a previous --json run reported as shownCommand.sha256; counts as -y for exactly that command, for that plugin and marketplace catalog, and nothing else. If either changed (a refresh that moved the catalog counts), the run refuses and reports the command again, to be shown to a person again",
+    "zh": "接受插件市场声明的命令（命令来源安装，或获取压缩包的 headersHelper）；其 sha256 必须与此前 --json 报告的 shownCommand.sha256 一致。仅对此命令、此插件和对应市场目录视同 -y 确认，不授权其他内容。若命令或目录有变动（刷新导致目录变化也算），会拒绝运行并重新报告命令，供用户再次确认"
   }
 ]

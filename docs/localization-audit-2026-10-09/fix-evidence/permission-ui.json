@@ -1,0 +1,58 @@
+{
+  "baseline": {
+    "label": "baseline-2.1.286",
+    "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.286/help-runtime/claude",
+    "checks": {
+      "title": false,
+      "body": false,
+      "yes": false,
+      "always": false,
+      "no": false,
+      "cancel": false,
+      "amend": false,
+      "edit": false,
+      "cancelWorks": true
+    },
+    "paidAPI": false,
+    "mockServer": "127.0.0.1",
+    "passed": false
+  },
+  "fixed": [
+    {
+      "label": "delivery-permission-2.1.286",
+      "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.286/coverage-fix-runtime/claude",
+      "checks": {
+        "title": true,
+        "body": true,
+        "yes": true,
+        "always": true,
+        "no": true,
+        "cancel": true,
+        "amend": true,
+        "edit": true,
+        "cancelWorks": true
+      },
+      "paidAPI": false,
+      "mockServer": "127.0.0.1",
+      "passed": true
+    },
+    {
+      "label": "delivery-permission-2.1.295",
+      "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.295/coverage-fix-runtime/claude",
+      "checks": {
+        "title": true,
+        "body": true,
+        "yes": true,
+        "always": true,
+        "no": true,
+        "cancel": true,
+        "amend": true,
+        "edit": true,
+        "cancelWorks": true
+      },
+      "paidAPI": false,
+      "mockServer": "127.0.0.1",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+'use strict';
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),vm=require('vm'),assert=require('assert/strict');
+const repo='/Users/changfenhuang/projects/claude-code-zh-cn',base=__dirname,io=require(repo+'/bun-binary-io.js'),{MAC_DISPLAY_BUILDS}=require(repo+'/scripts/patch-bytecode.js');
+const acorn=require(base+'/tools/node_modules/acorn'),walk=require(base+'/tools/node_modules/acorn-walk'),lief=io.loadNodeLief();const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+const heading="What's contributing to your limits usage?",results=[];
+for(const [version,[sourceHash,specs]] of MAC_DISPLAY_BUILDS){
+ const binary=base+'/results/darwin-arm64-'+version+'/coverage-fix-runtime/claude';const {bunData,bunOffsets,moduleStructSize}=io.extractNativeBun(lief,binary),modules=new Map();
+ for(let c=bunOffsets.modulesPtr.offset;c<bunOffsets.modulesPtr.offset+bunOffsets.modulesPtr.length;c+=moduleStructSize){const start=bunData.readUInt32LE(c),name=path.basename(bunData.toString('utf8',start,start+bunData.readUInt32LE(c+4))),p=bunData.readUInt32LE(c+8),n=bunData.readUInt32LE(c+12);modules.set(name,{source:bunData.toString(bunData[c+48]===1?'latin1':'utf8',p,p+n),bytecodeLength:bunData.readUInt32LE(c+28),encoding:bunData[c+48]});}
+ const result={version,sourceHash,patchedHash:hash(fs.readFileSync(binary)),checks:{},display:{},modules:[]};
+ for(const [name,role] of specs){const m=modules.get(name);assert.equal(m.bytecodeLength,0,name);assert.equal(m.encoding,0,name);const ast=acorn.parse(m.source,{ecmaVersion:'latest',sourceType:'module'});result.modules.push({name,role,sourceHash:hash(m.source),parsed:true,bytecodeDisabled:true});
+  if(role==='usage-panel'){
+   let fn;walk.ancestor(ast,{Literal(n,a){if(n.value==='哪些操作消耗了你的额度？')fn=a.findLast(x=>x.type==='FunctionDeclaration');}});assert.ok(fn);
+   const b=Symbol('memo');const jsx=(type,props)=>({type,props});const rendered=vm.runInNewContext(m.source.slice(fn.start,fn.end)+';'+fn.id.name+'({})',{w:n=>Array(n).fill(b),b,e:jsx,r:jsx,n:'text',s:'box'});
+   const text=[];const collect=x=>{if(typeof x==='string')text.push(x);else if(Array.isArray(x))x.forEach(collect);else if(x?.props)collect(x.props.children);};collect(rendered);assert.ok(text.includes('哪些操作消耗了你的额度？'));result.display.usage=text;result.checks.usageHeading=true;
+  }
+  if(role==='chat-settings'){
+   const messages=[];walk.simple(ast,{CallExpression(n){if(n.callee.type!=='MemberExpression'||n.callee.property.name!=='msg')return;const arg=n.arguments[0];if(arg?.type!=='ObjectExpression')return;const fields=Object.fromEntries(arg.properties.filter(p=>p.type==='Property'&&p.value.type==='Literal').map(p=>[p.key.name,p.value.value]));if(['WTrOy36sdu','0Cc9oG2J04','z2x73mCBZ9'].includes(fields.id))messages.push(fields);}});
+   assert.equal(messages.length,3);assert.equal(messages.find(x=>x.id==='WTrOy36sdu').defaultMessage,'聊天');assert.equal(messages.find(x=>x.id==='0Cc9oG2J04').defaultMessage,'允许聊天');result.display.chat=messages;result.checks.chatDisplayOnly=true;
+  }
+  if(role==='review-label'){
+   let method;walk.simple(ast,{Property(n){if(n.key.name==='userFacingName'&&m.source.slice(n.start,n.end).includes('代码审查'))method=n;}});assert.ok(method);const display=vm.runInNewContext('({'+m.source.slice(method.start,method.end)+'}).userFacingName()');assert.equal(display,'代码审查');result.display.review=display;result.checks.reviewDisplay=true;
+  }
+  if(role==='help-formatter'){
+   let cls;walk.simple(ast,{ClassDeclaration(n){if(n.body.body.some(x=>x.key.name==='optionDescription')&&n.body.body.some(x=>x.key.name==='formatHelp'))cls=n;}});assert.ok(cls);
+   const h=vm.runInNewContext(m.source.slice(cls.start,cls.end)+';new '+cls.id.name+'()');const input={description:'说明',argChoices:['host','none'],defaultValue:'host',presetArg:'none',optional:true,envVar:'CCZH_TEST_ENV',flags:'--environment <name>'};const before=JSON.stringify(input),option=h.optionDescription(input),argument=h.argumentDescription(input);assert.equal(JSON.stringify(input),before);assert.equal(option,'说明 (可选值："host", "none", 默认值："host", 预设值："none", 环境变量：CCZH_TEST_ENV)');assert.equal(argument,'说明 (可选值："host", "none", 默认值："host")');result.display.generatedHelp={option,argument,input};result.checks.generatedHelpValuesPreserved=true;
+  }
+ }
+ const modelName={'2.1.285':'chunk-zehkvz1e.js','2.1.286':'chunk-tqhr022q.js','2.1.295':'chunk-5qnk1ggq.js'}[version],model=modules.get(modelName),original=fs.readFileSync(base+'/results/darwin-arm64-'+version+'/modules/'+modelName+'.txt','utf8');assert.equal(model.source,original);assert.ok(model.bytecodeLength>0);const ast=acorn.parse(model.source,{ecmaVersion:'latest',sourceType:'module'});let modelHeading;walk.simple(ast,{VariableDeclarator(n){if(n.init?.type==='Literal'&&n.init.value===heading)modelHeading=n.init.value;}});assert.equal(modelHeading,heading);result.display.modelHeading=modelHeading;result.checks.modelModuleUntouched=true;
+ result.passed=Object.values(result.checks).every(Boolean);results.push(result);
+}
+fs.writeFileSync(base+'/display-reference-resolution.json',JSON.stringify({date:'2026-10-10',method:'Read and execute display components from the patched native container; this is separate from terminal interaction evidence.',topbar:{issueScreenshot:'https://raw.githubusercontent.com/huanglian666/image/master/uPic/cc-zh-cn-issue-260-skill-dialog.png',finding:'The photographed Chat / Diff / Code Review bar is in the terminal window toolbar, outside the terminal content. No standalone Code Review caption occurs in the CLI JavaScript literals; longer matches are workflow names, settings documentation, and changelog content.',decision:'Localize this package display fields; terminal host toolbar captions require changes in the host application.'},results},null,2)+'\n');
+console.log(JSON.stringify(results.map(r=>({version:r.version,passed:r.passed,checks:r.checks,modules:r.modules.length}))));

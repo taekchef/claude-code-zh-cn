@@ -107,9 +107,11 @@ function repair(input, stateRoot) {
     const version = io("version", candidate);
     if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error("无法识别 CC 版本，未改动程序");
     const layout = io("probe", candidate);
-    let patched;
+    let patched, display = {};
     if (layout === "bytecode") {
-      patched = Number(run(process.execPath, [path.join(root, "scripts/patch-bytecode.js"), "patch", candidate, path.join(root, "cli-translations.json")]));
+      const result = JSON.parse(run(process.execPath, [path.join(root, "scripts/patch-bytecode.js"), "patch", candidate, path.join(root, "cli-translations.json"), "--json"]));
+      patched = result.patched;
+      display = { sourceModules: result.sourceModules, sourceReplacements: result.sourceReplacements };
     } else if (layout === "source-js") {
       const js = path.join(work, "cli.js");
       io("extract", candidate, js);
@@ -124,7 +126,7 @@ function repair(input, stateRoot) {
     const env = { ...process.env, HOME: isolatedHome, USERPROFILE: isolatedHome, CLAUDE_CONFIG_DIR: path.join(isolatedHome, ".claude"), DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1", ZH_CN_PRELAUNCH: "1" };
     if (run(candidate, ["--version"], env).match(/\d+\.\d+\.\d+/)?.[0] !== version) throw new Error("汉化副本启动自检失败，未改动程序");
     if (!/[\u3400-\u9fff]/u.test(run(candidate, ["--help"], env))) throw new Error("汉化副本帮助界面未出现中文，未改动程序");
-    const result = { version, sourceHash, patchedHash: hash(candidate), revision: patchRevision, patched, changed: true };
+    const result = { version, sourceHash, patchedHash: hash(candidate), revision: patchRevision, patched, ...display, changed: true };
     if (hash(target) !== currentHash || fs.realpathSync(input) !== target) throw new Error("CC 在验证期间已更新，请再次启动");
     if (source === target) {
       const saved = path.join(work, "backup");
