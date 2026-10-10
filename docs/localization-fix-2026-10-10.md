@@ -33,8 +33,9 @@
 | 中英文往返 | /chinese → /english → /chinese；英文恢复原始指纹，中文再次生效，诊断一致：通过 | [切换记录](localization-audit-2026-10-09/fix-evidence/language-roundtrip.json) |
 | 相关回归检查 | 64 通过、0 失败；包含显示副本不改调用者、取消哨兵和语法名称保留 | 运行记录见本 PR 验证说明 |
 | 整套本地检查 | 482 通过、0 失败、7 项按平台跳过；安装包兼容、文档同步等检查全部通过 | 诊断最终回执复核另有 24 项检查通过 |
+| 跨平台自动检查 | 9/9 通过；包括 Mac、Linux、71 个受支持 Windows 原生版本和两种 Windows 安装环境 | [代码提交与检查快照](localization-audit-2026-10-09/fix-evidence/cross-platform-ci.json)、[完整 CI](https://github.com/taekchef/claude-code-zh-cn/actions/runs/38016685938) |
 
-跨平台自动检查已通过 Mac、Linux、Windows 安装及其余 Windows 原生分组；Windows 2.1.242 的同版本覆盖后启动修复仍待定位，修复后更新最终结果。
+Windows 2.1.242 的同版本覆盖后启动修复曾在前两轮 CI 失败，本轮通过；尚未查明先前失败的原因。检查脚本现在保留安装器及启动器的错误输出；这项检查与实际中文帮助断言均未跳过或放宽。
 
 每版仍有 3 条按行的帮助审计警告：parent_tool_use_id、插件标识 plugin@marketplace，以及命令库生成的 choices/default 提示。前两项为应保留的技术标识，后一项仍是英文。它们不影响帮助执行，也不把“151 个入口运行成功”改称完整中文覆盖。
 
