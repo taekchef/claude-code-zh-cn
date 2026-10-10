@@ -38,6 +38,19 @@ function runPatchedFixture(lines) {
   };
 }
 
+test("skill permission template renders Chinese while keeping the selected skill and values", () => {
+  const result = runPatchedFixture([
+    'const display="user-skill"; const title=`Use skill "${display}"?`;',
+    'const options=[{label:"Yes",value:"yes"},{label:"No",value:"no"}];',
+    'console.log(JSON.stringify({title,options,context:"Chat",sentinel:"Hook cancelled"}));',
+  ]);
+  const data = JSON.parse(result.output);
+  assert.equal(data.title, "使用技能“user-skill”？");
+  assert.deepEqual(data.options, [{ label: "是", value: "yes" }, { label: "否", value: "no" }]);
+  assert.equal(data.context, "Chat");
+  assert.equal(data.sentinel, "Hook cancelled");
+});
+
 test("past-tense status verbs are translated when upstream escapes Sautéed", () => {
   const patched = patchFixture([
     'var verbs=["Baked","Brewed","Churned","Cogitated","Cooked","Crunched","Saut\\xE9ed","Worked"];',

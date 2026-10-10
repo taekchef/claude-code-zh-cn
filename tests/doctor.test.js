@@ -137,6 +137,30 @@ function createHealthyRuntimeDoctorFixture() {
   return { home, pluginRoot, claudeBin };
 }
 
+test("native receipt without a marker gives one consistent partial status", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-receipt-"));
+  const pluginRoot = path.join(home, ".claude", "plugins", "claude-code-zh-cn");
+  const targetPath = path.join(home, "claude");
+  fs.writeFileSync(targetPath, "#!/usr/bin/env node\nconsole.log('2.1.286')\n", { mode: 0o755 });
+  fs.writeFileSync(`${targetPath}.zh-cn-backup`, "original");
+  createFakeNativeDoctorPlugin(pluginRoot, { version: "2.1.286", targetPath, containerLayout: "bytecode" });
+  const revision = require("../scripts/native-repair.js").revision(pluginRoot);
+  const receipt = { version: "2.1.286", patchedHash: "fakehash", sourceHash: "fakehash", revision, patched: 1344 };
+  writeJson(`${targetPath}.zh-cn-repair.json`, receipt);
+  const run = () => runDoctor({ repoRoot, homeDir: home, pluginRoot, claudePath: targetPath, nativePlatform: "darwin-arm64", json: true, color: false });
+  const result = run();
+  assert.equal(result.layer4Status, "partial");
+  assert.equal(result.layer4State.code, "partial");
+  assert.match(result.checks.find(x => x.id === "layer4").detail, /1344/);
+  assert.doesNotMatch(result.checks.find(x => x.id === "patch-marker").detail, /从未 patch/);
+  assert.ok(!result.recommendations.some(x => x.includes("重跑") && x.includes("字节码")));
+  for (const delta of [{ patchedHash: "stale" }, { version: "2.1.285" }, { revision: "old" }, { sourceHash: "wrong" }]) {
+    writeJson(`${targetPath}.zh-cn-repair.json`, { ...receipt, ...delta });
+    assert.notEqual(run().layer4State.code, "partial", JSON.stringify(delta));
+  }
+  fs.rmSync(home, { recursive: true, force: true });
+});
+
 test("runDoctor reports missing plugin and recommends install", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-doctor-"));
 

@@ -1,0 +1,288 @@
+{
+  "auditDate": "2026-10-09",
+  "sourceRevision": "78e6df7c2e4b54f030fabbd3809a7e831e20d740",
+  "pluginVersion": "2.22.0",
+  "officialTags": {
+    "stable": "2.1.286",
+    "latest": "2.1.295"
+  },
+  "packages": {
+    "darwin-arm64-2.1.285": {
+      "sha256": "51f09bd1e021d9fa8a1864c179799bd37cb39962a937935c5cf6823398e86db4",
+      "bytes": 223821616,
+      "modules": 2369,
+      "javascriptModules": 2142,
+      "decodedSourceBytes": 44520240,
+      "parseErrors": [],
+      "symbolFlow": {
+        "mode": "local lexical binding; static initializers; aliases up to 5",
+        "flows": 17962,
+        "errors": []
+      },
+      "counts": {
+        "uniqueStrings": 175784,
+        "englishStrings": 167982,
+        "occurrences": 658665,
+        "byPatchStatus": {
+          "missing-pool-translation": 130921,
+          "source-only": 43310,
+          "patched-pool": 1345,
+          "too-long": 194,
+          "protected": 14
+        }
+      },
+      "patch": {
+        "patched": 1345,
+        "notFound": 705,
+        "tooLong": 194
+      },
+      "assetCounts": {
+        "assets": 227,
+        "html": 13,
+        "textOccurrences": 3948,
+        "errors": []
+      },
+      "candidateCount": 12957,
+      "unlinked": {
+        "formatCandidates": 101677,
+        "generatedRuntimeErrors": 4427,
+        "proseReview": 1283
+      },
+      "identityTooLong": 16
+    },
+    "darwin-arm64-2.1.286": {
+      "sha256": "75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433",
+      "bytes": 225167728,
+      "modules": 2369,
+      "javascriptModules": 2142,
+      "decodedSourceBytes": 44822613,
+      "parseErrors": [],
+      "symbolFlow": {
+        "mode": "local lexical binding; static initializers; aliases up to 5",
+        "flows": 18199,
+        "errors": []
+      },
+      "counts": {
+        "uniqueStrings": 177433,
+        "englishStrings": 169573,
+        "occurrences": 661819,
+        "byPatchStatus": {
+          "missing-pool-translation": 132294,
+          "source-only": 43587,
+          "patched-pool": 1344,
+          "too-long": 194,
+          "protected": 14
+        }
+      },
+      "patch": {
+        "patched": 1344,
+        "notFound": 706,
+        "tooLong": 194
+      },
+      "assetCounts": {
+        "assets": 227,
+        "html": 13,
+        "textOccurrences": 3948,
+        "errors": []
+      },
+      "candidateCount": 13050,
+      "unlinked": {
+        "formatCandidates": 102604,
+        "generatedRuntimeErrors": 4466,
+        "proseReview": 1291
+      },
+      "identityTooLong": 16
+    },
+    "darwin-arm64-2.1.295": {
+      "sha256": "0116ee2e0a513900b633d9951367f18747686478e2b462805b8c31609f047f70",
+      "bytes": 239695888,
+      "modules": 2596,
+      "javascriptModules": 2358,
+      "decodedSourceBytes": 49119372,
+      "parseErrors": [],
+      "symbolFlow": {
+        "mode": "local lexical binding; static initializers; aliases up to 5",
+        "flows": 19843,
+        "errors": []
+      },
+      "counts": {
+        "uniqueStrings": 189146,
+        "englishStrings": 181101,
+        "occurrences": 731976,
+        "byPatchStatus": {
+          "missing-pool-translation": 141609,
+          "source-only": 45991,
+          "patched-pool": 1342,
+          "too-long": 190,
+          "protected": 14
+        }
+      },
+      "patch": {
+        "patched": 1342,
+        "notFound": 712,
+        "tooLong": 190
+      },
+      "assetCounts": {
+        "assets": 238,
+        "html": 13,
+        "textOccurrences": 3948,
+        "errors": []
+      },
+      "candidateCount": 13812,
+      "unlinked": {
+        "formatCandidates": 111387,
+        "generatedRuntimeErrors": 4856,
+        "proseReview": 1310
+      },
+      "identityTooLong": 13
+    },
+    "linux-x64-2.1.295": {
+      "sha256": "4503bfe11a6c7fcc1e0b39b5e0d347c04248f750b03b0977b3ad6b531fe6f358",
+      "bytes": 256113848,
+      "modules": 2577,
+      "javascriptModules": 2340,
+      "decodedSourceBytes": 48866320,
+      "parseErrors": [],
+      "symbolFlow": {
+        "mode": "local lexical binding; static initializers; aliases up to 5",
+        "flows": 19707,
+        "errors": []
+      },
+      "counts": {
+        "uniqueStrings": 187519,
+        "englishStrings": 179483,
+        "occurrences": 727465,
+        "byPatchStatus": {
+          "missing-pool-translation": 140207,
+          "source-only": 45775,
+          "patched-pool": 1336,
+          "too-long": 187,
+          "protected": 14
+        }
+      },
+      "patch": {
+        "patched": 1336,
+        "notFound": 721,
+        "tooLong": 187
+      },
+      "assetCounts": {
+        "assets": 237,
+        "html": 13,
+        "textOccurrences": 3948,
+        "errors": []
+      },
+      "candidateCount": 13507,
+      "unlinked": {
+        "formatCandidates": 110953,
+        "generatedRuntimeErrors": 4840,
+        "proseReview": 1315
+      },
+      "identityTooLong": 13
+    },
+    "win32-x64-2.1.295": {
+      "sha256": "a30012741c3d0b55e2a6c252dab3781134b75be95896ae89d40a93e10f83bcd6",
+      "bytes": 259509920,
+      "modules": 2574,
+      "javascriptModules": 2338,
+      "decodedSourceBytes": 48815260,
+      "parseErrors": [],
+      "symbolFlow": {
+        "mode": "local lexical binding; static initializers; aliases up to 5",
+        "flows": 19676,
+        "errors": []
+      },
+      "counts": {
+        "uniqueStrings": 187252,
+        "englishStrings": 179224,
+        "occurrences": 726177,
+        "byPatchStatus": {
+          "missing-pool-translation": 140004,
+          "source-only": 45711,
+          "patched-pool": 1336,
+          "too-long": 187,
+          "protected": 14
+        }
+      },
+      "patch": {
+        "patched": 1336,
+        "notFound": 721,
+        "tooLong": 187
+      },
+      "assetCounts": {
+        "assets": 236,
+        "html": 13,
+        "textOccurrences": 3948,
+        "errors": []
+      },
+      "candidateCount": 13508,
+      "unlinked": {
+        "formatCandidates": 110924,
+        "generatedRuntimeErrors": 4839,
+        "proseReview": 1305
+      },
+      "identityTooLong": 13
+    }
+  },
+  "unionCandidates": 14018,
+  "byPriority": {
+    "P0": 7,
+    "P1": 3124,
+    "待定位": 9739,
+    "保留": 507,
+    "已命中": 641
+  },
+  "byDecision": {
+    "补授权文案/按键显示": 5,
+    "只翻授权显示副本；保留问答数据": 2,
+    "翻完整动态句；保留表达式和标识": 275,
+    "应翻显示位置": 2250,
+    "只翻显示位置；保留共享标识": 525,
+    "缩短译文或改显示结构；核对槽宽": 89,
+    "只翻确认的显示副本；禁止全局替换": 2,
+    "先确认用户是否看见及消费方": 8434,
+    "按资源归属单独处理": 583,
+    "先确认显示程序归属；再定点翻译": 705,
+    "保留正文；仅另翻确认的显示副本": 61,
+    "保留原文": 376,
+    "保留命令语法；只翻相邻说明": 69,
+    "保留程序判断原文；另查显示副本": 1,
+    "补丁已命中；验收实际界面": 599,
+    "模板静态段已命中；验收完整动态显示": 6,
+    "补丁已命中；复查共享用途": 36
+  },
+  "byCategory": {
+    "动态按键提示": 148,
+    "终端显示节点": 2962,
+    "显示对象候选": 370,
+    "命令帮助": 253,
+    "技能菜单描述": 34,
+    "显示文案定义": 4,
+    "共享标签/截图归属待核": 2,
+    "消息/其它字段待定位": 7509,
+    "描述字段待定位": 925,
+    "内嵌网页/第三方": 583,
+    "桌面/组织设置文案定义": 721,
+    "模型/协议正文": 61,
+    "技术名/语法": 368,
+    "协议/提示词保护": 8,
+    "命令签名/参数名": 69,
+    "共享状态": 1
+  },
+  "otherSourceProseReview": 86872,
+  "unlinkedPoolProseReview": 1404,
+  "embeddedAssetUniqueTexts": 1416,
+  "limits": [
+    "候选数不等于漏译数",
+    "源码副本不等于执行字节码",
+    "自动显示信号不等于实机触发",
+    "未关联池记录仅是格式候选",
+    "模型指令及共享标识必须保留",
+    "Windows/Linux 未真实运行",
+    "运行时动态/服务端文案未穷尽"
+  ],
+  "latestVersusStable": {
+    "newDisplaySignalTexts": 186,
+    "displaySignalTextsSeenInBoth": 2880
+  },
+  "templatesWithAllStaticPartsPatched": 15
+}

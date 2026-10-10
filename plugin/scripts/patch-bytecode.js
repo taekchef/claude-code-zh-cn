@@ -52,6 +52,8 @@ const PROTOCOL_FRAGMENTS = new Set([
 // 模型可见的 `<task-notification>` 摘要。池里确有 7B `Agent "` 条目，翻译会让任务
 // 识别失配、协议混入中文，必须拒绝。
 const LOGIC_CONSUMED_FRAGMENTS = new Set([
+  "Diff", // 共用的语法名称；仅在面板显示引用中翻译。
+  "Hook cancelled",
   "Shell cwd was reset to ",
   'Agent "',
 ]);
@@ -62,6 +64,52 @@ const LOGIC_CONSUMED_FRAGMENTS = new Set([
 //    （patch-cli.js）在协议模板或提示词里误替换，故只在此维护、不走主表。
 // 槽宽来自 2.1.260 实测，译文超宽会被静默跳过，改动后用测试核对。
 const POOL_TRANSLATIONS = new Map([
+  ["List all configured marketplaces", "列出全部插件市场"],
+  ["Output as JSON", "输出JSON"],
+  // 2026-10 完整文案与经逐槽核验的短译；不加入通用选项值或按键动作。
+  ["Claude may use instructions, code, or files from this Skill.","Claude 可使用此技能的指令、代码或文件。"],
+  ["Yes, and don't ask again for ","是，今后不再询问 "],
+  ["Proceed?","继续吗？"],
+  ["Allow external CLAUDE.md file imports?","允许导入外部 CLAUDE.md？"],
+  ["Working directory has changes","工作目录有改动"],
+  ["Its settings declare project permission rules and/or additional directories. They apply only if you trust this directory explicitly (it is trusted through a parent directory so far).","此目录的设置包含权限规则或额外目录。明确信任此目录后才会生效；目前仅通过父目录间接信任。"],
+  ["This directory configures hooks that run commands, declared in","此目录配置了会执行命令的 Hook，定义位于"],
+  [" /plugin stats - Show skill usage and context costs"," /plugin stats - 技能用量及开销"],
+  [" installed · restart to apply"," 已安装 · 重启生效"],
+  ["Create a git commit","创建提交"],
+  ["Create a pull request","创建 PR"],
+  ["Answer questions about Claude Code features and settings","解答 Claude Code 功能和设置问题"],
+  ["Create a skill that knows how to run this project’s app","创建运行项目的技能"],
+  ["Launch this project’s app to see your change working","启动项目查看改动"],
+  ["Guided setup — pick a role, install a plugin, try a skill, connect tools","引导设置：选择角色、安装插件、试用技能、连接工具"],
+  ["Diagramming guidance for Artifacts","作品图示指南"],
+  ["Publish a report Artifact from a template","用模板发布报告"],
+  ["Manage Claude Code project state","管理项目状态"],
+  ["Which agent to import from (codex, gemini, cursor)","来源 codex/gemini/cursor"],
+  ["Show what would be imported without writing anything","预览导入内容，不写入文件"],
+  ["List what would be deleted without deleting anything","预览要删除的内容，不执行删除"],
+  ["Prompt for each item before deleting","逐项确认后删除"],
+  ["Skip confirmation prompt","跳过确认"],
+  ["Restart every running background session","重启全部运行中的后台会话"],
+  ["Disable all enabled plugins","停用全部插件"],
+  ["Filter cases by tag (repeatable)","按标签筛选用例（可重复）"],
+  ["Override which model is used","指定使用的模型"],
+  ["Sign in with your Anthropic account","登录 Anthropic 账号"],
+  ["GitHub App installed!","GitHub应用已装"],
+  ["Creating a long-lived token for GitHub Actions","创建 GitHub Actions 长效令牌"],
+  ["Dark mode (ANSI colors only)","深色（仅 ANSI 色）"],
+  ["Claude Code will restart to apply.","重启后生效。"],
+  ["Esc again to clear","再按 Esc 清空"],
+  ["Opens a secure connection to claude.ai.","安全连接 claude.ai。"],
+  ["Plugin Hooks","插件Hook"],
+  ["Session Hooks","会话Hook"],
+  ["Searching","搜索中"],
+  ["Configuration error","配置错误"],
+  ["Auto-memory","自动记忆"],
+  ["No tool calls yet.","暂无工具调用。"],
+  [" · reviewing "," ·审查 "],
+  ["1 teammate shut down","已停1位队友"],
+  ["Stop ultrareview?","停止深度审查？"],
   [" (ctrl+o to expand)", " ctrl+o展开"],
   ["Added ", "新增 "],
   [" lines", " 行"],
@@ -253,6 +301,10 @@ function patchStringPool(buffer, translations, { mainTableOnly = false } = {}) {
     const zh = table.get(en);
     if (!zh) continue;
     found.add(en);
+    if (en === zh) {
+      offset = start + bytes - 1;
+      continue;
+    }
     const replacement = Buffer.from(zh, "utf16le");
     if (replacement.length > bytes) {
       tooLong++;
@@ -382,6 +434,183 @@ function patchWin289DisplayModules(bunData, bunOffsets, moduleStructSize, transl
   return { sourceModules: seen.size, sourceReplacements };
 }
 
+// 显示字符串与程序值共用常量时，不能全局改池。仅在官方构建及模块指纹均
+// 匹配的 Mac 构建中，定点修改显示模块。使用该模块原有独立占位（源码区或
+// 腾出的 bytecode 区）存放 UTF-8 源码，保留帮助示例，不扩容或移动共享池。
+const MAC_DISPLAY_BUILDS = new Map([
+  ["2.1.285", ["51f09bd1e021d9fa8a1864c179799bd37cb39962a937935c5cf6823398e86db4", [
+    ["chunk-n3b1z5m4.js", "permission", "e174c4bc0c207ff78cd3023846d73cf4d182ccc5f6fd0177943a1b7e137c96a4"],
+    ["chunk-xjc7gdgb.js", "key-hint", "00a246283d368132a611312d781f0acfed94e6b1350b54b1326288c0e199413b"],
+    ["chunk-b80z6w8h.js", "mcp-help", "82379e1b09aac6f489851b23a7ef48b357067da7e0c02db4db60569053e10a68"],
+    ["chunk-sbkxgvv8.js", "diff-panel", "19cefb36c5656fac7d6b498cee7ae33adbd613010b17cf812f6dd58fc26cb65e"],
+    ["chunk-wv6p13aq.js", "help", "666ba376c601efb6dc151d038bec4e4f3e41e64fd2bed1abcbc28e278cac19fb"],
+    ["chunk-ymhmhwa4.js", "help", "5dd25ea43198eea610e0451296d70186ecd5f9f712b1ec0471f842956de29ba1"],
+    ["chunk-ssgd8zcr.js", "permission-reason", "9d403cdd0b2bbadbfef2e0cd0f87e9bd699f91eb9caf80631abe5e39b0b99a1c"],
+    ["chunk-fz83gh21.js", "help", "e6d272cfc79b339e80f57a9fdbf1107131d1f8c3d43a0e51d48f48eb0a3f4efc"],
+    ["chunk-rrx4gpgm.js", "background-help", "581e9c9d987c24478ed08d9ac12da1884691db1f6c02e06974d291ad78362449"],
+    ["chunk-at5kbrxv.js", "help", "286fdd8c42db79432aca9991a629292f1d5ef9b3cc8255561dec63706514a5ec"],
+  ]]],
+  ["2.1.286", ["75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433", [
+    ["chunk-40vr59jt.js", "permission", "7bd333bc2f4d1d02cb587c21c67f8a74c80dcdfa4de7ddbeb53550db5b466183"],
+    ["chunk-6a3bbf4y.js", "key-hint", "e0b251e4ba2a536f18b3f5db556068760327ce23928704218b6b6e4e249a8c8c"],
+    ["chunk-rwrv0nks.js", "mcp-help", "8ad7820f17821c3ed90db8e4b724977042a99bf8d37be0c3f9642436a334dcf6"],
+    ["chunk-smc54qjt.js", "diff-panel", "716095be0af1124a28225391d3f737015e5fd0d3aa6812fbdb1068feee405036"],
+    ["chunk-hxxkrcey.js", "help", "bd5d0d23b525e2f7205acd83574f9919eba29653286840502015d8cc62b067d4"],
+    ["chunk-k6fc52zf.js", "help", "95ac94fa8f93c837e0db7c35b63670873413c4fe2c4635f161078ed5a0f08519"],
+    ["chunk-pnyt6sw9.js", "permission-reason", "cb0b925ed80890a351a78aafa6fddf688c0e16f7629fc7c7f0023eece0e6613f"],
+    ["chunk-yajwtwra.js", "help", "a211838b0bbde21ec9c2eba4ae9f90274c02c47dedec73a29b01e8c11c6a4dce"],
+    ["chunk-31x2vsqf.js", "background-help", "30c8bc8d61b980f52f89909f90eb0d4349536a9ad9c60095cc44619f4257ac44"],
+    ["chunk-1m81t3j7.js", "help", "8451ba214f65e3f2aa3d8613c7455da1533712e0f12f0d16be13d4566bad1701"],
+  ]]],
+  ["2.1.295", ["0116ee2e0a513900b633d9951367f18747686478e2b462805b8c31609f047f70", [
+    ["chunk-bhz7hapx.js", "permission", "e7d4dc062f83b6dadc4d083278d5fa7e2aceb5bfa71ed1194296a1b052c391a1"],
+    ["chunk-p52mhbqz.js", "key-hint", "fc84b50d0f0b1fdcf08c5af6808762396c0580b96593b8b12e80c3265b5da92f"],
+    ["chunk-j54ybdtc.js", "mcp-help", "0312ce38cefff411c4c5d2e34904b6147a1edfdeeb16af3489996f53b1714600"],
+    ["chunk-8mmnqsff.js", "diff-panel", "4d5f17d872d8a0c50a386300a4f0c8deb3823fb53717a021353231e22cbba922"],
+    ["chunk-4ypdmt1d.js", "help", "08ee8baa66fcf645a1689a312f2bed3d6c770e5f15610aac2aed9564d4e81442"],
+    ["chunk-ayj73b9e.js", "help", "6933c985cd5f571e3bbb3d63372148372a83b1e095385d2f0e01a6ff87ecb3a4"],
+    ["chunk-2sxvm4dn.js", "permission-reason", "73d5f1d876a218a656e34d9c5c11aff69f1ee1174047f571667ad98c31fa3fb5"],
+    ["chunk-ccqktn4p.js", "help", "03d46c01724912a98a45bb800cda6d4524efc7c57652de75803cfd34fbc599b4"],
+    ["chunk-cwxe0n05.js", "background-help", "42e23385fba6924c6f103a3d1e0f248f27a6aa29137132ed682f5a85902cc9a3"],
+    ["chunk-cbxhnd80.js", "help", "4a7a4bf643fcc9ebf835de60b86a3f8f088be8bf1010c68db5c1cf6c5330e032"],
+  ]]],
+]);
+
+const KEY_HINT_ACTIONS = {
+  amend: "修改", add: "添加", back: "返回", cancel: "取消", confirm: "确认",
+  continue: "继续", cycle: "切换", adjust: "调整", explain: "说明", list: "列表",
+  refresh: "刷新", scroll: "滚动", select: "选择", deselect: "取消选择",
+  interrupt: "中断", "cancel edit": "取消修改", "clear history": "清空历史",
+  "collapse description": "收起说明", "copy link": "复制链接",
+  "discard and exit": "放弃并退出", "edit in $EDITOR": "在 $EDITOR 中修改",
+  "exit and fix issues": "退出并修复问题", "new line": "换行",
+  "only show current repo": "仅显示当前仓库", "open in browser": "在浏览器打开",
+  "pick a row first": "先选择一行", "reset to auto": "重置为自动",
+  "review & send": "检查并发送", "see the first lines": "查看开头",
+  "send now": "立即发送", "show tasks": "显示任务", "stop all agents": "停止全部 Agent",
+  submit: "提交", "toggle scope": "切换范围", "twice to stop background agents": "按两次停止后台 Agent",
+  "view artifacts": "查看作品", "switch mode": "切换模式", "set as default": "设为默认", "use this session only": "仅本次会话使用",
+};
+
+function rewriteMacDisplaySource(source, role, translations) {
+  let changed = 0;
+  const replace = (pattern, replacement, minimum = 1) => {
+    let hits = 0;
+    source = source.replace(pattern, (...args) => { hits++; return typeof replacement === "function" ? replacement(...args) : replacement; });
+    if (hits < minimum) throw new Error(`${role} 显示锚点不匹配：${pattern}`);
+    changed += hits;
+  };
+  if (role === "permission") {
+    replace(/`Use skill "\$\{([^}]+)\}"\?`/g, (_match, expression) => `\`使用技能“\${${expression}}”？\``);
+    // 只改 label；value、反馈类型、规则与工具名必须保持英文。
+    replace(/label:"Yes"/g, 'label:"是"');
+    replace(/label:"No"/g, 'label:"否"');
+    replace(/("Yes, and don't ask again for ",[^\n]+?)," ","in ",/g,
+      (_match, before) => `${before},"，目录：",`);
+  } else if (role === "permission-reason") {
+    replace(/`Ask rule \$\{([^}]+)\} overrides auto mode for this \$\{([^}]+)\}\.`/g,
+      (_match, rule, kind) => `\`询问规则 \${${rule}} 优先于此\${${kind}==="tool"?"工具":"命令"}的自动审批。\``);
+    replace(/`Permission rule \$\{([^}]+)\} requires confirmation for this \$\{([^}]+)\}\.`/g,
+      (_match, rule, kind) => `\`权限规则 \${${rule}} 要求确认此\${${kind}==="tool"?"工具":"命令"}。\``);
+  } else if (role === "key-hint") {
+    const action = /\{chord:[$\w]+,action:([$\w]+),format:/u.exec(source)?.[1];
+    if (!action) throw new Error("按键提示动作参数未找到");
+    // 组件入口只翻渲染用的副本，不改调用者传来的内部 action。
+    const binding = new RegExp(`(\\{chord:[$\\w]+,action:${action},format:[^;]+;)`);
+    replace(binding, (_match, before) => `${before}${action}=__cczhAction(${action});`);
+    replace(/" to "/g, '" "');
+    replace(/\$\{([$\w]+)\} to \$\{([$\w]+)\}/g,
+      (_match, key, label) => `\${${key}} \${__cczhAction(${label})}`, source.includes("terse:") ? 0 : 2);
+    if (source.includes("terse:")) {
+      replace(/\$\{([$\w]+)\}\$\{[^}]+\}\$\{([$\w]+)\}/g,
+        (_match, key, label) => `\${${key}} \${__cczhAction(${label})}`);
+    }
+    source += `\nfunction __cczhAction(t){const a=${JSON.stringify(KEY_HINT_ACTIONS)};return typeof t==="string"&&Object.hasOwn(a,t)?a[t]:t}\n`;
+  } else if (role === "diff-panel") {
+    replace(/\b(var|let|const) ([$\w]+)="Diff"/g, (_match, kind, name) => `${kind} ${name}="差异"`);
+  } else if (role === "help") {
+    replace(/`Effort level for the current session \(\$\{([^}]+)\}\)`/g,
+      (_match, levels) => `\`当前会话的推理强度（\${${levels}}）\``, 0);
+  } else if (!["mcp-help", "help", "background-help"].includes(role)) {
+    throw new Error(`未知的显示模块：${role}`);
+  }
+
+  const protectedText = new Set(translations.filter(t => t?.skipPatch).map(t => t.en));
+  const sourceTable = new Map([...POOL_TRANSLATIONS, ...BUILTIN_SPINNER_TRANSLATIONS.map(t => [t.en, t.zh]), ...translations.map(t => [t.en, t.zh])]);
+  for (const [en, zh] of [...sourceTable].sort((a, b) => b[0].length - a[0].length)) {
+    if (en === zh || protectedText.has(en) || PROTOCOL_FRAGMENTS.has(en) || LOGIC_CONSUMED_FRAGMENTS.has(en)) continue;
+    const asciiLiteral = JSON.stringify(en).replace(/[^\x20-\x7e]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+    const literals = new Set([
+      JSON.stringify(en), asciiLiteral, asciiLiteral.replace(/\\u00([0-9a-f]{2})/g, "\\x$1"),
+      asciiLiteral.replace(/\\u([0-9a-f]{4})/g, (_match, hex) => `\\u${hex.toUpperCase()}`),
+      asciiLiteral.replace(/\\u00([0-9a-f]{2})/g, (_match, hex) => `\\x${hex.toUpperCase()}`),
+      `'${en.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`,
+    ]);
+    if (!en.includes("${") && !en.includes("`")) literals.add(`\`${en}\``);
+    for (const literal of literals) {
+      const hits = source.split(literal).length - 1;
+      if (hits) { source = source.split(literal).join(JSON.stringify(zh)); changed += hits; }
+    }
+    if (role === "background-help" && /^(Open the background session|Print the background session|Usage: claude respawn|Restart a background session \(or|Delete a background session and|also discard the worktree|delete the worktree directory)/.test(en)) {
+      // 新版帮助在模板里追加会话名称提示；只换已核对的帮助正文，保留插值。
+      const fragments = new Set([en, en.replace(/`/g, "\\`"), asciiLiteral.slice(1, -1), asciiLiteral.slice(1, -1).replace(/\\u([0-9a-f]{4})/g, (_match, hex) => `\\u${hex.toUpperCase()}`)]);
+      for (const fragment of fragments) {
+        const hits = source.split(fragment).length - 1;
+        if (hits) { source = source.split(fragment).join(zh); changed += hits; }
+      }
+    }
+  }
+  return { source, changed };
+}
+
+function patchMacDisplayModules(bunData, bunOffsets, moduleStructSize, translations, { format, version, sourceHash }) {
+  const build = MAC_DISPLAY_BUILDS.get(version);
+  if (format !== "MachO" || !build) return { sourceModules: 0, sourceReplacements: 0 };
+  if (sourceHash !== build[0]) throw new Error(`macOS ${version} 构建指纹未经验证，未改动文件`);
+  const { offset, length } = bunOffsets.modulesPtr;
+  if (moduleStructSize !== 52 || length % 52 !== 0 || offset + length > bunData.length) throw new Error("Mac 显示模块布局异常");
+  const modules = new Map(build[1].map(([name, role, hash]) => [name, { role, hash }]));
+  const records = [], plans = [], seen = new Set();
+  for (let cursor = offset; cursor < offset + length; cursor += 52) {
+    const pointers = Array.from({ length: 6 }, (_, i) => ({ start: bunData.readUInt32LE(cursor + i * 8), size: bunData.readUInt32LE(cursor + i * 8 + 4), field: i }));
+    records.push({ cursor, pointers });
+    const { start, size } = pointers[0];
+    const name = bunData.toString("utf8", start, start + size), moduleName = path.basename(name), spec = modules.get(moduleName);
+    if (!spec) continue;
+    if (seen.has(moduleName) || !name.endsWith(`/root/${moduleName}`)) throw new Error("Mac 显示模块名称异常");
+    seen.add(moduleName);
+    const contents = pointers[1], bytecode = pointers[3];
+    if (!contents.size || !bytecode.size || contents.start + contents.size > bunData.length || bytecode.start + bytecode.size > bunData.length || bunData[cursor + 48] > 1) throw new Error("Mac 显示模块范围异常");
+    const source = bunData.toString(bunData[cursor + 48] === 1 ? "latin1" : "utf8", contents.start, contents.start + contents.size);
+    if (crypto.createHash("sha256").update(source).digest("hex") !== spec.hash) throw new Error(`${moduleName} 源码指纹不符`);
+    const result = rewriteMacDisplaySource(source, spec.role, translations), replacement = Buffer.from(result.source, "utf8");
+    const storage = contents.size >= bytecode.size ? contents : bytecode;
+    if (replacement.length > storage.size) throw new Error(`${moduleName} 显示内容超出独立占位`);
+    plans.push({ cursor, storage, replacement, changed: result.changed });
+  }
+  if (seen.size !== modules.size) throw new Error("Mac 显示模块缺失");
+  // 所有验证完成后才写入；腾出的区域不能与任何其他模块字段或模块表重叠。
+  const overlaps = (a, n, b, m) => n > 0 && m > 0 && a < b + m && b < a + n;
+  for (const plan of plans) {
+    const { start, size } = plan.storage;
+    if (overlaps(start, size, offset, length)) throw new Error("显示占位与模块表重叠");
+    for (const record of records) for (const pointer of record.pointers) {
+      if (record.cursor === plan.cursor && pointer.field === plan.storage.field) continue;
+      if (overlaps(start, size, pointer.start, pointer.size)) throw new Error("显示占位与其他模块数据重叠");
+    }
+  }
+  for (const { cursor, storage, replacement } of plans) {
+    bunData.fill(0x20, storage.start, storage.start + storage.size);
+    replacement.copy(bunData, storage.start);
+    bunData.writeUInt32LE(storage.start, cursor + 8);
+    bunData.writeUInt32LE(replacement.length, cursor + 12);
+    bunData.writeUInt32LE(0, cursor + 24);
+    bunData.writeUInt32LE(0, cursor + 28);
+    bunData[cursor + 48] = 0;
+  }
+  return { sourceModules: plans.length, sourceReplacements: plans.reduce((sum, plan) => sum + plan.changed, 0) };
+}
+
 function patchBinary(binaryPath, translations, { dryRun = false, mainTableOnly = false } = {}) {
   binaryPath = fs.realpathSync(binaryPath);
   const version = io.readExecutableVersion(binaryPath);
@@ -397,8 +626,10 @@ function patchBinary(binaryPath, translations, { dryRun = false, mainTableOnly =
     throw new Error("无法唯一定位 Bun 数据，未改动文件");
   }
   const summary = patchStringPool(bunData, translations, { mainTableOnly });
-  const sourceSummary = mainTableOnly ? { sourceModules: 0, sourceReplacements: 0 } :
-    patchWin289DisplayModules(bunData, bunOffsets, moduleStructSize, translations, { format, version, sourceHash });
+  const context = { format, version, sourceHash };
+  const sourceSummary = mainTableOnly ? { sourceModules: 0, sourceReplacements: 0 } : format === "MachO"
+    ? patchMacDisplayModules(bunData, bunOffsets, moduleStructSize, translations, context)
+    : patchWin289DisplayModules(bunData, bunOffsets, moduleStructSize, translations, context);
   if (dryRun) return { ...summary, ...sourceSummary, version, mode: "dry-run" };
   if (!summary.patched) throw new Error("没有命中可翻译的字节码条目，未改动文件");
   bunData.copy(original, payloadOffset);
@@ -470,7 +701,7 @@ function main() {
   process.stdout.write(flags.includes("--json") ? JSON.stringify(result) + "\n" : String(result.patched) + "\n");
 }
 
-module.exports = { patchStringPool, patchBinary, restoreBinary, POOL_TRANSLATIONS, rewriteWin289DisplaySource, patchWin289DisplayModules };
+module.exports = { patchStringPool, patchBinary, restoreBinary, POOL_TRANSLATIONS, rewriteWin289DisplaySource, patchWin289DisplayModules, rewriteMacDisplaySource, patchMacDisplayModules, MAC_DISPLAY_BUILDS };
 if (require.main === module) {
   try { main(); } catch (error) {
     process.stderr.write(`bytecode patch: ${error.message}\n`);

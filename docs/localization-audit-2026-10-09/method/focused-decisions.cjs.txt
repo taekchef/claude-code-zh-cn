@@ -1,0 +1,75 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const root='/Users/changfenhuang/projects/claude-code-zh-cn/docs/localization-audit-2026-10-09';
+const rows=JSON.parse(fs.readFileSync(path.join(root,'ui-candidates.json'),'utf8')),lookup=new Map(rows.map(r=>[r.text,r]));
+const choices=[
+ ['授权','Use this skill?','使用此技能？','P0'],
+ ['授权','Use skill "','使用技能"','P0'],
+ ['授权','Use skill "${…}"?','使用技能“${…}”？','P0'],
+ ['授权','Claude may use instructions, code, or files from this Skill.','Claude 可使用此技能的指令、代码或文件。','P0'],
+ ['授权',"Yes, and don't ask again for ",'是，今后不再询问 ','P0'],
+ ['授权','Yes','是','P0'],['授权','No','否','P0'],
+ ['按键提示','amend','修改','P0'],
+ ['授权','Proceed?','继续吗？','P1'],
+ ['授权','Allow external CLAUDE.md file imports?','允许导入外部 CLAUDE.md？','P1'],
+ ['授权','Working directory has changes','工作目录有改动','P1'],
+ ['授权','Pending approval','等待授权','P1'],
+ ['授权','Its settings declare project permission rules and/or additional directories. They apply only if you trust this directory explicitly (it is trusted through a parent directory so far).','此目录的设置包含权限规则或额外目录。明确信任此目录后才会生效；目前仅通过父目录间接信任。','P1'],
+ ['授权','This directory configures hooks that run commands, declared in','此目录配置了会执行命令的 Hook，定义位于','P1'],
+ ['按键提示','add','添加','P1'],['按键提示','back','返回','P1'],['按键提示','cancel edit','取消修改','P1'],
+ ['按键提示','clear history','清空历史','P1'],['按键提示','collapse description','收起说明','P1'],['按键提示','continue','继续','P1'],
+ ['按键提示','copy link','复制链接','P1'],['按键提示','deselect','取消选择','P1'],['按键提示','discard and exit','放弃并退出','P1'],
+ ['按键提示','edit in $EDITOR','在 $EDITOR 中修改','P1'],['按键提示','exit and fix issues','退出并修复问题','P1'],
+ ['按键提示','interrupt','中断','P1'],['按键提示','new line','换行','P1'],['按键提示','only show current repo','仅显示当前仓库','P1'],
+ ['按键提示','open in browser','在浏览器打开','P1'],['按键提示','pick a row first','先选择一行','P1'],
+ ['按键提示','refresh','刷新','P1'],['按键提示','reset to auto','重置为自动','P1'],['按键提示','review & send','检查并发送','P1'],
+ ['按键提示','scroll','滚动','P1'],['按键提示','see the first lines','查看开头','P1'],['按键提示','send now','立即发送','P1'],
+ ['按键提示','show tasks','显示任务','P1'],['按键提示','stop all agents','停止全部 Agent','P1'],['按键提示','switch mode','切换模式','P1'],
+ ['按键提示','toggle scope','切换范围','P1'],['按键提示','twice to stop background agents','按两次停止后台 Agent','P1'],
+ ['按键提示','view artifacts','查看作品','P1'],
+ ['插件/技能',' /plugin stats - Show skill usage and context costs',' /plugin stats - 查看技能用量和上下文开销','P1'],
+ ['插件/技能',' installed · restart to apply',' 已安装 · 重启生效','P1'],
+ ['插件/技能','Create a git commit','创建提交','P1'],['插件/技能','Create a pull request','创建 PR','P1'],
+ ['插件/技能','Answer questions about Claude Code features and settings','解答 Claude Code 功能和设置问题','P1'],
+ ['插件/技能','Create a skill that knows how to run this project’s app','创建运行项目的技能','P1'],
+ ['插件/技能','Launch this project’s app to see your change working','启动项目查看改动','P1'],
+ ['插件/技能','Guided setup — pick a role, install a plugin, try a skill, connect tools','引导设置：选择角色、安装插件、试用技能、连接工具','P1'],
+ ['插件/技能','Diagramming guidance for Artifacts','作品图示指南','P2'],
+ ['插件/技能','Publish a report Artifact from a template','用模板发布报告','P2'],
+ ['帮助','Manage Claude Code project state','管理 Claude Code 项目状态','P1'],
+ ['帮助','Which agent to import from (codex, gemini, cursor)','要导入哪个工具的会话（codex、gemini、cursor）','P1'],
+ ['帮助','Show what would be imported without writing anything','预览导入内容，不写入文件','P1'],
+ ['帮助','Path to gateway YAML config','网关 YAML 配置路径','P1'],
+ ['帮助','List what would be deleted without deleting anything','预览要删除的内容，不执行删除','P1'],
+ ['帮助','Prompt for each item before deleting','逐项确认后删除','P1'],
+ ['帮助','Skip confirmation prompt','跳过确认','P1'],
+ ['帮助','Restart every running background session','重启全部运行中的后台会话','P1'],
+ ['帮助','Disable all enabled plugins','停用全部插件','P1'],
+ ['帮助','Filter cases by tag (repeatable)','按标签筛选用例（可重复）','P1'],
+ ['帮助','Override which model is used','指定使用的模型','P1'],
+ ['登录/设置','Sign in with your Anthropic account','登录 Anthropic 账号','P1'],
+ ['登录/设置','GitHub App installed!','GitHub应用已装','P1'],
+ ['登录/设置','Creating a long-lived token for GitHub Actions','创建 GitHub Actions 长效令牌','P1'],
+ ['登录/设置','Dark mode (ANSI colors only)','深色（仅 ANSI 色）','P1'],
+ ['登录/设置','Claude Code will restart to apply.','重启 Claude Code 生效。','P1'],
+ ['登录/设置','Esc again to clear','再按 Esc 清空','P1'],
+ ['登录/设置','Opens a secure connection to claude.ai.','安全连接 claude.ai。','P1'],
+ ['登录/设置','Plugin Hooks','插件 Hook','P1'],['登录/设置','Session Hooks','会话 Hook','P1'],
+ ['登录/设置','Searching','搜索中','P1'],['登录/设置','Configuration error','配置错误','P1'],
+ ['登录/设置','Auto-memory','自动记忆','P1'],['登录/设置','No tool calls yet.','暂无工具调用。','P1'],
+ ['状态/后台',' · reviewing ',' · 审查中 ','P1'],['状态/后台','1 teammate shut down','已停止 1 个协作 Agent','P1'],
+ ['状态/后台','Stop ultrareview?','停止深度审查？','P1'],
+ ['状态/后台','monthly limit · run /usage-credits to adjust','每月限额 · 用 /usage-credits 调整','P1'],
+ ['状态/后台',"What's contributing to your limits usage?",'哪些操作消耗了你的额度？','P1'],
+ ['状态/后台','Sending request to your admin…','正在向管理员发出请求…','P1'],
+ ['面板','Diff','差异','P1'],['面板','Chat','聊天','待归属'],
+ ['保护','Hook cancelled','保留程序哨兵','保留'],['保护','Enter','保留标准按键名','保留'],
+];
+const selected=[],missing=[];
+for(const [group,text,zh,priority]of choices){const r=lookup.get(text);if(!r){missing.push(text);continue;}const shared=r.classification.mixed||['Yes','No','Chat','Diff','Hook cancelled','Enter'].includes(text);const technique=priority==='保留'?'保留标识；翻周围显示句':shared?'需要显示引用隔离；不得新增全局短词映射':text.includes('${…}')?'完整动态句；保留变量':group==='按键提示'?'核 KeyHint 消费方；只翻显示动作，连接词定点改写':r.packages['darwin-arm64-2.1.295']?.tooLongSlots?'短译按实际槽容量验证':'完整常量精确匹配；先核消费方';const budget={};for(const [id,p]of Object.entries(r.packages)){budget[id]={status:p.status,translationBytes:Buffer.byteLength(zh,'utf16le'),slots:p.pool.map(s=>({bytes:s.bytes,fits:Buffer.byteLength(zh,'utf16le')<=s.bytes,offset:s.offset})),limit:p.pool.length?'是否能装下与是否可安全替换是两个条件':'整句没有对应单个池常量'};}selected.push({id:r.id,group,text,proposal:zh,priority,technique,budget,refs:r.refs.slice(0,3)});}
+function q(v){return'"'+String(v??'').replaceAll('"','""')+'"';}
+const heads=['编号','界面组','原文','建议译文（未写入产品）','优先级','实现决策','Mac 稳定槽宽','Mac 最新槽宽','证据位置'];
+const fmt=p=>!p?'本包未确认':`${p.status}; 译文${p.translationBytes}B; `+p.slots.map(s=>`${s.bytes}B:${s.fits?'装得下':'装不下'}`).join(';');
+const records=selected.map(r=>[r.id,r.group,JSON.stringify(r.text),r.proposal,r.priority,r.technique,fmt(r.budget['darwin-arm64-2.1.286']),fmt(r.budget['darwin-arm64-2.1.295']),r.refs.map(s=>s.package+':'+s.module+'@'+s.offset).join(' | ')]);
+fs.writeFileSync(path.join(root,'priority-decisions.csv'),'\uFEFF'+[heads,...records].map(r=>r.map(q).join(',')).join('\n')+'\n');fs.writeFileSync(path.join(root,'priority-decisions.json'),JSON.stringify({count:selected.length,entries:selected},null,2));
+console.log(JSON.stringify({count:selected.length,missing}));

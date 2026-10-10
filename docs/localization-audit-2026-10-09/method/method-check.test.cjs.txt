@@ -1,0 +1,13 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const acorn=require('./tools/node_modules/acorn'),walk=require('./tools/node_modules/acorn-walk');
+const {contextRole}=require('./extract-inventory.cjs'),{augment}=require('./augment-symbol-flow.cjs');
+function parse(s){return acorn.parse(s,{ecmaVersion:'latest',sourceType:'module'});}
+function roles(s){const result=[];walk.fullAncestor(parse(s),(n,_s,a)=>{if(n.type==='Literal'&&typeof n.value==='string')result.push({text:n.value,roles:contextRole(n,a,s)});});return result;}
+test('comments are not strings; short words and trailing whitespace survive',()=>{const r=roles('// "fake UI"\n render({children:["No","Yes, and do not ask "]})');assert.deepEqual(r.map(x=>x.text),['No','Yes, and do not ask ']);});
+test('condition selector is not displayed but its branches are',()=>{const r=roles('render({children:kind==="ProtocolId"?"Shown":"Other"})');assert(!r.find(x=>x.text==='ProtocolId').roles.includes('property:children'));assert(r.find(x=>x.text==='ProtocolId').roles.includes('logic-comparison'));assert(r.find(x=>x.text==='Shown').roles.includes('property:children'));});
+test('nested call parameter does not inherit outer children',()=>{const r=roles('render({children:keyName("chat:cancel","Chat")})');assert(!r.find(x=>x.text==='Chat').roles.includes('property:children'));});
+test('key hint action is distinguished from protocol action',()=>{const r=roles('hint({chord:"tab",action:"amend"}); control({action:"amend"})');assert(r[1].roles.includes('key-hint-display'));assert(!r.at(-1).roles.includes('key-hint-display'));});
+test('lexical flow respects shadowed variables and parameters',()=>{const s='const t="ProtocolId"; function f(t){render({children:t})} function g(){const t="Button";render({children:t})}';const out=[];augment(parse(s),s,p=>out.push(p));assert(out.some(p=>p.text==='Button'&&p.roles.includes('property:children')));assert(!out.some(p=>p.text==='ProtocolId'&&p.roles.includes('property:children')));});
+test('local immutable aliases and template fragments reach display fields',()=>{const s='const x=`Use skill "${skill}"?`;const y=x;render({title:y,children:"Body"})';const out=[];augment(parse(s),s,p=>out.push(p));assert(out.some(p=>p.text==='Use skill "${…}"?'&&p.roles.includes('property:title')));assert(out.some(p=>p.text==='Use skill "'));});
+test('mutated values are not asserted as constant display text',()=>{const s='let t="Former";t=runtimeValue;render({children:t})';const out=[];augment(parse(s),s,p=>out.push(p));assert(!out.some(p=>p.text==='Former'&&p.roles.includes('property:children')));});

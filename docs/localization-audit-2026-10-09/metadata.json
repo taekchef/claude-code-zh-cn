@@ -1,0 +1,56 @@
+{
+  "scope": "read-only audit; helper source snapshots not product implementation",
+  "sampleDate": "2026-10-09",
+  "node": "24.13.0",
+  "sources": {
+    "extract-inventory.cjs": {
+      "sha256": "975066dcb5cdaae9c0871213c4dd44d2fcd63153715ccf957d4ce41277045faf",
+      "snapshot": "extract-inventory.cjs.txt"
+    },
+    "refresh-source-roles.cjs": {
+      "sha256": "59e0feb60c784af7e1eeb3a5b4a2a990ce91271fcf6e0dd45d1da35e4c4b5e35",
+      "snapshot": "refresh-source-roles.cjs.txt"
+    },
+    "augment-symbol-flow.cjs": {
+      "sha256": "f3df8600ac497ef1c4123d230699aefd8a3c0800d908072d2c21bde729578685",
+      "snapshot": "augment-symbol-flow.cjs.txt"
+    },
+    "extract-assets.cjs": {
+      "sha256": "01c175e6f06118c646fe1789a2d38ebafcbf25b2a61f1f5053439b48e970cd1c",
+      "snapshot": "extract-assets.cjs.txt"
+    },
+    "decision-inventory.cjs": {
+      "sha256": "430a5050e50390d8c9774ee02970a54bd291c17ab3a3d7cdeec7243d794129ab",
+      "snapshot": "decision-inventory.cjs.txt"
+    },
+    "focused-decisions.cjs": {
+      "sha256": "17568411a4de915914a308e10d424e1625167816e99d2bd6ba265fb7b583f95d",
+      "snapshot": "focused-decisions.cjs.txt"
+    },
+    "sweep-help.cjs": {
+      "sha256": "9ea1ef0096bc12684ada0a80a4ce7e3e497bf43ef875a50a12d3402c0e3a39b0",
+      "snapshot": "sweep-help.cjs.txt"
+    },
+    "method-check.test.cjs": {
+      "sha256": "2f1e05e188fbaf711ae452132e92aa0555101c842e7c49ad85d4986e7dbed4d6",
+      "snapshot": "method-check.test.cjs.txt"
+    }
+  },
+  "dependencies": {
+    "acorn": "8.15.0",
+    "acorn-walk": "8.3.4",
+    "parse5": "7.3.0",
+    "entities": "6.0.1"
+  },
+  "rawEvidenceRoot": "/private/tmp/cczh-deep-audit-20261009",
+  "pipeline": [
+    "extract-inventory.cjs",
+    "refresh-source-roles.cjs",
+    "augment-symbol-flow.cjs",
+    "extract-assets.cjs",
+    "decision-inventory.cjs",
+    "focused-decisions.cjs",
+    "sweep-help.cjs",
+    "method-check.test.cjs"
+  ]
+}

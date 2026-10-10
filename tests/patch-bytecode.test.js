@@ -41,6 +41,25 @@ function entry(text, wide = false) {
   return Buffer.concat([header, Buffer.from(text, wide ? "utf16le" : "latin1")]);
 }
 
+test("identity translations preserve narrow entries without false capacity failures", () => {
+  const pool = entry("Enter");
+  const original = Buffer.from(pool);
+  const result = patchStringPool(pool, [{ en: "Enter", zh: "Enter" }], { mainTableOnly: true });
+  assert.equal(result.tooLong, 0);
+  assert.equal(result.patched, 0);
+  assert.equal(result.notFound, 0);
+  assert.deepEqual(pool, original);
+});
+
+test("cancellation sentinel and shared syntax name stay intact even when translations fit", () => {
+  for (const [en, zh] of [["Hook cancelled", "已取消"], ["Diff", "差异"]]) {
+    const pool = entry(en);
+    const original = Buffer.from(pool);
+    assert.equal(patchStringPool(pool, [{ en, zh }]).patched, 0);
+    assert.deepEqual(pool, original);
+  }
+});
+
 test("English switching command descriptions are Chinese without changing Hook contracts", () => {
   for (const name of ["english", "en"]) {
     const source = fs.readFileSync(path.join(__dirname, "../plugin/commands", `${name}.md`), "utf8");

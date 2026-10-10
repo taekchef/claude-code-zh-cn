@@ -30,6 +30,8 @@ const TIPS_FILE = path.join(PLUGIN_ROOT, "tips", "zh-CN.json");
 const PATCH_CLI = path.join(PLUGIN_ROOT, "patch-cli.js");
 const TRANSLATIONS = path.join(PLUGIN_ROOT, "cli-translations.json");
 const BUN_IO = path.join(PLUGIN_ROOT, "bun-binary-io.js");
+const NATIVE_REPAIR = path.join(PLUGIN_ROOT, "scripts", "native-repair.js");
+const STATE_ROOT = process.env.CLAUDE_PLUGIN_DATA || PLUGIN_ROOT;
 const NODE = process.execPath;
 const DRY_RUN = process.env.CCZH_DRY_RUN === "1";
 const LANGUAGE_MODE_FILE = path.join(
@@ -118,7 +120,7 @@ function applyEnglishSettings() {
 }
 
 function run(cmd, args) {
-  return spawnSync(cmd, args, { encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+  return spawnSync(cmd, args, { encoding: "utf8", windowsHide: true, timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
 }
 
 function findClaudeCommand() {
@@ -161,7 +163,7 @@ function patchCliChinese(install) {
   if (!install || !fs.existsSync(PATCH_CLI) || !fs.existsSync(TRANSLATIONS)) return null;
   // Windows 锁定当前会话的 EXE；只记录语言选择，下一次启动前由统一事务修复。
   if (install.kind === "native-bun" && process.platform === "win32") return "native-pending-restart";
-  if (!patchSupported(install)) return null;
+  if (install.kind === "npm" && !patchSupported(install)) return null;
 
   try {
     if (install.kind === "npm") {
@@ -173,37 +175,15 @@ function patchCliChinese(install) {
 
     if (install.kind === "native-bun") {
       if (DRY_RUN) return "native-dry-run";
-      const deps = run(NODE, [BUN_IO, "check-deps"]);
-      if (deps.status !== 0 || (deps.stdout || "").trim() !== "ok") return null;
-      const binary = install.target;
-      const backup = `${binary}.zh-cn-backup`;
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-lang-"));
-      const tmpJs = path.join(tmpDir, "extracted.js");
-      try {
-        if (fs.existsSync(backup)) {
-          fs.copyFileSync(backup, binary);
-        } else {
-          fs.copyFileSync(binary, backup);
-        }
-        let res = run(NODE, [BUN_IO, "extract", binary, tmpJs]);
-        if (res.status !== 0) return null;
-        res = run(NODE, [PATCH_CLI, tmpJs, TRANSLATIONS]);
-        if (res.status !== 0) return null;
-        res = run(NODE, [BUN_IO, "repack", binary, tmpJs]);
-        if (res.status !== 0) {
-          // 失败回滚到干净备份
-          fs.copyFileSync(backup, binary);
-          return null;
-        }
-        return "native-patched";
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
+      // 与安装器、启动器共用副本验证事务；任何失败都不能先擦掉现有汉化。
+      const res = run(NODE, [NATIVE_REPAIR, install.target, STATE_ROOT]);
+      if (res.status === 0) return "native-patched";
+      process.stderr.write(`[claude-code-zh-cn] CLI 修复失败：${res.stderr || res.error?.message || res.status}\n`);
+      return "native-repair-failed";
     }
   } catch (error) {
-    // Windows 上运行中的 native exe 可能被占用；降级为只切设置。
-    process.stderr.write(`[claude-code-zh-cn] patch skipped: ${error.message}\n`);
-    return null;
+    process.stderr.write(`[claude-code-zh-cn] CLI 修复失败：${error.message}\n`);
+    return "native-repair-failed";
   }
 
   return null;
@@ -217,6 +197,15 @@ function restoreCliEnglish(install) {
   if (!fs.existsSync(backup)) return null;
   if (DRY_RUN) return `${install.kind}-dry-run-restore`;
   try {
+    if (install.kind === "native-bun") {
+      const res = run(NODE, [NATIVE_REPAIR, "restore", install.target, STATE_ROOT]);
+      if (res.status !== 0) {
+        process.stderr.write(`[claude-code-zh-cn] CLI 还原失败：${res.stderr || res.error?.message || res.status}\n`);
+        return "native-restore-failed";
+      }
+      const result = JSON.parse(res.stdout);
+      return result.restored ? "native-restored" : "native-current-preserved";
+    }
     fs.copyFileSync(backup, install.target);
     fs.rmSync(backup, { force: true });
     return install.kind === "npm" ? "npm-restored" : "native-restored";
@@ -235,29 +224,38 @@ function switchLanguage(language) {
     settingsResult = applyChineseSettings();
     saveLanguageMode("zh-CN");
     patchResult = patchCliChinese(install);
-    const patchNote = patchResult
-      ? (patchResult === "native-pending-restart" ? "；下次启动前将验证并补齐 CLI 界面文案" : "，CLI 界面文案已重新 patch")
-      : "；当前环境暂未识别可 patch 的 CLI 安装，界面文案可能仍需重启后由会话启动 Hook 修复";
+    const patchNote = patchResult === "native-repair-failed"
+      ? "；已找到原生程序，但界面修复失败，现有程序与备份已保留，请查看修复日志"
+      : patchResult
+      ? (patchResult === "native-pending-restart" ? "；下次启动前将验证并补齐界面文案" : "，界面文案已更新")
+      : "；暂未找到可汉化的 Claude 程序，重启后可由会话启动 Hook 再次检查";
+    const restartNote = patchResult === "native-repair-failed"
+      ? "请先排除修复失败，再重启 Claude Code。"
+      : "重启 Claude Code 后加载新的界面文案。";
     return {
       decision: "block",
       reason:
         `✅ 已切换为中文（claude-code-zh-cn）。` +
-        `语言设置与 187 个 spinner 动词、41 条提示已更新${patchNote}。` +
-        `若界面文案未立即变化，重启 Claude Code 后完全生效。`,
+        `语言设置与 187 个等待动词、41 条提示已更新${patchNote}。` +
+        restartNote,
     };
   }
 
   settingsResult = applyEnglishSettings();
   saveLanguageMode("en");
   patchResult = restoreCliEnglish(install);
-  const patchNote = patchResult === "native-pending-restart"
-    ? "；关闭当前终端会话后，下次启动前将校验备份并还原 CLI 原文"
-    : patchResult ? "，CLI 原文已从备份还原" : "；未检测到 CLI 备份，界面文案保持现状";
+  const patchNote = patchResult === "native-restore-failed"
+    ? "；界面原文还原失败，现有程序与备份已保留，请查看修复日志"
+    : patchResult === "native-current-preserved"
+      ? "；Claude 程序已被更新，已保留当前版本"
+    : patchResult === "native-pending-restart"
+    ? "；关闭当前终端会话后，下次启动前将校验备份并还原界面原文"
+    : patchResult ? "，界面原文已从备份还原" : "；未检测到程序备份，界面文案保持现状";
   return {
     decision: "block",
     reason:
-      `✅ 已切换为英文。中文语言设置与 spinner 动词/提示已移除${patchNote}。` +
-      `重启 Claude Code 后界面完全回到英文。`,
+      `✅ 已切换为英文。中文语言设置与等待动词、提示已移除${patchNote}。` +
+      (patchResult === "native-restore-failed" ? "请先排除还原失败，再重启 Claude Code。" : "重启 Claude Code 后加载英文界面。"),
   };
 }
 

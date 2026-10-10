@@ -1,0 +1,30 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const acorn=require('./tools/node_modules/acorn'),walk=require('./tools/node_modules/acorn-walk');
+const {contextRole}=require('./extract-inventory.cjs');
+function augment(ast,source,onFlow){
+ const cache=new WeakMap();
+ const isFunction=n=>['Program','FunctionDeclaration','FunctionExpression','ArrowFunctionExpression'].includes(n.type);
+ const isScope=n=>isFunction(n)||n.type==='BlockStatement'||n.type==='CatchClause';
+ function scopeFor(ancestors,varOnly=false){for(let i=ancestors.length-1;i>=0;i--){const n=ancestors[i];if(!(varOnly?isFunction(n):isScope(n)))continue;let s=cache.get(n);if(!s){s={node:n,parent:i>0?scopeFor(ancestors.slice(0,i)):null,bindings:new Map()};cache.set(n,s);}return s;}return null;}
+ function names(pattern){if(!pattern)return[];if(pattern.type==='Identifier')return[pattern.name];if(pattern.type==='RestElement')return names(pattern.argument);if(pattern.type==='AssignmentPattern')return names(pattern.left);if(pattern.type==='ArrayPattern')return pattern.elements.flatMap(names);if(pattern.type==='ObjectPattern')return pattern.properties.flatMap(p=>names(p.value||p.argument));return[];}
+ function pieces(n){if(!n)return[];if(n.type==='Literal'&&typeof n.value==='string')return[{text:n.value,definitionOffset:n.start}];if(n.type==='TemplateLiteral'){const full=n.quasis.map(q=>q.value.cooked??q.value.raw).join('${…}');return[{text:full,definitionOffset:n.start},...n.expressions.length?n.quasis.map(q=>({text:q.value.cooked??q.value.raw,definitionOffset:q.start})):[]].filter(p=>p.text);}if(n.type==='Identifier')return[{alias:n.name}];if(n.type==='BinaryExpression'&&n.operator==='+')return[...pieces(n.left),...pieces(n.right)];if(n.type==='ConditionalExpression')return[...pieces(n.consequent),...pieces(n.alternate)];if(n.type==='LogicalExpression')return[...pieces(n.left),...pieces(n.right)];if(n.type==='ArrayExpression')return n.elements.flatMap(pieces);return[];}
+ walk.fullAncestor(ast,(node,_s,ancestors)=>{
+  if(['FunctionDeclaration','FunctionExpression','ArrowFunctionExpression'].includes(node.type)){const s=scopeFor(ancestors);for(const p of node.params)for(const name of names(p))if(!s.bindings.has(name))s.bindings.set(name,{pieces:[],scope:s});if(node.id){const owner=node.type==='FunctionDeclaration'?scopeFor(ancestors.slice(0,-1)):s;if(owner&&!owner.bindings.has(node.id.name))owner.bindings.set(node.id.name,{pieces:[],scope:owner});}}
+  if(node.type==='CatchClause'){const s=scopeFor(ancestors);for(const name of names(node.param))if(!s.bindings.has(name))s.bindings.set(name,{pieces:[],scope:s});}
+  if(node.type==='VariableDeclarator'){const kind=ancestors.at(-2).kind,s=scopeFor(ancestors,kind==='var');for(const name of names(node.id))s.bindings.set(name,{pieces:node.id.type==='Identifier'?pieces(node.init):[],scope:s});}
+ });
+ function lookup(s,name){for(;s;s=s.parent)if(s.bindings.has(name))return s.bindings.get(name);return null;}
+ walk.fullAncestor(ast,(node,_s,ancestors)=>{if((node.type==='AssignmentExpression'||node.type==='UpdateExpression')){const target=node.left||node.argument;if(target?.type==='Identifier'){const b=lookup(scopeFor(ancestors),target.name);if(b)b.mutated=true;}}});
+ function resolve(binding,visited=new Set()){if(!binding||binding.mutated||visited.has(binding)||visited.size>5)return[];visited.add(binding);return binding.pieces.flatMap(p=>p.alias?resolve(lookup(binding.scope,p.alias),new Set(visited)):[p]);}
+ let flows=0;
+ walk.fullAncestor(ast,(node,_s,ancestors)=>{if(node.type!=='Identifier')return;const parent=ancestors.at(-2);if(parent?.type==='VariableDeclarator'&&parent.id===node||parent?.type==='Property'&&parent.key===node&&!parent.computed||parent?.type==='MemberExpression'&&parent.property===node&&!parent.computed)return;
+ const roles=contextRole(node,ancestors,source).filter(r=>r.startsWith('property:')||r==='likely-display-object'||r==='key-hint-display'||r==='data-property:menuDescription'||r==='logic-comparison'||r.startsWith('consumed:')||['data-property:context','data-property:id','data-property:value','data-property:action'].includes(r));
+ if(!roles.length)return;const binding=lookup(scopeFor(ancestors),node.name);for(const p of resolve(binding)){onFlow({...p,usageOffset:node.start,end:node.end,variable:node.name,roles});flows++;}
+ });return flows;
+}
+module.exports={augment};
+if(require.main===module){const id=process.argv[2],file=path.join(__dirname,'results',id,'inventory.json');const a=JSON.parse(fs.readFileSync(file,'utf8')),map=new Map(a.rows.map(r=>[r.text,r]));let flows=0,errors=[];
+for(const r of a.rows){r.roles=r.roles.filter(s=>!s.startsWith('via-variable:'));r.refs=r.refs.filter(s=>s.kind!=='bound-variable-use');}
+for(const module of a.modules){const filename=path.join(__dirname,'results',id,'modules',path.basename(module.name)+'.txt');if(!fs.existsSync(filename))continue;const source=fs.readFileSync(filename,'utf8');try{const ast=acorn.parse(source,{ecmaVersion:'latest',sourceType:'module',allowReturnOutsideFunction:true,allowAwaitOutsideFunction:true,allowHashBang:true});flows+=augment(ast,source,p=>{const r=map.get(p.text);if(!r)return;const roles=p.roles.map(s=>'via-variable:'+s);let novel=false;for(const role of roles)if(!r.roles.includes(role)){r.roles.push(role);novel=true;}if(novel)r.refs.push({module:module.name,offset:p.usageOffset,end:p.end,roles,asset:module.loader===5,kind:'bound-variable-use',definitionOffset:p.definitionOffset,variable:p.variable,context:source.slice(Math.max(0,p.usageOffset-130),Math.min(source.length,p.end+130)).replace(/[\r\n]+/g,' ')});});}catch(e){errors.push({module:module.name,error:e.message});}}
+a.symbolFlow={mode:'local lexical binding; static initializers; aliases up to 5',flows,errors};a.methodRevision=4;fs.writeFileSync(file,JSON.stringify(a));console.log(id,JSON.stringify(a.symbolFlow));}

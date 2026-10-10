@@ -307,6 +307,17 @@ function nativeBinaryHash(bunBinaryIoPath, target) {
   return String(result.stdout || "").trim();
 }
 
+function currentNativeReceipt(bunBinaryIoPath, target, version, revision, actualHash) {
+  let receipt;
+  try { receipt = readJson(`${target}.zh-cn-repair.json`); } catch { return null; }
+  const backup = `${target}.zh-cn-backup`;
+  if (!actualHash || !revision || !receipt?.sourceHash || receipt.version !== version ||
+      receipt.patchedHash !== actualHash || receipt.revision !== revision ||
+      !Number.isFinite(receipt.patched) || receipt.patched <= 0 || !fs.existsSync(backup) ||
+      nativeBinaryHash(bunBinaryIoPath, backup) !== receipt.sourceHash) return null;
+  return receipt;
+}
+
 function probeNativeContainerLayout(bunBinaryIoPath, target) {
   let result;
   try {
@@ -535,8 +546,13 @@ function runDoctor(options = {}) {
     options.pluginRoot || path.join(homeDir, ".claude", "plugins", "claude-code-zh-cn");
   const launcherBinDir =
     options.launcherBinDir || path.join(homeDir, ".claude", "bin");
-  const settingsFile = path.join(homeDir, ".claude", "settings.json");
-  const markerFile = path.join(pluginRoot, ".patched-version");
+  const configRoot = options.configDir || (!options.homeDir && process.env.CLAUDE_CONFIG_DIR) || path.join(homeDir, ".claude");
+  const settingsFile = path.join(configRoot, "settings.json");
+  const stateRoots = [...new Set([
+    options.stateRoot || process.env.CLAUDE_PLUGIN_DATA,
+    path.join(configRoot, "plugins", "claude-code-zh-cn"), pluginRoot,
+  ].filter(Boolean))];
+  const markerFile = stateRoots.map(root => path.join(root, ".patched-version")).find(file => fs.existsSync(file)) || path.join(pluginRoot, ".patched-version");
   const sourceRepoFile = path.join(pluginRoot, ".source-repo");
   const useColor = options.color !== false && !process.env.NO_COLOR;
   const support = loadSupportWindow(repoRoot, pluginRoot);
@@ -742,6 +758,7 @@ function runDoctor(options = {}) {
 
   let layer4Status = "skipped";
   let layer4Detail = "";
+  let verifiedNativeReceipt = null;
 
   if (kind === "npm" && target) {
     const stable = isLegacyNpmStable(cliVersion, support);
@@ -780,13 +797,18 @@ function runDoctor(options = {}) {
     if (bytecodeContainer) {
       const currentHash = nativeBinaryHash(bunBinaryIoPath, target);
       const currentRevision = computePatchRevision(pluginRoot);
-      const current = marker.kind === "native" && marker.version === cliVersion &&
+      verifiedNativeReceipt = currentNativeReceipt(bunBinaryIoPath, target, cliVersion, currentRevision, currentHash);
+      const current = Boolean(verifiedNativeReceipt) || (marker.kind === "native" && marker.version === cliVersion &&
         Boolean(marker.hash && currentHash && marker.hash === currentHash) &&
-        Boolean(marker.revision && currentRevision && marker.revision === currentRevision);
-      layer4Status = current ? (supported ? "ok" : "provisional") : "needed";
+        Boolean(marker.revision && currentRevision && marker.revision === currentRevision));
+      layer4Status = verifiedNativeReceipt ? "partial" : current ? (supported ? "ok" : "provisional") : "needed";
       layer4Detail = `native ${cliVersion || "unknown"} 字节码汉化：` +
-        (current ? "当前版本、文件校验值与翻译规则记录一致" : "尚未执行或汉化记录已失效");
+        (verifiedNativeReceipt ? `已验证补丁 ${verifiedNativeReceipt.patched} 处；可见英文覆盖需另行审计` : current ? "当前版本、文件校验值与翻译规则记录一致" : "尚未执行或汉化记录已失效");
       add("layer4", "Layer 4（UI 硬编码）", current && supported ? "ok" : "warn", layer4Detail);
+      if (verifiedNativeReceipt && !fs.existsSync(markerFile)) {
+        const check = checks.find(item => item.id === "patch-marker");
+        if (check) check.detail = "无 .patched-version；已用程序、备份及规则指纹核验修复记录";
+      }
       if (!current) {
         const installer = nativePlatform === "win32-x64" ? "install.ps1" : "./install.sh";
         recommendations.push(`关闭 Claude Code 后重跑 ${installer}，执行字节码汉化与启动自检`);
@@ -914,23 +936,26 @@ function runDoctor(options = {}) {
   }
 
   const hasFail = checks.some((item) => item.status === "fail");
-  const languageModeFile = path.join(homeDir, ".claude", "plugins", "claude-code-zh-cn", ".language-mode");
+  const languageModeFile = path.join(configRoot, "plugins", "claude-code-zh-cn", ".language-mode");
   const languageMode = fs.existsSync(languageModeFile)
     ? fs.readFileSync(languageModeFile, "utf8").trim() : "zh-CN";
   let layer4State = { code: layer4Status, detail: layer4Detail };
   if (kind === "native-bun" && target) {
     const receiptPath = `${target}.zh-cn-repair.json`;
-    const pendingPath = path.join(pluginRoot, ".native-patch-pending.json");
+    const pendingPath = stateRoots.map(root => path.join(root, ".native-patch-pending.json")).find(file => fs.existsSync(file));
     let receipt = null, pending = null;
     try { receipt = readJson(receiptPath); } catch {}
-    try { pending = readJson(pendingPath); } catch {}
+    try { if (pendingPath) pending = readJson(pendingPath); } catch {}
     const actualHash = nativeBinaryHash(bunBinaryIoPath, target);
     const currentRevision = computePatchRevision(pluginRoot);
-    const current = receipt?.patchedHash === actualHash && receipt?.revision === currentRevision;
+    const current = verifiedNativeReceipt || currentNativeReceipt(bunBinaryIoPath, target, cliVersion, currentRevision, actualHash);
     if (languageMode === "en") {
       layer4State = { code: fs.existsSync(`${target}.zh-cn-backup`) ? "awaiting-restart" : "english", detail: "英文模式；下次启动前从已校验备份还原" };
     } else if (current) {
+      layer4Status = "partial";
       layer4State = { code: "partial", detail: `已验证补丁 ${receipt.patched} 处；可见英文覆盖需另行审计` };
+    } else if (!receipt && ["ok", "provisional"].includes(layer4Status)) {
+      layer4State = { code: layer4Status, detail: layer4Detail || "当前版本已记录汉化；可见英文覆盖需另行审计" };
     } else if (pending?.target && path.resolve(pending.target) === path.resolve(target)) {
       layer4State = { code: "locked", detail: "运行中的 EXE 等待下次启动前修复" };
     } else if (!checkNodeLief(bunBinaryIoPath)) {
@@ -939,6 +964,14 @@ function runDoctor(options = {}) {
       layer4State = { code: "awaiting-restart", detail: "补丁规则已更新，等待下次启动前重验证" };
     } else {
       layer4State = { code: "validation-failed", detail: "当前二进制没有有效补丁记录；检查修复日志" };
+    }
+    if (languageMode === "en" || layer4State.code === "locked") {
+      layer4Status = layer4State.code;
+      const check = checks.find(item => item.id === "layer4");
+      if (check) { check.status = "warn"; check.detail = layer4State.detail; }
+      for (let i = recommendations.length - 1; i >= 0; i--) {
+        if (/重跑 .*字节码汉化|重新.*patch native|关闭 Claude Code 后重跑/.test(recommendations[i])) recommendations.splice(i, 1);
+      }
     }
     add("layer4-state", "Layer 4 当前状态", layer4State.code === "partial" ? "ok" : "warn", layer4State.detail);
   }

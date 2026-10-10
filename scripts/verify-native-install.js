@@ -55,7 +55,7 @@ try {
   const patched = hash();
   assert.notEqual(patched, original, "installer must modify the official executable");
   const doctor = JSON.parse(run(process.execPath, [path.join(repo, "scripts", "zh-cn-doctor.js"), "--json"]));
-  assert.ok(["ok", "provisional"].includes(doctor.layer4Status), JSON.stringify(doctor));
+  assert.ok(["ok", "provisional", "partial"].includes(doctor.layer4Status), JSON.stringify(doctor));
   assert.match(run(target, ["--help"]), /[\u3400-\u9fff]/u);
   installer("install");
   assert.equal(hash(), patched, "reinstall must produce the same executable");

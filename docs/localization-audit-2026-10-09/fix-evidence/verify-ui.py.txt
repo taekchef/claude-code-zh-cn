@@ -1,0 +1,47 @@
+import os,sys,pty,subprocess,select,time,re,json,fcntl,termios,struct
+binary=sys.argv[1]; label=sys.argv[2]
+root=os.path.dirname(os.path.abspath(__file__));home=os.path.join(root,'home')
+env=os.environ.copy();env.update(HOME=home,USERPROFILE=home,CLAUDE_CONFIG_DIR=os.path.join(home,'.claude'),ANTHROPIC_API_KEY='cczh-local-test-key',ANTHROPIC_BASE_URL='http://127.0.0.1:'+open(os.path.join(root,'port')).read(),DISABLE_AUTOUPDATER='1',CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC='1',TERM='xterm-256color')
+for key in ['ANTHROPIC_AUTH_TOKEN','CLAUDE_CODE_OAUTH_TOKEN','CLAUDECODE','CLAUDE_PLUGIN_ROOT','CLAUDE_PLUGIN_DATA']:env.pop(key,None)
+master,slave=pty.openpty();fcntl.ioctl(slave,termios.TIOCSWINSZ,struct.pack('HHHH',32,130,0,0))
+p=subprocess.Popen([binary,'--model','claude-sonnet-4-6','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--permission-mode','default'],stdin=slave,stdout=slave,stderr=slave,cwd=os.path.join(root,'workspace'),env=env,start_new_session=True);os.close(slave)
+raw=bytearray()
+def read_for(seconds):
+    end=time.monotonic()+seconds
+    while time.monotonic()<end:
+        ready,_,_=select.select([master],[],[],.15)
+        if ready:
+            try: chunk=os.read(master,65536)
+            except OSError:break
+            if not chunk:break
+            raw.extend(chunk)
+        if p.poll() is not None:break
+    return raw.decode('utf8','replace')
+def plain():return re.sub(r'\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\)|[()][A-Z0-9]|.)','',raw.decode('utf8','replace')).replace('\r','')
+def compact():return re.sub(r'\s+','',plain())
+config=os.path.join(home,'.claude','.claude.json')
+if os.path.exists(config):
+    j=json.load(open(config));j['fullscreenBootStrikes']=0;open(config,'w').write(json.dumps(j))
+result={'label':label,'binary':binary,'checks':{},'paidAPI':False,'mockServer':'127.0.0.1'}
+try:
+    read_for(3)
+    if '選' in plain() or '选择在你的终端' in plain():os.write(master,b'\r');read_for(1)
+    if '要使用此 API' in plain():os.write(master,b'\x1b[A\r');read_for(1)
+    if '安全说明' in plain() and 'Press' in plain():os.write(master,b'\r');read_for(1)
+    if 'Accessing workspace' in plain():os.write(master,b'\x1b[B\r');read_for(1)
+    os.write(master,'执行本地汉化探针\r'.encode());read_for(4)
+    for name,text in [('title','使用技能“localization-probe”？'),('body','Claude可使用此技能的指令、代码或文件。'),('yes','1.是'),('always','是，今后不再询问localization-probe，目录：'),('no','3.否'),('cancel','Esc取消'),('amend','Tab修改')]:result['checks'][name]=text in compact()
+    os.write(master,b'\t');read_for(1);result['checks']['edit']='并告诉Claude接下来做什么' in compact()
+    os.write(master,b'\x1b');read_for(1);result['checks']['cancelWorks']='已中断' in compact()
+    result['passed']=all(result['checks'].values())
+finally:
+    if p.poll() is None:
+        os.write(master,b'\x03');read_for(.3);os.write(master,b'\x03');read_for(.5)
+        if p.poll() is None:p.terminate()
+    try:p.wait(timeout=5)
+    except subprocess.TimeoutExpired:p.kill();p.wait()
+    os.close(master)
+    open(os.path.join(root,label+'-tty.log'),'wb').write(raw)
+    open(os.path.join(root,label+'-plain.txt'),'w').write(plain())
+    open(os.path.join(root,label+'-result.json'),'w').write(json.dumps(result,ensure_ascii=False,indent=2))
+print(json.dumps(result,ensure_ascii=False));sys.exit(0 if result.get('passed') else 1)

@@ -1,0 +1,712 @@
+{
+  "packageName": "@anthropic-ai/claude-code",
+  "baseline": [
+    "2.1.285",
+    "2.1.286",
+    "2.1.295"
+  ],
+  "results": [
+    {
+      "version": "2.1.285",
+      "kind": "native",
+      "status": "pass",
+      "runtimeStatus": "pass",
+      "coverage": {
+        "status": "partial",
+        "issueCount": 3,
+        "issues": [
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_71",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_111",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ]
+      },
+      "patchCount": 1443,
+      "residue": [],
+      "missingRequired": [],
+      "nativeVerification": {
+        "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+        "platform": "darwin-arm64",
+        "detect": "native-bun",
+        "container": "bytecode",
+        "extract": "not-applicable",
+        "repack": "not-applicable",
+        "bytecodePatch": "ok",
+        "bytecodeTranslations": {
+          "patched": 1443,
+          "notFound": 714,
+          "tooLong": 191,
+          "sourceModules": 10,
+          "sourceReplacements": 626,
+          "version": "2.1.285",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-mHy036/claude-patched.zh-cn-backup",
+          "changed": true
+        },
+        "bytecodeLifecycle": {
+          "noMatch": "ok",
+          "repeat": "ok",
+          "uninstall": "ok"
+        },
+        "codeSignature": "ok",
+        "versionOutput": "2.1.285 (Claude Code)"
+      },
+      "displayAudit": {
+        "status": "partial",
+        "commandCount": 11,
+        "issueCount": 3,
+        "warningCount": 3,
+        "failureCount": 0,
+        "commands": [
+          {
+            "id": "top_help",
+            "args": [
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 2,
+            "warningCount": 2
+          },
+          {
+            "id": "agents_help",
+            "args": [
+              "agents",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auth_help",
+            "args": [
+              "auth",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auto_mode_help",
+            "args": [
+              "auto-mode",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "doctor_help",
+            "args": [
+              "doctor",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "install_help",
+            "args": [
+              "install",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "mcp_help",
+            "args": [
+              "mcp",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "plugin_help",
+            "args": [
+              "plugin",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 1,
+            "warningCount": 1
+          },
+          {
+            "id": "setup_token_help",
+            "args": [
+              "setup-token",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "update_help",
+            "args": [
+              "update",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "ultrareview_help",
+            "args": [
+              "ultrareview",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          }
+        ],
+        "issues": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_71",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_111",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ],
+        "warnings": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_71",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_111",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ],
+        "failures": []
+      }
+    },
+    {
+      "version": "2.1.286",
+      "kind": "native",
+      "status": "pass",
+      "runtimeStatus": "pass",
+      "coverage": {
+        "status": "partial",
+        "issueCount": 3,
+        "issues": [
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_71",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_111",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ]
+      },
+      "patchCount": 1442,
+      "residue": [],
+      "missingRequired": [],
+      "nativeVerification": {
+        "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+        "platform": "darwin-arm64",
+        "detect": "native-bun",
+        "container": "bytecode",
+        "extract": "not-applicable",
+        "repack": "not-applicable",
+        "bytecodePatch": "ok",
+        "bytecodeTranslations": {
+          "patched": 1442,
+          "notFound": 715,
+          "tooLong": 191,
+          "sourceModules": 10,
+          "sourceReplacements": 620,
+          "version": "2.1.286",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-f5YNJv/claude-patched.zh-cn-backup",
+          "changed": true
+        },
+        "bytecodeLifecycle": {
+          "noMatch": "ok",
+          "repeat": "ok",
+          "uninstall": "ok"
+        },
+        "codeSignature": "ok",
+        "versionOutput": "2.1.286 (Claude Code)"
+      },
+      "displayAudit": {
+        "status": "partial",
+        "commandCount": 11,
+        "issueCount": 3,
+        "warningCount": 3,
+        "failureCount": 0,
+        "commands": [
+          {
+            "id": "top_help",
+            "args": [
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 2,
+            "warningCount": 2
+          },
+          {
+            "id": "agents_help",
+            "args": [
+              "agents",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auth_help",
+            "args": [
+              "auth",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auto_mode_help",
+            "args": [
+              "auto-mode",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "doctor_help",
+            "args": [
+              "doctor",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "install_help",
+            "args": [
+              "install",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "mcp_help",
+            "args": [
+              "mcp",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "plugin_help",
+            "args": [
+              "plugin",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 1,
+            "warningCount": 1
+          },
+          {
+            "id": "setup_token_help",
+            "args": [
+              "setup-token",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "update_help",
+            "args": [
+              "update",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "ultrareview_help",
+            "args": [
+              "ultrareview",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          }
+        ],
+        "issues": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_71",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_111",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ],
+        "warnings": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_71",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_111",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ],
+        "failures": []
+      }
+    },
+    {
+      "version": "2.1.295",
+      "kind": "native",
+      "status": "pass",
+      "runtimeStatus": "pass",
+      "coverage": {
+        "status": "partial",
+        "issueCount": 3,
+        "issues": [
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_61",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_99",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "source": "display-audit",
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ]
+      },
+      "patchCount": 1441,
+      "residue": [],
+      "missingRequired": [],
+      "nativeVerification": {
+        "packageName": "@anthropic-ai/claude-code-darwin-arm64",
+        "platform": "darwin-arm64",
+        "detect": "native-bun",
+        "container": "bytecode",
+        "extract": "not-applicable",
+        "repack": "not-applicable",
+        "bytecodePatch": "ok",
+        "bytecodeTranslations": {
+          "patched": 1441,
+          "notFound": 719,
+          "tooLong": 191,
+          "sourceModules": 10,
+          "sourceReplacements": 543,
+          "version": "2.1.295",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-RElpZI/claude-patched.zh-cn-backup",
+          "changed": true
+        },
+        "bytecodeLifecycle": {
+          "noMatch": "ok",
+          "repeat": "ok",
+          "uninstall": "ok"
+        },
+        "codeSignature": "ok",
+        "versionOutput": "2.1.295 (Claude Code)"
+      },
+      "displayAudit": {
+        "status": "partial",
+        "commandCount": 11,
+        "issueCount": 3,
+        "warningCount": 3,
+        "failureCount": 0,
+        "commands": [
+          {
+            "id": "top_help",
+            "args": [
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 2,
+            "warningCount": 2
+          },
+          {
+            "id": "agents_help",
+            "args": [
+              "agents",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auth_help",
+            "args": [
+              "auth",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "auto_mode_help",
+            "args": [
+              "auto-mode",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "doctor_help",
+            "args": [
+              "doctor",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "install_help",
+            "args": [
+              "install",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "mcp_help",
+            "args": [
+              "mcp",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "plugin_help",
+            "args": [
+              "plugin",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "partial",
+            "issueCount": 1,
+            "warningCount": 1
+          },
+          {
+            "id": "setup_token_help",
+            "args": [
+              "setup-token",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "update_help",
+            "args": [
+              "update",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          },
+          {
+            "id": "ultrareview_help",
+            "args": [
+              "ultrareview",
+              "--help"
+            ],
+            "status": 0,
+            "audit": "pass",
+            "issueCount": 0,
+            "warningCount": 0
+          }
+        ],
+        "issues": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_61",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_99",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ],
+        "warnings": [
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_61",
+            "command": "top_help",
+            "match": "parent_tool_use_id 转发（需 --print 与"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "top_help_line_99",
+            "command": "top_help",
+            "match": "(choices: \"host\", \"none\", default:"
+          },
+          {
+            "kind": "display-untranslated-line",
+            "id": "plugin_help_line_18",
+            "command": "plugin_help",
+            "match": "plugin@marketplace"
+          }
+        ],
+        "failures": []
+      }
+    }
+  ],
+  "summary": {
+    "pass": 3,
+    "fail": 0,
+    "skip": 0,
+    "coveragePartial": 3
+  }
+}
