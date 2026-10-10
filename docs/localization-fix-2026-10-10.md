@@ -32,6 +32,9 @@
 | 实际安装与上游升级 | 2.1.286 安装、诊断、重复安装、覆盖原版后启动修复、升级至 2.1.295、卸载还原：通过 | [安装及升级记录](localization-audit-2026-10-09/fix-evidence/macos-install-upgrade.json) |
 | 中英文往返 | /chinese → /english → /chinese；英文恢复原始指纹，中文再次生效，诊断一致：通过 | [切换记录](localization-audit-2026-10-09/fix-evidence/language-roundtrip.json) |
 | 相关回归检查 | 64 通过、0 失败；包含显示副本不改调用者、取消哨兵和语法名称保留 | 运行记录见本 PR 验证说明 |
+| 整套本地检查 | 482 通过、0 失败、7 项按平台跳过；安装包兼容、文档同步等检查全部通过 | 诊断最终回执复核另有 24 项检查通过 |
+
+跨平台自动检查已通过 Mac、Linux、Windows 安装及其余 Windows 原生分组；Windows 2.1.242 的同版本覆盖后启动修复仍待定位，修复后更新最终结果。
 
 每版仍有 3 条按行的帮助审计警告：parent_tool_use_id、插件标识 plugin@marketplace，以及命令库生成的 choices/default 提示。前两项为应保留的技术标识，后一项仍是英文。它们不影响帮助执行，也不把“151 个入口运行成功”改称完整中文覆盖。
 

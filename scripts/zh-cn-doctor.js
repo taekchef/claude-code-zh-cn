@@ -948,7 +948,8 @@ function runDoctor(options = {}) {
     try { if (pendingPath) pending = readJson(pendingPath); } catch {}
     const actualHash = nativeBinaryHash(bunBinaryIoPath, target);
     const currentRevision = computePatchRevision(pluginRoot);
-    const current = verifiedNativeReceipt || currentNativeReceipt(bunBinaryIoPath, target, cliVersion, currentRevision, actualHash);
+    // 原生程序可能在诊断期间更新；最终状态必须核对最新回执，不能沿用早先结果。
+    const current = currentNativeReceipt(bunBinaryIoPath, target, cliVersion, currentRevision, actualHash);
     if (languageMode === "en") {
       layer4State = { code: fs.existsSync(`${target}.zh-cn-backup`) ? "awaiting-restart" : "english", detail: "英文模式；下次启动前从已校验备份还原" };
     } else if (current) {
@@ -965,7 +966,7 @@ function runDoctor(options = {}) {
     } else {
       layer4State = { code: "validation-failed", detail: "当前二进制没有有效补丁记录；检查修复日志" };
     }
-    if (languageMode === "en" || layer4State.code === "locked") {
+    if (languageMode === "en" || layer4State.code === "locked" || (layer4Status === "partial" && layer4State.code !== "partial")) {
       layer4Status = layer4State.code;
       const check = checks.find(item => item.id === "layer4");
       if (check) { check.status = "warn"; check.detail = layer4State.detail; }
