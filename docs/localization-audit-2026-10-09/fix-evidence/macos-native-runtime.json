@@ -13,7 +13,7 @@
       "runtimeStatus": "pass",
       "coverage": {
         "status": "partial",
-        "issueCount": 3,
+        "issueCount": 2,
         "issues": [
           {
             "source": "display-audit",
@@ -21,13 +21,6 @@
             "id": "top_help_line_71",
             "command": "top_help",
             "match": "parent_tool_use_id 转发（需 --print 与"
-          },
-          {
-            "source": "display-audit",
-            "kind": "display-untranslated-line",
-            "id": "top_help_line_111",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
           },
           {
             "source": "display-audit",
@@ -53,10 +46,10 @@
           "patched": 1443,
           "notFound": 714,
           "tooLong": 191,
-          "sourceModules": 10,
-          "sourceReplacements": 626,
+          "sourceModules": 14,
+          "sourceReplacements": 701,
           "version": "2.1.285",
-          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-mHy036/claude-patched.zh-cn-backup",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-yYHAP4/claude-patched.zh-cn-backup",
           "changed": true
         },
         "bytecodeLifecycle": {
@@ -70,8 +63,8 @@
       "displayAudit": {
         "status": "partial",
         "commandCount": 11,
-        "issueCount": 3,
-        "warningCount": 3,
+        "issueCount": 2,
+        "warningCount": 2,
         "failureCount": 0,
         "commands": [
           {
@@ -81,8 +74,8 @@
             ],
             "status": 0,
             "audit": "partial",
-            "issueCount": 2,
-            "warningCount": 2
+            "issueCount": 1,
+            "warningCount": 1
           },
           {
             "id": "agents_help",
@@ -204,12 +197,6 @@
           },
           {
             "kind": "display-untranslated-line",
-            "id": "top_help_line_111",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
-          },
-          {
-            "kind": "display-untranslated-line",
             "id": "plugin_help_line_18",
             "command": "plugin_help",
             "match": "plugin@marketplace"
@@ -221,12 +208,6 @@
             "id": "top_help_line_71",
             "command": "top_help",
             "match": "parent_tool_use_id 转发（需 --print 与"
-          },
-          {
-            "kind": "display-untranslated-line",
-            "id": "top_help_line_111",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
           },
           {
             "kind": "display-untranslated-line",
@@ -245,7 +226,7 @@
       "runtimeStatus": "pass",
       "coverage": {
         "status": "partial",
-        "issueCount": 3,
+        "issueCount": 2,
         "issues": [
           {
             "source": "display-audit",
@@ -253,13 +234,6 @@
             "id": "top_help_line_71",
             "command": "top_help",
             "match": "parent_tool_use_id 转发（需 --print 与"
-          },
-          {
-            "source": "display-audit",
-            "kind": "display-untranslated-line",
-            "id": "top_help_line_111",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
           },
           {
             "source": "display-audit",
@@ -285,10 +259,10 @@
           "patched": 1442,
           "notFound": 715,
           "tooLong": 191,
-          "sourceModules": 10,
-          "sourceReplacements": 620,
+          "sourceModules": 14,
+          "sourceReplacements": 695,
           "version": "2.1.286",
-          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-f5YNJv/claude-patched.zh-cn-backup",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-EbuCNO/claude-patched.zh-cn-backup",
           "changed": true
         },
         "bytecodeLifecycle": {
@@ -302,8 +276,8 @@
       "displayAudit": {
         "status": "partial",
         "commandCount": 11,
-        "issueCount": 3,
-        "warningCount": 3,
+        "issueCount": 2,
+        "warningCount": 2,
         "failureCount": 0,
         "commands": [
           {
@@ -313,8 +287,8 @@
             ],
             "status": 0,
             "audit": "partial",
-            "issueCount": 2,
-            "warningCount": 2
+            "issueCount": 1,
+            "warningCount": 1
           },
           {
             "id": "agents_help",
@@ -436,12 +410,6 @@
           },
           {
             "kind": "display-untranslated-line",
-            "id": "top_help_line_111",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
-          },
-          {
-            "kind": "display-untranslated-line",
             "id": "plugin_help_line_18",
             "command": "plugin_help",
             "match": "plugin@marketplace"
@@ -453,12 +421,6 @@
             "id": "top_help_line_71",
             "command": "top_help",
             "match": "parent_tool_use_id 转发（需 --print 与"
-          },
-          {
-            "kind": "display-untranslated-line",
-            "id": "top_help_line_111",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
           },
           {
             "kind": "display-untranslated-line",
@@ -477,7 +439,7 @@
       "runtimeStatus": "pass",
       "coverage": {
         "status": "partial",
-        "issueCount": 3,
+        "issueCount": 2,
         "issues": [
           {
             "source": "display-audit",
@@ -485,13 +447,6 @@
             "id": "top_help_line_61",
             "command": "top_help",
             "match": "parent_tool_use_id 转发（需 --print 与"
-          },
-          {
-            "source": "display-audit",
-            "kind": "display-untranslated-line",
-            "id": "top_help_line_99",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
           },
           {
             "source": "display-audit",
@@ -517,10 +472,10 @@
           "patched": 1441,
           "notFound": 719,
           "tooLong": 191,
-          "sourceModules": 10,
-          "sourceReplacements": 543,
+          "sourceModules": 14,
+          "sourceReplacements": 618,
           "version": "2.1.295",
-          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-RElpZI/claude-patched.zh-cn-backup",
+          "backup": "/private/var/folders/yp/wx87z0l97wj89_yj8nw7_ptm0000gn/T/cczh-native-compat-oOiTBI/claude-patched.zh-cn-backup",
           "changed": true
         },
         "bytecodeLifecycle": {
@@ -534,8 +489,8 @@
       "displayAudit": {
         "status": "partial",
         "commandCount": 11,
-        "issueCount": 3,
-        "warningCount": 3,
+        "issueCount": 2,
+        "warningCount": 2,
         "failureCount": 0,
         "commands": [
           {
@@ -545,8 +500,8 @@
             ],
             "status": 0,
             "audit": "partial",
-            "issueCount": 2,
-            "warningCount": 2
+            "issueCount": 1,
+            "warningCount": 1
           },
           {
             "id": "agents_help",
@@ -668,12 +623,6 @@
           },
           {
             "kind": "display-untranslated-line",
-            "id": "top_help_line_99",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
-          },
-          {
-            "kind": "display-untranslated-line",
             "id": "plugin_help_line_18",
             "command": "plugin_help",
             "match": "plugin@marketplace"
@@ -685,12 +634,6 @@
             "id": "top_help_line_61",
             "command": "top_help",
             "match": "parent_tool_use_id 转发（需 --print 与"
-          },
-          {
-            "kind": "display-untranslated-line",
-            "id": "top_help_line_99",
-            "command": "top_help",
-            "match": "(choices: \"host\", \"none\", default:"
           },
           {
             "kind": "display-untranslated-line",

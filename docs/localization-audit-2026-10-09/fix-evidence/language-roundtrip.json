@@ -5,29 +5,29 @@
   "receipt": {
     "version": "2.1.286",
     "sourceHash": "75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433",
-    "patchedHash": "1b0eb07150775edec3f854d97e7d239ddef181a14ae65ff05411d441ccfc8343",
-    "revision": "f84dcece49700006",
+    "patchedHash": "a807a24cea05fcfaf2a6ed8fcee1fea7723dec43837b3822847aff0aca84a1ac",
+    "revision": "c78384d36ff2a502",
     "patched": 1442,
-    "sourceModules": 10,
-    "sourceReplacements": 620,
+    "sourceModules": 14,
+    "sourceReplacements": 695,
     "changed": true,
-    "mode": "provisional"
+    "mode": "verified"
   },
   "events": [
     {
       "prompt": "/chinese",
-      "reason": "✅ 已切换为中文（claude-code-zh-cn）。语言设置与 187 个 spinner 动词、41 条提示已更新，CLI 界面文案已重新 patch。重启 Claude Code 后加载新的界面文案。",
-      "hash": "1b0eb07150775edec3f854d97e7d239ddef181a14ae65ff05411d441ccfc8343"
+      "reason": "✅ 已切换为中文（claude-code-zh-cn）。语言设置与 187 个等待动词、41 条提示已更新，界面文案已更新。重启 Claude Code 后加载新的界面文案。",
+      "hash": "a807a24cea05fcfaf2a6ed8fcee1fea7723dec43837b3822847aff0aca84a1ac"
     },
     {
       "prompt": "/english",
-      "reason": "✅ 已切换为英文。中文语言设置与 spinner 动词/提示已移除，CLI 原文已从备份还原。重启 Claude Code 后加载英文界面。",
+      "reason": "✅ 已切换为英文。中文语言设置与等待动词、提示已移除，界面原文已从备份还原。重启 Claude Code 后加载英文界面。",
       "hash": "75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433"
     },
     {
       "prompt": "/chinese",
-      "reason": "✅ 已切换为中文（claude-code-zh-cn）。语言设置与 187 个 spinner 动词、41 条提示已更新，CLI 界面文案已重新 patch。重启 Claude Code 后加载新的界面文案。",
-      "hash": "1b0eb07150775edec3f854d97e7d239ddef181a14ae65ff05411d441ccfc8343"
+      "reason": "✅ 已切换为中文（claude-code-zh-cn）。语言设置与 187 个等待动词、41 条提示已更新，界面文案已更新。重启 Claude Code 后加载新的界面文案。",
+      "hash": "a807a24cea05fcfaf2a6ed8fcee1fea7723dec43837b3822847aff0aca84a1ac"
     }
   ],
   "doctor": {
@@ -39,7 +39,7 @@
     "layer4": {
       "id": "layer4",
       "label": "Layer 4（UI 硬编码）",
-      "status": "warn",
+      "status": "ok",
       "detail": "native 2.1.286 字节码汉化：已验证补丁 1442 处；可见英文覆盖需另行审计"
     }
   }

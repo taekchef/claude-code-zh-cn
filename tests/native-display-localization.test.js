@@ -48,6 +48,47 @@ test("diff panel title is Chinese while its shared syntax name stays intact", ()
   assert.deepEqual(result.syntax, { name: "Diff", language: "diff" });
 });
 
+test("usage title changes only in the display node, preserving the model's same-named heading", () => {
+  const heading = "What's contributing to your limits usage?";
+  const source = `const modelHeading=${JSON.stringify(heading)};const view={children:${JSON.stringify(heading)}};JSON.stringify({modelHeading,view});`;
+  const result = JSON.parse(vm.runInNewContext(rewriteMacDisplaySource(source, "usage-panel", [{ en: heading, zh: "不应全局替换" }]).source));
+  assert.equal(result.view.children, "哪些操作消耗了你的额度？");
+  assert.equal(result.modelHeading, heading);
+});
+
+test("chat and review labels localize their display fields without changing contexts or tool names", () => {
+  const source = 'const context="Chat",toolName="Code review",help="Authorization: Bearer `token` for `url` sources",server="not found";const label={defaultMessage:"Chat",id:"WTrOy36sdu"},title={defaultMessage:"Allow Chat",id:"0Cc9oG2J04"},description={defaultMessage:"Enable Chat. Quick questions and drafting.",id:"z2x73mCBZ9"};const tool={name:toolName,userFacingName(){return"Code review"}};JSON.stringify({context,label,title,description,help,server,name:tool.name,display:tool.userFacingName()});';
+  const chat = rewriteMacDisplaySource(source, "chat-settings", [{ en: "Chat", zh: "不应全局替换" }, { en: " for ", zh: "耗时" }, { en: "not found", zh: "未找到" }]);
+  const result = JSON.parse(vm.runInNewContext(chat.source));
+  assert.equal(result.context, "Chat");
+  assert.deepEqual(result.label, { defaultMessage: "聊天", id: "WTrOy36sdu" });
+  assert.equal(result.title.defaultMessage, "允许聊天");
+  assert.equal(result.description.defaultMessage, "启用聊天，用于简短问答和起草内容。");
+  assert.equal(result.name, "Code review");
+  assert.equal(result.help, "Authorization: Bearer `token` for `url` sources");
+  assert.equal(result.server, "not found");
+  const review = JSON.parse(vm.runInNewContext(rewriteMacDisplaySource('const tool={name:"Code review",userFacingName(){return"Code review"}};JSON.stringify({name:tool.name,display:tool.userFacingName()});', "review-label", []).source));
+  assert.equal(review.name, "Code review");
+  assert.equal(review.display, "代码审查");
+});
+
+test("generated help labels keep enum choices, JSON defaults, environment names and flags unchanged", () => {
+  const source = 'const choices=["host","none"],defaultValue="host",presetArg="none",envVar="CLAUDE_TEST_ENV",flags="--environment <name>";const details=[`choices: ${choices.map(v=>JSON.stringify(v)).join(", ")}`,`default: ${JSON.stringify(defaultValue)}`,`preset: ${JSON.stringify(presetArg)}`,`env: ${envVar}`];const usage=`Usage: ${"claude test"}`,suffix=" [options]",internal="default: ";JSON.stringify({details,usage,suffix,choices,defaultValue,presetArg,envVar,flags,internal});';
+  const result = JSON.parse(vm.runInNewContext(rewriteMacDisplaySource(source, "help-formatter", []).source));
+  assert.deepEqual(result.details, ['可选值："host", "none"', '默认值："host"', '预设值："none"', "环境变量：CLAUDE_TEST_ENV"]);
+  assert.equal(result.usage, "用法：claude test");
+  assert.equal(result.suffix, " [选项]");
+  assert.deepEqual(result.choices, ["host", "none"]);
+  assert.equal(result.defaultValue, "host");
+  assert.equal(result.presetArg, "none");
+  assert.equal(result.envVar, "CLAUDE_TEST_ENV");
+  assert.equal(result.flags, "--environment <name>");
+  assert.equal(result.internal, "default: ");
+  const scope = JSON.parse(vm.runInNewContext(rewriteMacDisplaySource('const scopes=["user","project","local"];JSON.stringify({help:`Installation scope: ${scopes.join(", ")} (default: auto-detect)`,scopes});', "help", []).source));
+  assert.equal(scope.help, "安装范围：user, project, local（默认：自动检测）");
+  assert.deepEqual(scope.scopes, ["user", "project", "local"]);
+});
+
 test("unverified Mac builds and invalid source anchors are rejected before mutation", () => {
   const buffer = Buffer.alloc(128, 0x5a), before = Buffer.from(buffer);
   assert.throws(() => patchMacDisplayModules(buffer, { modulesPtr: { offset: 0, length: 52 } }, 52, [], {
@@ -78,5 +119,12 @@ test("a verified display module uses its exclusive source space when bytecode is
     assert.equal(buffer.readUInt32LE(28), 0);
     assert.match(buffer.toString("utf8", 100, 300), /Anthropic 账号登录/);
     assert.deepEqual(buffer.subarray(400, 404), Buffer.alloc(4, 0xaa));
+    const invalid = 'const title="Sign in with your Anthropic account"; const broken=;'.padEnd(200, " ");
+    buffer.write(invalid, 100); buffer.writeUInt32LE(200, 12);
+    buffer.writeUInt32LE(400, 24); buffer.writeUInt32LE(4, 28);
+    MAC_DISPLAY_BUILDS.set(version, [sourceHash, [["test.js", "help", crypto.createHash("sha256").update(invalid).digest("hex")]]]);
+    const before = Buffer.from(buffer);
+    assert.throws(() => patchMacDisplayModules(buffer, { modulesPtr: { offset: 0, length: 52 } }, 52, translations, { format: "MachO", version, sourceHash }), /语法验证失败/);
+    assert.deepEqual(buffer, before);
   } finally { MAC_DISPLAY_BUILDS.delete(version); }
 });

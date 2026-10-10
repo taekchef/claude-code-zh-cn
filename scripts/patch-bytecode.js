@@ -53,6 +53,8 @@ const PROTOCOL_FRAGMENTS = new Set([
 // 识别失配、协议混入中文，必须拒绝。
 const LOGIC_CONSUMED_FRAGMENTS = new Set([
   "Diff", // 共用的语法名称；仅在面板显示引用中翻译。
+  "Chat", // 快捷键上下文也使用此值；只翻译设置中的展示字段。
+  "What's contributing to your limits usage?", // 模型说明与界面标题共用。
   "Hook cancelled",
   "Shell cwd was reset to ",
   'Agent "',
@@ -449,6 +451,10 @@ const MAC_DISPLAY_BUILDS = new Map([
     ["chunk-fz83gh21.js", "help", "e6d272cfc79b339e80f57a9fdbf1107131d1f8c3d43a0e51d48f48eb0a3f4efc"],
     ["chunk-rrx4gpgm.js", "background-help", "581e9c9d987c24478ed08d9ac12da1884691db1f6c02e06974d291ad78362449"],
     ["chunk-at5kbrxv.js", "help", "286fdd8c42db79432aca9991a629292f1d5ef9b3cc8255561dec63706514a5ec"],
+    ["chunk-77zqw3rv.js", "help-formatter", "ec1843eec798d268f7d5df79c6ffae0560b64bbfe1f9484ec1131bd2b0ea9d80"],
+    ["chunk-y13zwdn8.js", "usage-panel", "eb78c8aaf332ba60c53cd63f0b16346e7a9cd883371dc5951f3147897138e7fc"],
+    ["chunk-zdaxxncw.js", "chat-settings", "7e0d4426925aec6c4dd197f2c8caa26f855eb2ac712ecbd49d745484b8d1c9e5"],
+    ["chunk-98qpvhja.js", "review-label", "5d5be7040d8b06610b5b010fffcc96914d8cc01bb639daaebec037c2944c8ca0"],
   ]]],
   ["2.1.286", ["75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433", [
     ["chunk-40vr59jt.js", "permission", "7bd333bc2f4d1d02cb587c21c67f8a74c80dcdfa4de7ddbeb53550db5b466183"],
@@ -461,6 +467,10 @@ const MAC_DISPLAY_BUILDS = new Map([
     ["chunk-yajwtwra.js", "help", "a211838b0bbde21ec9c2eba4ae9f90274c02c47dedec73a29b01e8c11c6a4dce"],
     ["chunk-31x2vsqf.js", "background-help", "30c8bc8d61b980f52f89909f90eb0d4349536a9ad9c60095cc44619f4257ac44"],
     ["chunk-1m81t3j7.js", "help", "8451ba214f65e3f2aa3d8613c7455da1533712e0f12f0d16be13d4566bad1701"],
+    ["chunk-0c86z2z1.js", "help-formatter", "ebcb74ca5120f33b52d062d23d2581c72512c84009240b607622a4201f3b341f"],
+    ["chunk-p7yh4jny.js", "usage-panel", "430e0bd3b66b0609b0c9ed5a2d62083ea075db460be1623870fc896e85083c32"],
+    ["chunk-4s4g0jzx.js", "chat-settings", "d279c0b564fadb5bb5d7f4baf14b22240e3abdaf8550e8dce2a3fce7da7c2ca2"],
+    ["chunk-j79yyf65.js", "review-label", "f6e1cde0a850b0a5aaef1e24ac7fd4f2860aed84bcf3f936aa46d14d24653e21"],
   ]]],
   ["2.1.295", ["0116ee2e0a513900b633d9951367f18747686478e2b462805b8c31609f047f70", [
     ["chunk-bhz7hapx.js", "permission", "e7d4dc062f83b6dadc4d083278d5fa7e2aceb5bfa71ed1194296a1b052c391a1"],
@@ -473,6 +483,10 @@ const MAC_DISPLAY_BUILDS = new Map([
     ["chunk-ccqktn4p.js", "help", "03d46c01724912a98a45bb800cda6d4524efc7c57652de75803cfd34fbc599b4"],
     ["chunk-cwxe0n05.js", "background-help", "42e23385fba6924c6f103a3d1e0f248f27a6aa29137132ed682f5a85902cc9a3"],
     ["chunk-cbxhnd80.js", "help", "4a7a4bf643fcc9ebf835de60b86a3f8f088be8bf1010c68db5c1cf6c5330e032"],
+    ["chunk-vtap7ff6.js", "help-formatter", "f81a21b8148adda7f9ade9764afa872762467d52c3e577a6c95b507ef250137a"],
+    ["chunk-ncctg2ag.js", "usage-panel", "800a3f97ef15684aa7558ff8f1f5b12d4f36c9c3c7c8e86e4430e4d3a33a0d55"],
+    ["chunk-kzx145fg.js", "chat-settings", "7b1a4c10dc63fdfee06d1f861b95db7f6124eb60216108d33006ecf9b7a9390f"],
+    ["chunk-v5wkdteh.js", "review-label", "1fd90bae947e737e701b1979c1c9ba5c341e4b2bd21d5280f4f1abe82b5ec3a7"],
   ]]],
 ]);
 
@@ -492,7 +506,32 @@ const KEY_HINT_ACTIONS = {
   "view artifacts": "查看作品", "switch mode": "切换模式", "set as default": "设为默认", "use this session only": "仅本次会话使用",
 };
 
-function rewriteMacDisplaySource(source, role, translations) {
+function macSourceReplacements(translations) {
+  const protectedText = new Set(translations.filter(t => t?.skipPatch).map(t => t.en));
+  const sourceTable = new Map([...POOL_TRANSLATIONS, ...BUILTIN_SPINNER_TRANSLATIONS.map(t => [t.en, t.zh]), ...translations.map(t => [t.en, t.zh])]);
+  const literals = new Map(), background = new Map();
+  for (const [en, zh] of [...sourceTable].sort((a, b) => b[0].length - a[0].length)) {
+    if (en === zh || protectedText.has(en) || PROTOCOL_FRAGMENTS.has(en) || LOGIC_CONSUMED_FRAGMENTS.has(en)) continue;
+    const asciiLiteral = JSON.stringify(en).replace(/[^\x20-\x7e]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+    const variants = new Set([
+      JSON.stringify(en), asciiLiteral, asciiLiteral.replace(/\\u00([0-9a-f]{2})/g, "\\x$1"),
+      asciiLiteral.replace(/\\u([0-9a-f]{4})/g, (_match, hex) => `\\u${hex.toUpperCase()}`),
+      asciiLiteral.replace(/\\u00([0-9a-f]{2})/g, (_match, hex) => `\\x${hex.toUpperCase()}`),
+      `'${en.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`,
+    ]);
+    if (!en.includes("${") && !en.includes("`")) variants.add(`\`${en}\``);
+    for (const literal of variants) literals.set(literal, JSON.stringify(zh));
+    if (/^(Open the background session|Print the background session|Usage: claude respawn|Restart a background session \(or|Delete a background session and|also discard the worktree|delete the worktree directory)/.test(en)) {
+      for (const fragment of new Set([en, en.replace(/`/g, "\\`"), asciiLiteral.slice(1, -1), asciiLiteral.slice(1, -1).replace(/\\u([0-9a-f]{4})/g, (_match, hex) => `\\u${hex.toUpperCase()}`)])) background.set(fragment, zh);
+    }
+  }
+  // 原来的每条译文、每种转义都扫描整份源码。合并精确字面量规则后，每个模块
+  // 只扫描一次；仍按长串优先，不解析或改写参数值。
+  const pattern = literals.size ? new RegExp([...literals.keys()].sort((a, b) => b.length - a.length).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g") : null;
+  return { pattern, literals, background };
+}
+
+function rewriteMacDisplaySource(source, role, translations, replacements = macSourceReplacements(translations)) {
   let changed = 0;
   const replace = (pattern, replacement, minimum = 1) => {
     let hits = 0;
@@ -531,33 +570,43 @@ function rewriteMacDisplaySource(source, role, translations) {
   } else if (role === "help") {
     replace(/`Effort level for the current session \(\$\{([^}]+)\}\)`/g,
       (_match, levels) => `\`当前会话的推理强度（\${${levels}}）\``, 0);
+    replace(/`Installation scope: \$\{([^}]+)\} \(default: auto-detect\)`/g,
+      (_match, scopes) => `\`安装范围：\${${scopes}}（默认：自动检测）\``, 0);
+  } else if (role === "help-formatter") {
+    // Commander 的帮助格式化器拼接这些展示标签，参数枚举和默认值原样保留。
+    for (const [en, zh] of [["choices", "可选值"], ["default", "默认值"], ["preset", "预设值"], ["env", "环境变量"], ["Usage", "用法"]]) {
+      replace(new RegExp("`" + en + ": (?=\\$\\{)", "g"), "`" + zh + "：");
+    }
+    replace(/" \[options\]"/g, '" [选项]"');
+  } else if (role === "usage-panel") {
+    // 只替换 React 展示子节点，另一模块中的模型说明仍使用英文原文。
+    replace(/children:"What's contributing to your limits usage\?"/g, 'children:"哪些操作消耗了你的额度？"');
+  } else if (role === "chat-settings") {
+    // 翻译消息的默认展示文案，保留消息 id、chatSurface 和所有 Chat 上下文值。
+    for (const [en, zh] of [["Chat", "聊天"], ["Allow Chat", "允许聊天"], ["Enable Chat. Quick questions and drafting.", "启用聊天，用于简短问答和起草内容。"]]) {
+      replace(new RegExp("defaultMessage:" + JSON.stringify(en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=,id:)", "g"), "defaultMessage:" + JSON.stringify(zh));
+    }
+    // 此共享模块还包含服务端代码和长说明，其中的 Markdown 反引号不是
+    // JS 模板。仅复用消息展示字段的主表译文，不能把说明里的 ` for ` 当字面量。
+    source = source.replace(/\bdefaultMessage:("(?:\\[\s\S]|[^"\\])*")/g, (match, literal) => {
+      const chinese = replacements.literals.get(literal);
+      if (!chinese) return match;
+      changed++;
+      return "defaultMessage:" + chinese;
+    });
+    return { source, changed };
+  } else if (role === "review-label") {
+    replace(/userFacingName\(\)\{return"Code review"\}/g, 'userFacingName(){return"代码审查"}');
   } else if (!["mcp-help", "help", "background-help"].includes(role)) {
     throw new Error(`未知的显示模块：${role}`);
   }
 
-  const protectedText = new Set(translations.filter(t => t?.skipPatch).map(t => t.en));
-  const sourceTable = new Map([...POOL_TRANSLATIONS, ...BUILTIN_SPINNER_TRANSLATIONS.map(t => [t.en, t.zh]), ...translations.map(t => [t.en, t.zh])]);
-  for (const [en, zh] of [...sourceTable].sort((a, b) => b[0].length - a[0].length)) {
-    if (en === zh || protectedText.has(en) || PROTOCOL_FRAGMENTS.has(en) || LOGIC_CONSUMED_FRAGMENTS.has(en)) continue;
-    const asciiLiteral = JSON.stringify(en).replace(/[^\x20-\x7e]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
-    const literals = new Set([
-      JSON.stringify(en), asciiLiteral, asciiLiteral.replace(/\\u00([0-9a-f]{2})/g, "\\x$1"),
-      asciiLiteral.replace(/\\u([0-9a-f]{4})/g, (_match, hex) => `\\u${hex.toUpperCase()}`),
-      asciiLiteral.replace(/\\u00([0-9a-f]{2})/g, (_match, hex) => `\\x${hex.toUpperCase()}`),
-      `'${en.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n")}'`,
-    ]);
-    if (!en.includes("${") && !en.includes("`")) literals.add(`\`${en}\``);
-    for (const literal of literals) {
-      const hits = source.split(literal).length - 1;
-      if (hits) { source = source.split(literal).join(JSON.stringify(zh)); changed += hits; }
-    }
-    if (role === "background-help" && /^(Open the background session|Print the background session|Usage: claude respawn|Restart a background session \(or|Delete a background session and|also discard the worktree|delete the worktree directory)/.test(en)) {
-      // 新版帮助在模板里追加会话名称提示；只换已核对的帮助正文，保留插值。
-      const fragments = new Set([en, en.replace(/`/g, "\\`"), asciiLiteral.slice(1, -1), asciiLiteral.slice(1, -1).replace(/\\u([0-9a-f]{4})/g, (_match, hex) => `\\u${hex.toUpperCase()}`)]);
-      for (const fragment of fragments) {
-        const hits = source.split(fragment).length - 1;
-        if (hits) { source = source.split(fragment).join(zh); changed += hits; }
-      }
+  if (replacements.pattern) source = source.replace(replacements.pattern, literal => { changed++; return replacements.literals.get(literal); });
+  if (role === "background-help") {
+    // 新版帮助在模板里追加会话名称提示；只换已核对的帮助正文，保留插值。
+    for (const [fragment, zh] of replacements.background) {
+      const hits = source.split(fragment).length - 1;
+      if (hits) { source = source.split(fragment).join(zh); changed += hits; }
     }
   }
   return { source, changed };
@@ -570,6 +619,7 @@ function patchMacDisplayModules(bunData, bunOffsets, moduleStructSize, translati
   const { offset, length } = bunOffsets.modulesPtr;
   if (moduleStructSize !== 52 || length % 52 !== 0 || offset + length > bunData.length) throw new Error("Mac 显示模块布局异常");
   const modules = new Map(build[1].map(([name, role, hash]) => [name, { role, hash }]));
+  const replacements = macSourceReplacements(translations);
   const records = [], plans = [], seen = new Set();
   for (let cursor = offset; cursor < offset + length; cursor += 52) {
     const pointers = Array.from({ length: 6 }, (_, i) => ({ start: bunData.readUInt32LE(cursor + i * 8), size: bunData.readUInt32LE(cursor + i * 8 + 4), field: i }));
@@ -583,7 +633,13 @@ function patchMacDisplayModules(bunData, bunOffsets, moduleStructSize, translati
     if (!contents.size || !bytecode.size || contents.start + contents.size > bunData.length || bytecode.start + bytecode.size > bunData.length || bunData[cursor + 48] > 1) throw new Error("Mac 显示模块范围异常");
     const source = bunData.toString(bunData[cursor + 48] === 1 ? "latin1" : "utf8", contents.start, contents.start + contents.size);
     if (crypto.createHash("sha256").update(source).digest("hex") !== spec.hash) throw new Error(`${moduleName} 源码指纹不符`);
-    const result = rewriteMacDisplaySource(source, spec.role, translations), replacement = Buffer.from(result.source, "utf8");
+    const result = rewriteMacDisplaySource(source, spec.role, translations, replacements), replacement = Buffer.from(result.source, "utf8");
+    // 帮助启动检查不会加载所有页面；每个将改用源码的模块先单独检查语法。
+    try {
+      execFileSync(process.execPath, ["--input-type=module", "--check"], { input: result.source, stdio: ["pipe", "ignore", "ignore"] });
+    } catch {
+      throw new Error(`${moduleName} 显示源码语法验证失败，未改动文件`);
+    }
     const storage = contents.size >= bytecode.size ? contents : bytecode;
     if (replacement.length > storage.size) throw new Error(`${moduleName} 显示内容超出独立占位`);
     plans.push({ cursor, storage, replacement, changed: result.changed });

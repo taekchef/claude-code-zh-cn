@@ -1,8 +1,8 @@
 {
   "date": "2026-10-10",
-  "implemented": 80,
+  "implemented": 82,
   "preserved": 2,
-  "pending": 2,
+  "pending": 0,
   "entries": [
     {
       "id": "UI-00005",
@@ -7640,7 +7640,8 @@
           "package": "darwin-arm64-2.1.285"
         }
       ],
-      "implementation": "待隔离模型说明与界面标题"
+      "implementation": "已实施；仅替换额度面板显示引用，模型说明保留原文",
+      "resolutionEvidence": "fix-evidence/display-reference-resolution.json"
     },
     {
       "id": "UI-02551",
@@ -7950,7 +7951,8 @@
           "package": "darwin-arm64-2.1.285"
         }
       ],
-      "implementation": "待确认显示归属"
+      "implementation": "已实施；仅替换聊天设置展示字段，快捷键上下文保留原文",
+      "resolutionEvidence": "fix-evidence/display-reference-resolution.json"
     },
     {
       "id": "UI-13228",

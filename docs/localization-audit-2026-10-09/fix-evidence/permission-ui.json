@@ -19,7 +19,7 @@
   },
   "fixed": [
     {
-      "label": "final-2.1.286",
+      "label": "delivery-permission-2.1.286",
       "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.286/coverage-fix-runtime/claude",
       "checks": {
         "title": true,
@@ -37,7 +37,7 @@
       "passed": true
     },
     {
-      "label": "final-2.1.295",
+      "label": "delivery-permission-2.1.295",
       "binary": "/private/tmp/cczh-deep-audit-20261009/results/darwin-arm64-2.1.295/coverage-fix-runtime/claude",
       "checks": {
         "title": true,
