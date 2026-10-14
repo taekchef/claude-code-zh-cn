@@ -155,7 +155,7 @@ claude plugin install claude-code-zh-cn@claude-code-zh-cn --scope user
 | Spinner 动词 | 187 个 | `spinnerVerbs` |
 | Spinner 提示 | 41 条 | `spinnerTipsOverride` |
 | 系统通知 | 6 条 | Notification Hook 拦截翻译 |
-| UI 文字中文化 | 2314 条翻译，`2.1.112` 实测 1779 处有效 patch | 字符串 Token 安全 Patch |
+| UI 文字中文化 | 2314 条翻译，`2.1.112` 实测 1777 处有效 patch | 字符串 Token 安全 Patch |
 | 防崩与降级 | 全自动 | 启动前校验，失败自动回滚英文，绝不损坏 CLI |
 
 <details>
@@ -169,7 +169,7 @@ Claude Code 的 UI 文字硬编码在 13MB 的压缩文件内。我们通过分�
 4. **Layer 4 安全 Patch**：
    - 基于 Node.js 的**字符串字面量扫描器**，只改显示文本，绝不误触代码逻辑、注释或正则表达式。
    - 永远从原始纯净备份进行补丁，拒绝“补丁叠补丁”。
-   - 包含严格的语法校验和启动自检。即使遇到未适配的全新上游版本，patch 硬编码文字（2314 条翻译；代表版本 `2.1.112` 实测 1779 处有效 patch）也能安全降级为英文，保证你的 Claude Code 永远可用。
+   - 包含严格的语法校验和启动自检。即使遇到未适配的全新上游版本，patch 硬编码文字（2314 条翻译；代表版本 `2.1.112` 实测 1777 处有效 patch）也能安全降级为英文，保证你的 Claude Code 永远可用。
 
 </details>
 
