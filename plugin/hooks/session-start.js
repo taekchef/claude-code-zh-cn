@@ -4,6 +4,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 
 function fallbackOutput() {
@@ -44,6 +45,15 @@ function main() {
   const childEnv = { ...process.env };
   if (process.argv.includes("--standalone")) {
     childEnv.CLAUDE_PLUGIN_ROOT = path.dirname(hooksDir);
+  }
+  const configRoot = childEnv.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+  const languageFile = path.join(configRoot, "plugins", "claude-code-zh-cn", ".language-mode");
+  let languageMode = "zh-CN";
+  try { languageMode = fs.readFileSync(languageFile, "utf8").trim(); } catch {}
+  // 英文模式不运行会重新合并中文设置的子 Hook，也不注入中文 fallback。
+  if (languageMode === "en") {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: "" } }) + "\n");
+    return;
   }
   const candidates = process.platform === "win32"
     ? [

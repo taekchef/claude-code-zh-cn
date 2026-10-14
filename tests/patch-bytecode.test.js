@@ -52,7 +52,7 @@ test("identity translations preserve narrow entries without false capacity failu
 });
 
 test("cancellation sentinel and shared syntax name stay intact even when translations fit", () => {
-  for (const [en, zh] of [["Hook cancelled", "已取消"], ["Diff", "差异"]]) {
+  for (const [en, zh] of [["Hook cancelled", "已取消"], ["Diff", "差异"], ["Request was aborted.", "已取消"]]) {
     const pool = entry(en);
     const original = Buffer.from(pool);
     assert.equal(patchStringPool(pool, [{ en, zh }]).patched, 0);

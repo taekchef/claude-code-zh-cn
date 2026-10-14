@@ -21,6 +21,11 @@ function revision(sourceRoot = root) {
   return h.digest("hex").slice(0, 16);
 }
 function readJson(file) { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } }
+function languageMode() {
+  const configRoot = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+  try { return fs.readFileSync(path.join(configRoot, "plugins", "claude-code-zh-cn", ".language-mode"), "utf8").trim(); }
+  catch { return "zh-CN"; }
+}
 function platform() {
   if (process.env.ZH_CN_NATIVE_PLATFORM) return process.env.ZH_CN_NATIVE_PLATFORM;
   const name = `${process.platform}-${process.arch}`;
@@ -35,8 +40,43 @@ function atomicJson(file, value) {
   try { fs.writeFileSync(tmp, JSON.stringify(value) + "\n", { mode: 0o600 }); fs.renameSync(tmp, file); }
   finally { fs.rmSync(tmp, { force: true }); }
 }
+function acquireLock(lock, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try { fs.mkdirSync(lock); return true; } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      let owner = "";
+      try { owner = fs.readFileSync(path.join(lock, "pid"), "utf8"); } catch {}
+      const pid = Number(owner.split(":")[0]);
+      let dead = false;
+      if (Number.isSafeInteger(pid) && pid > 0) {
+        try { process.kill(pid, 0); } catch (e) { dead = e.code === "ESRCH"; }
+      }
+      if (dead) {
+        // 清理者也互斥，且取得清理权后重新核对 owner，避免删掉新持有者的锁。
+        const reaping = path.join(lock, "reaping");
+        try {
+          fs.mkdirSync(reaping);
+          try {
+            if (fs.readFileSync(path.join(lock, "pid"), "utf8") === owner) fs.rmSync(lock, { recursive: true });
+          } finally { fs.rmSync(reaping, { recursive: true, force: true }); }
+        } catch (e) { if (!["EEXIST", "ENOENT"].includes(e.code)) throw e; }
+      }
+      // 锁释放后由调用者重新核对目标和状态。
+      if (!fs.existsSync(lock)) return false;
+      if (Date.now() >= deadline) throw new Error(`另一个汉化进程占用修复锁：${lock}；本次未改动程序`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+    }
+  }
+}
 function repair(input, stateRoot) {
   const target = fs.realpathSync(input), host = platform();
+  // /english 的选择存于固定配置目录，不能从随版本变化的插件缓存或 stateRoot 猜测。
+  // Windows 会在下一次启动前还原；其他平台也不能被自动修复重新汉化。
+  if (languageMode() === "en") {
+    const result = fs.existsSync(`${target}.zh-cn-backup`) ? restore(input, stateRoot) : { restored: false };
+    return { ...result, mode: "english", changed: result.restored };
+  }
   if (!["darwin-arm64", "win32-x64", "linux-x64"].includes(host)) throw new Error(`当前平台 ${host} 暂不支持 CLI Patch`);
   const receiptFile = `${target}.zh-cn-repair.json`, backup = `${target}.zh-cn-backup`;
   const currentHash = hash(target), patchRevision = revision();
@@ -64,32 +104,7 @@ function repair(input, stateRoot) {
   }
   if (receipt?.patchedHash === currentHash && receipt.revision === patchRevision) return marker({ ...receipt, changed: false });
   const lock = `${target}.zh-cn-lock`;
-  const deadline = Date.now() + 30000;
-  for (;;) {
-    try { fs.mkdirSync(lock); break; } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-      let owner = "";
-      try { owner = fs.readFileSync(path.join(lock, "pid"), "utf8"); } catch {}
-      const pid = Number(owner.split(":")[0]);
-      let dead = false;
-      if (Number.isSafeInteger(pid) && pid > 0) {
-        try { process.kill(pid, 0); } catch (e) { dead = e.code === "ESRCH"; }
-      }
-      if (dead) {
-        // 清理者也互斥，且取得清理权后重新核对 owner，避免删掉新持有者的锁。
-        const reaping = path.join(lock, "reaping");
-        try {
-          fs.mkdirSync(reaping);
-          try {
-            if (fs.readFileSync(path.join(lock, "pid"), "utf8") === owner) fs.rmSync(lock, { recursive: true });
-          } finally { fs.rmSync(reaping, { recursive: true, force: true }); }
-        } catch (e) { if (!["EEXIST", "ENOENT"].includes(e.code)) throw e; }
-      }
-      if (!fs.existsSync(lock)) return repair(input, stateRoot);
-      if (Date.now() >= deadline) throw new Error(`另一个汉化进程占用修复锁：${lock}；本次未改动程序`);
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
-    }
-  }
+  if (!acquireLock(lock)) return repair(input, stateRoot);
   let work;
   try {
     fs.writeFileSync(path.join(lock, "pid"), `${process.pid}:${crypto.randomUUID()}`);
@@ -127,6 +142,7 @@ function repair(input, stateRoot) {
     if (run(candidate, ["--version"], env).match(/\d+\.\d+\.\d+/)?.[0] !== version) throw new Error("汉化副本启动自检失败，未改动程序");
     if (!/[\u3400-\u9fff]/u.test(run(candidate, ["--help"], env))) throw new Error("汉化副本帮助界面未出现中文，未改动程序");
     const result = { version, sourceHash, patchedHash: hash(candidate), revision: patchRevision, patched, ...display, changed: true };
+    if (languageMode() === "en") throw new Error("已切换为英文，未提交中文副本；请再次启动以还原界面");
     if (hash(target) !== currentHash || fs.realpathSync(input) !== target) throw new Error("CC 在验证期间已更新，请再次启动");
     if (source === target) {
       const saved = path.join(work, "backup");
@@ -134,12 +150,16 @@ function repair(input, stateRoot) {
       fs.renameSync(saved, backup);
     }
     atomicJson(pendingFile, result);
-    if (hash(target) !== currentHash || fs.realpathSync(input) !== target) throw new Error("CC 在提交前已更新，请再次启动");
+    const commitCandidate = () => {
+      if (hash(target) !== currentHash || fs.realpathSync(input) !== target) throw new Error("CC 在提交前已更新，请再次启动");
+      if (languageMode() === "en") throw new Error("已切换为英文，未提交中文副本；请再次启动以还原界面");
+      fs.renameSync(candidate, target);
+    };
     // Windows 的文件占用错误由系统返回；绝不 unlink 正在运行的程序。
     try {
-      if (process.platform === "win32") require("../bun-binary-io.js").withWindowsFileRetry(() => fs.renameSync(candidate, target));
-      else fs.renameSync(candidate, target);
+      require("../bun-binary-io.js").withWindowsFileRetry(commitCandidate);
     } catch (error) {
+      if (!error.code) throw error;
       throw new Error(`无法替换 CC 程序（${error.code}）；请关闭占用它的窗口后再次启动，无需重装插件`);
     }
     atomicJson(receiptFile, result);
@@ -153,9 +173,10 @@ function repair(input, stateRoot) {
 function restore(input, stateRoot) {
   const target = fs.realpathSync(input);
   const lock = `${target}.zh-cn-lock`;
-  fs.mkdirSync(lock);
+  if (!acquireLock(lock, 0)) return restore(input, stateRoot);
   try {
-    const result = require("./patch-bytecode.js").restoreBinary(target);
+    fs.writeFileSync(path.join(lock, "pid"), `${process.pid}:${crypto.randomUUID()}`);
+    const result = require("./patch-bytecode.js").restoreBinary(input, { resolvedTarget: target });
     if (result.restored) {
       for (const state of [".patched-version", ".native-patch-pending.json"]) {
         fs.rmSync(path.join(stateRoot, state), { force: true });
@@ -166,7 +187,7 @@ function restore(input, stateRoot) {
     fs.rmSync(lock, { recursive: true, force: true });
   }
 }
-module.exports = { repair, restore, hash, revision, platform };
+module.exports = { repair, restore, hash, revision, platform, languageMode };
 if (require.main === module) {
   try {
     const restoring = process.argv[2] === "restore";

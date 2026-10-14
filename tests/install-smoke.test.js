@@ -140,6 +140,9 @@ function createInstallSource(tmpRoot, invokedFile, nativeVersion = "2.1.116", op
     `#!/usr/bin/env node
 const fs = require("node:fs");
 const crypto = require("node:crypto");
+// 原生事务既通过 CLI 调用 helper，也导入其文件替换包装器。
+module.exports = { withWindowsFileRetry: operation => operation() };
+if (require.main === module) {
 const cmd = process.argv[2];
 if (cmd === "detect") {
   process.stdout.write("native-bun:" + fs.realpathSync(process.argv[3]));
@@ -163,6 +166,7 @@ if (cmd === "detect") {
   process.stdout.write(fs.realpathSync(process.argv[3]));
 } else {
   process.exit(1);
+}
 }
 `
   );
@@ -193,6 +197,36 @@ function addLinuxNativeSupport(sourceRepo, version = "2.1.220") {
   };
   fs.writeFileSync(supportPath, `${JSON.stringify(support, null, 2)}\n`);
 }
+
+test("update-only preserves English selection while explicit reinstall selects Chinese before native repair", { skip: unixShellRequired }, t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-install-language-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const home = path.join(tmp, "home"), config = path.join(home, ".claude");
+  const pluginRoot = path.join(config, "plugins", "claude-code-zh-cn"), mode = path.join(pluginRoot, ".language-mode");
+  const invoked = path.join(tmp, "native-patch-invoked"), source = createInstallSource(tmp, invoked, "9.0.0");
+  const claude = path.join(tmp, "claude");
+  fs.mkdirSync(pluginRoot, { recursive: true });
+  fs.writeFileSync(mode, "en\n");
+  fs.writeFileSync(path.join(config, "settings.json"), JSON.stringify({ userSetting: "preserve" }));
+  fs.writeFileSync(claude, "#!/usr/bin/env bash\necho '9.0.0 (Claude Code) 中文帮助'\n", { mode: 0o755 });
+  const env = { ...process.env, HOME: home, CLAUDE_CONFIG_DIR: config, CLAUDE_PLUGIN_ROOT: pluginRoot, ZH_CN_REAL_CLAUDE: claude,
+    ZH_CN_NATIVE_PLATFORM: "darwin-arm64", ZH_CN_SKIP_BANNER: "1", ZH_CN_PROFILE_FILES: path.join(home, ".zshrc") };
+  const update = spawnSync("bash", [path.join(source, "install.sh"), "--update-only"], { cwd: source, env, encoding: "utf8" });
+  assert.equal(update.status, 0, update.stderr || update.stdout);
+  assert.equal(fs.readFileSync(mode, "utf8").trim(), "en");
+  const settings = JSON.parse(fs.readFileSync(path.join(config, "settings.json"), "utf8"));
+  assert.equal(settings.language, undefined);
+  assert.equal(settings.spinnerVerbs, undefined);
+  assert.equal(settings.userSetting, "preserve");
+  assert.equal(fs.existsSync(invoked), false);
+  const install = spawnSync("bash", [path.join(source, "install.sh")], { cwd: source, env, encoding: "utf8" });
+  assert.equal(install.status, 0, install.stderr || install.stdout);
+  assert.equal(fs.readFileSync(mode, "utf8").trim(), "zh-CN");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(config, "settings.json"), "utf8")).language, "Chinese");
+  assert.match(install.stdout, /本机自验证通过/);
+  assert.doesNotMatch(install.stdout, /undefined/);
+  assert.equal(fs.readFileSync(invoked, "utf8"), "repack");
+});
 
 test("Linux native install prompt requires node-lief 1.3.0 or newer", () => {
   const script = fs.readFileSync(path.join(repoRoot, "install.sh"), "utf8");

@@ -491,6 +491,25 @@ const MAC_DISPLAY_BUILDS = new Map([
     ["chunk-kzx145fg.js", "chat-settings", "7b1a4c10dc63fdfee06d1f861b95db7f6124eb60216108d33006ecf9b7a9390f"],
     ["chunk-v5wkdteh.js", "review-label", "1fd90bae947e737e701b1979c1c9ba5c341e4b2bd21d5280f4f1abe82b5ec3a7"],
   ]]],
+  // 官方 darwin-arm64 npm 包与安装器本机文件的 SHA-256 一致；各模块按 .296 源码核对。
+  ["2.1.296", ["c9b5341637becbd423ddffc5b254afb645682a3868cb708bbc6cc0e7bb419937", [
+    ["chunk-24k7d6mw.js", "permission", "1d064454003e46bba8086468918622fd0cad3673bf3ba900031c380b27ed1d31"],
+    ["chunk-3cynezh1.js", "permission-mode", "c3fc78a29a64dc725d32fe549b7dc11190e7646368c939bb8d61e755799955b3"],
+    ["chunk-0qkpwgr4.js", "key-hint", "470fcab1f965a43d7ec6a08213a15a49218e65d7e2cc8b4bef21d8c4622335a6"],
+    ["chunk-xk0w67h7.js", "mcp-help", "32807534113b0c7dbba4b5e8fce50b9195ddfd46a18b31ea2f200a7039780230"],
+    ["chunk-7a8xbemr.js", "diff-panel", "7689bc9b27363875652bb5f1f438b9215a19daeada2d892bbfae357d7cb42c0a"],
+    ["chunk-sfn1dbxq.js", "help", "4c74137eb23221981404d0ca87b765912f83344851d5c132b21857e5685b03da"],
+    ["chunk-1dhzexv1.js", "help", "bd0b184583b7ed75cbcd56c65bb3c5175dfeb7f94d6a35754b988df573ebfff9"],
+    ["chunk-bshcxcyb.js", "permission-reason", "691f82869dbe479c9721eb45614caa31b4041e46159c1e6fdee56410f451cae3"],
+    ["chunk-7vyj6mx6.js", "help", "80299b6d4b3e05adaa2c157f60b6fe8074c507fb5e1af5864ac5aee7c9ecfb9f"],
+    ["chunk-qcxyj0he.js", "help", "5399170ac91e9c340f678f4e9ef3090e8327e44871409b341c056857fccbcefa"],
+    ["chunk-78w3rfp3.js", "background-help", "fb3c1bfd79c275709b224864837de2d4189dba1c243c4fccc44ce840da2c65a3"],
+    ["chunk-qxx42xzq.js", "help", "3d539e5a86d7d955e627de45bd0da0ec2b0e395335f422d526372a94a3c952f8"],
+    ["chunk-cnvr16zw.js", "help-formatter", "b72d6c64ced9a3da37dc8b18e4321bcb638cded868b316b5243897ff0391827a"],
+    ["chunk-dag4qhha.js", "usage-panel", "cd1a28e9b3a52a9e2fa16901017bf7b0151c67d1859d5104a840d41e33f3f4d2"],
+    ["chunk-yhar7r1q.js", "chat-settings", "98f5ad67a24b8e8e412934f13de27fdb500fad75e6e886c437183e9e104e1df0"],
+    ["chunk-tar639dc.js", "review-label", "c8f74100741e1b26457915d3a67a41b9a9ae9ef5bab44e7c334f18c8fbb6f2fc"],
+  ]]],
 ]);
 
 const KEY_HINT_ACTIONS = {
@@ -549,6 +568,12 @@ function rewriteMacDisplaySource(source, role, translations, replacements = macS
     replace(/label:"No"/g, 'label:"否"');
     replace(/("Yes, and don't ask again for ",[^\n]+?)," ","in ",/g,
       (_match, before) => `${before},"，目录：",`);
+  } else if (role === "permission-mode") {
+    // 模式标题还用于内部标识；仅翻译终端 indicator，保留模式键、title 和 external。
+    for (const [en, zh] of [["manual mode", "手动模式"], ["plan mode", "计划模式"], ["accept edits", "接受编辑"], ["bypass permissions", "绕过权限"], ["don't ask", "不询问"], ["auto mode", "自动模式"]]) {
+      replace(new RegExp("indicator:" + JSON.stringify(en), "g"), "indicator:" + JSON.stringify(zh));
+    }
+    return { source, changed };
   } else if (role === "permission-reason") {
     replace(/`Ask rule \$\{([^}]+)\} overrides auto mode for this \$\{([^}]+)\}\.`/g,
       (_match, rule, kind) => `\`询问规则 \${${rule}} 优先于此\${${kind}==="tool"?"工具":"命令"}的自动审批。\``);
@@ -641,7 +666,9 @@ function patchMacDisplayModules(bunData, bunOffsets, moduleStructSize, translati
     try {
       execFileSync(process.execPath, ["--input-type=module", "--check"], { input: result.source, stdio: ["pipe", "ignore", "ignore"] });
     } catch {
-      throw new Error(`${moduleName} 显示源码语法验证失败，未改动文件`);
+      const requirement = Number(process.versions.node.split(".")[0]) < 24 && /\busing\s+[$\w]/u.test(result.source)
+        ? "；此构建使用 using 语法，请用 Node.js 24+ 运行补丁工具" : "";
+      throw new Error(`${moduleName} 显示源码语法验证失败，未改动文件${requirement}`);
     }
     const storage = contents.size >= bytecode.size ? contents : bytecode;
     if (replacement.length > storage.size) throw new Error(`${moduleName} 显示内容超出独立占位`);
@@ -712,18 +739,24 @@ function patchBinary(binaryPath, translations, { dryRun = false, mainTableOnly =
   }
 }
 
-function restoreBinary(binaryPath) {
-  binaryPath = fs.realpathSync(binaryPath);
+function restoreBinary(binaryPath, { resolvedTarget = fs.realpathSync(binaryPath) } = {}) {
+  const inputPath = binaryPath;
+  binaryPath = resolvedTarget;
+  if (fs.realpathSync(inputPath) !== binaryPath) throw new Error("CC 在还原前已更新，未还原文件；当前程序和备份已保留");
   const backup = binaryPath + ".zh-cn-backup";
   const receiptPath = binaryPath + ".zh-cn-repair.json";
-  if (fs.existsSync(receiptPath)) {
-    const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
-    const { hash } = require("./native-repair.js");
-    if (hash(backup) !== receipt.sourceHash) throw new Error("备份指纹不符，未还原文件；备份已保留");
-    if (hash(binaryPath) !== receipt.patchedHash) {
+  const { hash } = require("./native-repair.js");
+  const currentHash = hash(binaryPath), backupHash = hash(backup);
+  const pendingPath = receiptPath + ".pending";
+  const pending = fs.existsSync(pendingPath) ? JSON.parse(fs.readFileSync(pendingPath, "utf8")) : null;
+  const receipt = pending?.patchedHash === currentHash ? pending
+    : fs.existsSync(receiptPath) ? JSON.parse(fs.readFileSync(receiptPath, "utf8")) : pending;
+  if (receipt) {
+    if (backupHash !== receipt.sourceHash) throw new Error("备份指纹不符，未还原文件；备份已保留");
+    if (currentHash !== receipt.patchedHash) {
       // CC 已被上游重新安装或升级，不能用同版本旧备份覆盖它。
       fs.unlinkSync(backup);
-      fs.unlinkSync(receiptPath);
+      fs.rmSync(receiptPath, { force: true });
       fs.rmSync(receiptPath + ".pending", { force: true });
       return { restored: false, reason: "current-file-changed", preservedCurrent: true };
     }
@@ -736,7 +769,12 @@ function restoreBinary(binaryPath) {
   try {
     const candidate = path.join(tempDir, path.basename(binaryPath));
     fs.copyFileSync(backup, candidate);
-    io.withWindowsFileRetry(() => fs.renameSync(candidate, binaryPath));
+    io.withWindowsFileRetry(() => {
+      if (hash(candidate) !== backupHash || hash(backup) !== backupHash || hash(binaryPath) !== currentHash || fs.realpathSync(inputPath) !== binaryPath) {
+        throw new Error("CC 或备份在还原期间已更新，未还原文件；当前程序和备份已保留");
+      }
+      fs.renameSync(candidate, binaryPath);
+    });
     io.withWindowsFileRetry(() => fs.unlinkSync(backup));
     fs.rmSync(binaryPath + ".zh-cn-repair.json", { force: true });
     fs.rmSync(binaryPath + ".zh-cn-repair.json.pending", { force: true });

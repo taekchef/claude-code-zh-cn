@@ -279,6 +279,22 @@ test("launcher warns and still execs real claude when prelaunch patch fails", { 
   assert.match(launch.stderr, /prelaunch patch failed/i);
   assert.match(fs.readFileSync(context.cliFile, "utf8"), /Quick safety check/);
 });
+test("npm launcher preserves English mode until the user switches back to Chinese", { skip: unixOnly }, t => {
+  const context = createLauncherContext();
+  t.after(() => fs.rmSync(context.tmp, { recursive: true, force: true }));
+  const install = runInstall(context);
+  assert.equal(install.status, 0, install.stderr || install.stdout);
+  const mode = path.join(context.home, ".claude", "plugins", "claude-code-zh-cn", ".language-mode");
+  fs.writeFileSync(mode, "en\n");
+  fs.writeFileSync(context.cliFile, englishCliFixture());
+  const english = runClaude(context);
+  assert.equal(english.status, 0, english.stderr || english.stdout);
+  assert.match(fs.readFileSync(context.cliFile, "utf8"), /Quick safety check/);
+  fs.writeFileSync(mode, "zh-CN\n");
+  const chinese = runClaude(context, { REQUIRE_PATCH_BEFORE_EXEC: "1" });
+  assert.equal(chinese.status, 0, chinese.stderr || chinese.stdout);
+  assert.doesNotMatch(fs.readFileSync(context.cliFile, "utf8"), /Quick safety check/);
+});
 
 test("install.sh removes stale launcher injection for unsupported third-party claude wrappers", { skip: unixOnly }, () => {
   const context = createUnsupportedWrapperContext();

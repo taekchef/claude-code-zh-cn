@@ -160,6 +160,27 @@ test("session-start Node entrypoint fails open with valid JSON", { skip: process
   assert.equal(output.hookSpecificOutput.hookEventName, "SessionStart");
   assert.match(output.hookSpecificOutput.additionalContext, /Claude Code 本体保持原样可用/);
 });
+test("English mode suppresses SessionStart settings repair and fallback across plugin roots", t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cczh-hook-english-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const config = path.join(tmp, "custom-config"), hooks = path.join(tmp, "marketplace-plugin", "hooks");
+  const mode = path.join(config, "plugins", "claude-code-zh-cn", ".language-mode");
+  const touched = path.join(tmp, "child-hook-ran");
+  fs.mkdirSync(path.dirname(mode), { recursive: true });
+  fs.mkdirSync(hooks, { recursive: true });
+  fs.copyFileSync(sessionEntrypoint, path.join(hooks, "session-start.js"));
+  fs.writeFileSync(path.join(hooks, "session-start"), '#!/usr/bin/env bash\nprintf ran > "$TEST_TOUCHED"\nexit 1\n');
+  fs.writeFileSync(mode, "en\n");
+  const env = { ...process.env, CLAUDE_CONFIG_DIR: config, CLAUDE_PLUGIN_DATA: path.join(tmp, "data"), TEST_TOUCHED: touched };
+  const run = () => spawnSync(process.execPath, [path.join(hooks, "session-start.js")], { input: "{}\n", env, encoding: "utf8" });
+  const english = run();
+  assert.equal(english.status, 0, english.stderr);
+  assert.equal(JSON.parse(english.stdout).hookSpecificOutput.additionalContext, "");
+  assert.equal(fs.existsSync(touched), false);
+  fs.writeFileSync(mode, "zh-CN\n");
+  assert.match(JSON.parse(run().stdout).hookSpecificOutput.additionalContext, /中文本地化/);
+  if (process.platform !== "win32") assert.equal(fs.existsSync(touched), true);
+});
 
 test("notification Node entrypoint translates known notices and ignores unknown ones", () => {
   const known = spawnSync("node", [notificationEntrypoint], {

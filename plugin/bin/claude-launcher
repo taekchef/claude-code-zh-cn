@@ -175,6 +175,7 @@ main() {
     local install_kind=""
     local install_target=""
     local current_marker=""
+    local language_mode=""
 
     real_claude="$(find_real_claude_binary)"
     if [ -z "$real_claude" ]; then
@@ -185,12 +186,15 @@ main() {
     install_info="$(detect_installation "$real_claude")"
     install_kind="${install_info%%:*}"
     install_target="${install_info#*:}"
+    if [ -f "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/claude-code-zh-cn/.language-mode" ]; then
+        read -r language_mode < "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/claude-code-zh-cn/.language-mode" || true
+    fi
 
     if [ "$install_kind" = "native-bun" ] && [ -n "$PLUGIN_ROOT" ]; then
         node "$PLUGIN_ROOT/scripts/native-repair.js" "$install_target" "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/claude-code-zh-cn}" >/dev/null || true
     fi
 
-    if [ "$install_kind" = "npm" ] && [ -f "$install_target" ]; then
+    if [ "$language_mode" != "en" ] && [ "$install_kind" = "npm" ] && [ -f "$install_target" ]; then
         current_marker="$(compute_current_marker "$install_target" 2>/dev/null || true)"
         if [ -n "$current_marker" ]; then
             maybe_patch_npm_cli "$install_target" "$current_marker"

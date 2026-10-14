@@ -55,6 +55,30 @@ test("usage title changes only in the display node, preserving the model's same-
   assert.equal(result.view.children, "哪些操作消耗了你的额度？");
   assert.equal(result.modelHeading, heading);
 });
+test("request cancellation remains recognizable across source and bytecode modules", () => {
+  const source = 'const classify=e=>e instanceof Error&&e.message==="Request was aborted."?"aborted":"other";classify(new Error("Request was aborted."));';
+  const result = rewriteMacDisplaySource(source, "help", translations);
+  assert.equal(result.source, source);
+  assert.equal(vm.runInNewContext(result.source), "aborted");
+});
+test("native permission mode indicators translate without changing mode titles or serialized values", () => {
+  const source = 'const modes={default:{title:"Manual",shortTitle:"Manual",indicator:"manual mode",external:"default"},plan:{title:"Plan",shortTitle:"Plan",indicator:"plan mode",external:"plan"},acceptEdits:{title:"Accept edits",shortTitle:"Accept",indicator:"accept edits",external:"acceptEdits"},bypassPermissions:{title:"Bypass Permissions",shortTitle:"Bypass",indicator:"bypass permissions",external:"bypassPermissions"},dontAsk:{title:"Don\'t Ask",shortTitle:"DontAsk",indicator:"don\'t ask",external:"dontAsk"},auto:{title:"Auto",shortTitle:"Auto",indicator:"auto mode",external:"auto"}};JSON.stringify(modes);';
+  const original = JSON.parse(vm.runInNewContext(source));
+  const result = JSON.parse(vm.runInNewContext(rewriteMacDisplaySource(source, "permission-mode", translations).source));
+  const indicators = ["手动模式", "计划模式", "接受编辑", "绕过权限", "不询问", "自动模式"];
+  Object.keys(original).forEach((key, i) => {
+    assert.equal(result[key].indicator, indicators[i]);
+    delete original[key].indicator; delete result[key].indicator;
+    assert.deepEqual(result[key], original[key]);
+  });
+});
+test("response and voice language prompt localizes while keeping its setting and analytics values", () => {
+  const source = 'const prompt={children:"Enter your preferred response and voice language:"},settings={language:"English"},event={name:"tengu_language_changed",language:"default",source:"config_panel"};JSON.stringify({prompt,settings,event});';
+  const result = JSON.parse(vm.runInNewContext(rewriteMacDisplaySource(source, "help", translations).source));
+  assert.equal(result.prompt.children, "输入你偏好的回复和语音语言：");
+  assert.deepEqual(result.settings, { language: "English" });
+  assert.deepEqual(result.event, { name: "tengu_language_changed", language: "default", source: "config_panel" });
+});
 
 test("chat and review labels localize their display fields without changing contexts or tool names", () => {
   const source = 'const context="Chat",toolName="Code review",help="Authorization: Bearer `token` for `url` sources",server="not found";const label={defaultMessage:"Chat",id:"WTrOy36sdu"},title={defaultMessage:"Allow Chat",id:"0Cc9oG2J04"},description={defaultMessage:"Enable Chat. Quick questions and drafting.",id:"z2x73mCBZ9"};const tool={name:toolName,userFacingName(){return"Code review"}};JSON.stringify({context,label,title,description,help,server,name:tool.name,display:tool.userFacingName()});';
@@ -127,4 +151,44 @@ test("a verified display module uses its exclusive source space when bytecode is
     assert.throws(() => patchMacDisplayModules(buffer, { modulesPtr: { offset: 0, length: 52 } }, 52, translations, { format: "MachO", version, sourceHash }), /语法验证失败/);
     assert.deepEqual(buffer, before);
   } finally { MAC_DISPLAY_BUILDS.delete(version); }
+});
+test("using declarations keep the syntax gate and provide the required runtime on older Node", () => {
+  const source = 'using resource={ [Symbol.dispose](){} }; const title="Sign in with your Anthropic account";'.padEnd(240, " ");
+  const version = "9.9.8", sourceHash = "b".repeat(64), buffer = Buffer.alloc(600), name = "/$bunfs/root/using.js";
+  buffer.write(name, 52); buffer.writeUInt32LE(52, 0); buffer.writeUInt32LE(name.length, 4);
+  buffer.write(source, 100); buffer.writeUInt32LE(100, 8); buffer.writeUInt32LE(240, 12);
+  buffer.fill(0xaa, 400, 404); buffer.writeUInt32LE(400, 24); buffer.writeUInt32LE(4, 28);
+  MAC_DISPLAY_BUILDS.set(version, [sourceHash, [["using.js", "help", crypto.createHash("sha256").update(source).digest("hex")]]]);
+  try {
+    if (Number(process.versions.node.split(".")[0]) < 24) {
+      const before = Buffer.from(buffer);
+      assert.throws(() => patchMacDisplayModules(buffer, { modulesPtr: { offset: 0, length: 52 } }, 52, translations, { format: "MachO", version, sourceHash }), /Node\.js 24\+/);
+      assert.deepEqual(buffer, before);
+    } else {
+      assert.equal(patchMacDisplayModules(buffer, { modulesPtr: { offset: 0, length: 52 } }, 52, translations, { format: "MachO", version, sourceHash }).sourceModules, 1);
+      assert.match(buffer.toString("utf8", 100, 340), /using resource/);
+    }
+  } finally { MAC_DISPLAY_BUILDS.delete(version); }
+});
+
+test("2.1.296 plugin help uses its verified module and preserves command contracts", () => {
+  const spec = MAC_DISPLAY_BUILDS.get("2.1.296")[1].find(([name]) => name === "chunk-qcxyj0he.js");
+  assert.deepEqual(spec, ["chunk-qcxyj0he.js", "help", "5399170ac91e9c340f678f4e9ef3090e8327e44871409b341c056857fccbcefa"]);
+  const rule = translations.find(rule => rule.en.startsWith("Run eval cases (<eval dir>/**/case.yaml"));
+  assert.ok(rule, "the complete eval description must have an existing translation");
+  const rules = [rule,
+    translations.find(rule => rule.en.startsWith("Target is a path, a plugin name,") && rule.en.endsWith("arm). ")),
+    translations.find(rule => rule.en.startsWith("It loads the plugin and runs its eval suite"))];
+  assert.ok(rules.every(Boolean), "all concatenated eval and trust-warning fragments must be covered");
+  const description = rules.map(rule => JSON.stringify(rule.en)).join("+");
+  const source = `const commands={eval:{usage:"plugin eval [target]",description:${description},earlyAccess:"pluginEval"},test:{usage:"plugin test [dir]",description:"Run a mod's tests",earlyAccess:"hooksModules"},install:{usage:"plugin install <plugin>",aliases:["i"],description:"Install a plugin from available marketplaces (use plugin@marketplace for specific marketplace)"}};function visible(flags){return Object.values(commands).filter(c=>c.earlyAccess===undefined||flags[c.earlyAccess])}({commands,visible});`;
+  const original = vm.runInNewContext(source);
+  const result = vm.runInNewContext(rewriteMacDisplaySource(source, "help", translations).source);
+  assert.equal(result.commands.eval.description, rules.map(rule => rule.zh).join(""));
+  const contracts = commands => JSON.parse(JSON.stringify(commands, (key, value) => key === "description" ? undefined : value));
+  assert.deepEqual(contracts(result.commands), contracts(original.commands));
+  for (const pluginEval of [false, true]) for (const hooksModules of [false, true]) {
+    const flags = { pluginEval, hooksModules };
+    assert.deepEqual(contracts(result.visible(flags)), contracts(original.visible(flags)));
+  }
 });

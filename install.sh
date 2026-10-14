@@ -11,6 +11,7 @@ if [ "${1:-}" = "--update-only" ]; then
 fi
 
 SETTINGS_FILE="$HOME/.claude/settings.json"
+LANGUAGE_MODE_FILE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/claude-code-zh-cn/.language-mode"
 BACKUP_FILE="$HOME/.claude/settings.json.zh-cn-backup.$(date +%Y%m%d%H%M%S)"
 OVERLAY_FILE="$SCRIPT_DIR/settings-overlay.json"
 PLUGIN_SRC="$SCRIPT_DIR/plugin"
@@ -1013,6 +1014,10 @@ merge_settings() {
     local overlay_content merged
 
     ensure_settings_file
+    # 更新插件只换载荷，不应撤销用户用 /english 保存的选择。
+    if [ "$UPDATE_ONLY" = true ] && [ "$(cat "$LANGUAGE_MODE_FILE" 2>/dev/null || true)" = "en" ]; then
+        return
+    fi
 
     if [ "$UPDATE_ONLY" != true ]; then
         cp "$SETTINGS_FILE" "$BACKUP_FILE"
@@ -1081,6 +1086,19 @@ fs.writeFileSync(process.env.ZH_CN_SETTINGS, JSON.stringify(merged, null, 2) + '
     fi
 
     sync_ccswitch_common_config "$overlay_content"
+}
+
+select_chinese_mode() {
+    [ "$UPDATE_ONLY" != true ] || return 0
+    node - "$LANGUAGE_MODE_FILE" <<'NODE'
+const fs = require("node:fs"), path = require("node:path"), file = process.argv[2];
+fs.mkdirSync(path.dirname(file), { recursive: true });
+const temporary = `${file}.${process.pid}.tmp`;
+try {
+  fs.writeFileSync(temporary, "zh-CN\n", { mode: 0o600 });
+  fs.renameSync(temporary, file);
+} finally { fs.rmSync(temporary, { force: true }); }
+NODE
 }
 
 sync_plugin_payload() {
@@ -1431,7 +1449,7 @@ patch_native_binary() {
     local result
     if result="$(node "$PLUGIN_DST/scripts/native-repair.js" "$1" "$PLUGIN_DST")"; then
         CLI_PATCH_STATUS_OK=true
-        CLI_PATCH_STATUS_SUMMARY="$(node -e 'const r=JSON.parse(process.argv[1]);process.stdout.write("Claude Code "+r.version+" 本机自验证通过（"+r.patched+" 处译文；"+(r.mode==="provisional"?"未纳入已发布支持窗口":"已发布验证版本")+"）")' "$result")"
+        CLI_PATCH_STATUS_SUMMARY="$(node -e 'const r=JSON.parse(process.argv[1]);process.stdout.write(r.mode==="english"?"已保留英文模式（未应用中文界面补丁）":"Claude Code "+r.version+" 本机自验证通过（"+r.patched+" 处译文；"+(r.mode==="provisional"?"未纳入已发布支持窗口":"已发布验证版本")+"）")' "$result")"
         echo "$CLI_PATCH_STATUS_SUMMARY"
     else
         CLI_PATCH_STATUS_SUMMARY="未完成；请按上方具体错误处理，正常升级后再次启动即可重试"
@@ -1478,6 +1496,7 @@ main() {
     register_official_plugin
     install_launcher
     merge_settings
+    select_chinese_mode
     reconcile_standalone_hooks
     write_install_metadata
 

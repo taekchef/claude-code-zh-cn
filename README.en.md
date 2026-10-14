@@ -80,6 +80,8 @@ And plenty more down-to-earth developer mood indicators:
 
 ## ⚡ Quick Install
 
+The macOS arm64 Claude Code `2.1.296` display modules use `using` declarations. Run the UI patch with **Node.js 24+**. Older Node versions reject it during syntax validation and preserve the current binary and backup; spinner settings remain available.
+
 ### Option A: The One-Liner (Recommended)
 
 **macOS / Linux / WSL**:

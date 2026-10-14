@@ -166,6 +166,9 @@ function readVersion(file) {
   return match ? match[1] : "";
 }
 
+// 原生事务导入 helper 时不能执行 CLI 分支或退出调用进程。
+module.exports = { withWindowsFileRetry: operation => operation() };
+if (require.main === module) {
 const cmd = process.argv[2];
 if (cmd === "detect") {
   process.stdout.write("native-bun:" + fs.realpathSync(process.argv[3]));
@@ -185,6 +188,7 @@ if (cmd === "detect") {
   process.stdout.write(fs.realpathSync(process.argv[3]));
 } else {
   process.exit(1);
+}
 }
 `
   );
