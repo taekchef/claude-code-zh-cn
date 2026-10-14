@@ -56,6 +56,9 @@ const LOGIC_CONSUMED_FRAGMENTS = new Set([
   "Chat", // 快捷键上下文也使用此值；只翻译设置中的展示字段。
   "What's contributing to your limits usage?", // 模型说明与界面标题共用。
   "Hook cancelled",
+  "Request was aborted.", // SDK 取消错误仍以英文消息参与控制流判定。
+  "Permission denied", // 外部 Hook / 系统错误分类使用英文，不能改写比较条件。
+  "Usage credits are required for long context", // 外部 API 错误分类哨兵。
   "Shell cwd was reset to ",
   'Agent "',
 ]);

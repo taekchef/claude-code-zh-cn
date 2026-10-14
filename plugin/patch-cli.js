@@ -277,6 +277,21 @@ function escapeSingleQuotedLiteralNeedleContent(text) {
         .replace(/'/g, "\\'");
 }
 
+// 外部 API、Hook 和 SSH 错误由英文文本分类；即使短译文（如 Usage
+// credits）命中其中一部分，也必须保留整段。仅跳过完整翻译规则不够。
+function isProtectedErrorLiteral(literal) {
+    // 仅为保护判断解码 ASCII 转义，不执行字符串、不改变输出源码。
+    const text = literal.text
+        .replace(/\\(?:u\{([0-9a-fA-F]+)\}|u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2}))/g,
+            (escape, braced, unicode, hex) => {
+                const code = parseInt(braced || unicode || hex, 16);
+                return code <= 0x7f ? String.fromCharCode(code) : escape;
+            })
+        .replace(/\\(?:\r\n|\r|\n)/g, "");
+    return ["Request was aborted.", "Permission denied", "Usage credits are required for long context", "Extra usage is required for long context"]
+        .some((sentinel) => text.includes(sentinel));
+}
+
 function isProtectedProtocolLiteral(literal) {
     return literal.quote === "`" && literal.text.startsWith("[Pasted text #${") && literal.text.endsWith(" lines]");
 }
@@ -1828,12 +1843,14 @@ if (translationsFile && fs.existsSync(translationsFile)) {
         }
     }
 
+    // 保护判断与译文规则无关，每个字面量只解码一次。
+    const protectedErrors = new Set(literals.filter(isProtectedErrorLiteral));
     for (const { en, zh } of translationRules) {
         if (en === zh) continue;
 
         let hit = false;
         for (const literal of literals) {
-            if (isProtectedProtocolLiteral(literal)) {
+            if (isProtectedProtocolLiteral(literal) || protectedErrors.has(literal)) {
                 continue;
             }
             if (literal.quote === "`") {
