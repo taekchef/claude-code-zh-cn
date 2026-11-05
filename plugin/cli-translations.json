@@ -9265,5 +9265,65 @@
   {
     "en": "Accept the marketplace-declared command (a command-source install, or the headersHelper that fetches the archive) whose sha256 a previous --json run reported as shownCommand.sha256; counts as -y for exactly that command, for that plugin and marketplace catalog, and nothing else. If either changed (a refresh that moved the catalog counts), the run refuses and reports the command again, to be shown to a person again",
     "zh": "接受插件市场声明的命令（命令来源安装，或获取压缩包的 headersHelper）；其 sha256 必须与此前 --json 报告的 shownCommand.sha256 一致。仅对此命令、此插件和对应市场目录视同 -y 确认，不授权其他内容。若命令或目录有变动（刷新导致目录变化也算），会拒绝运行并重新报告命令，供用户再次确认"
+  },
+  {
+    "en": "Ultracode keyword trigger",
+    "zh": "Ultracode 关键词触发"
+  },
+  {
+    "en": "Dynamic workflow size",
+    "zh": "动态工作流规模"
+  },
+  {
+    "en": "Precompute compaction",
+    "zh": "预计算压缩"
+  },
+  {
+    "en": "Show message timestamps",
+    "zh": "显示消息时间戳"
+  },
+  {
+    "en": "Time format",
+    "zh": "时间格式"
+  },
+  {
+    "en": "Worktree base ref",
+    "zh": "Worktree 基准 ref"
+  },
+  {
+    "en": "Skip the /copy picker",
+    "zh": "跳过 /copy 选择器"
+  },
+  {
+    "en": "Question auto-continue timeout",
+    "zh": "提问自动继续超时"
+  },
+  {
+    "en": "Claude-proposed goals",
+    "zh": "Claude 提议的目标"
+  },
+  {
+    "en": "Auto (match terminal)",
+    "zh": "自动（跟随终端）"
+  },
+  {
+    "en": "Auto-compact window size",
+    "zh": "自动压缩窗口大小"
+  },
+  {
+    "en": "Auto-compact window",
+    "zh": "自动压缩窗口"
+  },
+  {
+    "en": "Synced project memory (this directory; applies next session)",
+    "zh": "同步的项目记忆（此目录；下次会话生效）"
+  },
+  {
+    "en": "Synced project memory writes (this directory; applies next session)",
+    "zh": "同步写入项目记忆（此目录；下次会话生效）"
+  },
+  {
+    "en": "Synced project memory writes (enable reads first)",
+    "zh": "同步写入项目记忆（请先启用读取）"
   }
 ]
