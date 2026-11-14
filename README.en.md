@@ -30,7 +30,7 @@ Making Claude Code in your terminal finally speak human Chinese 🇨🇳
 
 <div align="center">
 
-<a href="https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link"><img src="./docs/assets/infistar-banner.png" alt="Infistar.cc" /></a>
+<a href="https://www.infistar.cc/register?aff=J9HHJWNL&ref_source=link"><img src="./docs/assets/infistar-banner-en.png" alt="Get started with Infistar.cc’s global LLM API platform" /></a>
 
 </div>
 
